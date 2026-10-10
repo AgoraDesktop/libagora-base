@@ -95,6 +95,63 @@
 
 @end
 
+/* ------------------------------------------------------------------------ */
+/* _cfurl: the true CFURL behind an NSURL, and _CFURLFromNSURL is the only caller */
+/* ------------------------------------------------------------------------ */
+
+/* CFURL.c IS EXPLICIT ABOUT WHAT THIS IS -- "Toll-free bridging support; get the true CFURL from an
+ * NSURL" -- and every URL door that takes one calls _CFURLFromNSURL first, which sends this and then
+ * reads Core Foundation's storage. SEVEN DOORS HINGE ON THIS ONE METHOD: CFURLCopyPath,
+ * CFURLHasDirectoryPath, CFURLCanBeDecomposed, CFURLCopyNetLocation,
+ * CFURLCreateCopyDeletingLastPathComponent, CFURLCreateCopyAppendingPathComponent and
+ * CFURLGetByteRangeForComponent all threw '-[NSURL _cfurl] is not implemented'.
+ *
+ * ON APPLE AN NSURL *IS* A CFURL and this returns the one it wraps. Agora's NSURL has its own storage,
+ * so this BUILDS the Core Foundation object from the URL's string -- which is honest rather than clever:
+ * the answer is a real CFURL with the same content, and CFURLCreateWithString makes a NATIVE one, so
+ * there is no recursion back through this method. It returns +1 because the macro returns it directly
+ * and the door's contract is a Copy. */
+@implementation NSURL (NSCFBridging)
+
+- (CFURLRef)_cfurl
+{
+	NSString *s = [self absoluteString];
+
+	return s == nil ? NULL : CFURLCreateWithString(NULL, (CFStringRef)s, NULL);
+}
+
+@end
+
+/* ------------------------------------------------------------------------ */
+/* the string fast paths, which are allowed to say no                         */
+/* ------------------------------------------------------------------------ */
+
+/* CFString.c ASKS FOR THESE BEFORE FALLING BACK, AND NULL IS AN ANSWER: -_fastCStringContents: and
+ * -_fastCharacterContents mean "here is my internal buffer, use it and do not copy", so returning NULL
+ * says "I have none" and Core Foundation takes the slow path it already has. Base's strings keep no such
+ * buffer, so NULL is not a stub here -- it is the truth, and it is what makes these three doors work
+ * rather than raise. -_encodingCantBeStoredInEightBitCFString is a question with a real answer: whether
+ * this string's encoding needs more than a byte per character. */
+@implementation NSString (NSCFBridging)
+
+- (const char *)_fastCStringContents:(Boolean)nullTerminated
+{
+	(void)nullTerminated;
+	return NULL;	/* no internal 8-bit buffer: Core Foundation should copy instead */
+}
+
+- (const UniChar *)_fastCharacterContents
+{
+	return NULL;	/* and none in UTF-16 either */
+}
+
+- (Boolean)_encodingCantBeStoredInEightBitCFString
+{
+	return (Boolean)(self.length > 0 && [self canBeConvertedToEncoding:NSASCIIStringEncoding] == NO);
+}
+
+@end
+
 @implementation NSObject (NSCFBridging)
 
 - (NSString *)_copyDescription
