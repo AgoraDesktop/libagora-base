@@ -296,3 +296,10 @@ typedef enum {
 NS_ASSUME_NONNULL_END
 
 #endif /* FOUNDATION_NSCODER_H */
+
+/*
+ * THE CG-SPELLED CODING DOORS — `-encodeCGPoint:forKey:` and the four others — are
+ * `NSCoderCGGeometry.h` in this directory, for the same reason NSValue's are included here: they are
+ * NSCoder categories, so Foundation owns them, and Core Graphics must not depend on Foundation.
+ */
+#import <Foundation/NSCoderCGGeometry.h>

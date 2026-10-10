@@ -17,7 +17,7 @@
  * geometry door has nothing better to say than the zero struct.
  */
 
-#import <CoreGraphics/NSCoderCGGeometry.h>
+#import "NSCoderCGGeometry.h"
 #import <Foundation/NSValue.h>
 
 @implementation NSCoder (NSCoderCGGeometryAdditions)

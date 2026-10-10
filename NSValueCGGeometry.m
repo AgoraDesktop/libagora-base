@@ -15,7 +15,7 @@
  * `-CGPointValue` on a box holding something else is undefined there too, and the way to ask is `-objCType`.
  */
 
-#import <CoreGraphics/NSValueCGGeometry.h>
+#import "NSValueCGGeometry.h"
 
 @implementation NSValue (NSValueCGGeometryAdditions)
 

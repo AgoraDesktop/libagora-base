@@ -164,3 +164,12 @@ NS_ASSUME_NONNULL_BEGIN
 NS_ASSUME_NONNULL_END
 
 #endif /* FOUNDATION_NSVALUE_H */
+
+/*
+ * THE CG-SPELLED BOXING DOORS — `+valueWithCGPoint:`, `+valueWithCGSize:`, `+valueWithCGRect:`,
+ * `+valueWithCGAffineTransform:` and their unboxing opposites — are `NSValueCGGeometry.h` in this
+ * directory. Foundation owns them (they are NSValue categories), so they are spelled Foundation's way;
+ * that header imports Core Graphics for the four types, and Core Graphics imports nothing of ours, so
+ * the dependency runs one way. Included here because Apple's NSValue upholds the same arrangement.
+ */
+#import <Foundation/NSValueCGGeometry.h>
