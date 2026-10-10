@@ -130,53 +130,70 @@ static const bridge_case g_cases[] = {
 /* the regressions                                                           */
 /* ------------------------------------------------------------------------ */
 
-static void regressions(void)
+/* THE REGRESSIONS, ONE GROUP PER CHILD, for the same reason the cases have one each: a HALT in the
+ * middle of this block used to take every group after it with it. */
+static void reg_cluster(void)
 {
-	/* THE CLUSTER. Foundation answers CFArrayGetTypeID() with five classes, and every one of them
-	 * has to be recognised -- an equality test against the cluster root would match none. */
+	/* Foundation answers CFArrayGetTypeID() with five classes, and every one of them has to be
+	 * recognised -- an equality test against the cluster root would match none. */
 	id arrays[] = { @[], @[ @1 ], @[ @1, @2 ], @[ @1, @2, @3, @4, @5, @6, @7, @8, @9 ],
 			[NSMutableArray array], [NSMutableArray arrayWithObject:@1] };
+
 	for (size_t i = 0; i < sizeof arrays / sizeof arrays[0]; i++) {
-		CFMutableArrayRef m = (CFMutableArrayRef)arrays[i];
 		if ([arrays[i] isKindOfClass:[NSMutableArray class]]) {
-			CFArrayAppendValue(m, CFSTR("appended"));
+			CFArrayAppendValue((CFMutableArrayRef)arrays[i], CFSTR("appended"));
 		}
 		check(CFArrayGetCount((CFArrayRef)arrays[i]) == (CFIndex)[arrays[i] count],
 		      "cluster member %s: CF count %ld vs ObjC count %ld",
 		      class_getName([arrays[i] class]),
 		      (long)CFArrayGetCount((CFArrayRef)arrays[i]), (long)[arrays[i] count]);
 	}
+}
 
-	/* TAGGED POINTERS. A short @"..." literal has no isa: the pointer's tag bits hold the class.
-	 * Reading offset 0 of one dereferences 0xd19766cde000002c. */
+static void reg_tagged(void)
+{
+	/* A short @"..." literal has no isa: the pointer's tag bits hold the class. Reading offset 0 of
+	 * one dereferences 0xd19766cde000002c. */
 	NSString *tagged[] = { @"x", @"ab", @"hello", @"tagged", @"a somewhat longer literal string" };
+
 	for (size_t i = 0; i < sizeof tagged / sizeof tagged[0]; i++) {
 		check(CFStringGetLength((CFStringRef)tagged[i]) == (CFIndex)[tagged[i] length],
 		      "tagged pointer %s: CF length %ld vs ObjC length %ld (%s)",
 		      [tagged[i] UTF8String], (long)CFStringGetLength((CFStringRef)tagged[i]),
 		      (long)[tagged[i] length], class_getName(object_getClass(tagged[i])));
 	}
+}
 
-	/* CFSTR. clang's constant, whose isa is a BARE SYMBOL that libagora-base's NSCFConstantString is
-	 * aliased to; its layout is clang's and not the runtime's, which is why it is a second class. */
+static void reg_cfstr(void)
+{
+	/* clang's constant, whose isa is a BARE SYMBOL that libagora-base's NSCFConstantString is aliased
+	 * to; its layout is clang's and not the runtime's, which is why it is a second class. */
 	check(CFStringGetLength(CFSTR("x")) == 1, "CFSTR(\"x\") length %ld", (long)CFStringGetLength(CFSTR("x")));
 	check([(NSString *)CFSTR("x") length] == 1, "[CFSTR(\"x\") length] %ld", (long)[(NSString *)CFSTR("x") length]);
 	check(CFStringGetLength(CFSTR("")) == 0, "CFSTR(\"\") length %ld", (long)CFStringGetLength(CFSTR("")));
 	check(CFEqual(CFSTR("x"), (CFStringRef)@"x"), "CFEqual(CFSTR(\"x\"), @\"x\") is false");
+}
 
-	/* SINGLETONS. Core Foundation's own statics have no isa at all -- 0 -- and must survive both the
-	 * CF doors and CFRetain/CFRelease without being mistaken for objects. */
+static void reg_singletons(void)
+{
+	/* Core Foundation's own statics have no isa at all -- 0 -- and must survive both the CF doors and
+	 * CFRetain/CFRelease without being mistaken for objects. */
 	CFTypeRef singles[] = { kCFBooleanTrue, kCFBooleanFalse, kCFNull, kCFAllocatorDefault };
+
 	for (size_t i = 0; i < sizeof singles / sizeof singles[0]; i++) {
 		CFRetain(singles[i]);
 		CFRelease(singles[i]);
 		check(CFGetTypeID(singles[i]) != 0, "singleton %zu has no type id", i);
 	}
 	check(CFBooleanGetValue(kCFBooleanTrue) == true, "kCFBooleanTrue is not true");
+}
 
-	/* A CORE FOUNDATION OBJECT WEARS NO CLASS. Registering NSString/NSArray made CF's own objects
-	 * wear Foundation's classes, so CFArrayAppendValue dispatched into an immutable NSArray. */
+static void reg_native(void)
+{
+	/* Registering NSString/NSArray made CF's own objects wear Foundation's classes, so
+	 * CFArrayAppendValue dispatched into an immutable NSArray. */
 	CFMutableArrayRef native = CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks);
+
 	CFArrayAppendValue(native, CFSTR("a"));
 	CFArrayAppendValue(native, CFSTR("b"));
 	check(CFArrayGetCount(native) == 2, "native mutable array count %ld", (long)CFArrayGetCount(native));
@@ -184,10 +201,15 @@ static void regressions(void)
 	check(object_getClass((id)native) == nil, "a Core Foundation object has a class: %s",
 	      class_getName(object_getClass((id)native)));
 	CFRelease(native);
+}
 
-	/* AND THE OTHER DIRECTION, which is what toll-free means: a FOUNDATION object driven through the
-	 * Core Foundation C API. */
+static void reg_foundation(void)
+{
+	/* The other direction, which is what toll-free means: a FOUNDATION object driven through the Core
+	 * Foundation C API. */
 	NSMutableArray *host = [NSMutableArray array];
+	NSMutableString *ms = [NSMutableString stringWithString:@"abc"];
+
 	CFArrayAppendValue((CFMutableArrayRef)host, @"one");
 	CFArrayAppendValue((CFMutableArrayRef)host, @"two");
 	check([host count] == 2, "Foundation array after CF appends: %ld", (long)[host count]);
@@ -199,19 +221,31 @@ static void regressions(void)
 	check(CFArrayGetValueAtIndex((CFArrayRef)host, 0) == [host objectAtIndex:0],
 	      "the same element is not the same object");
 
-	/* MUTABLE STRINGS, because NSString's cluster is reached through NSMutableString too. */
-	NSMutableString *ms = [NSMutableString stringWithString:@"abc"];
 	[ms appendString:@"de"];
 	check(CFStringGetLength((CFStringRef)ms) == 5, "mutable string length via CF: %ld",
 	      (long)CFStringGetLength((CFStringRef)ms));
+}
 
-	/* CROSS-TYPE EQUALITY, which is the bridge at its most dangerous: a CF-native and a Foundation
-	 * object compared by CFEqual must agree when their content does. */
+static void reg_equality(void)
+{
+	/* The bridge at its most dangerous: a CF-native and a Foundation object compared by CFEqual must
+	 * agree when their content does. */
 	CFStringRef c1 = CFStringCreateWithCString(NULL, "same", kCFStringEncodingUTF8);
+
 	check(CFEqual(c1, (CFStringRef)@"same"), "CFEqual(CFString, NSString) is false");
 	check(CFHash(c1) == CFHash((CFStringRef)@"same"), "CFHash disagrees across the bridge");
 	CFRelease(c1);
 }
+
+static const struct { const char *name; void (*fn)(void); } g_regressions[] = {
+	{ "regression: the class cluster",        reg_cluster },
+	{ "regression: tagged pointers",          reg_tagged },
+	{ "regression: CFSTR",                    reg_cfstr },
+	{ "regression: the singletons",           reg_singletons },
+	{ "regression: a native Core Foundation object", reg_native },
+	{ "regression: Foundation through CF",    reg_foundation },
+	{ "regression: equality across the bridge", reg_equality },
+};
 
 static int run_one_case(const bridge_case *c)
 {
@@ -279,15 +313,16 @@ static int run_in_child(const char *name, int (*fn)(void))
 	return 1;
 }
 
-static int run_regressions_group(void)
+static void (*g_trampoline_group)(void);
+
+static int group_trampoline(void)
 {
 	int before = g_fail;
 
 	@try {
-		regressions();
+		g_trampoline_group();
 	} @catch (NSException *e) {
-		check(0, "regressions: raised %s: %s",
-		      [[e name] UTF8String], [[e reason] UTF8String]);
+		check(0, "raised %s: %s", [[e name] UTF8String], [[e reason] UTF8String]);
 	}
 	return g_fail - before;
 }
@@ -314,10 +349,13 @@ int main(void)
 			cases_bad++;
 		}
 	}
-	if (run_in_child("the regressions", run_regressions_group) == 0) {
-		cases_ok++;
-	} else {
-		cases_bad++;
+	for (size_t i = 0; i < sizeof g_regressions / sizeof g_regressions[0]; i++) {
+		g_trampoline_group = g_regressions[i].fn;
+		if (run_in_child(g_regressions[i].name, group_trampoline) == 0) {
+			cases_ok++;
+		} else {
+			cases_bad++;
+		}
 	}
 
 	printf("\nbridges: %d of %d cases passed, %d failed\n",
