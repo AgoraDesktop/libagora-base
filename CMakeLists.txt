@@ -40,6 +40,7 @@ find_package(dispatch CONFIG REQUIRED)         # -> dispatch
 find_package(ICU REQUIRED COMPONENTS uc i18n data)
 find_package(ZLIB REQUIRED)
 find_package(CURL REQUIRED)   # NSURLConnection/NSURLSession
+find_package(LibreSSL CONFIG REQUIRED COMPONENTS Crypto SSL)
 
 # ---------------------------------------------------------------------------
 # Include shim: the headers are included as <Foundation/...> but live at this
@@ -97,7 +98,8 @@ target_link_libraries(Foundation
         dispatch
         ICU::uc ICU::i18n ICU::data
         ZLIB::ZLIB
-        CURL::libcurl)
+        CURL::libcurl
+        LibreSSL::Crypto)
 
 install(DIRECTORY . DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Foundation
         FILES_MATCHING PATTERN "*.h")
