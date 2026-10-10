@@ -152,6 +152,38 @@
 
 @end
 
+/* ------------------------------------------------------------------------ */
+/* the two substring doors, and the Copy doors the other side asks for         */
+/* ------------------------------------------------------------------------ */
+
+/* -_createSubstringWithRange: IS A COPY: it returns +1, and the range is Core Foundation's NSRange --
+ * the type both sides share because Core Foundation owns it (CFBridgingTypes.h). The attributed form is
+ * the same method on a different class. -copy and -mutableCopy need nothing here: they are Cocoa's own
+ * and base's classes already answer them; CFString.c only had to stop commenting the dispatch out. */
+@implementation NSString (NSCFBridgingExtras)
+
+- (CFStringRef)_createSubstringWithRange:(NSRange)range
+{
+	if (range.location + range.length > [self length]) {
+		return NULL;
+	}
+	return (CFStringRef)[[self substringWithRange:range] copy];
+}
+
+@end
+
+@implementation NSAttributedString (NSCFBridgingExtras)
+
+- (CFAttributedStringRef)_createAttributedSubstringWithRange:(NSRange)range
+{
+	if (range.location + range.length > [self length]) {
+		return NULL;
+	}
+	return (CFAttributedStringRef)[[self attributedSubstringFromRange:range] copy];
+}
+
+@end
+
 @implementation NSObject (NSCFBridging)
 
 - (NSString *)_copyDescription

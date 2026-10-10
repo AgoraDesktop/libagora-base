@@ -70,7 +70,10 @@ static int door_number(id o)
 	double d = 0.0;
 	return CFNumberGetValue((CFNumberRef)o, kCFNumberDoubleType, &d) && d == 42.0;
 }
-static int door_date(id o) { return CFDateGetAbsoluteTime((CFDateRef)o) == 0.0; }
+/* -978307200.0 AND NOT 0.0: Core Foundation counts from 2001 and timeIntervalSince1970 counts from
+ * 1970, so a date built at 1970 is a NEGATIVE absolute time. This test asserted 0.0 and reported the
+ * door as failing when it was right -- the suite's SECOND false failure, after kCFAllocatorDefault. */
+static int door_date(id o) { return CFDateGetAbsoluteTime((CFDateRef)o) == -978307200.0; }
 static int door_null(id o) { return CFEqual((CFTypeRef)o, kCFNull); }
 static int door_locale(id o) { return CFLocaleGetIdentifier((CFLocaleRef)o) != NULL; }
 static int door_timezone(id o) { return CFTimeZoneGetName((CFTimeZoneRef)o) != NULL; }
