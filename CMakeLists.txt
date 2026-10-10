@@ -65,7 +65,13 @@ file(CREATE_LINK "${AGORA_DRAWING_DIR}" "${_agora_include_dir}/CoreGraphics" SYM
 # translation unit needs no edit here.
 file(GLOB FOUNDATION_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.m")
 
-add_library(Foundation
+# AGORA: EVERY LIBRARY IN THIS TREE IS SHARED. A consumer loads the whole .so, so an
+# Objective-C category in it is registered whether or not anything references its symbols
+# (a static archive drops such members and the categories silently stop answering) and a
+# single copy of the runtime state is shared instead of one per binary. See README.md.
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+
+add_library(Foundation SHARED
     ${FOUNDATION_SOURCES}
     plist.c
     NSInvocation_amd64.S)
