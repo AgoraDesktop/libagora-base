@@ -40,7 +40,9 @@ find_package(dispatch CONFIG REQUIRED)         # -> dispatch
 find_package(ICU REQUIRED COMPONENTS uc i18n data)
 find_package(ZLIB REQUIRED)
 find_package(CURL REQUIRED)   # NSURLConnection/NSURLSession
-find_package(LibreSSL CONFIG REQUIRED COMPONENTS Crypto SSL)
+# The system OpenSSL, on the same terms as the system ICU above: Agora does not vendor or pin a
+# TLS library. FNWebSocketHandshake.m needs SHA1 and RAND_bytes from libcrypto.
+find_package(OpenSSL REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Include shim: the headers are included as <Foundation/...> but live at this
@@ -99,7 +101,7 @@ target_link_libraries(Foundation
         ICU::uc ICU::i18n ICU::data
         ZLIB::ZLIB
         CURL::libcurl
-        LibreSSL::Crypto)
+        OpenSSL::Crypto)
 
 install(DIRECTORY . DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Foundation
         FILES_MATCHING PATTERN "*.h")
