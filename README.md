@@ -16,12 +16,15 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
 
 ## Status
 
-**Imported; not yet built, not yet bridged.** Two things follow.
+**Imported and building; not yet bridged.**
 
-1. **A build.** Foundation needs an Objective-C runtime. Agora depends on a **system libobjc2**;
-   it is not installed on this machine, so the build is not wired yet.
-2. **Toll-free bridging.** The imported Foundation has no CoreFoundation, so its value types are
-   standalone (`NSString` → `NSOwnedString` owns its own buffer). Agora's `libagora-base` must
-   **toll-free bridge** them to `libagora-core` the way Apple does — `CFStringRef` and `NSString *`
-   *are the same object* — by making the concrete value classes the CF objects and registering them
-   with Core Foundation (`_CFRuntimeBridgeTypeToClass` plus the `__CFSwiftBridge` bridge structs).
+1. **The build is wired.** Foundation compiles and links with clang against `libagora-objc` (the
+   Objective-C runtime), `libagora-core` (Core Foundation), `libagora-dispatch`, the system ICU and
+   zlib, plus `plist.c` \u2014 the property-list core that lives beside the Foundation in the Fiwix tree
+   (`../Fiwix/userland/plist.c`, header `../Fiwix/include/plist.h`).
+2. **Toll-free bridging is still owed.** The imported Foundation has no CoreFoundation, so its value
+   types are standalone (`NSString` \u2192 `NSOwnedString` owns its own buffer). Agora's `libagora-base`
+   must **toll-free bridge** them to `libagora-core` the way Apple does \u2014 `CFStringRef` and
+   `NSString *` *are the same object* \u2014 by making the concrete value classes the CF objects and
+   registering them with Core Foundation (`_CFRuntimeBridgeTypeToClass` plus the `__CFSwiftBridge`
+   bridge structs).
