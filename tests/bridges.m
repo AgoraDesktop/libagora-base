@@ -470,30 +470,89 @@ static int run_in_child(const char *name, int (*fn)(void))
 static void arg_cfstring(void)
 {
 	CFStringRef s = CFStringCreateWithCString(NULL, "same", kCFStringEncodingUTF8);
+	NSString *sub;
 
-	printf("    [@\"same\" isEqual:it]  = %d (want 1)\n", (int)[@"same" isEqual:(id)s]);
-	printf("    [it substringToIndex:2] = %s (want sa)\n", (const char *)[[(id)s substringToIndex:2] UTF8String]);
+	check([@"same" isEqual:(id)s], "a native CFString is not -isEqual: to an equal NSString");
+	sub = [(id)s substringToIndex:2];
+	check(sub != nil && [sub isEqualToString:@"sa"],
+	      "a derived string method answered %s, want sa", sub ? [sub UTF8String] : "(nil)");
 }
-static void arg_cfarray(void) { CFArrayRef a = CFArrayCreate(NULL, NULL, 0, &kCFTypeArrayCallBacks); printf("    [it count] = %ld (want 0)\n", (long)[(id)a count]); }
-static void arg_cfdata(void) { CFDataRef d = CFDataCreate(NULL, (const UInt8 *)"x", 1); printf("    [it length] = %ld (want 1)\n", (long)[(id)d length]); }
-static void arg_cfdict(void) { CFDictionaryRef d = CFDictionaryCreate(NULL, NULL, NULL, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks); printf("    [it count] = %ld (want 0)\n", (long)[(id)d count]); }
-static void arg_cfset(void) { CFSetRef x = CFSetCreate(NULL, NULL, 0, &kCFTypeSetCallBacks); printf("    [it count] = %ld (want 0)\n", (long)[(id)x count]); }
-static void arg_cfnumber(void) { CFNumberRef n = CFNumberCreate(NULL, kCFNumberIntType, (int[]){ 7 }); printf("    [it intValue] = %d (want 7)\n", (int)[(id)n intValue]); }
-/* A DERIVED METHOD, NOT THE PRIMITIVE. -timeIntervalSince1970 is built on
- * -timeIntervalSinceReferenceDate, so asking for it forces Foundation to go THROUGH the method Core
- * Foundation installed -- whereas asking for the primitive itself could pass by coincidence, if
- * Foundation own implementation happened to read the same field at the same offset. Core Foundation
- * counts from 2001, so a date at 0.0 is -978307200 in the 1970 domain. */
+
+static void arg_cfarray(void)
+{
+	CFArrayRef a = CFArrayCreate(NULL, NULL, 0, &kCFTypeArrayCallBacks);
+
+	check([(id)a count] == 0, "a native CFArray answered count %ld, want 0", (long)[(id)a count]);
+}
+
+static void arg_cfdata(void)
+{
+	CFDataRef d = CFDataCreate(NULL, (const UInt8 *)"x", 1);
+	NSData *copy = [(id)d copy];
+
+	check([(id)d length] == 1, "a native CFData answered length %ld, want 1", (long)[(id)d length]);
+	check(copy != nil && [copy length] == 1, "a derived data method failed");
+}
+
+static void arg_cfdict(void)
+{
+	CFDictionaryRef d = CFDictionaryCreate(NULL, NULL, NULL, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+
+	check([(id)d count] == 0, "a native CFDictionary answered count %ld, want 0", (long)[(id)d count]);
+}
+
+static void arg_cfset(void)
+{
+	CFSetRef x = CFSetCreate(NULL, NULL, 0, &kCFTypeSetCallBacks);
+
+	check([(id)x count] == 0, "a native CFSet answered count %ld, want 0", (long)[(id)x count]);
+}
+
+static void arg_cfnumber(void)
+{
+	CFNumberRef n = CFNumberCreate(NULL, kCFNumberIntType, (int[]){ 7 });
+	double d = [(id)n doubleValue];
+
+	check([(id)n intValue] == 7, "a native CFNumber answered intValue %d, want 7", (int)[(id)n intValue]);
+	check(d == 7.0, "a derived number method answered %g, want 7", d);
+}
+
+/* ASKING FOR A DERIVED METHOD AND NOT THE PRIMITIVE, and this case is why: it reported ok while being
+ * wrong. -timeIntervalSinceReferenceDate is the primitive and can pass by coincidence -- Foundation own
+ * implementation could read the same field at the same offset -- while -timeIntervalSince1970 is built
+ * on it and has to go THROUGH it. Core Foundation counts from 2001, so a date at 0.0 is -978307200. */
 static void arg_cfdate(void)
 {
 	CFDateRef d = CFDateCreate(NULL, 0.0);
 
-	printf("    [it timeIntervalSinceReferenceDate] = %g (want 0)\n", (double)[(id)d timeIntervalSinceReferenceDate]);
-	printf("    [it timeIntervalSince1970]          = %g (want -978307200)\n", (double)[(id)d timeIntervalSince1970]);
+	check([(id)d timeIntervalSinceReferenceDate] == 0.0,
+	      "a native CFDate answered %g, want 0", (double)[(id)d timeIntervalSinceReferenceDate]);
+	check([(id)d timeIntervalSince1970] == -978307200.0,
+	      "a DERIVED date method answered %g, want -978307200", (double)[(id)d timeIntervalSince1970]);
 }
-static void arg_cfnull(void) { printf("    [kCFNull description] = %s\n", [(id)kCFNull description] == nil ? "(nil)" : "ok"); }
-static void arg_cfurl(void) { CFURLRef u = CFURLCreateWithString(NULL, CFSTR("http://example.com/a"), NULL); printf("    [it path] = %s (want /a)\n", (const char *)[[(id)u path] UTF8String]); }
-static void arg_cftz(void) { CFTimeZoneRef z = CFTimeZoneCreateWithName(NULL, CFSTR("UTC"), true); printf("    [it name] = %s (want UTC)\n", (const char *)[[(id)z name] UTF8String]); }
+
+static void arg_cfnull(void)
+{
+	check([(id)kCFNull description] != nil, "a native CFNull has no description");
+}
+
+static void arg_cfurl(void)
+{
+	CFURLRef u = CFURLCreateWithString(NULL, CFSTR("http://example.com/a"), NULL);
+	NSString *path = [(id)u path];
+
+	check(path != nil && [path isEqualToString:@"/a"],
+	      "a native CFURL answered path %s, want /a", path ? [path UTF8String] : "(nil)");
+}
+
+static void arg_cftz(void)
+{
+	CFTimeZoneRef z = CFTimeZoneCreateWithName(NULL, CFSTR("UTC"), true);
+	NSString *name = [(id)z name];
+
+	check(name != nil && [name isEqualToString:@"UTC"],
+	      "a native CFTimeZone answered name %s, want UTC", name ? [name UTF8String] : "(nil)");
+}
 
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
