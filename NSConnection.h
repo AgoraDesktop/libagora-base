@@ -1,0 +1,254 @@
+/*
+ * NSConnection.h
+ *
+ * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
+ * SPDX-License-Identifier: MIT
+ *
+ * `NSConnection` — DISTRIBUTED OBJECTS, ON THIS SYSTEM'S OWN TRANSPORT (§62.56). Apple struck the family by name in
+ * §11.5 and §62.24 put it back; this is the last thing the port family owed.
+ *
+ * WHAT A CONNECTION IS HERE: a RECEIVE PORT and a SEND PORT (§62.53's transport), a ROOT OBJECT to answer for, and
+ * the name it is published under (§62.54's registry). The connection is the receive port's DELEGATE, so a message
+ * arriving is a request being served — no polling, no thread, the run loop of whoever scheduled the port.
+ *
+ * THE REPLY GOES TO A NAME, AND THAT IS THE DESIGN'S ONE NON-OBVIOUS CHOICE. A message cannot carry a port (§62.53
+ * refuses a component that is not data), so the requester cannot hand over "send the answer here" as a port. It
+ * registers a name for its own receive port instead and puts the NAME in the request; the service looks the name up
+ * and sends the answer there. **A NAME SERVER IS EXACTLY THE MECHANISM FOR THAT**, which is why this works with
+ * what §62.54 landed and needs nothing new.
+ *
+ * THE BOUNDARY, STATED PLAINLY: only OBJECT arguments and OBJECT results cross (see `NSDistantObject.h`), and the
+ * registry is PER-PROCESS, so both ends of a connection live in the same process. A connection to another process
+ * would need the name server to publish an address and a service to accept it — the accept path §62.54 named as
+ * out of its reach. What is here is real, and it is in-process.
+ *
+ * FOUR NAMES COME WITH IT, AND ONE OF THEM IS A REFUSAL WORTH READING: `NSConnectionDidInitializeNotification` and
+ * `NSConnectionDidDieNotification` are posted when a connection is made and when it is invalidated,
+ * `NSConnectionReplyMode` is the run-loop mode a waiting client runs — AND EVERY CONNECTION'S PORT IS WATCHED IN
+ * IT, service and client alike, because an in-process exchange is one wait: the client running that mode is what
+ * pumps the service. A service in the default mode would deadlock against a client waiting in reply mode, and `NSFailedAuthenticationException` EXISTS AND IS NEVER RAISED: nothing in this library
+ * authenticates, because a connection is a socket pair the process already holds.
+ */
+
+#ifndef FOUNDATION_NSCONNECTION_H
+#define FOUNDATION_NSCONNECTION_H
+
+#import <Foundation/NSObject.h>
+#import <Foundation/NSData.h>	/* §63.213: this header NAMES NSData, so it imports it; it used to rely on include order */
+#import <Foundation/NSArray.h>	/* §63.213: this header NAMES NSArray, so it imports it; it used to rely on include order */
+#import <Foundation/NSDictionary.h>	/* the type of `statistics` below, and the SEVENTH time this
+					 * session has had to add an import a declaration needed — ONE LINE TO CHECK, A ROUND TO MISS. */
+#import <Foundation/NSPort.h>
+#import <Foundation/NSDate.h>	/* NSTimeInterval, for -replyTimeout */
+
+@class NSPort, NSPortNameServer, NSDistantObject, NSDistantObjectRequest, NSRunLoop, NSString;
+@class NSConnection;	/* the protocol below names it, and the class comes after */
+
+
+NS_ASSUME_NONNULL_BEGIN
+
+/* THE CONNECTION'S DELEGATE - AND **ALL FOUR OF APPLE'S DOORS ARE DECLARED**, which SUPERSEDES the note this
+ * header used to carry: it read "two are declared, THREE ARE ABSENT WITH THEIR GROUNDS" (no parent/child
+ * connections here, and nothing authenticates). SS63.211 completed the contract below and declared the other
+ * three as OPTIONAL, so THE OLD NOTE WAS TRUE WHEN WRITTEN AND IS NOW STALE - and the probe's matching
+ * "these doors are absent" check went red the moment they landed, which is what an ABSENCE check does when the
+ * absence is filled. What remains true is that nothing HERE consults them: this library's connections are socket
+ * pairs the process already holds, so there is no child connection to allow or refuse, and nothing authenticates
+ * - hence OPTIONAL rather than required.
+ */
+@protocol NSConnectionDelegate <NSObject>
+@optional
+
+/* THE INTERCEPTION POINT: return YES to say the delegate has taken responsibility for the request (it will call
+ * `-replyWithException:` — now or later), or NO to let the connection serve it as if no delegate existed. */
+- (BOOL)connection:(NSConnection *)connection handleRequest:(NSDistantObjectRequest *)doreq;
+
+/* THE CONVERSATION'S TOKEN, made once per connection when the first request arrives. Apple's default is an
+ * `NSObject` instance, and that is what this library uses when the delegate does not answer. */
+- (id)createConversationForConnection:(NSConnection *)connection;
+
+
+/* §63.211: THE DELEGATE CONTRACT, completed. A protocol's methods ARE its declaration — this tree's NSConnection
+ * asks a delegate for exactly these, and Apple's four were absent. `-makeNewConnection:` is the delegate
+ * VENDING a connection; the should-make pair asks whether it may. */
+- (BOOL)authenticateComponents:(NSArray *)components withData:(NSData *)authenticationData;
+- (nullable NSData *)authenticationDataForComponents:(NSArray *)components;
+- (BOOL)connection:(NSConnection *)connection shouldMakeNewConnection:(NSConnection *)newConnection;
+@end
+
+
+/* Posted when a connection is made, and when one is invalidated; the notification's object is the connection. */
+extern NSString *const NSConnectionDidInitializeNotification;
+extern NSString *const NSConnectionDidDieNotification;
+
+/* THE MODE A REPLY IS AWAITED IN. A waiting client runs its run loop in this mode, and the serving side of the
+ * same process keeps serving in it: what makes a request/answer exchange possible without a thread. */
+extern NSString *const NSConnectionReplyMode;
+
+/* NAMED, AND NEVER RAISED — see the header note. */
+extern NSString *const NSFailedAuthenticationException;
+
+@interface NSConnection : NSObject <NSPortDelegate>
+{
+	NSPort *_receivePort;
+	NSPort *_sendPort;
+	id _rootObject;			/* retained: the object this connection answers for */
+	NSString *_name;		/* the name it was published under, if any */
+	BOOL _valid;
+	BOOL _waitingForReply;
+	id _replyValue;
+	id _delegate;			/* NOT retained: the delegate owns the connection, as Apple's does */
+	id _conversation;		/* made once, lazily, when a request first arrives */
+	NSTimeInterval _replyTimeout;	/* seconds a call waits for an answer; read by the sender, see -replyTimeout */
+	NSMutableArray *_requestModes;		/* OURS: the run-loop modes this connection's requests are served in */
+	NSTimeInterval _requestTimeout;		/* OURS: seconds a caller waits for an answer */
+	BOOL _independentConversationQueueing;	/* OURS: whether the conversation runs independently */
+	BOOL _multipleThreadsEnabled;		/* OURS: a ONE-WAY latch — -enableMultipleThreads sets it and nothing clears it */
+}
+
++ (nullable NSConnection *)connectionWithReceivePort:(nullable NSPort *)receivePort
+					    sendPort:(nullable NSPort *)sendPort;
+
+/* ⚠⚠ SEVEN OF `NSConnection`'S FOURTEEN ROWS, MEASURED BEFORE THEY WERE WRITTEN (§63.96's instrument, and by PART
+ * rather than by the human spelling of a selector — §63.114's lesson). Apple's corpus declares all seven WITHOUT a
+ * comment, so **THEIR READING IS OURS AND IS WRITTEN HERE (§11.6.1 D2):**
+ *
+ *   `requestModes` is `@property (readonly, copy)` — AN ORDERED LIST OF RUN-LOOP MODES, AND THE COPY ATTRIBUTE IS THE
+ *   CONTRACT: a caller must not be able to change the connection's modes through the array it was handed, so the
+ *   getter answers a COPY. **The list starts EMPTY**, because a connection with no modes serves no requests and that
+ *   is a state the caller should reach deliberately rather than by inheriting one we chose.
+ *   `requestTimeout` is an NSTimeInterval; `-enableMultipleThreads` is a ONE-WAY LATCH (it sets
+ *   `-multipleThreadsEnabled` and nothing clears it), which is what its name says and all it says.
+ *   `-addRequestMode:` adds at the END and does not duplicate; `-removeRequestMode:` removes EVERY occurrence of a
+ *   mode, so the two are inverses even if a caller adds one twice. */
+@property NSTimeInterval requestTimeout;
+@property BOOL independentConversationQueueing;
+- (void)addRequestMode:(NSString *)rmode;
+- (void)removeRequestMode:(NSString *)rmode;
+@property (readonly, copy) NSArray *requestModes;
+- (void)enableMultipleThreads;
+@property (readonly) BOOL multipleThreadsEnabled;
+
+/* ⚠⚠ TWO OF THE SEVEN REMAINING, AND THE OTHER FIVE ARE NAMED WITH THEIR REASONS AT THE FOOT OF THIS BLOCK —
+ * because “not yet” and “not ours” are different answers and the difference is the work list.
+ *
+ * ⚠ `+defaultConnection`: Apple marks it `API_DEPRECATED("", macos(10.0, 10.6))` — **AN EMPTY DEPRECATION MESSAGE AND A
+ * VERSION RANGE THAT ENDED IN 2006** — and the 2026-09-26 policy un-deprecates what Apple deprecated, so it is owed.
+ * Its reading is OURS (D2, written down): **THE SHARED CONNECTION, MADE ON FIRST USE AND KEPT.** Apple's own class has
+ * no argument for it and no way to configure it, which is what "default" means here: *a connection exists for code
+ * that has no port to offer, and the same one is answered to everyone who asks.*
+ *
+ * ⚠ `statistics` is `@property (readonly, copy) NSDictionary<NSString *, NSNumber *> *` — **THE TYPE IS A DICTIONARY
+ * OF NUMBERS, WHICH IS THE WHOLE OF WHAT APPLE PUBLISHES ABOUT IT** (the corpus's declaration carries no comment and
+ * no key names). So the KEYS ARE OURS AND ARE WRITTEN DOWN HERE: they report WHAT THIS CONNECTION ACTUALLY KNOWS —
+ * whether it is valid, whether it is waiting for a reply, and how many request modes it serves — rather than counters
+ * invented to fill a dictionary. **A STATISTICS DOOR THAT REPORTS NUMBERS NOTHING MEASURES IS A DOOR THAT LIES
+ * POLITELY.** */
++ (NSConnection *)defaultConnection;
+@property (readonly, copy) NSDictionary *statistics;
+
+/* ⚠⚠ APPLE'S EXTENSION POINT FOR PORT SUBCLASSES, WHOSE CONTRACT THE CORPUS PUBLISHES VERBATIM: “NSPort subclasses
+ * should use this method to ask a connection object to dispatch Distributed Objects component data received over the
+ * wire. This will decode the data, AUTHENTICATE, and send the message.”
+ *
+ * ⚠ AND IT IS A DOOR OVER A PATH THAT ALREADY EXISTED: this class's `-handlePortMessage:` has served exactly this way
+ * since §62.53, so the body MOVED to `-fnDispatchComponents:` and both doors call it — **the authentication refusal
+ * its comment names lives in ONE place, which is the property a second decoder would have destroyed.** */
+- (void)dispatchWithComponents:(NSArray *)components;
+
+/* ⚠⚠ `localObjects` — THE OBJECTS THIS CONNECTION VENDS. Apple's corpus declares it without a comment, so the
+ * reading is ours and is written here (§11.6.1 D2): **WHAT CODE ON THE FAR SIDE CAN REACH THROUGH THIS CONNECTION,
+ * WHICH IN THIS LIBRARY IS THE ROOT OBJECT AND NOTHING ELSE** — conversations and published servers are not surfaces
+ * this tree puts on the wire. An empty array when no root object is set, because “this connection vends nothing” is
+ * a fact and nil is not an array.
+ *
+ * ⚠⚠ AND `remoteObjects` IS NOT HERE, FOR A MEASURED REASON THAT IS A DESIGN QUESTION RATHER THAN A WRAPPER: **THE
+ * PROXY RETAINS ITS CONNECTION.** `NSDistantObject`'s own ivar comment says so — “RETAINED, WHICH THIS COMMENT GOT
+ * WRONG UNTIL §63.19… A PROXY WITHOUT ITS TRANSPORT IS A PROXY THAT CANNOT CALL” — so **a connection that RETAINED the
+ * proxies it handed out would be a retain cycle that never dies.** The registry must therefore be NON-OWNING, exactly
+ * as `+allConnections` is (“a registry that retained its members would be a leak this class created”) — **and then
+ * `-rootProxy`'s AUTORELEASED return means every entry is gone unless the caller kept the proxy, which is the question
+ * this row actually poses: whether the connection should hold its handed-out proxies at all, and how a non-owning
+ * registry can answer for something the caller may already have released.** *A row that needs a lifecycle decided is
+ * not a row that needs typing.* */
+@property (readonly, copy) NSArray *localObjects;
+
+/* EVERY LIVE CONNECTION — Apple's `+allConnections`. THE REGISTRY IS NON-OWNING, and that is a decision rather
+ * than an oversight: a registry that retained its members would be a leak this class created, because a live
+ * connection could never reach `-dealloc` while the registry held it. Each connection withdraws its own entry
+ * when it is invalidated or deallocated, and the answer keeps only the entries still `-isValid`. */
++ (NSArray *)allConnections;
+
+/* THE DELEGATE, NOT RETAINED — the connection is the thing a delegate usually owns, so keeping it alive would
+ * be the cycle Apple's `weak` delegate exists to avoid. */
+- (nullable id <NSConnectionDelegate>)delegate;
+- (void)setDelegate:(nullable id <NSConnectionDelegate>)anObject;
+
+/* THE SERVICE SIDE: make a connection that answers for `rootObject`, and publish it under `name`. */
++ (nullable NSConnection *)serviceConnectionWithName:(NSString *)name
+					  rootObject:(id)rootObject
+				     usingNameServer:(NSPortNameServer *)server;
++ (nullable NSConnection *)serviceConnectionWithName:(NSString *)name rootObject:(id)rootObject;
+
+/* THE CLIENT SIDE: find a published connection by name and answer a proxy for its root object. */
++ (nullable id)rootProxyForConnectionWithRegisteredName:(NSString *)name
+						   host:(nullable NSString *)hostName
+					usingNameServer:(NSPortNameServer *)server;
++ (nullable id)rootProxyForConnectionWithRegisteredName:(NSString *)name
+						   host:(nullable NSString *)hostName;
+
+/* THE CLIENT'S CONNECTION ITSELF — where `-rootProxyForConnectionWithRegisteredName:` answers the PROXY, this
+ * stops one step earlier and answers the connection the proxy travels over. Apple's doors, and a name nobody
+ * published answers nil. THE ONE DIFFERENCE FROM APPLE IS STATED rather than left to be found: Apple's connection
+ * here is a CHILD of the current thread's default connection and shares its receive port, and this library has no
+ * parent and child connections (see the delegate note above; §62.56), so the connection is self-contained — a
+ * send port to the service and its own receive port, watched in the reply mode. */
++ (nullable NSConnection *)connectionWithRegisteredName:(NSString *)name
+						   host:(nullable NSString *)hostName
+					usingNameServer:(NSPortNameServer *)server;
++ (nullable NSConnection *)connectionWithRegisteredName:(NSString *)name
+						   host:(nullable NSString *)hostName;
+
+- (instancetype)initWithReceivePort:(nullable NSPort *)receivePort sendPort:(nullable NSPort *)sendPort;
+
+- (nullable NSPort *)receivePort;
+- (nullable NSPort *)sendPort;
+
+- (BOOL)registerName:(NSString *)name withNameServer:(NSPortNameServer *)server;
+- (BOOL)registerName:(NSString *)name;
+
+- (nullable id)rootObject;
+- (void)setRootObject:(nullable id)anObject;
+
+/* The client's proxy for the far root object. */
+- (nullable NSDistantObject *)rootProxy;
+
+- (void)addRunLoop:(NSRunLoop *)runLoop;
+- (void)removeRunLoop:(NSRunLoop *)runLoop;
+
+- (void)invalidate;
+- (BOOL)isValid;
+
+/* HOW LONG A CALL WAITS FOR AN ANSWER — Apple's `replyTimeout`, in seconds, and this library READS it: it bounds
+ * the run-loop wait the sender below runs, so the door is used rather than merely stored. THE DEFAULT IS 60.0,
+ * because Apple's "the maximum delay" is not expressible as a bounded run-loop pump; a non-positive value means
+ * the same default. */
+- (NSTimeInterval)replyTimeout;
+- (void)setReplyTimeout:(NSTimeInterval)timeout;
+
+
+/* §63.213: THE CONVERSATION PAIR. Apple's "conversation" is the connection a THREAD is in — so the thread's own
+ * dictionary carries it, which is what makes +currentConversation answerable inside -runInNewThread and nil
+ * everywhere else (Apple's own documented answer). */
++ (nullable NSConnection *)currentConversation;
+- (void)runInNewThread;
+
+/* §63.230: WHAT THIS CONNECTION MAKES AVAILABLE. Apple's door lists the objects the connection VENDS, and this
+ * class answers for exactly ONE root (`-rootObject`), so the list is that object or empty — the reading is
+ * stated here rather than implied, and it is the whole of the service side this implementation has. */
+@property (readonly, copy) NSArray *remoteObjects;
+@end
+
+NS_ASSUME_NONNULL_END
+
+#endif /* FOUNDATION_NSCONNECTION_H */

@@ -1,0 +1,807 @@
+/*
+ * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
+ * SPDX-License-Identifier: MIT
+ */
+/*
+ * FNCURLURLProtocol.m — libcurl driven behind the seam. The design and the reasoning are in
+ * FNCURLURLProtocol.h.
+ */
+#import <Foundation/FNCURLURLProtocol.h>
+#import <Foundation/NSURLProtectionSpace.h>
+#import <Foundation/NSURLCredential.h>
+#import <Foundation/FNAuthenticationChallengeSender.h>
+#import <Foundation/NSURLAuthenticationChallenge.h>
+#import <Foundation/NSURLCache.h>
+/* ⚠⚠ THE METRICS RECORD IS NOT IMPORTED HERE ANY MORE (§63.159): the family that declared it left the surface,
+ * and with it the first-party door that carried it. THE TRANSPORT STILL MEASURES — `fn_curl_progress` and the
+ * durations curl reports are what the upload-progress door is built from — it simply has nowhere to send a
+ * RECORD, because a 10.2 connection publishes none. */
+#import <Foundation/NSData.h>
+#import <Foundation/NSArray.h>
+#import <Foundation/NSDictionary.h>
+#import <Foundation/NSString.h>
+#import <Foundation/NSURL.h>
+#import <Foundation/NSURLRequest.h>
+#import <Foundation/NSHTTPURLResponse.h>
+#import <Foundation/NSInputStream.h>	/* the stream a body may arrive as (§62.34) */
+#import <Foundation/NSThread.h>
+#import <Foundation/NSError.h>
+#import <Foundation/NSAutoreleasePool.h>
+
+#include <curl/curl.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+
+/* THE TRANSFER'S OWN STATE, on the loading thread's stack for as long as the transfer runs. It carries
+ * the curl handle because the HEADER CALLBACK needs to ask curl for the response code while it is
+ * running, which is the one documented thing a callback may do with the easy handle it was handed. */
+typedef struct FNCurlTransfer {
+	FNCURLURLProtocol *protocol;	/* not retained: the loading thread retains it for the lock's life */
+	CURL *curl;
+	NSMutableData *headerBytes;	/* accumulated until the blank line that ends the header block */
+	int responded;			/* didReceiveResponse has been reported */
+	int redirected;			/* a redirect was reported: the transfer ends here, by design */
+	int retry;			/* a 401 was answered with a credential: re-issue ONCE */
+	int attempt;			/* how many times a challenge has been decided: the guard */
+	int cancelledChallenge;		/* the client cancelled the challenge */
+	NSURLCredential *credential;	/* the credential the client handed back, or nil */
+	volatile int stopped;		/* -stopLoading was called from another thread */
+	int64_t reportedUpload;		/* the last upload total REPORTED, so progress is not a stream of duplicates */
+	int64_t reportedUploadExpected;
+	int refusedNoLength;		/* the body was a stream whose LENGTH COULD NOT BE ESTABLISHED (§62.39) */
+	NSInputStream *bodyStream;	/* NOT RETAINED, like the protocol above: the REQUEST owns it and the request
+					 * outlives the transfer. IT IS CONSUMED BY SENDING, which is why a re-send cannot use
+					 * it again (see the body branch). */
+} FNCurlTransfer;
+
+/* THE PRIVATE DOORS THE C CALLBACKS REACH THE OBJECT THROUGH: a C function cannot message an object it
+ * only has as a `void *`, and the reporting has to happen at the moment the callback sees the fact. */
+@interface FNCURLURLProtocol (FNCurlReporting)
+- (void)fnReportResponseWithStatus:(long)status headers:(NSDictionary *)headers;
+/* ⚠ THE `-fnReportMetrics:` DOOR IS GONE (§63.159), and with it the record it carried. */
+/* THE CLIENT IS ASKED ABOUT A CHALLENGE THROUGH THIS, because the C header callback cannot message it. THE
+ * DOOR IS APPLE'S NOW (§63.158): the challenge this method hands over CARRIES the sender that answers this
+ * transport's continuation, so there is no handler argument and no second answer path. A client that
+ * implements no such door is not asked, and the transport continues without credentials. */
+- (void)fnAskClientForCredential:(NSURLAuthenticationChallenge *)challenge;
+- (void)fnReportRedirectToURL:(NSString *)location status:(long)status headers:(NSDictionary *)headers;
+- (void)fnReportFailure:(NSError *)error;
+@end
+
+/* PARSE A HEADER BLOCK into a dictionary, one "Name: value" per line, names as the SERVER spelled them
+ * (the case rules are the consumers' business, exactly as they are for a request's fields). A line
+ * without a colon is skipped rather than guessed at, and a status line is skipped by the same test. */
+static NSDictionary *fn_curl_header_fields(NSData *bytes)
+{
+	NSString *text = [[NSString alloc] initWithData:bytes encoding:NSUTF8StringEncoding];
+	NSMutableDictionary *fields;
+	NSString *line;
+	NSArray *lines;
+	NSUInteger i;
+
+	if (text == nil) {
+		return nil;
+	}
+	fields = [[NSMutableDictionary alloc] init];
+	lines = [text componentsSeparatedByString:@"\n"];
+	for (i = 0; i < [lines count]; i++) {
+		NSRange colon;
+		NSString *name, *value;
+
+		line = [lines objectAtIndex:i];
+		if ([line hasSuffix:@"\r"]) {
+			line = [line substringToIndex:[line length] - 1];
+		}
+		colon = [line rangeOfString:@":"];
+		if (colon.location == NSNotFound || colon.location == 0) {
+			continue;	/* the status line, a continuation, or nothing at all */
+		}
+		name = [line substringToIndex:colon.location];
+		value = [line substringFromIndex:colon.location + 1];
+		while ([value hasPrefix:@" "]) {
+			value = [value substringFromIndex:1];
+		}
+		if ([name length] > 0) {
+			[fields setObject:value forKey:name];
+		}
+	}
+	[text release];
+	return [fields autorelease];
+}
+
+/* THE BODY ARRIVES HERE, AND IT IS FORWARDED AS IT ARRIVES: a chunk a caller can act on is worth more
+ * than an accumulated buffer, and it is the seam's contract. Returning 0 tells curl to abort, which is
+ * how -stopLoading takes effect. */
+static size_t fn_curl_write(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+	FNCurlTransfer *transfer = (FNCurlTransfer *)userdata;
+	size_t bytes = size * nmemb;
+	id <NSURLProtocolClient> client;
+
+	if (transfer->stopped) {
+		return 0;
+	}
+	client = [transfer->protocol client];
+	if (client == nil) {
+		return bytes;	/* nobody is listening: drain rather than abort */
+	}
+	[client URLProtocol:transfer->protocol
+		didLoadData:[NSData dataWithBytes:ptr length:bytes]];
+	return bytes;
+}
+
+/* A BODY THAT ARRIVES AS A STREAM IS PULLED FROM HERE (§62.34), because that is what `CURLOPT_UPLOAD` does:
+ * curl calls this until it is answered with zero.
+ *
+ * AND A NEGATIVE READ IS AN ERROR RATHER THAN AN ENDING (§62.36). THE FIRST VERSION OF THIS LINE COLLAPSED THE
+ * TWO - `return got > 0 ? (size_t)got : 0` - and its comment CLAIMED the difference did not matter ("a body
+ * that stops early is a short body rather than a silent nothing"). THAT CLAIM WAS FALSE, AND A MEASUREMENT IS
+ * WHAT FALSIFIED IT: this library's `-read:maxLength:` answers **-1 for a stream that is not open** (its own
+ * header says a caller owes `-open`, and `EBADF` is the status it sets), so an error became an END OF BODY -
+ * and with no `Content-Length` on the request the transfer then SUCCEEDED with an empty body, silently. A
+ * TRUNCATED UPLOAD THAT REPORTS SUCCESS IS THE WORST SHAPE A BUG LIKE THIS CAN HAVE, which is why the fix is
+ * a failure rather than a guess: curl has one way to be told "stop, this is broken" and it is this. */
+static size_t fn_curl_read(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+	FNCurlTransfer *transfer = (FNCurlTransfer *)userdata;
+	NSInteger got;
+
+	if (transfer->stopped || transfer->bodyStream == nil) {
+		return 0;
+	}
+	got = [transfer->bodyStream read:(uint8_t *)ptr maxLength:size * nmemb];
+	if (got > 0) {
+		return (size_t)got;
+	}
+	if (got == 0) {
+		return 0;	/* the end of the body, which is a legitimate answer */
+	}
+	return CURL_READFUNC_ABORT;	/* an ERROR, and it fails the transfer */
+}
+
+/* UPLOAD PROGRESS (§62.32), AND CURL CALLS THIS SEVERAL TIMES A SECOND FOR EVERY TRANSFER, which is why the
+ * numbers are compared against what was last REPORTED rather than forwarded blindly: a caller wants to know
+ * when the count moves, not how often curl looked. The first call always reports, because the memo starts at
+ * zero and an upload that has sent nothing yet is still the start of one.
+ *
+ * A NON-ZERO RETURN ABORTS THE TRANSFER, which is also how a stop that arrived while the transfer was running
+ * gets noticed here. */
+static int fn_curl_progress(void *userdata, curl_off_t dltotal, curl_off_t dlnow,
+			    curl_off_t ultotal, curl_off_t ulnow)
+{
+	FNCurlTransfer *transfer = (FNCurlTransfer *)userdata;
+	id <NSURLProtocolClient> client;
+
+	(void)dltotal;
+	(void)dlnow;
+	if (transfer->stopped) {
+		return 1;
+	}
+	int64_t previous;
+
+	if (ulnow == transfer->reportedUpload && ultotal == transfer->reportedUploadExpected) {
+		return 0;
+	}
+	client = [transfer->protocol client];
+	/* THE DELTA IS THE MEMO'S, TAKEN BEFORE THE MEMO MOVES: `bytesSent` is "what left since the last report",
+	 * which is a different number from the running total beside it, and the two are only equal on a first or
+	 * single report. */
+	previous = transfer->reportedUpload;
+	transfer->reportedUpload = ulnow;
+	transfer->reportedUploadExpected = ultotal;
+	if (client == nil) {
+		return 0;	/* nobody is listening: keep going rather than abort */
+	}
+	if ([client respondsToSelector:
+			@selector(URLProtocol:fnDidSendBodyData:totalBytesSent:totalBytesExpectedToSend:)]) {
+		[client URLProtocol:transfer->protocol
+		    fnDidSendBodyData:(int64_t)ulnow - previous
+		      totalBytesSent:(int64_t)ulnow
+		totalBytesExpectedToSend:(int64_t)ultotal];
+	}
+	return 0;
+}
+
+/* THE HEADER BLOCK ARRIVES HERE, LINE BY LINE, AND THE BLANK LINE IS THE MOMENT THE RESPONSE EXISTS. */
+/* A PROTECTION SPACE OUT OF A WWW-Authenticate HEADER, which is where the realm and the method actually are:
+ * `Basic realm="Restricted"` is the whole of what a server tells a client it will accept. An UNKNOWN scheme
+ * becomes NSURLAuthenticationMethodDefault rather than a refusal, because a server asking with a scheme this
+ * library does not know is still a server asking. */
+static NSURLProtectionSpace *fn_protection_space_from_challenge(NSString *header, NSURL *url)
+{
+	NSString *scheme = header;
+	NSString *realm = nil;
+	NSString *method = NSURLAuthenticationMethodDefault;
+	NSRange space = [header rangeOfString:@" "];
+	NSRange realmRange;
+
+	if (space.location != NSNotFound) {
+		scheme = [header substringToIndex:space.location];
+	}
+	realmRange = [header rangeOfString:@"realm=\""];
+	if (realmRange.location != NSNotFound) {
+		NSUInteger from = realmRange.location + realmRange.length;
+		NSRange closing = [header rangeOfString:@"\"" options:0
+					   range:NSMakeRange(from, [header length] - from)];
+
+		if (closing.location != NSNotFound) {
+			realm = [header substringWithRange:NSMakeRange(from, closing.location - from)];
+		}
+	}
+	if ([scheme caseInsensitiveCompare:@"Basic"] == NSOrderedSame) {
+		method = NSURLAuthenticationMethodHTTPBasic;
+	} else if ([scheme caseInsensitiveCompare:@"Digest"] == NSOrderedSame) {
+		method = NSURLAuthenticationMethodHTTPDigest;
+	} else if ([scheme caseInsensitiveCompare:@"NTLM"] == NSOrderedSame) {
+		method = NSURLAuthenticationMethodNTLM;
+	} else if ([scheme caseInsensitiveCompare:@"Negotiate"] == NSOrderedSame) {
+		method = NSURLAuthenticationMethodNegotiate;
+	}
+	return [[[NSURLProtectionSpace alloc] initWithHost:[url host]
+						     port:[[url port] integerValue]
+						 protocol:[url scheme]
+						    realm:realm
+					   authenticationMethod:method] autorelease];
+}
+
+static size_t fn_curl_header(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+	FNCurlTransfer *transfer = (FNCurlTransfer *)userdata;
+	size_t bytes = size * nmemb;
+	long status = 0;
+	int blank = (bytes == 2 && ptr[0] == '\r' && ptr[1] == '\n') ||
+		    (bytes == 1 && ptr[0] == '\n');
+
+	if (transfer->stopped) {
+		return 0;
+	}
+	if (!blank) {
+		[transfer->headerBytes appendBytes:ptr length:bytes];
+		return bytes;
+	}
+
+	/* THE END OF THE HEADER BLOCK: the response is complete and complete means reportable. */
+	curl_easy_getinfo(transfer->curl, CURLINFO_RESPONSE_CODE, &status);
+	{
+		NSDictionary *fields = fn_curl_header_fields(transfer->headerBytes);
+		NSString *location = [fields objectForKey:@"Location"];
+
+		/* A REDIRECT IS REPORTED RATHER THAN FOLLOWED (decision 2 in the header): a 3xx that NAMES a
+		 * destination is the seam's redirect callback, and the transfer stops there. */
+		if (location != nil &&
+		    (status == 301 || status == 302 || status == 303 || status == 307 || status == 308)) {
+			transfer->redirected = 1;
+			[transfer->protocol fnReportRedirectToURL:location status:status headers:fields];
+			return 0;	/* abort: the caller decides what happens next */
+		}
+		/* A 401 IS A RESPONSE TOO, and it is where authentication is decided. The client is asked THROUGH
+		 * APPLE'S DOOR, synchronously - the same wait the response disposition takes - and if it answers
+		 * with a credential the transfer is ABORTED here and RE-ISSUED once by the caller, which is the
+		 * redirect pattern exactly. The attempt count IS the guard: a server that always answers 401 must
+		 * not spin, and the loop below runs twice at most. */
+		if (status == 401 && transfer->retry == 0 && transfer->attempt == 0 &&
+		    [fields objectForKey:@"WWW-Authenticate"] != nil &&
+		    [[fields objectForKey:@"WWW-Authenticate"] rangeOfString:@"Basic"
+				   options:NSCaseInsensitiveSearch].location != NSNotFound) {
+			__block NSInteger disposition = -1;
+			__block NSURLCredential *credential = nil;
+			NSURLProtectionSpace *space = fn_protection_space_from_challenge(
+				[fields objectForKey:@"WWW-Authenticate"], [[transfer->protocol request] URL]);
+
+			transfer->attempt = 1;
+			if (space != nil) {
+				/* THE SENDER IS THE ONLY WAY IN NOW (§63.158): §48.6's deviation — a completion handler on
+				 * the client door — is RETIRED, because its whole ground was that this library refused
+				 * `-sender`, and §62.27 had already stopped that being true. A client answers by messaging
+				 * the challenge's sender, and the sender is a thunk over THIS block, so the transport still
+				 * reads its own two locals and there is exactly one answer path. APPLE'S OWN SHAPE, with no
+				 * second door beside it. */
+				void (^continuation)(FNAuthenticationChallengeAnswer,
+						     NSURLCredential *) =
+					^(FNAuthenticationChallengeAnswer answer, NSURLCredential *given) {
+					disposition = (NSInteger)answer;
+					credential = [given retain];
+				};
+				FNAuthenticationChallengeSender *sender = [[FNAuthenticationChallengeSender alloc]
+					fnInitWithContinuation:continuation];
+				NSURLAuthenticationChallenge *challenge = [[NSURLAuthenticationChallenge alloc]
+					initWithProtectionSpace:space
+					     proposedCredential:nil
+					   previousFailureCount:0
+						failureResponse:nil
+						      error:nil
+						     sender:sender];
+
+				[sender release];
+				[transfer->protocol fnAskClientForCredential:challenge];
+				[challenge release];
+			}
+			if (disposition == FNAuthenticationChallengeAnswerUseCredential && credential != nil) {
+				transfer->credential = credential;	/* kept for the re-issue */
+				transfer->retry = 1;
+				return 0;	/* abort: the caller re-issues with the credential */
+			}
+			[credential release];
+			if (disposition == FNAuthenticationChallengeAnswerCancel) {
+				transfer->cancelledChallenge = 1;
+				return 0;
+			}
+			/* Every other answer leaves the 401 AS THE RESPONSE, which is the honest outcome: the server
+			 * asked, the client declined to answer, and what it gets is what the server said. THE SENTINEL
+			 * IS PART OF THAT: a client that implements the door and says nothing leaves `disposition` at
+			 * -1, and "nobody answered" and "the default handling" are the same outcome here — which is why
+			 * this transport needs no fallback call to say so. */
+		}
+		[transfer->protocol fnReportResponseWithStatus:status headers:fields];
+	}
+	return bytes;
+}
+
+static size_t fn_curl_header_discard(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+	return size * nmemb;
+}
+
+/* ⚠⚠ AND THE RECORD OF AN ATTEMPT IS GONE (§63.159), TOGETHER WITH THE DOOR THAT CARRIED IT. This was
+ * §52's metrics payload — one `NSURLSessionTaskTransactionMetrics` built from the curl handle — and both it
+ * and that type left with the session family. WHAT THE TRANSPORT STILL MEASURES IS WHAT ITS OWN DOORS
+ * REPORT: the upload's progress counts bytes as they leave, the response door carries the status and the
+ * headers, and curl's durations are no longer anyone's business because a 10.2 connection publishes no
+ * metrics to hand anywhere. THE DECISION IS RECORDED RATHER THAN IMPLIED: dropping the door was the
+ * user's (dec-8035262557131bdc), and the alternative — re-homing the record as a first-party type — was
+ * rejected because nothing at this baseline would read it. */
+
+@implementation FNCURLURLProtocol
+
+/* THE THREE SCHEMES CURL ON THIS SYSTEM ACTUALLY SPEAKS, and nothing else: `curl --version` answers
+ * `Protocols: file http https`, which tools/curl-build.sh asserts, so claiming a fourth would promise a
+ * transfer that cannot happen. */
++ (BOOL)canInitWithRequest:(NSURLRequest *)request
+{
+	NSString *scheme = [[request URL] scheme];
+
+	return [scheme isEqualToString:@"file"] ||
+	       [scheme isEqualToString:@"http"] ||
+	       [scheme isEqualToString:@"https"];
+}
+
++ (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request
+{
+	return request;
+}
+
+/* --- THE TRANSFER, ON ITS OWN THREAD ------------------------------------------------------------- */
+
+- (void)startLoading
+{
+	[NSThread detachNewThreadSelector:@selector(fnPerformTransfer)
+				 toTarget:self
+			       withObject:nil];
+}
+
+/* STOPS AT THE NEXT CHUNK (the header's refusal, stated there): a cross-thread curl_easy call would be
+ * undefined behaviour, so the flag the write callback reads is the mechanism. */
+- (void)stopLoading
+{
+	if (_transfer != NULL) {
+		((FNCurlTransfer *)_transfer)->stopped = 1;
+	}
+	/* AND A CACHE HIT HAS NO TRANSFER TO REACH, which is how a cancelled response still delivered its body:
+	 * the disposition door cancels the task, -stopLoading is called, and the hit path below carried on
+	 * because the flag it would have read did not exist yet. This one does. */
+	_hitStopped = 1;
+}
+
+- (void)fnPerformTransfer
+{
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	FNCurlTransfer transfer;
+	CURL *curl;
+	CURLcode result;
+	NSURLRequest *request = [self request];
+	NSString *urlString = [[request URL] absoluteString];
+	struct curl_slist *headerList = NULL;
+	int failed = 0;
+
+	memset(&transfer, 0, sizeof(transfer));
+	transfer.protocol = self;
+	transfer.headerBytes = [[NSMutableData alloc] init];
+	/* THE REPLACEMENT STREAM A RE-SEND WAS GIVEN (§62.40), RETAINED FOR AS LONG AS THE RETRY NEEDS IT: it is
+	 * declared HERE, above the label the retry jumps back to, because a local declared below the label would be
+	 * re-initialised by the jump and the stream would be forgotten (and leaked) on the second pass. */
+	NSInputStream *replacement = nil;
+
+	/* THE CACHE IS ASKED BEFORE THE NETWORK, AND A HIT DOES NOT DIAL OUT AT ALL - which is the entire point
+	 * of a cache and the easiest half of it to get wrong: a hit that still opens a connection costs what it
+	 * was supposed to save. The stored response goes to the client through the SAME doors a live one would,
+	 * so a delegate cannot tell a hit from a miss except by the order it sees them in. */
+	{
+		NSCachedURLResponse *cached = [[NSURLCache sharedURLCache] cachedResponseForRequest:request];
+
+		if(cached != nil) {
+			/* THE RESPONSE GOES THROUGH THE SAME DOOR A LIVE ONE DOES, which is where a delegate gets to
+			 * CANCEL it - and THEN THE HIT MUST STOP, exactly as the live path stops when its write callback
+			 * sees the flag. Without this the cancel was honoured by the task and ignored by the protocol, so
+			 * a cancelled response delivered its body anyway. */
+			[_client URLProtocol:self
+			    didReceiveResponse:[cached response]
+			     cacheStoragePolicy:[cached storagePolicy]];
+			/* THE IVAR, NOT A FIELD OF THIS STRUCT: -stopLoading runs on ANOTHER thread with no transfer in
+			 * hand, so the flag it can write is the object's - and reading a struct field nothing writes is
+			 * exactly the mistake that made the first version of this fix do nothing (and the same shape as
+			 * the cache's own setter, for the third time in this session). */
+			if(_hitStopped) {
+				[transfer.headerBytes release];
+				[pool release];
+				return;
+			}
+			[_client URLProtocol:self didLoadData:[cached data]];
+			[_client URLProtocolDidFinishLoading:self];
+			[transfer.headerBytes release];
+			[pool release];
+			return;
+		}
+	}
+
+	curl = curl_easy_init();
+	if (curl == NULL) {
+		[_client URLProtocol:self didFailWithError:
+			[NSError errorWithDomain:@"FNCURLURLProtocol"
+					    code:1
+					userInfo:nil]];
+		[transfer.headerBytes release];
+		[pool release];
+		return;
+	}
+	transfer.curl = curl;
+	curl_easy_setopt(curl, CURLOPT_URL, urlString != nil ? [urlString UTF8String] : "");
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fn_curl_write);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &transfer);
+	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, fn_curl_header);
+	curl_easy_setopt(curl, CURLOPT_HEADERDATA, &transfer);
+	/* THE REDIRECT DECISION (decision 2): curl must NOT chase it, because reporting it is this seam's. */
+	/* THE REQUEST'S OWN TIMEOUT IS APPLIED, AND IT WAS NOT: NSURLRequest carries a timeoutInterval (60
+	 * seconds by default) and curl was given no timeout at all, so a transfer to a server that never answers
+	 * waited FOREVER - found by a probe that posts to a receiver which accepts and says nothing. A
+	 * non-positive interval is left alone, because for curl that means no timeout. */
+	if ([[self request] timeoutInterval] > 0.0) {
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS,
+				 (long)([[self request] timeoutInterval] * 1000.0));
+	}
+	/* THE PROGRESS CALLBACK IS ARMED FOR EVERY TRANSFER, AND `dltotal` TELLS THE TWO KINDS APART: curl reports
+	 * both directions through one function, so the upload total is zero for a download and the memo simply
+	 * never moves. `CURLOPT_NOPROGRESS` MUST BE ZERO - curl's default is ON, which would ignore this. */
+	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, fn_curl_progress);
+	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &transfer);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
+	/* No SIGALRM-based timeouts: this is a library thread inside a process that may have its own. */
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+
+	/* THE REQUEST'S OWN METHOD, HEADERS AND BODY, because a bridge that only GETs is a bridge that
+	 * silently drops half of what a request can say. */
+	{
+		NSString *method = [request HTTPMethod];
+		NSDictionary *fields = [request allHTTPHeaderFields];
+		NSArray *names;
+		NSUInteger i;
+
+		if (method != nil && ![method isEqualToString:@"GET"]) {
+			curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, [method UTF8String]);
+		}
+		if (fields != nil) {
+			names = [fields allKeys];
+			for (i = 0; i < [names count]; i++) {
+				NSString *name = [names objectAtIndex:i];
+				NSString *line = [NSString stringWithFormat:@"%@: %@",
+						  name, [fields objectForKey:name]];
+				headerList = curl_slist_append(headerList, [line UTF8String]);
+			}
+		}
+		if (headerList != NULL) {
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
+		}
+		if ([request HTTPBodyStream] != nil) {
+			/* A BODY THAT ARRIVES AS A STREAM IS NOW SENT AS ONE, AND UNTIL THIS ROW IT WAS SENT AS NOTHING
+			 * AT ALL - the same class of defect as the UTF-8 one below, with the same shape: the body was
+			 * OMITTED, with no error and no body, and a server could only report a request with nothing in it.
+			 *
+			 * `CURLOPT_UPLOAD` MAKES CURL PULL from `fn_curl_read`, and THE METHOD IS SET EXPLICITLY because
+			 * that option's own default is PUT - a caller's POST must stay a POST. A PUBLISHED LENGTH IS
+			 * HONOURED (`Content-Length`), and it is the path that WORKS.
+			 *
+			 * AN UNPUBLISHED LENGTH IS A KNOWN GAP, AND IT IS NAMED HERE BECAUSE THE PARENTHETICAL THAT USED
+			 * TO SIT IN THIS SPOT CLAIMED THE OPPOSITE: "unknown otherwise, which HTTP/1.1 answers with chunked
+			 * encoding (curl does that for -1)" is FALSE IN THIS BUILD. MEASURED (§62.37): a request with a
+			 * stream body and NO `Content-Length` sends NO BODY AT ALL and the transfer SUCCEEDS - curl never
+			 * calls `fn_curl_read` even once (`FNSETUP stream=1 len=0`, then not one read callback) - which is
+			 * the same silent shape §62.36 fixed for a read error. THE OPTION SET IS NOT OBVIOUSLY WRONG: the
+			 * method, `CURLOPT_UPLOAD`, the read function and `INFILESIZE_LARGE = -1` are what curl's own
+			 * command line does for `-T -`, and the HOST'S libcurl 8.14.1 sends the body chunked for exactly
+			 * that (measured), while the guest runs **libcurl/8.22.0-DEV**, so a version difference is the
+			 * standing hypothesis rather than the absence of a rule. WHAT IT NEEDS is one more measurement with
+			 * this case exercised, and then either a documented switch (curl has `CURLOPT_TRANSFER_ENCODING`)
+			 * or a refusal at the door - not a guess, because the working path must not be broken to guess.
+			 *
+			 * AND THE STREAM IS SINGLE-USE, WHICH IS WHY A RE-SEND IS NOT HANDLED HERE: a redirect or a 401
+			 * re-issue would ask this same, already-consumed stream for its body a second time and get
+			 * nothing. That is a property of the request rather than of this branch - Apple's answer to it is
+			 * a delegate door that hands over a NEW stream, and this library has not landed that yet (the
+			 * refusal is named in NSURLConnection.h, where a caller meets it). */
+			NSString *published = [request valueForHTTPHeaderField:@"Content-Length"];
+			uint8_t *streamBytes = NULL;
+			NSUInteger streamLength = 0;
+			curl_off_t uploadSize = (curl_off_t)-1;
+
+			transfer.bodyStream = [request HTTPBodyStream];
+			[transfer.bodyStream open];
+			/* THE LENGTH, IN PRIORITY ORDER (§62.38): the caller's header first, then THE STREAM'S OWN BUFFER if
+			 * it can name one - `-getBuffer:length:` answers for a stream held in memory, which is the common
+			 * case and the one this library can always recognise - and nothing else, because an upload whose size
+			 * cannot be established sends NO BODY AT ALL through this transport (measured twice: the implicit
+			 * route and `CURLOPT_TRANSFER_ENCODING` both fail in the vendored curl 8.22.0-DEV, while libcurl
+			 * 8.14.1 on this host sends the same request chunked). ASKING THE STREAM IS WHAT MAKES THE COMMON
+			 * CASE WORK; a stream that genuinely cannot say is the remaining gap, and it is NAMED rather than
+			 * left to look like an empty body. */
+			if (published != nil) {
+				uploadSize = (curl_off_t)[published longLongValue];
+			} else if ([transfer.bodyStream getBuffer:&streamBytes length:&streamLength]) {
+				uploadSize = (curl_off_t)streamLength;
+			} else {
+				/* NOTHING HERE CAN ESTABLISH A SIZE, AND THIS BUILD SENDS NO BODY AT ALL FOR AN UPLOAD OF
+				 * UNKNOWN SIZE (§62.37, §62.38 - measured twice, with the implicit route and with curl's own
+				 * chunked switch). SO THE TRANSFER IS REFUSED, LOUDLY, RATHER THAN RUN AND SUCCEED WITH AN
+				 * EMPTY BODY: that is the shape §62.36 established for a failed read, applied to a body that
+				 * cannot be described. A caller can act on this: publish a `Content-Length`, or hand over a
+				 * stream that can report its length. */
+				transfer.refusedNoLength = 1;
+			}
+			curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+			curl_easy_setopt(curl, CURLOPT_READFUNCTION, fn_curl_read);
+			curl_easy_setopt(curl, CURLOPT_READDATA, &transfer);
+			curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, [[request HTTPMethod] UTF8String]);
+			curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, uploadSize);
+		} else if ([request HTTPBody] != nil) {
+			/* THE BYTES ARE HANDED OVER AS BYTES, AND THE FIRST VERSION DID NOT: it round-tripped the body
+			 * through -initWithData:encoding:NSUTF8StringEncoding and sent the STRING's bytes, so a body
+			 * that is not valid UTF-8 made that initializer answer nil and THE BODY WAS DROPPED - not
+			 * corrupted, OMITTED, with no error and a server that could only report a request with nothing
+			 * in it. A body is bytes; only a caller that knows better should call it text. */
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, [[request HTTPBody] bytes]);
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE,
+					 (long)[[request HTTPBody] length]);
+		}
+	}
+
+	/* PUBLISHED BEFORE THE TRANSFER RUNS, so -stopLoading can reach it (and cleared after, so a stop
+	 * that arrives after the transfer has ended does nothing rather than touching a dead struct). */
+	/* THE RE-ISSUE POINT, and the whole loop is two lines plus a guard: a 401 answered with a credential
+	 * sets the flag from inside the header callback (which aborts the transfer), and control comes back
+	 * here. THE ATTEMPT COUNT IS THE GUARD - the flag is only ever set when transfer->attempt was 0, so the
+	 * second pass cannot set it again, and a server that always answers 401 does not spin. */
+retry_transfer:
+	if (transfer.refusedNoLength) {
+		/* NOTHING RUNS: the setup refused the body, and the ending below is where that is reported - the
+		 * same chain every other outcome goes through, so the failure travels the ordinary path. */
+	} else if (transfer.credential != nil) {
+		curl_easy_setopt(curl, CURLOPT_USERNAME, [[transfer.credential user] UTF8String]);
+		curl_easy_setopt(curl, CURLOPT_PASSWORD, [[transfer.credential password] UTF8String]);
+		/* CURLAUTH_BASIC AND NOT CURLAUTH_ANY, AND THAT IS THE WHOLE OF THIS BUG: with ANY, curl WAITS FOR A
+		 * 401 before it will put credentials on the wire - so the re-issued request went out bare, the probe's
+		 * server answered 200 without ever asking again, and the credential never travelled. The challenge
+		 * TOLD this bridge the scheme (that is what WWW-Authenticate is for), the transport has already
+		 * decided, and the credential a caller hands over is a user and a password - which is exactly what
+		 * BASIC carries and nothing else here does. So it goes out pre-emptively, once, by name. */
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)CURLAUTH_BASIC);
+	}
+	/* ⚠⚠ AND NOTHING GOES UP HERE ANY MORE (§63.159): this was the metrics report — the instant the attempt
+	 * began, and the record built from the handle before its outcome was decided. THE CAPTURE AND THE RECORD
+	 * WENT WITH THE SESSION FAMILY, because the record's type was Apple's 10.10 class and the door that
+	 * carried it was a first-party extra with nothing at this baseline to carry it to. */
+	if (!transfer.refusedNoLength) {
+		_transfer = &transfer;
+		result = curl_easy_perform(curl);
+		_transfer = NULL;
+	}
+	if (transfer.retry && transfer.credential != nil) {
+		/* A RE-SEND WITH A SPENT STREAM NEEDS A FRESH ONE (§62.40), AND THIS IS THE ONLY PLACE IT CAN BE ASKED
+		 * FOR: the transport re-issues a 401 by jumping back to the label below, so the session - and therefore
+		 * any delegate door it could offer - never sees the second attempt. The ask goes through a FIRST-PARTY
+		 * CLIENT DOOR for exactly that reason, and the stream it hands back is RETAINED here (a caller's stream
+		 * has no other owner over the retry) and released when this transfer function returns.
+		 *
+		 * AND THE SIZE IS RE-ESTABLISHED, WHICH THE FIRST VERSION OF THIS DID NOT DO: the setup above runs ONCE,
+		 * so the upload was sized from the stream the first attempt had already spent - ZERO REMAINING BYTES -
+		 * and zero is a size curl honours by sending nothing, which is why the re-issued request reached the
+		 * server with no body at all. A replacement that can report its own length is sized from it here, exactly
+		 * as the setup sizes a first attempt (§62.38). */
+		NSURLProtocol *owner = transfer.protocol;
+
+		if (transfer.bodyStream != nil && [owner request] != nil &&
+		    [owner client] != nil &&
+		    [[owner client] respondsToSelector:@selector(URLProtocol:fnNewBodyStreamForReSend:)]) {
+			NSInputStream *fresh = [(id <NSURLProtocolClient>)[owner client]
+				URLProtocol:owner fnNewBodyStreamForReSend:[owner request]];
+
+			if (fresh != nil) {
+				uint8_t *bytes = NULL;
+				NSUInteger length = 0;
+
+				replacement = [fresh retain];
+				transfer.bodyStream = replacement;
+				[replacement open];
+				if ([replacement getBuffer:&bytes length:&length]) {
+					curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)length);
+				}
+			}
+		}
+		transfer.retry = 0;
+		transfer.responded = 0;
+		goto retry_transfer;
+	}
+
+	if (transfer.refusedNoLength) {
+		/* THE REFUSAL, WITH A SENTENCE A CALLER CAN ACT ON. THE DOMAIN AND CODE ARE THE TRANSPORT'S OWN
+		 * because no Apple error means this: `NSURLErrorRequestBodyStreamExhausted` is about a stream that
+		 * RAN DRY, and this is a body nobody could measure - a different fact, and inventing a name for it
+		 * would be worse than saying it plainly. */
+		[_client URLProtocol:self didFailWithError:
+			[NSError errorWithDomain:@"FNCURLURLProtocol"
+					    code:3
+					userInfo:@{NSLocalizedDescriptionKey:
+						@"the body is a stream with no published Content-Length, and this transport "
+						@"cannot send an upload of unknown size: publish one, or hand over a stream "
+						@"that can report its length (an in-memory stream does)"}]];
+	} else if (transfer.cancelledChallenge) {
+		/* THE CLIENT CANCELLED THE CHALLENGE: that is a failure of the task, not a response to hand back. */
+		/* THE CODE IS THE TRANSPORT'S OWN, because the NSURLError* constant mass is NOT SHIPPED YET (it is
+		 * its own ledger row and its own slice): naming a constant this library does not declare would
+		 * either invent a value or fail to build, and CURLE_ABORTED_BY_CALLBACK is exactly what happened -
+		 * the transfer was aborted because the client said no. */
+		[_client URLProtocol:self didFailWithError:
+			[NSError errorWithDomain:@"FNCURLURLProtocol"
+					    code:(NSInteger)CURLE_ABORTED_BY_CALLBACK
+					userInfo:nil]];
+	} else if (transfer.stopped) {
+		/* THE CALLER STOPPED IT: no finish and no failure, because neither happened. */
+	} else if (transfer.redirected) {
+		/* ALREADY REPORTED, and the transfer ended there on purpose. */
+	} else if (result != CURLE_OK) {
+		failed = 1;
+		[_client URLProtocol:self didFailWithError:
+			[NSError errorWithDomain:@"FNCURLURLProtocol"
+					    code:(NSInteger)result
+					userInfo:nil]];
+	} else {
+		[_client URLProtocolDidFinishLoading:self];
+	}
+	(void)failed;
+
+	if (headerList != NULL) {
+		curl_slist_free_all(headerList);
+	}
+	curl_easy_cleanup(curl);
+	[replacement release];
+	[transfer.headerBytes release];
+	[pool release];
+}
+
+/* ⚠⚠ THE METRICS REPORT IS GONE (§63.159): this method sent a record through the client's first-party
+ * `-URLProtocol:fnDidCollectMetrics:` door, and BOTH the door and the record's type left with the session
+ * family. What it leaves behind is the rule the two remaining first-party doors still keep — no door means
+ * nothing is reported, and it is not a failure. */
+
+/* --- THE PRIVATE REPORTING DOORS ----------------------------------------------------------------- */
+
+- (void)fnAskClientForCredential:(NSURLAuthenticationChallenge *)challenge
+{
+	if (_client == nil ||
+	    ![_client respondsToSelector:@selector(URLProtocol:didReceiveAuthenticationChallenge:)]) {
+		/* NO DOOR MEANS NO OPINION, WITHOUT WAITING - the rule every door in this library keeps. AND THE
+		 * CALLER NEEDS NO CALL BACK FROM HERE to express it: its own sentinel already means "leave the 401
+		 * as the response", which is exactly the default handling a client with no door produces — so this
+		 * method asks and returns, with nothing to report. */
+		return;
+	}
+	[_client URLProtocol:self didReceiveAuthenticationChallenge:challenge];
+}
+
+- (void)fnReportResponseWithStatus:(long)status headers:(NSDictionary *)headers
+{
+	if (_client == nil) {
+		return;
+	}
+	NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:[[self request] URL]
+								  statusCode:status
+								 HTTPVersion:nil
+								headerFields:headers];
+
+	/* THE ADVICE IS "DO NOT STORE" IN v1, AND THAT IS A DECISION RATHER THAN A DEFAULT: there is no
+	 * cache in this library yet (NSURLCache is its own slice), so a policy of "allowed" would be a
+	 * promise nothing keeps. Saying NotAllowed is the honest answer until a store exists. */
+	[_client URLProtocol:self
+	    didReceiveResponse:response
+	     cacheStoragePolicy:NSURLCacheStorageNotAllowed];
+	[response release];
+}
+
+- (void)fnReportRedirectToURL:(NSString *)location status:(long)status headers:(NSDictionary *)headers
+{
+	NSURL *target;
+	NSMutableURLRequest *next;
+	NSHTTPURLResponse *response;
+
+	if (_client == nil) {
+		return;
+	}
+	target = [NSURL URLWithString:location];
+	if (target == nil) {
+		return;
+	}
+	/* WHAT THE NEXT REQUEST IS (§54), AND IT IS A PROPOSAL RATHER THAN A COPY: RFC 9110's method rules decide
+	 * the method and the body - 303 MUST become a GET, and 301/302 are treated the same because that is what
+	 * every browser does - while 307 and 308 exist precisely to keep BOTH, so they do.
+	 *
+	 * AND THE CALLER'S HEADERS TRAVEL, minus the two the transport computes for itself: a redirect that
+	 * silently drops what the caller set (Accept, an API key, a language) changes the request more than the
+	 * server asked for. */
+	if (status == 307 || status == 308) {
+		next = [[[self request] mutableCopy] autorelease];
+		[next setURL:target];
+	} else {
+		NSDictionary *fields = [[self request] allHTTPHeaderFields];
+		NSArray *names = [fields allKeys];
+		NSUInteger i;
+
+		next = [NSMutableURLRequest requestWithURL:target];
+		for (i = 0; i < [names count]; i++) {
+			NSString *name = [names objectAtIndex:i];
+
+			if ([name caseInsensitiveCompare:@"Host"] == NSOrderedSame ||
+			    [name caseInsensitiveCompare:@"Content-Length"] == NSOrderedSame) {
+				continue;
+			}
+			[next setValue:[fields objectForKey:name] forHTTPHeaderField:name];
+		}
+	}
+	response = [[NSHTTPURLResponse alloc] initWithURL:[[self request] URL]
+					       statusCode:status
+					      HTTPVersion:nil
+					     headerFields:headers];
+	[_client URLProtocol:self wasRedirectedToRequest:next redirectResponse:response];
+	[response release];
+}
+
+- (void)fnReportFailure:(NSError *)error
+{
+	if (_client != nil) {
+		[_client URLProtocol:self didFailWithError:error];
+	}
+}
+
+@end
+
+/* THE TRANSPORT REGISTERS ITSELF AT LOAD (§62.83 — the user's decision, 2026-09-26), and the reason is one
+ * sentence of Apple's own model: nobody on macOS registers `file`, `http` or `https` before loading, because the
+ * built-in protocols are always there. This library's transport is not optional either — FNCURLURLProtocol.m is
+ * part of `libfoundation` by the library's own wildcard rule (`FN_FOUNDATION_SRCS`, mk/20-userland.mk) and libcurl
+ * is already its dependency — so requiring every caller to perform a setup step bought no purity and cost a
+ * genuine confusion: a forgotten call surfaces as `NSURLErrorUnsupportedURL (-1002)`, which reads like a verdict
+ * about the URL rather than about the registry. (This thread's first attempt at NSURLDownload was reverted for
+ * exactly that misreading.)
+ *
+ * THE REGISTRY IS STILL THE AUTHORITY AND THE SEAM IS UNTOUCHED: this is an ordinary `+registerClass:`, the lookup
+ * still walks the registry, and because the walk resolves MOST-RECENTLY-REGISTERED FIRST (NSURLProtocol.m) a
+ * caller's later registration deliberately outranks this one — the ordering that exists for exactly this case. A
+ * caller that wants no transport at all can still `-unregisterClass:`.
+ *
+ * A CONSTRUCTOR RATHER THAN `+load`, FOR A REASON ABOUT ORDERING: the dynamic loader runs a dependency's
+ * initialisers before its dependents', so libobjc is up before this runs — which is what makes touching a class
+ * object here safe without relying on a runtime hook this tree's runtime may not implement. */
+__attribute__((constructor))
+static void fn_curl_protocol_register_at_load(void)
+{
+	(void)[NSURLProtocol registerClass:[FNCURLURLProtocol class]];
+}
