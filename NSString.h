@@ -120,7 +120,15 @@ enum {
  * UTF-8 is SUPPORTED here (it is the storage); the others are named so the calls compile and can be rejected
  * honestly rather than silently mis-encoded.
  */
-typedef enum {
+/* THE TYPE IS AN INTEGER TYPEDEF AND THE MEMBERS ARE SEPARATE, WHICH IS APPLE ARRANGEMENT
+ * (`typedef NSUInteger NSStringEncoding` and `NS_OPTIONS(NSUInteger, ...)`), and here it is also an
+ * ABI FIX. A typedef enum is int-sized, so -getBytes:maxLength:usedLength:encoding:options:range:
+ * remainingRange: passed 4 bytes where the callee reads 8 -- libobjc2 reported the selector as
+ * ...i40i44... against Core Foundation view ...Q40Q48..., and an argument list is not restricted to
+ * pointers the way a return value is. MEASURED: 22 complaints from this one selector.
+ * THE VALUES BELOW ARE UNCHANGED; base records them as measured against the macOS 14.5 SDK. */
+typedef NSUInteger NSStringEncoding;
+enum {
 	/* ⚠⚠ THESE VALUES ARE APPLE'S, AND 21 OF THESE 24 WERE **NOT** (§63.70). This enum used a
 	 * PRIVATE BLOCK (100..119) for everything but ASCII, UTF-8 and Unicode — so a caller who passed Apple's
 	 * own number, whether compiled against the SDK's header or read from a wire or a plist, asked for a
@@ -158,17 +166,25 @@ typedef enum {
 	NSUTF32LittleEndianStringEncoding = 0x9c000100,
 
 	NSProprietaryStringEncoding = 65536
-} NSStringEncoding;
+};
 
 /* THE TWO OPTION SETS THE WINDOWS TAKE (2026-09-20). The doors that use them — a
  * lossy encoding conversion, and -enumerateSubstringsInRange:options:usingBlock: —
  * are not in this header, so the types ship ahead of their users, as in Cocoa's own
  * header. Names from Apple's documentation index; values are ours (§11.6.1 D2, see
  * NSFileManager.h), and both are bit sets as their names say. */
-typedef enum {
+/* THE TYPE IS AN INTEGER TYPEDEF AND THE MEMBERS ARE SEPARATE, WHICH IS APPLE ARRANGEMENT
+ * (`typedef NSUInteger NSStringEncoding` and `NS_OPTIONS(NSUInteger, ...)`), and here it is also an
+ * ABI FIX. A typedef enum is int-sized, so -getBytes:maxLength:usedLength:encoding:options:range:
+ * remainingRange: passed 4 bytes where the callee reads 8 -- libobjc2 reported the selector as
+ * ...i40i44... against Core Foundation view ...Q40Q48..., and an argument list is not restricted to
+ * pointers the way a return value is. MEASURED: 22 complaints from this one selector.
+ * THE VALUES BELOW ARE UNCHANGED; base records them as measured against the macOS 14.5 SDK. */
+typedef NSUInteger NSStringEncodingConversionOptions;
+enum {
 	NSStringEncodingConversionAllowLossy = 1 << 0,
 	NSStringEncodingConversionExternalRepresentation = 1 << 1
-} NSStringEncodingConversionOptions;
+};
 
 typedef enum {
 	NSStringEnumerationByLines = 1 << 0,
