@@ -24,6 +24,10 @@ cmake_minimum_required(VERSION 3.24)
 
 project(AgoraBase LANGUAGES C OBJC ASM)
 
+# The toll-free bridge is a JOINT property of this component and libagora-core, and the only
+# thing that can see the pairing is a consumer of both -- see tests/bridges.m.
+enable_testing()
+
 include(GNUInstallDirs)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE YES)
@@ -81,6 +85,15 @@ add_library(Foundation SHARED
 
 set_target_properties(Foundation PROPERTIES OUTPUT_NAME agora-base)
 
+# AGORA: THE OBJECTIVE-C RUNTIME IS A USAGE REQUIREMENT. A consumer of Foundation compiles Objective-C
+# against the same runtime this library was built with; without this, clang falls back to the legacy
+# GNUstep ABI and emits __objc_class_name_* references that libobjc2 does not define -- a link error in
+# the consumer, with nothing in this library's own build to show for it. Found by the test suite on its
+# first run.
+target_compile_options(Foundation INTERFACE
+    "-fobjc-runtime=gnustep-2.0"
+    "-fblocks")
+
 target_include_directories(Foundation PUBLIC "${_agora_include_dir}")
 
 # plist.h sits beside the sources, not under Foundation/.
@@ -102,6 +115,8 @@ target_link_libraries(Foundation
         ZLIB::ZLIB
         CURL::libcurl
         OpenSSL::Crypto)
+
+add_subdirectory(tests)
 
 install(DIRECTORY . DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Foundation
         FILES_MATCHING PATTERN "*.h")
