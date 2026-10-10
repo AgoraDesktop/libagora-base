@@ -451,6 +451,44 @@ static int run_in_child(const char *name, int (*fn)(void))
 	return 1;
 }
 
+/* ------------------------------------------------------------------------ */
+/* THE OTHER DIRECTION, WHICH NOTHING TESTED: a NATIVE Core Foundation object */
+/* handed TO Foundation as an argument                                        */
+/* ------------------------------------------------------------------------ */
+
+/* UNTIL THIS GROUP EXISTED THE SUITE COULD NOT TELL THAT THE BRIDGE WAS HALF
+ * BUILT. Every other case drives Core Foundation with a Foundation object; this
+ * one asks the reverse, and the reverse needs a Core Foundation object to WEAR A
+ * CLASS. Measured when this was written: CFString had one (__NSCFString) and
+ * CFArray, CFData, CFNumber and CFDate had none, so Foundation's methods
+ * segfaulted on them -- while the suite reported 41 of 41, because it never asked.
+ *
+ * ONE CHILD PER CASE, as everything else here, because the failure mode is a crash
+ * rather than an answer. */
+static void arg_cfstring(void) { CFStringRef s = CFStringCreateWithCString(NULL, "same", kCFStringEncodingUTF8); printf("    [@\"same\" isEqual:it] = %d (want 1)\n", (int)[@"same" isEqual:(id)s]); }
+static void arg_cfarray(void) { CFArrayRef a = CFArrayCreate(NULL, NULL, 0, &kCFTypeArrayCallBacks); printf("    [it count] = %ld (want 0)\n", (long)[(id)a count]); }
+static void arg_cfdata(void) { CFDataRef d = CFDataCreate(NULL, (const UInt8 *)"x", 1); printf("    [it length] = %ld (want 1)\n", (long)[(id)d length]); }
+static void arg_cfdict(void) { CFDictionaryRef d = CFDictionaryCreate(NULL, NULL, NULL, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks); printf("    [it count] = %ld (want 0)\n", (long)[(id)d count]); }
+static void arg_cfset(void) { CFSetRef x = CFSetCreate(NULL, NULL, 0, &kCFTypeSetCallBacks); printf("    [it count] = %ld (want 0)\n", (long)[(id)x count]); }
+static void arg_cfnumber(void) { CFNumberRef n = CFNumberCreate(NULL, kCFNumberIntType, (int[]){ 7 }); printf("    [it intValue] = %d (want 7)\n", (int)[(id)n intValue]); }
+static void arg_cfdate(void) { CFDateRef d = CFDateCreate(NULL, 0.0); printf("    [it timeIntervalSinceReferenceDate] = %g (want 0)\n", (double)[(id)d timeIntervalSinceReferenceDate]); }
+static void arg_cfnull(void) { printf("    [kCFNull description] = %s\n", [(id)kCFNull description] == nil ? "(nil)" : "ok"); }
+static void arg_cfurl(void) { CFURLRef u = CFURLCreateWithString(NULL, CFSTR("http://example.com/a"), NULL); printf("    [it path] = %s (want /a)\n", (const char *)[[(id)u path] UTF8String]); }
+static void arg_cftz(void) { CFTimeZoneRef z = CFTimeZoneCreateWithName(NULL, CFSTR("UTC"), true); printf("    [it name] = %s (want UTC)\n", (const char *)[[(id)z name] UTF8String]); }
+
+static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
+	{ "Foundation receives a native CFString",  arg_cfstring },
+	{ "Foundation receives a native CFArray",   arg_cfarray },
+	{ "Foundation receives a native CFData",    arg_cfdata },
+	{ "Foundation receives a native CFDictionary", arg_cfdict },
+	{ "Foundation receives a native CFSet",     arg_cfset },
+	{ "Foundation receives a native CFNumber",  arg_cfnumber },
+	{ "Foundation receives a native CFDate",    arg_cfdate },
+	{ "Foundation receives a native CFNull",    arg_cfnull },
+	{ "Foundation receives a native CFURL",     arg_cfurl },
+	{ "Foundation receives a native CFTimeZone", arg_cftz },
+};
+
 static void (*g_trampoline_group)(void);
 
 static int group_trampoline(void)
@@ -490,6 +528,15 @@ int main(void)
 	for (size_t i = 0; i < sizeof g_extra_doors / sizeof g_extra_doors[0]; i++) {
 		g_trampoline_group = g_extra_doors[i].fn;
 		if (run_in_child(g_extra_doors[i].name, group_trampoline) == 0) {
+			cases_ok++;
+		} else {
+			cases_bad++;
+		}
+	}
+
+	for (size_t i = 0; i < sizeof g_arguments / sizeof g_arguments[0]; i++) {
+		g_trampoline_group = g_arguments[i].fn;
+		if (run_in_child(g_arguments[i].name, group_trampoline) == 0) {
 			cases_ok++;
 		} else {
 			cases_bad++;
