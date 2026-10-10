@@ -44,6 +44,22 @@
 
 @implementation NSCFConstantString
 
+/* AND THE TWO ENCODING DOORS CORE FOUNDATION ASKS IT FOR. CFString.c dispatches to these, and the class
+ * the compiler CFSTR is did not answer them: '-[NSCFConstantString _fastestEncodingInCFStringEncoding]
+ * is not implemented', raised the moment CFURL built a Core Foundation URL from a string. BOTH ARE Core
+ * Foundation QUESTIONS WITH Core Foundation ANSWERS, so they ask Core Foundation rather than duplicating
+ * its encoding logic. They live in THIS file because the class is declared here and not in a header. */
+- (CFStringEncoding)_fastestEncodingInCFStringEncoding
+{
+	return CFStringGetFastestEncoding((CFStringRef)self);
+}
+
+- (CFStringEncoding)_smallestEncodingInCFStringEncoding
+{
+	return CFStringGetSmallestEncoding((CFStringRef)self);
+}
+
+
 /* NO DEALLOC, NO FREE: the storage is the compiler's, in the program's own data segment, and it lives
  * as long as the program does. Releasing one must therefore do nothing at all -- and -release on a
  * constant string is exactly what a caller is allowed to do after taking one. */

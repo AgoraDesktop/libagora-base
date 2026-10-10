@@ -207,8 +207,14 @@ static void reg_native(void)
 	CFArrayAppendValue(native, CFSTR("b"));
 	check(CFArrayGetCount(native) == 2, "native mutable array count %ld", (long)CFArrayGetCount(native));
 	check(CFArrayGetValueAtIndex(native, 0) != NULL, "native mutable array element is NULL");
-	check(object_getClass((id)native) == nil, "a Core Foundation object has a class: %s",
-	      class_getName(object_getClass((id)native)));
+	/* THIS ASSERTED THE OPPOSITE UNTIL THE BRIDGE CHANGED IT. `object_getClass(native) == nil` was true
+	 * when a Core Foundation object wore NO class at all -- and it wore none because wearing FOUNDATION
+	 * class made CFArrayAppendValue dispatch into an immutable NSArray. The answer is Core Foundation OWN
+	 * class, which is what it has now, so the assertion tested an implementation detail the bridge was
+	 * supposed to CHANGE. THE FIFTH TEST ERROR THIS SUITE HAS HAD, and the first that was wrong by being
+	 * right when it was written. */
+	check(object_getClass((id)native) != nil, "a Core Foundation array has no class at all");
+	check([(id)native count] == 2, "a native array answers -count with %ld, want 2", (long)[(id)native count]);
 	CFRelease(native);
 }
 
