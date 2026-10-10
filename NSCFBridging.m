@@ -32,6 +32,27 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreFoundation/ForSwiftFoundationOnly.h>
 
+/* ------------------------------------------------------------------------ */
+/* the method Core Foundation asks for                                       */
+/* ------------------------------------------------------------------------ */
+
+/* CFCopyDescription hands a Foundation object to Objective-C (CFRuntime.c's CFTYPE_OBJC_FUNCDISPATCH)
+ * because Core Foundation's own copyDebugDesc reads a __CFString and a Foundation object has none.
+ * The method it asks for is THIS ONE, and the name is not -description because the contract is a Copy:
+ * it returns +1, which -description does not promise.
+ *
+ * ON NSObject, ONCE, so every bridged class answers it -- and in this file, because this file is the
+ * bridge. It calls -description, which the class itself implements, so a type whose description is
+ * specific gets that and a type that has none gets NSObject's. */
+@implementation NSObject (NSCFBridging)
+
+- (NSString *)_copyDescription
+{
+	return [[self description] copy];
+}
+
+@end
+
 static void __attribute__((constructor)) agora_register_cf_bridged_classes(void)
 {
 	_CFRuntimeBridgeTypeToClass(CFStringGetTypeID(), (const void *)[NSString class]);

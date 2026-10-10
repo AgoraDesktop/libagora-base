@@ -223,16 +223,30 @@ int main(void)
 			check(0, "%s: the Foundation object could not be made", c->name);
 			continue;
 		}
-		check(CFGetTypeID((CFTypeRef)obj) == c->typeID(),
-		      "%s: CFGetTypeID is %lu, want %lu", c->name,
-		      (unsigned long)CFGetTypeID((CFTypeRef)obj), (unsigned long)c->typeID());
-		check(c->door(obj) != 0, "%s: the Core Foundation door did not answer", c->name);
-		CFRetain((CFTypeRef)obj);
-		CFRelease((CFTypeRef)obj);
-		check(CFCopyDescription((CFTypeRef)obj) != NULL, "%s: CFCopyDescription is NULL", c->name);
+		/* EACH CASE IS CAUGHT, because a bridged door that reaches a Foundation method the class does
+		 * not implement RAISES -- and an uncaught exception ends the process, which would let one
+		 * missing method hide the other seventeen types. A raise is a failure like any other, and the
+		 * count is the point. */
+		@try {
+			check(CFGetTypeID((CFTypeRef)obj) == c->typeID(),
+			      "%s: CFGetTypeID is %lu, want %lu", c->name,
+			      (unsigned long)CFGetTypeID((CFTypeRef)obj), (unsigned long)c->typeID());
+			check(c->door(obj) != 0, "%s: the Core Foundation door did not answer", c->name);
+			CFRetain((CFTypeRef)obj);
+			CFRelease((CFTypeRef)obj);
+			check(CFCopyDescription((CFTypeRef)obj) != NULL, "%s: CFCopyDescription is NULL", c->name);
+		} @catch (NSException *e) {
+			check(0, "%s: raised %s: %s", c->name,
+			      [[e name] UTF8String], [[e reason] UTF8String]);
+		}
 	}
 
-	regressions();
+	@try {
+		regressions();
+	} @catch (NSException *e) {
+		check(0, "regressions: raised %s: %s",
+		      [[e name] UTF8String], [[e reason] UTF8String]);
+	}
 
 	fprintf(stderr, "\nbridges: %d passed, %d failed\n", g_pass, g_fail);
 	return g_fail == 0 ? 0 : 1;
