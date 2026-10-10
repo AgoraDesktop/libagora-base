@@ -465,13 +465,32 @@ static int run_in_child(const char *name, int (*fn)(void))
  *
  * ONE CHILD PER CASE, as everything else here, because the failure mode is a crash
  * rather than an answer. */
-static void arg_cfstring(void) { CFStringRef s = CFStringCreateWithCString(NULL, "same", kCFStringEncodingUTF8); printf("    [@\"same\" isEqual:it] = %d (want 1)\n", (int)[@"same" isEqual:(id)s]); }
+/* and likewise the string: -isEqual: is derived, and it can only answer if -length and
+ * -characterAtIndex: reach Core Foundation. */
+static void arg_cfstring(void)
+{
+	CFStringRef s = CFStringCreateWithCString(NULL, "same", kCFStringEncodingUTF8);
+
+	printf("    [@\"same\" isEqual:it]  = %d (want 1)\n", (int)[@"same" isEqual:(id)s]);
+	printf("    [it substringToIndex:2] = %s (want sa)\n", (const char *)[[(id)s substringToIndex:2] UTF8String]);
+}
 static void arg_cfarray(void) { CFArrayRef a = CFArrayCreate(NULL, NULL, 0, &kCFTypeArrayCallBacks); printf("    [it count] = %ld (want 0)\n", (long)[(id)a count]); }
 static void arg_cfdata(void) { CFDataRef d = CFDataCreate(NULL, (const UInt8 *)"x", 1); printf("    [it length] = %ld (want 1)\n", (long)[(id)d length]); }
 static void arg_cfdict(void) { CFDictionaryRef d = CFDictionaryCreate(NULL, NULL, NULL, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks); printf("    [it count] = %ld (want 0)\n", (long)[(id)d count]); }
 static void arg_cfset(void) { CFSetRef x = CFSetCreate(NULL, NULL, 0, &kCFTypeSetCallBacks); printf("    [it count] = %ld (want 0)\n", (long)[(id)x count]); }
 static void arg_cfnumber(void) { CFNumberRef n = CFNumberCreate(NULL, kCFNumberIntType, (int[]){ 7 }); printf("    [it intValue] = %d (want 7)\n", (int)[(id)n intValue]); }
-static void arg_cfdate(void) { CFDateRef d = CFDateCreate(NULL, 0.0); printf("    [it timeIntervalSinceReferenceDate] = %g (want 0)\n", (double)[(id)d timeIntervalSinceReferenceDate]); }
+/* A DERIVED METHOD, NOT THE PRIMITIVE. -timeIntervalSince1970 is built on
+ * -timeIntervalSinceReferenceDate, so asking for it forces Foundation to go THROUGH the method Core
+ * Foundation installed -- whereas asking for the primitive itself could pass by coincidence, if
+ * Foundation own implementation happened to read the same field at the same offset. Core Foundation
+ * counts from 2001, so a date at 0.0 is -978307200 in the 1970 domain. */
+static void arg_cfdate(void)
+{
+	CFDateRef d = CFDateCreate(NULL, 0.0);
+
+	printf("    [it timeIntervalSinceReferenceDate] = %g (want 0)\n", (double)[(id)d timeIntervalSinceReferenceDate]);
+	printf("    [it timeIntervalSince1970]          = %g (want -978307200)\n", (double)[(id)d timeIntervalSince1970]);
+}
 static void arg_cfnull(void) { printf("    [kCFNull description] = %s\n", [(id)kCFNull description] == nil ? "(nil)" : "ok"); }
 static void arg_cfurl(void) { CFURLRef u = CFURLCreateWithString(NULL, CFSTR("http://example.com/a"), NULL); printf("    [it path] = %s (want /a)\n", (const char *)[[(id)u path] UTF8String]); }
 static void arg_cftz(void) { CFTimeZoneRef z = CFTimeZoneCreateWithName(NULL, CFSTR("UTC"), true); printf("    [it name] = %s (want UTC)\n", (const char *)[[(id)z name] UTF8String]); }
