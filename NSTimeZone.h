@@ -98,14 +98,16 @@ NS_ASSUME_NONNULL_BEGIN
 /* HOW A ZONE RENDERS ITS NAME (2026-09-20): "GMT+05:30" or "India Standard Time",
  * long or abbreviated, standard or daylight. Names from Apple's documentation index;
  * values are ours (§11.6.1 D2, see NSFileManager.h). */
-typedef enum {
+/* THE TYPE IS CORE FOUNDATION'S (CFBridgingTypes.h: `NSTimeZoneNameStyle` is an integer typedef,
+ * Apple's own NS_OPTIONS/NS_ENUM arrangement); THESE ARE THE MEMBERS, AND THEY STAY HERE. */
+enum {
 	NSTimeZoneNameStyleStandard = 0,
 	NSTimeZoneNameStyleShortStandard = 1,
 	NSTimeZoneNameStyleDaylightSaving = 2,
 	NSTimeZoneNameStyleShortDaylightSaving = 3,
 	NSTimeZoneNameStyleGeneric = 4,
 	NSTimeZoneNameStyleShortGeneric = 5
-} NSTimeZoneNameStyle;
+};
 
 @interface NSTimeZone (NSExtendedTimeZone)
 /* ⚠⚠ FOUR OF `NSTimeZone`'S TEN, THROUGH ICU — WHICH THIS CLASS ALREADY IS ("ICU's default zone", says its own

@@ -99,7 +99,9 @@ NS_ASSUME_NONNULL_BEGIN
  * a search that quietly ignores NSRegularExpressionSearch answers a different question than the one asked.
  * Values ours (§11.6.1 D2), bit sets as their names say; NSCaseInsensitiveSearch keeps the value it always
  * had, so this changes no existing behaviour. */
-typedef enum {
+/* THE TYPE IS CORE FOUNDATION'S (CFBridgingTypes.h: `NSStringCompareOptions` is an integer typedef,
+ * Apple's own NS_OPTIONS/NS_ENUM arrangement); THESE ARE THE MEMBERS, AND THEY STAY HERE. */
+enum {
 	NSLiteralSearch = 0,
 	NSCaseInsensitiveSearch = 1 << 0,
 	NSAnchoredSearch = 1 << 1,
@@ -109,7 +111,7 @@ typedef enum {
 	NSNumericSearch = 1 << 5,
 	NSRegularExpressionSearch = 1 << 6,
 	NSWidthInsensitiveSearch = 1 << 7
-} NSStringCompareOptions;
+};
 
 /*
  * Cocoa's encodings. The three raw values in the first block are COCOA'S, kept so a numeric comparison in

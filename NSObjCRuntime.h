@@ -27,6 +27,20 @@
 #ifndef FOUNDATION_NSOBJCRUNTIME_H
 #define FOUNDATION_NSOBJCRUNTIME_H
 
+/*
+ * THE VALUE TYPES COME FROM CORE FOUNDATION (CFBridgingTypes.h), AND THAT IS THE DIRECTION THE
+ * DEPENDENCY RUNS. NSInteger, NSUInteger, NSRange, NSMakeRange, NSMaxRange and unichar are the
+ * Objective-C spellings of values that cross the toll-free bridge: Core Foundation's dispatch path
+ * passes ranges and indices into messages, and a struct passed by value must be ONE TYPE ON BOTH
+ * SIDES of the bridge. Foundation depends on Core Foundation and never the reverse, so Core
+ * Foundation declares them and this header adopts them.
+ *
+ * WHAT STAYS HERE IS WHAT IS GENUINELY FOUNDATION'S: the Max/Min and NSNotFound sentinels, the sort
+ * options, NSComparisonResult, NSRangePointer, NSLocationInRange, NSComparator and the binary-search
+ * options.
+ */
+#import <CoreFoundation/CFBridgingTypes.h>
+
 #include <limits.h>
 #include <objc/objc.h>	/* BOOL, YES, NO */
 #include <objc/runtime.h>	/* Protocol, for the two runtime utilities below */
@@ -45,9 +59,6 @@
 #	define NS_ASSUME_NONNULL_BEGIN
 #	define NS_ASSUME_NONNULL_END
 #endif
-
-typedef signed long NSInteger;
-typedef unsigned long NSUInteger;
 
 #define NSIntegerMax	LONG_MAX
 #define NSIntegerMin	LONG_MIN
@@ -81,47 +92,16 @@ typedef enum {
 	NSOrderedDescending = 1
 } NSComparisonResult;
 
-typedef struct _NSRange {
-	NSUInteger location;
-	NSUInteger length;
-} NSRange;
-
 /* APPLE'S POINTER SPELLING FOR A RANGE, declared beside the range itself (it was a ledger row on its
  * own: §23's NSIndexSet unit is what needed it). */
 typedef NSRange *NSRangePointer;
 
-
-/*
- * RANGES ARE FUNCTIONS HERE, NOT COCOA'S MACROS, and the reason is MEASURED: as
- * macros, `NSLocationInRange(2, range)` failed to compile in this toolchain with
- * "expected identifier" pointing INTO the macro name — while its one-parameter
- * neighbour NSMaxRange worked and NSMakeRange worked, and the fully-expanded
- * expression compiled fine on its own. Rather than debug the preprocessor, the
- * three are functions: they cannot be mis-expanded, they are type-checked, they
- * take the Cocoa spelling, and NSMakeRange stops being a compound literal (which
- * C++ mode does not accept either).
- */
-static inline NSRange NSMakeRange(NSUInteger location, NSUInteger length)
-{
-	NSRange range;
-
-	range.location = location;
-	range.length = length;
-	return range;
-}
-
-static inline NSUInteger NSMaxRange(NSRange range)
-{
-	return range.location + range.length;
-}
 
 static inline BOOL NSLocationInRange(NSUInteger location, NSRange range)
 {
 	return (location >= range.location &&
 		location - range.location < range.length) ? YES : NO;
 }
-
-typedef unsigned short unichar;
 
 /* The block comparator the sorted/sort ...UsingComparator: forms take, and the
  * options for the binary-search family. Both are Cocoa's spellings. */

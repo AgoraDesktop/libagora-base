@@ -65,7 +65,9 @@ extern NSString *const NSCalendarIdentifierRepublicOfChina;
 /* Cocoa's unit bitmask, and the VALUES ARE COCOA'S so a numeric test in existing
  * code still means the same thing. Every unit below is derived from the date
  * fields by a rule; none needs a table. */
-typedef enum {
+/* THE TYPE IS CORE FOUNDATION'S (CFBridgingTypes.h: `NSCalendarUnit` is an integer typedef,
+ * Apple's own NS_OPTIONS/NS_ENUM arrangement); THESE ARE THE MEMBERS, AND THEY STAY HERE. */
+enum {
 	NSCalendarUnitEra			= (1UL << 1),
 	NSCalendarUnitYear			= (1UL << 2),
 	NSCalendarUnitMonth			= (1UL << 3),
@@ -94,7 +96,7 @@ typedef enum {
 	 * NSDateComponents does not carry. A refusal belongs in the door that would answer, not in a missing
 	 * name: refusing to declare them only broke callers who spelled a name Apple's header spells. */
 	NSCalendarUnitCount			= 0
-} NSCalendarUnit;
+};
 
 /* The match options -nextDateAfterDate:matchingComponents:options: takes. None is honoured: this calendar
  * answers by arithmetic rather than by searching a table of candidate dates, so each one names a search this
