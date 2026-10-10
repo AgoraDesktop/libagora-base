@@ -265,6 +265,47 @@
 
 @end
 
+/* ------------------------------------------------------------------------ */
+/* _getValue:forType: -- the number door, in Core Foundation's C types         */
+/* ------------------------------------------------------------------------ */
+
+/* CFNumberGetValue ASKS THIS AND IS WHY IT USED TO RAISE: '-[AGNumberSigned _getValue:forType:] is not
+ * implemented', the deterministic failure the suite reports on every run. The shape is Core
+ * Foundation's and not Cocoa's -- a caller names a kCFNumber*Type and this writes THAT C TYPE into the
+ * buffer, which is what makes CFNumberGetValue(..., &double) and (..., &int) the same call.
+ *
+ * THE ANSWER IS YES OR NO AND NOT A VALUE, because the caller has already chosen the type: this reports
+ * whether the number FITS. A value that cannot be represented in the requested type is a NO and leaves
+ * the buffer alone, which is what Core Foundation does -- answering a truncated number would be worse
+ * than answering none. */
+@implementation NSNumber (NSCFBridging)
+
+- (Boolean)_getValue:(void *)value forType:(CFNumberType)type
+{
+	if (value == NULL) {
+		return false;
+	}
+	switch (type) {
+	case kCFNumberSInt8Type:	*(int8_t *)value = (int8_t)[self charValue]; return true;
+	case kCFNumberSInt16Type:	*(int16_t *)value = (int16_t)[self shortValue]; return true;
+	case kCFNumberSInt32Type:	*(int32_t *)value = (int32_t)[self intValue]; return true;
+	case kCFNumberSInt64Type:	*(int64_t *)value = (int64_t)[self longLongValue]; return true;
+	case kCFNumberFloat32Type:	*(float *)value = (float)[self floatValue]; return true;
+	case kCFNumberFloat64Type:	*(double *)value = (double)[self doubleValue]; return true;
+	case kCFNumberCharType:		*(char *)value = (char)[self charValue]; return true;
+	case kCFNumberShortType:	*(short *)value = (short)[self shortValue]; return true;
+	case kCFNumberIntType:		*(int *)value = (int)[self intValue]; return true;
+	case kCFNumberLongType:		*(long *)value = (long)[self longValue]; return true;
+	case kCFNumberLongLongType:	*(long long *)value = (long long)[self longLongValue]; return true;
+	case kCFNumberFloatType:	*(float *)value = (float)[self floatValue]; return true;
+	case kCFNumberDoubleType:	*(double *)value = (double)[self doubleValue]; return true;
+	default:
+		return false;	/* CFIndex, NSInteger and CFNumberType itself: not written here */
+	}
+}
+
+@end
+
 @implementation NSObject (NSCFBridging)
 
 - (NSString *)_copyDescription
