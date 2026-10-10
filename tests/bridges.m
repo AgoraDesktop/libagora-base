@@ -177,8 +177,14 @@ static void reg_cfstr(void)
 static void reg_singletons(void)
 {
 	/* Core Foundation's own statics have no isa at all -- 0 -- and must survive both the CF doors and
-	 * CFRetain/CFRelease without being mistaken for objects. */
-	CFTypeRef singles[] = { kCFBooleanTrue, kCFBooleanFalse, kCFNull, kCFAllocatorDefault };
+	 * CFRetain/CFRelease without being mistaken for objects.
+	 *
+	 * NOT kCFAllocatorDefault, AND THIS TEST HAD IT WRONG: that symbol IS NULL (CFBase.c: "the default
+	 * allocator is the NULL allocator"), so asking for its type id is CFGetTypeID(NULL) and retaining it
+	 * is CFRetain(NULL) -- a segfault and a HALT, both correct and both about the sentinel rather than
+	 * about the bridge. CFAllocatorGetDefault() is the real object. A test that passes NULL is testing
+	 * NULL. */
+	CFTypeRef singles[] = { kCFBooleanTrue, kCFBooleanFalse, kCFNull, (CFTypeRef)CFAllocatorGetDefault() };
 
 	for (size_t i = 0; i < sizeof singles / sizeof singles[0]; i++) {
 		CFRetain(singles[i]);
