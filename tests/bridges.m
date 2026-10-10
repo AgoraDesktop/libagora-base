@@ -253,6 +253,135 @@ static const struct { const char *name; void (*fn)(void); } g_regressions[] = {
 	{ "regression: equality across the bridge", reg_equality },
 };
 
+/* ------------------------------------------------------------------------ */
+/* the door table: MANY doors per type, not one                              */
+/* ------------------------------------------------------------------------ */
+
+/* THE FIRST VERSION OF THIS SUITE TESTED ONE DOOR PER TYPE, AND THAT WAS THE LIMIT OF IT. The
+ * registrations were measured, not the contract: CFTimeZoneGetName passed while three other CFTimeZone
+ * accessors segfaulted, and CFURLGetString passed while five other CFURL doors threw
+ * '-[NSURL _cfurl] is not implemented'. A scan for doors that validate a CF type without dispatching
+ * found twenty-four candidates; these are the ones that are not creation doors, and each runs in its own
+ * child so one crash costs one door.
+ *
+ * THE SUSPECTS WITH NO ENTRY HERE, AND WHY: CFErrorCreate, CFErrorCreateWithUserInfoKeysAndValues,
+ * CFLocaleCreate, CFTimeZoneCreate and its variants, CFTimeZoneSetDefault and
+ * CFTimeZoneSetAbbreviationDictionary. Every one of them CREATES a Core Foundation object or sets a
+ * global; none of them is handed a Foundation object to bridge, so the scan's own heuristic is what
+ * flagged them. */
+static void cb_count(const void *value, void *ctx) { (void)value; (*(int *)ctx)++; }
+
+static void d_array_apply(void)
+{
+	NSArray *a = @[ @1, @2 ];
+	int n = 0;
+
+	CFArrayApplyFunction((CFArrayRef)a, CFRangeMake(0, 2), cb_count, &n);
+	printf("    = %d (want 2)\n", n);
+}
+
+static void d_data_find(void)
+{
+	NSData *b = [NSData dataWithBytes:"hello" length:5];
+	NSData *n = [NSData dataWithBytes:"ll" length:2];
+	CFRange r = CFDataFind((CFDataRef)b, (CFDataRef)n, CFRangeMake(0, 5), 0);
+
+	printf("    = {%ld,%ld} (want {2,2})\n", (long)r.location, (long)r.length);
+}
+
+/* CFDictionaryGetKeyIfPresent HAS NO ENTRY: the scan flagged it, but it is declared nowhere in
+ * Core Foundation's public headers -- so it is not a door a caller can reach, and a bridge test is about
+ * the doors callers reach. That is the scan's heuristic showing its edges, not a defect. */
+
+static void d_tz_seconds(void)
+{
+	NSTimeZone *z = [NSTimeZone timeZoneWithName:@"UTC"];
+
+	printf("    = %g\n", (double)CFTimeZoneGetSecondsFromGMT((CFTimeZoneRef)z, 0.0));
+}
+
+static void d_tz_abbrev(void)
+{
+	NSTimeZone *z = [NSTimeZone timeZoneWithName:@"UTC"];
+	CFStringRef s = CFTimeZoneCopyAbbreviation((CFTimeZoneRef)z, 0.0);
+
+	printf("    = %s\n", s ? [(NSString *)s UTF8String] : "(null)");
+	if (s) CFRelease(s);
+}
+
+static void d_tz_isdst(void)
+{
+	NSTimeZone *z = [NSTimeZone timeZoneWithName:@"UTC"];
+
+	printf("    = %d\n", (int)CFTimeZoneIsDaylightSavingTime((CFTimeZoneRef)z, 0.0));
+}
+
+static void d_url_path(void)
+{
+	CFStringRef p = CFURLCopyPath((CFURLRef)[NSURL URLWithString:@"http://example.com/a/b"]);
+
+	printf("    = %s (want /a/b)\n", p ? [(NSString *)p UTF8String] : "(null)");
+	if (p) CFRelease(p);
+}
+
+static void d_url_hasdir(void) { printf("    = %d\n", (int)CFURLHasDirectoryPath((CFURLRef)[NSURL URLWithString:@"http://example.com/a/"])); }
+static void d_url_decomp(void) { printf("    = %d\n", (int)CFURLCanBeDecomposed((CFURLRef)[NSURL URLWithString:@"http://example.com/a"])); }
+
+static void d_url_netloc(void)
+{
+	CFStringRef s = CFURLCopyNetLocation((CFURLRef)[NSURL URLWithString:@"http://example.com/a"]);
+
+	printf("    = %s (want example.com)\n", s ? [(NSString *)s UTF8String] : "(null)");
+	if (s) CFRelease(s);
+}
+
+static void d_url_dellast(void)
+{
+	CFURLRef d = CFURLCreateCopyDeletingLastPathComponent(NULL, (CFURLRef)[NSURL URLWithString:@"http://example.com/a/b"]);
+
+	printf("    = %s\n", d ? [(NSString *)CFURLGetString(d) UTF8String] : "(null)");
+	if (d) CFRelease(d);
+}
+
+static void d_url_apppath(void)
+{
+	CFURLRef d = CFURLCreateCopyAppendingPathComponent(NULL, (CFURLRef)[NSURL URLWithString:@"http://example.com/a"], CFSTR("b"), false);
+
+	printf("    = %s\n", d ? [(NSString *)CFURLGetString(d) UTF8String] : "(null)");
+	if (d) CFRelease(d);
+}
+
+static void d_url_bytes(void)
+{
+	CFRange r = CFURLGetByteRangeForComponent((CFURLRef)[NSURL URLWithString:@"http://example.com/a"], kCFURLComponentPath, NULL);
+
+	printf("    = {%ld,%ld}\n", (long)r.location, (long)r.length);
+}
+
+static void d_str_fastc(void) { printf("    = %p\n", (const void *)CFStringGetCStringPtr(CFSTR("fast"), kCFStringEncodingUTF8)); }
+static void d_str_fastcontents(void) { printf("    = %p\n", (const void *)CFStringGetCharactersPtr((CFStringRef)@"fast")); }
+static void d_str_lower(void) { CFStringRef s = CFStringCreateMutableCopy(NULL, 0, (CFStringRef)@"ABC"); CFStringLowercase((CFMutableStringRef)s, NULL); printf("    = %s (want abc)\n", [(NSString *)s UTF8String]); CFRelease(s); }
+static void d_str_sub(void) { CFStringRef s = CFStringCreateWithSubstring(NULL, (CFStringRef)@"hello", CFRangeMake(1, 3)); printf("    = %s (want ell)\n", s ? [(NSString *)s UTF8String] : "(null)"); if (s) CFRelease(s); }
+
+static const struct { const char *name; void (*fn)(void); } g_extra_doors[] = {
+	{ "CFArrayApplyFunction on an NSArray",                       d_array_apply },
+	{ "CFDataFind on NSData",                                     d_data_find },
+	{ "CFTimeZoneGetSecondsFromGMT on NSTimeZone",                d_tz_seconds },
+	{ "CFTimeZoneCopyAbbreviation on NSTimeZone",                 d_tz_abbrev },
+	{ "CFTimeZoneIsDaylightSavingTime on NSTimeZone",             d_tz_isdst },
+	{ "CFURLCopyPath on NSURL",                                   d_url_path },
+	{ "CFURLHasDirectoryPath on NSURL",                           d_url_hasdir },
+	{ "CFURLCanBeDecomposed on NSURL",                            d_url_decomp },
+	{ "CFURLCopyNetLocation on NSURL",                            d_url_netloc },
+	{ "CFURLCreateCopyDeletingLastPathComponent on NSURL",        d_url_dellast },
+	{ "CFURLCreateCopyAppendingPathComponent on NSURL",           d_url_apppath },
+	{ "CFURLGetByteRangeForComponent on NSURL",                   d_url_bytes },
+	{ "CFStringGetCStringPtr on a CFSTR",                         d_str_fastc },
+	{ "CFStringGetCharactersPtr on an NSString",                  d_str_fastcontents },
+	{ "CFStringLowercase on a mutable string built from NSString", d_str_lower },
+	{ "CFStringCreateWithSubstring from an NSString",             d_str_sub },
+};
+
 static int run_one_case(const bridge_case *c)
 {
 	int before = g_fail;
@@ -355,6 +484,15 @@ int main(void)
 			cases_bad++;
 		}
 	}
+	for (size_t i = 0; i < sizeof g_extra_doors / sizeof g_extra_doors[0]; i++) {
+		g_trampoline_group = g_extra_doors[i].fn;
+		if (run_in_child(g_extra_doors[i].name, group_trampoline) == 0) {
+			cases_ok++;
+		} else {
+			cases_bad++;
+		}
+	}
+
 	for (size_t i = 0; i < sizeof g_regressions / sizeof g_regressions[0]; i++) {
 		g_trampoline_group = g_regressions[i].fn;
 		if (run_in_child(g_regressions[i].name, group_trampoline) == 0) {
