@@ -527,8 +527,12 @@ static void arg_cfdate(void)
 
 	check([(id)d timeIntervalSinceReferenceDate] == 0.0,
 	      "a native CFDate answered %g, want 0", (double)[(id)d timeIntervalSinceReferenceDate]);
-	check([(id)d timeIntervalSince1970] == -978307200.0,
-	      "a DERIVED date method answered %g, want -978307200", (double)[(id)d timeIntervalSince1970]);
+	/* +978307200 AND NOT -978307200: Core Foundation counts from 2001 and this date is AT the 2001
+	 * reference, so the 1970 domain is POSITIVE -- while the case further up uses a date at the 1970
+	 * reference and correctly expects the negative. THE FOURTH TEST EXPECTATION THIS SUITE HAS HAD
+	 * WRONG, and the value it printed was right: 9.78307e+08. */
+	check([(id)d timeIntervalSince1970] == 978307200.0,
+	      "a DERIVED date method answered %g, want +978307200", (double)[(id)d timeIntervalSince1970]);
 }
 
 static void arg_cfnull(void)

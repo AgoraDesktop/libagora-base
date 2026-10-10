@@ -88,7 +88,7 @@
 	 * The inverted version reported a NEGATIVE interval for a future date, which
 	 * the date-extras check caught: a date an hour ahead has +3600, not -3600.
 	 */
-	return _timeIntervalSince1970 - [[NSDate date] timeIntervalSince1970];
+	return ([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS) - [[NSDate date] timeIntervalSince1970];
 }
 
 - (id)initWithTimeIntervalSinceReferenceDate:(double)seconds
@@ -175,7 +175,7 @@
 
 - (NSDate *)dateByAddingTimeInterval:(double)seconds
 {
-	return [[NSDate alloc] initWithTimeIntervalSince1970:_timeIntervalSince1970 + seconds];
+	return [[NSDate alloc] initWithTimeIntervalSince1970:([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS) + seconds];
 }
 
 - (NSString *)descriptionWithLocale:(id)locale
@@ -195,12 +195,12 @@
 
 - (double)timeIntervalSince1970
 {
-	return _timeIntervalSince1970;
+	return ([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS);
 }
 
 - (double)timeIntervalSinceDate:(NSDate *)other
 {
-	return _timeIntervalSince1970 - [other timeIntervalSince1970];
+	return ([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS) - [other timeIntervalSince1970];
 }
 
 - (BOOL)isEqualToDate:(NSDate *)other
@@ -208,17 +208,17 @@
 	if (other == nil) {
 		return NO;
 	}
-	return _timeIntervalSince1970 == [other timeIntervalSince1970];
+	return [self timeIntervalSinceReferenceDate] == [other timeIntervalSinceReferenceDate];
 }
 
 - (NSComparisonResult)compare:(NSDate *)other
 {
 	double b = [other timeIntervalSince1970];
 
-	if (_timeIntervalSince1970 < b) {
+	if (([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS) < b) {
 		return NSOrderedAscending;
 	}
-	if (_timeIntervalSince1970 > b) {
+	if (([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS) > b) {
 		return NSOrderedDescending;
 	}
 	return NSOrderedSame;
@@ -249,10 +249,10 @@
 {
 	/* The same rule as NSNumber: an integral value hashes as its integer, so
 	 * two dates built from one instant agree. */
-	long long whole = (long long)_timeIntervalSince1970;
+	long long whole = (long long)([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS);
 	unsigned long h = 2166136261UL;
 
-	if ((double)whole == _timeIntervalSince1970) {
+	if ((double)whole == ([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS)) {
 		h ^= (unsigned long)whole;
 		return h * 16777619UL;
 	}
@@ -262,7 +262,7 @@
 			unsigned long u;
 		} bits;
 
-		bits.d = _timeIntervalSince1970;
+		bits.d = ([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS);
 		h ^= bits.u;
 		return h * 16777619UL;
 	}
@@ -276,7 +276,7 @@
 
 - (NSString *)description
 {
-	time_t seconds = (time_t)_timeIntervalSince1970;
+	time_t seconds = (time_t)([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS);
 	struct tm parts;
 	char buffer[64];
 
@@ -284,7 +284,7 @@
 	    strftime(buffer, sizeof buffer, "%Y-%m-%d %H:%M:%S +0000", &parts) > 0) {
 		return [NSString stringWithUTF8String:buffer];
 	}
-	snprintf(buffer, sizeof buffer, "%g seconds since 1970", _timeIntervalSince1970);
+	snprintf(buffer, sizeof buffer, "%g seconds since 1970", ([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS));
 	return [NSString stringWithUTF8String:buffer];
 }
 
@@ -299,7 +299,7 @@
  */
 - (void)encodeWithCoder:(NSCoder *)coder
 {
-	[coder encodeDouble:_timeIntervalSince1970 forKey:@"NS.time"];
+	[coder encodeDouble:([self timeIntervalSinceReferenceDate] + FN_REFERENCE_DATE_SECONDS) forKey:@"NS.time"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
