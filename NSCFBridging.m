@@ -160,6 +160,87 @@
  * the type both sides share because Core Foundation owns it (CFBridgingTypes.h). The attributed form is
  * the same method on a different class. -copy and -mutableCopy need nothing here: they are Cocoa's own
  * and base's classes already answer them; CFString.c only had to stop commenting the dispatch out. */
+/* ------------------------------------------------------------------------ */
+/* the eight in-place string mutations Core Foundation asks a MUTABLE string for */
+/* ------------------------------------------------------------------------ */
+
+/* ALL EIGHT RETURN void AND MUTATE IN PLACE, which is why they are on NSMutableString and why nothing in
+ * CFBridgedMethods.h declares them -- the dispatch macro casts the result to void, so an unknown method
+ * is harmless there. WHAT IS NOT HARMLESS IS NOT HAVING THEM: measured as
+ * '-[NSMutableString _cfLowercase:] is not implemented' the moment CFStringLowercase reached the
+ * dispatch that had been commented out.
+ *
+ * THE LOCALE ARGUMENT IS A CoreFoundation CFLocaleRef ARRIVING AS const void *, and Cocoa wants an
+ * NSLocale -- which is exactly the toll-free bridge, so the cast is the whole conversion. NULL means
+ * "the default locale" and Foundation's classes take nil for that. */
+@implementation NSMutableString (NSCFBridgingMutations)
+
+- (void)_cfLowercase:(const void *)locale
+{
+	[self setString:[self lowercaseStringWithLocale:(NSLocale *)locale]];
+}
+
+- (void)_cfUppercase:(const void *)locale
+{
+	[self setString:[self uppercaseStringWithLocale:(NSLocale *)locale]];
+}
+
+- (void)_cfCapitalize:(const void *)locale
+{
+	[self setString:[self capitalizedStringWithLocale:(NSLocale *)locale]];
+}
+
+- (void)_cfTrim:(NSString *)trimString
+{
+	NSUInteger before = [self length];
+
+	(void)before;
+	[self setString:[self stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:trimString]]];
+}
+
+- (void)_cfTrimWS
+{
+	[self setString:[self stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
+}
+
+/* THE ONLY ONE WHOSE ARGUMENT IS NOT A BRIDGED OBJECT: CFStringNormalizationForm is an enum, and
+ * kCFStringNormalizationFormC is the precomposed form Cocoa calls canonical mapping. */
+- (void)_cfNormalize:(CFStringNormalizationForm)form
+{
+	NSString *n;
+
+	switch (form) {
+	case kCFStringNormalizationFormD:
+	case kCFStringNormalizationFormKD:
+		n = [self decomposedStringWithCanonicalMapping];
+		break;
+	default:
+		n = [self precomposedStringWithCanonicalMapping];
+		break;
+	}
+	[self setString:n];
+}
+
+- (void)_cfAppendCString:(const unsigned char *)cStr length:(NSInteger)appendedLength
+{
+	NSString *tail = [[NSString alloc] initWithBytes:cStr length:(NSUInteger)appendedLength encoding:NSUTF8StringEncoding];
+
+	if (tail != nil) {
+		[self appendString:tail];
+		[tail release];
+	}
+}
+
+- (void)_cfPad:(NSString *)padString length:(uint32_t)length padIndex:(uint32_t)indexIntoPad
+{
+	(void)indexIntoPad;
+	while ([self length] < length && [padString length] > 0) {
+		[self appendString:padString];
+	}
+}
+
+@end
+
 @implementation NSString (NSCFBridgingExtras)
 
 - (CFStringRef)_createSubstringWithRange:(NSRange)range
