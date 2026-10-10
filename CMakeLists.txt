@@ -39,6 +39,7 @@ find_package(CoreFoundation CONFIG REQUIRED)   # -> CoreFoundation::CoreFoundati
 find_package(dispatch CONFIG REQUIRED)         # -> dispatch
 find_package(ICU REQUIRED COMPONENTS uc i18n data)
 find_package(ZLIB REQUIRED)
+find_package(CURL REQUIRED)   # NSURLConnection/NSURLSession
 
 # ---------------------------------------------------------------------------
 # Include shim: the headers are included as <Foundation/...> but live at this
@@ -59,101 +60,13 @@ file(CREATE_LINK "${AGORA_DRAWING_DIR}" "${_agora_include_dir}/CoreGraphics" SYM
 # ---------------------------------------------------------------------------
 # The library
 # ---------------------------------------------------------------------------
+# EVERY .m IN THE DIRECTORY IS COMPILED IN, as Fiwix's own build does (its Foundation
+# rules are generated "one rule per source from the directory listing"), so a new
+# translation unit needs no edit here.
+file(GLOB FOUNDATION_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.m")
+
 add_library(Foundation
-    FNAuthenticationChallengeSender.m
-    FNCURLURLProtocol.m
-    FNPointerTable.m
-    FNTextBreaking.m
-    FNURLComponents.m
-    FNWebSocketHandshake.m
-    NSArray.m
-    NSAttributedString.m
-    NSBlockOperation.m
-    NSBundle.m
-    NSCache.m
-    NSCachedURLResponse.m
-    NSCalendar.m
-    NSCharacterSet.m
-    NSCoder.m
-    NSCountedSet.m
-    NSData.m
-    NSDataCodec.m
-    NSDataDetector.m
-    NSDate.m
-    NSDateComponents.m
-    NSDateComponentsFormatter.m
-    NSDateFormatter.m
-    NSDateInterval.m
-    NSDateIntervalFormatter.m
-    NSDecimalNumber.m
-    NSDictionary.m
-    NSDirectoryEnumerator.m
-    NSDistributedNotificationCenter.m
-    NSEnergyFormatter.m
-    NSEnumerator.m
-    NSError.m
-    NSException.m
-    NSFileCoordinator.m
-    NSFileManager.m
-    NSFileProviderService.m
-    NSFileSecurity.m
-    NSFileVersion.m
-    NSFileWrapper.m
-    NSFormatter.m
-    NSGeometry.m
-    NSHTTPURLResponse.m
-    NSHashTable.m
-    NSISO8601DateFormatter.m
-    NSIndexPath.m
-    NSIndexSet.m
-    NSInvocation.m
-    NSInvocationOperation.m
-    NSKeyValueCoding.m
-    NSKeyValueObserving.m
-    NSKeyedArchiver.m
-    NSLengthFormatter.m
-    NSLinguisticTagger.m
-    NSLocale.m
-    NSLock.m
-    NSMapTable.m
-    NSMassFormatter.m
-    NSMethodSignature.m
-    NSNull.m
-    NSNumber.m
-    NSNumberFormatter.m
-    NSObject.m
-    NSOperation.m
-    NSOrderedSet.m
-    NSOrthography.m
-    NSPointerArray.m
-    NSPointerFunctions.m
-    NSProcessInfo.m
-    NSPropertyListSerialization.m
-    NSPurgeableData.m
-    NSRegularExpression.m
-    NSRelativeDateTimeFormatter.m
-    NSRunLoop.m
-    NSScanner.m
-    NSSecureUnarchiveFromDataTransformer.m
-    NSSet.m
-    NSSortDescriptor.m
-    NSString.m
-    NSTextCheckingResult.m
-    NSThread.m
-    NSTimeZone.m
-    NSTinyString.m
-    NSURL.m
-    NSURLConnection.m
-    NSURLError.m
-    NSURLHandle.m
-    NSURLProtocol.m
-    NSURLRequest.m
-    NSURLResponse.m
-    NSValue.m
-    NSXMLDTD.m
-    NSXMLDocument.m
-    NSXMLNode.m
-    NSXMLParser.m
+    ${FOUNDATION_SOURCES}
     plist.c
     NSInvocation_amd64.S)
 
@@ -177,7 +90,8 @@ target_link_libraries(Foundation
         CoreFoundation::CoreFoundation
         dispatch
         ICU::uc ICU::i18n ICU::data
-        ZLIB::ZLIB)
+        ZLIB::ZLIB
+        CURL::libcurl)
 
 install(DIRECTORY . DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Foundation
         FILES_MATCHING PATTERN "*.h")

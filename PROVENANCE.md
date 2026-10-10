@@ -40,4 +40,26 @@ That means:
 
 ## Agora changes
 
-Not yet made — the import is verbatim. This section records the bridging work as it lands.
+### The build
+
+- **the property-list core came with it** — Foundation's `NSPropertyListSerialization` includes
+  `<plist.h>` and links a C file that sits *beside* the Foundation in the Fiwix tree, not inside it:
+  `userland/plist.c` and `include/plist.h` were copied in, and `plist.c` is compiled as part of the
+  library;
+- **every `.m` in the directory is compiled** — the source list is a directory glob, as Fiwix's own
+  build generates its Foundation rules ("one rule per source from the directory listing"). Fiwix's
+  curated subset left undefined symbols in the library (`NSDecimal*`, `NSAutoreleasePool`,
+  `NSNotificationCenter`, the `NSURLAuthenticationMethod*` constants);
+- **the dependencies are**: `libagora-objc` (the Objective-C runtime), `libagora-core` (Core
+  Foundation), `libagora-dispatch`, the system ICU, zlib and **libcurl** (for
+  `NSURLConnection`/`NSURLSession`);
+- **`<CoreGraphics/…>` resolves through an include shim** onto the sibling `libagora-drawing`
+  component. Foundation needs Core Graphics' *geometry types* only (structs plus the `CG_INLINE`
+  makers), so that component is not linked.
+
+Verified: the library builds with clang (0 errors), and an Objective-C smoke test using
+`NSString`/`NSArray`/`NSAutoreleasePool` links against it and runs.
+
+### Toll-free bridging
+
+Not yet made — this section records it as it lands.
