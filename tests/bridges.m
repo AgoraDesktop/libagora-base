@@ -23,6 +23,8 @@
 #import <Foundation/Foundation.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <objc/runtime.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 static int g_pass, g_fail;
 
@@ -211,18 +213,15 @@ static void regressions(void)
 	CFRelease(c1);
 }
 
-int main(void)
+static int run_one_case(const bridge_case *c)
 {
-	setvbuf(stdout, NULL, _IONBF, 0);
+	int before = g_fail;
+	id obj = c->make();
 
-	for (size_t i = 0; i < sizeof g_cases / sizeof g_cases[0]; i++) {
-		const bridge_case *c = &g_cases[i];
-		id obj = c->make();
-
-		if (obj == nil) {
-			check(0, "%s: the Foundation object could not be made", c->name);
-			continue;
-		}
+	if (obj == nil) {
+		check(0, "%s: the Foundation object could not be made", c->name);
+		return 1;
+	}
 		/* EACH CASE IS CAUGHT, because a bridged door that reaches a Foundation method the class does
 		 * not implement RAISES -- and an uncaught exception ends the process, which would let one
 		 * missing method hide the other seventeen types. A raise is a failure like any other, and the
@@ -235,11 +234,54 @@ int main(void)
 			CFRetain((CFTypeRef)obj);
 			CFRelease((CFTypeRef)obj);
 			check(CFCopyDescription((CFTypeRef)obj) != NULL, "%s: CFCopyDescription is NULL", c->name);
-		} @catch (NSException *e) {
-			check(0, "%s: raised %s: %s", c->name,
-			      [[e name] UTF8String], [[e reason] UTF8String]);
-		}
+	} @catch (NSException *e) {
+		check(0, "%s: raised %s: %s", c->name,
+		      [[e name] UTF8String], [[e reason] UTF8String]);
 	}
+	return g_fail - before;
+}
+
+/* ONE CHILD PER CASE, AND THAT IS NOT PARANOIA -- IT IS THE ONLY WAY TO SEE THE WHOLE TABLE. Three
+ * different things can end a case: a wrong answer (counted), an Objective-C exception (caught below), and
+ * Core Foundation's own HALT, which is SIGILL and which @try CANNOT catch. The last of those killed the
+ * whole run at the seventh case, so the other eleven types were never looked at. A child costs one case
+ * and the tally survives.
+ *
+ * THE COUNTS CANNOT CROSS THE FORK, so the child reports through its exit status and the parent counts
+ * CASES. The FAIL detail lines still come from the child, on the same stderr. */
+static int run_in_child(const char *name, int (*fn)(void))
+{
+	pid_t pid;
+	int status;
+
+	fflush(NULL);
+	pid = fork();
+	if (pid == 0) {
+		_exit(fn() == 0 ? 0 : 1);
+	}
+	if (pid < 0) {
+		fprintf(stderr, "FAIL: %s: fork failed\n", name);
+		return 1;
+	}
+	if (waitpid(pid, &status, 0) < 0) {
+		fprintf(stderr, "FAIL: %s: waitpid failed\n", name);
+		return 1;
+	}
+	if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+		printf("ok   %s\n", name);
+		return 0;
+	}
+	if (WIFSIGNALED(status)) {
+		fprintf(stderr, "FAIL: %s: killed by signal %d\n", name, WTERMSIG(status));
+	} else {
+		fprintf(stderr, "FAIL: %s: checks failed\n", name);
+	}
+	return 1;
+}
+
+static int run_regressions_group(void)
+{
+	int before = g_fail;
 
 	@try {
 		regressions();
@@ -247,7 +289,38 @@ int main(void)
 		check(0, "regressions: raised %s: %s",
 		      [[e name] UTF8String], [[e reason] UTF8String]);
 	}
+	return g_fail - before;
+}
 
-	fprintf(stderr, "\nbridges: %d passed, %d failed\n", g_pass, g_fail);
-	return g_fail == 0 ? 0 : 1;
+/* the case a forked child was asked to run */
+static const bridge_case *g_trampoline_case;
+
+static int case_trampoline(void)
+{
+	return run_one_case(g_trampoline_case);
+}
+
+int main(void)
+{
+	int cases_ok = 0, cases_bad = 0;
+
+	setvbuf(stdout, NULL, _IONBF, 0);
+
+	for (size_t i = 0; i < sizeof g_cases / sizeof g_cases[0]; i++) {
+		g_trampoline_case = &g_cases[i];
+		if (run_in_child(g_cases[i].name, case_trampoline) == 0) {
+			cases_ok++;
+		} else {
+			cases_bad++;
+		}
+	}
+	if (run_in_child("the regressions", run_regressions_group) == 0) {
+		cases_ok++;
+	} else {
+		cases_bad++;
+	}
+
+	printf("\nbridges: %d of %d cases passed, %d failed\n",
+	       cases_ok, cases_ok + cases_bad, cases_bad);
+	return cases_bad == 0 ? 0 : 1;
 }
