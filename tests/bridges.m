@@ -1718,8 +1718,15 @@ static void arg_mutable_cfcharset(void)
  * all. That door is now on NSDictionary, and it is the third gap this bridging work has found in this
  * library rather than in the bridge.
  *
- * -mutableString IS NOT BRIDGED AND CANNOT BE: it hands out a live mutable string view, and Core Foundation's
- * attributed string exposes no such view. The case does not drive it. */
+ * AND -mutableString IS DRIVEN ONLY THROUGH CORE FOUNDATION'S OWN DOOR, BECAUSE THE OTHER ROAD IS RUINED
+ * AND THE FIRST VERSION OF THIS COMMENT BLAMED THE WRONG SIDE. It said Core Foundation exposes no mutable
+ * string view; its HEADER DECLARES ONE (CFAttributedStringGetMutableString) and the function DISPATCHES to
+ * -mutableString for a Foundation attributed string. What is measured: a Foundation one answers it with a
+ * view; Core Foundation's OWN object returns NULL because the native path is commented out in
+ * CFAttributedString.c; and OUR Core Foundation-backed object, reached through FOUNDATION's -mutableString,
+ * gets a view that READS AS EMPTY, ignores -appendString:, and yet DOES apply
+ * -replaceCharactersInRange:withString:. Reads wrong, writes partly -- so the case asserts Core Foundation's
+ * door and leaves the other one alone rather than pinning a behaviour that should change. */
 static void arg_mutable_cfattributed(void)
 {
 	CFMutableAttributedStringRef a = CFAttributedStringCreateMutable(NULL, 0);
@@ -1776,6 +1783,18 @@ static void arg_mutable_cfattributed(void)
 	      "CFAttributedStringReplaceString left Foundation holding %s", [[(id)a string] UTF8String]);
 	check([(id)a attributesAtIndex:0 effectiveRange:&effective] != nil,
 	      "the attributes are not readable through the immutable primitive");
+
+	/* CORE FOUNDATION'S OWN MUTABLE-STRING DOOR, WHICH THE FIRST RECORD OF THIS TYPE SAID DID NOT EXIST:
+	 * a Foundation attributed string answers it with a view, and Core Foundation's own object -- this one --
+	 * answers NULL, because CF's native path for it is commented out. */
+	{
+		NSMutableAttributedString *foundation = [[NSMutableAttributedString alloc] initWithString:@"hi"];
+
+		check(CFAttributedStringGetMutableString((CFMutableAttributedStringRef)foundation) != NULL,
+		      "Core Foundation's mutable-string door did not answer for a Foundation attributed string");
+		check(CFAttributedStringGetMutableString(a) == NULL,
+		      "Core Foundation's mutable-string door answered for a Core Foundation object, whose native path is commented out");
+	}
 }
 
 /* AND THE DOORS A SURFACE SURVEY FOUND MISSING, ALL EIGHT NOW ANSWERED. Core Foundation's own functions
