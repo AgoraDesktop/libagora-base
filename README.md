@@ -44,7 +44,16 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
    - **the reference count in force is Core Foundation's**, so `CFRetain`/`CFRelease` and
      `-retain`/`-release` move one count rather than two.
 
-   Verified by `tests/bridges.m`: **63 cases**, every one of the eighteen types in both directions,
-   and — a direction nothing had tested before — Core Foundation asking a *Foundation* object
-   (`CFReadStreamGetError`, `CFCalendarDecomposeAbsoluteTime`, `CFCalendarComposeAbsoluteTime`,
-   `CFCalendarAddComponents`). `PROVENANCE.md` records what is deliberately *not* bridged.
+   **and the MUTABLE half of seven of them is bridged too** — `CFMutableArray`,
+   `CFMutableDictionary`, `CFMutableSet`, `CFMutableString`, `CFMutableData`, `CFMutableCharacterSet` and
+   `CFMutableAttributedString`. Each needed a second owned class, chosen at CREATION from the category its
+   constructor passes, because a mutable and an immutable object share one type id; and Foundation's side
+   had to be made to read through its own storage doors rather than its fields, which is where the same
+   defect kept appearing.
+
+   Verified by `tests/bridges.m`: **73 cases**, every one of the eighteen types in both directions, the
+   seven mutable ones from both APIs, and — a direction nothing had tested before — Core Foundation
+   asking a *Foundation* object (`CFReadStreamGetError`, `CFCalendarDecomposeAbsoluteTime`,
+   `CFCalendarComposeAbsoluteTime`, `CFCalendarAddComponents`, `CFDictionaryContainsKey` and the rest of
+   the doors a surface survey found missing). `PROVENANCE.md` records both what is deliberately *not*
+   bridged and what is bridged imperfectly.

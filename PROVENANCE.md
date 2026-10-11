@@ -81,11 +81,13 @@ Verified: the library builds with clang (0 errors), and an Objective-C smoke tes
 
 ### Toll-free bridging
 
-**Made.** `CFStringRef`/`NSString *` and the seventeen other shared types are one object each; the
-mechanism, the parts of the original plan that were superseded and why, and the doors that came back
-are recorded above. `libagora-base/tests/bridges.m` is the instrument: 63 cases, each type in both
-directions, plus Core Foundation asking Foundation objects for a stream error and for calendar
-arithmetic.
+**Made, INCLUDING THE MUTABLE HALF.** `CFStringRef`/`NSString *` and the seventeen other shared types are
+one object each, and so are the MUTABLE forms of seven of them (`CFMutableArray`, `CFMutableDictionary`,
+`CFMutableSet`, `CFMutableString`, `CFMutableData`, `CFMutableCharacterSet`, `CFMutableAttributedString`).
+The mechanism, the parts of the original plan that were superseded and why, and the doors that came back
+are recorded above. `libagora-base/tests/bridges.m` is the instrument: **73 cases**, each type in both
+directions, the mutable ones from both APIs, plus Core Foundation asking Foundation objects for a stream
+error, for calendar arithmetic and for the doors a surface survey found missing.
 
 **NOT BRIDGED, AND THE TWO REASONS ARE DIFFERENT — MEASURED, BOTH WAYS, RATHER THAN ASSUMED:**
 
@@ -93,9 +95,21 @@ arithmetic.
   `NSMessagePort`, `NSSocketPort` and `NSUUID` are all here, and there is no `CFBundle`, `CFMachPort`,
   `CFMessagePort`, `CFSocket` or `CFUUID` in `libagora-core` for them to be one object *with*. Nothing
   is missing here that could be added without writing the Core Foundation half first.
-- **Core Foundation constants with no class of their own**: `kCFBooleanTrue`/`kCFBooleanFalse` are
-  what Core Foundation returns where an `NSNumber` might have been expected, and no class is registered
-  for the type, so neither object changes hands as the other.
+So the bridge covers the eighteen types the two libraries share — plus their mutable forms where the type
+has one — and saying "everything is bridged" would overstate it in that direction.
 
-So the bridge covers the eighteen types the two libraries share, and saying "everything is bridged"
-would overstate it in each of those two directions.
+**AND TWO THINGS ARE BRIDGED IMPERFECTLY, RECORDED RATHER THAN LEFT. THE BOOLEANS WERE, AND ARE NOT ANY
+MORE:** this section used to say that `kCFBooleanTrue`/`kCFBooleanFalse` "change hands as nothing", with no
+class registered for the type. THAT IS NO LONGER TRUE AND THE LINE IS GONE: the type now has an owned class
+of its own (`__NSCFBoolean`), `[NSNumber numberWithBool:]` reports CFBoolean's type id, a Boolean's
+`-agKind` answers Apple's `'c'`, and the suite holds `CFBooleanGetValue(@YES)`, `[kCFBooleanTrue boolValue]`
+and `[kCFBooleanTrue isEqual:@YES]` as cases.
+
+- **Character sets are BMP-only in this library.** `-longCharacterIsMember:` refuses anything above
+  `0xFFFF` and `-hasMemberInPlane:` answers plane 0 only, so a Core Foundation set that spans planes --
+  inverting an ordinary set makes its complement most of Unicode -- loses everything above plane 0 when
+  it is rebuilt into a Foundation-*owned* set. A BRIDGED set loses nothing.
+- **Seven `incorrect signature` reports remain** (all pointer-only differences, audited at the rows in
+  `libagora-core/internalInclude/CFBridgedMethods.h`). Whether libobjc2 installs a trampoline for a
+  pointer-only difference is **not measured**.
+- **The calendar doors carry five recorded deviations**, each written at the code that deviates.
