@@ -85,7 +85,7 @@ Verified: the library builds with clang (0 errors), and an Objective-C smoke tes
 one object each, and so are the MUTABLE forms of seven of them (`CFMutableArray`, `CFMutableDictionary`,
 `CFMutableSet`, `CFMutableString`, `CFMutableData`, `CFMutableCharacterSet`, `CFMutableAttributedString`).
 The mechanism, the parts of the original plan that were superseded and why, and the doors that came back
-are recorded above. `libagora-base/tests/bridges.m` is the instrument: **73 cases**, each type in both
+are recorded above. `libagora-base/tests/bridges.m` is the instrument: **74 cases**, each type in both
 directions, the mutable ones from both APIs, plus Core Foundation asking Foundation objects for a stream
 error, for calendar arithmetic and for the doors a surface survey found missing.
 
@@ -111,7 +111,9 @@ and `[kCFBooleanTrue isEqual:@YES]` as cases.
   answer for the whole code space, and `-bitmapRepresentation` emits the full form when a set needs it --
   measured by taking Core Foundation's bitmap for a set holding `'a'` and `U+1F600` (16385 bytes), rebuilding
   a Foundation set from those bytes, and finding Core Foundation's bitmap for the result is
-  **byte-identical**, with the superset test passing BOTH ways.
+  **byte-identical**, with the superset test passing BOTH ways. A case in the suite holds all of it --
+  `Core Foundation's bitmap annex planes survive a round trip` -- and disabling the decoder's annex walk
+  fails it five ways, including the original symptom `rebuilt covers: NO`.
 - **Seven `incorrect signature` reports remain** (all pointer-only differences, audited at the rows in
   `libagora-core/internalInclude/CFBridgedMethods.h`). Whether libobjc2 installs a trampoline for a
   pointer-only difference is **not measured**.

@@ -1912,6 +1912,83 @@ static void arg_cf_surface_doors(void)
 	      "CFAttributedStringGetAttributes answered nothing for a NULL effective range");
 }
 
+/* AND THE ANNEX PLANES, WHICH THIS TYPE USED TO DROP ENTIRELY. It was BMP-only: -longCharacterIsMember:
+ * refused anything above 0xFFFF, -hasMemberInPlane: answered plane 0 only, and a set rebuilt from a Core
+ * Foundation bitmap that spans planes kept nothing above plane 0 -- measured as
+ * [cfSet isSupersetOf:rebuilt] yes, [rebuilt isSupersetOf:cfSet] NO. The type now reads Core Foundation's
+ * FULL FORM: 8192 bytes of plane 0, then one index byte and 8192 bytes for each annex plane in ascending
+ * order, which is exactly the length CFCharacterSetCreateBitmapRepresentation computes for itself. */
+static void arg_cfcharset_annex(void)
+{
+	CFMutableCharacterSetRef cf = CFCharacterSetCreateMutable(NULL);
+	CFDataRef cfBits;
+	NSCharacterSet *rebuilt;
+	NSCharacterSet *empty = [NSCharacterSet characterSetWithCharactersInString:@""];
+	CFCharacterSetRef back;
+	CFDataRef backBits;
+	CFCharacterSetRef plain;
+	CFDataRef plainBits;
+
+	check(cf != NULL, "the mutable character set could not be made");
+	if (cf == NULL) {
+		return;
+	}
+	CFCharacterSetAddCharactersInRange(cf, CFRangeMake('a', 1));
+	CFCharacterSetAddCharactersInRange(cf, CFRangeMake(0x1F600, 1));
+
+	/* THE FORMAT'S SHAPE, ASSERTED SO A CHANGE TO IT CANNOT BE SILENT: two planes, so 8192 + 8193 = 16385. */
+	cfBits = CFCharacterSetCreateBitmapRepresentation(NULL, cf);
+	check(CFDataGetLength(cfBits) == 16385, "Core Foundation's two-plane bitmap is %ld bytes, want 16385",
+	      (long)CFDataGetLength(cfBits));
+	if (CFDataGetLength(cfBits) != 16385) {
+		return;
+	}
+
+	/* REBUILT INTO A FOUNDATION-OWNED SET, WHICH IS WHERE THE CHARACTER USED TO BE LOST. */
+	rebuilt = [NSCharacterSet characterSetWithBitmapRepresentation:(NSData *)cfBits];
+	check([rebuilt longCharacterIsMember:0x1F600], "a set rebuilt from Core Foundation's bytes lost U+1F600");
+	check([rebuilt hasMemberInPlane:1], "a set rebuilt from Core Foundation's bytes claims nothing in plane 1");
+	check([rebuilt hasMemberInPlane:0], "a set rebuilt from Core Foundation's bytes claims nothing in plane 0");
+
+	/* AND THE DOOR IS A CONTAINMENT TEST RATHER THAN A STATEMENT ABOUT PLANE 0, WHICH IT WAS: a set holding
+	 * ONLY an annex character has ranges and no plane-0 members, and the old answer -- plane == 0 &&
+	 * _rangeCount > 0 -- answered YES for plane 0 and NO for plane 1. THIS IS THE ASSERTION THAT FAILS
+	 * AGAINST THE OLD CODE, which is why it is here. */
+	{
+		CFMutableCharacterSetRef only = CFCharacterSetCreateMutable(NULL);
+		NSCharacterSet *rebuiltOnly;
+
+		CFCharacterSetAddCharactersInRange(only, CFRangeMake(0x1F600, 1));
+		rebuiltOnly = [NSCharacterSet characterSetWithBitmapRepresentation:
+			       (NSData *)CFCharacterSetCreateBitmapRepresentation(NULL, only)];
+		check([rebuiltOnly longCharacterIsMember:0x1F600],
+		      "a set holding ONLY U+1F600 lost it on the way in");
+		check([rebuiltOnly hasMemberInPlane:1], "a set holding ONLY U+1F600 claims nothing in plane 1");
+		check(![rebuiltOnly hasMemberInPlane:0],
+		      "a set holding ONLY U+1F600 claims plane 0 has members, so -hasMemberInPlane: is still not a "
+		      "containment test");
+	}
+	check(![empty hasMemberInPlane:0], "an empty set claims plane 0 has members");
+
+	/* BOTH WAYS, AND THEN THE BYTES: Core Foundation's bitmap for the result must be the one it produced. */
+	check([rebuilt isSupersetOfSet:(id)cf] && [(id)cf isSupersetOfSet:rebuilt],
+	      "the rebuilt set and Core Foundation's are not equal as supersets (rebuilt covers: %s)",
+	      [rebuilt isSupersetOfSet:(id)cf] ? "yes" : "NO");
+	back = CFCharacterSetCreateWithBitmapRepresentation(NULL, (CFDataRef)[rebuilt bitmapRepresentation]);
+	backBits = CFCharacterSetCreateBitmapRepresentation(NULL, back);
+	check(CFEqual(cfBits, backBits), "the bitmap round trip is not byte-identical (%ld bytes back, want %ld)",
+	      (long)CFDataGetLength(backBits), (long)CFDataGetLength(cfBits));
+
+	/* AND A BMP-ONLY SET STILL ANSWERS THE BARE PREFIX, so nothing that worked before changed shape. */
+	plain = CFCharacterSetCreateWithCharactersInString(NULL, CFSTR("a"));
+	plainBits = CFCharacterSetCreateBitmapRepresentation(NULL, plain);
+	check(CFDataGetLength(plainBits) == 8192, "a BMP-only Core Foundation set answers %ld bytes, want 8192",
+	      (long)CFDataGetLength(plainBits));
+	check([[(id)plain bitmapRepresentation] length] == 8192,
+	      "a BMP-only set through the Foundation door answers %lu bytes, want 8192",
+	      (unsigned long)[[(id)plain bitmapRepresentation] length]);
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1927,6 +2004,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFError",   arg_cferror },
 	{ "Foundation receives a native CFAttributedString", arg_cfattributed },
 	{ "Foundation receives a native CFCharacterSet", arg_cfcharset },
+	{ "Core Foundation's bitmap annex planes survive a round trip", arg_cfcharset_annex },
 	{ "Foundation receives a native CFReadStream", arg_cfreadstream },
 	{ "Core Foundation asks a Foundation stream for its error", arg_forward_cfstreamerror },
 	{ "Core Foundation asks a Foundation calendar to compute", arg_forward_cfcalendar },

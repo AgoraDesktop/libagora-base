@@ -51,7 +51,7 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
    had to be made to read through its own storage doors rather than its fields, which is where the same
    defect kept appearing.
 
-   Verified by `tests/bridges.m`: **73 cases**, every one of the eighteen types in both directions, the
+   Verified by `tests/bridges.m`: **74 cases**, every one of the eighteen types in both directions, the
    seven mutable ones from both APIs, and — a direction nothing had tested before — Core Foundation
    asking a *Foundation* object (`CFReadStreamGetError`, `CFCalendarDecomposeAbsoluteTime`,
    `CFCalendarComposeAbsoluteTime`, `CFCalendarAddComponents`, `CFDictionaryContainsKey` and the rest of
