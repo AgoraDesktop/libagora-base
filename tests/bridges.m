@@ -1797,8 +1797,14 @@ static void arg_mutable_cfattributed(void)
 		/* AND THE ROAD THAT USED TO BE RUINED: an ATTRIBUTED STRING'S OWN -mutableString, which Core
 		 * Foundation's door cannot reach for its own object but a caller can. It must read the receiver's
 		 * characters and WRITE THROUGH to it, in both directions. */
-		check([[(NSMutableAttributedString *)a mutableString] length] == [(id)a length],
-		      "a mutable-string view of a Core Foundation attributed string reports a different length");
+		/* LITERALS, NOT A COMPARISON AGAINST THE RECEIVER: an earlier version compared the view's length
+		 * with [(id)a length], which can be 0 == 0 and pass for the wrong reason. The attributed string
+		 * holds "zz" at this point. */
+		check([[(NSMutableAttributedString *)a mutableString] length] == 2
+		      && [[[(NSMutableAttributedString *)a mutableString] description] isEqualToString:@"zz"],
+		      "a mutable-string view of a Core Foundation attributed string reads %s at length %lu, want zz at 2",
+		      [[[(NSMutableAttributedString *)a mutableString] description] UTF8String],
+		      (unsigned long)[[(NSMutableAttributedString *)a mutableString] length]);
 		{
 			NSMutableString *view = [(NSMutableAttributedString *)a mutableString];
 

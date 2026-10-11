@@ -664,7 +664,13 @@ AG_NUMBER_INIT(Bool, BOOL, _flag, BOOL)
  * -boolValue and the fifteen conversions without a special case in the reader. */
 - (unsigned char)agKind
 {
-	return _kind;
+	/* AND IT ANSWERS APPLE'S CHARACTER RATHER THAN THIS TREE'S @encode(BOOL), WHICH IS A CORRECTION. Apple's
+	 * BOOL is a signed char, so [@YES objCType] is "c" there; this tree's BOOL is an unsigned char, which
+	 * encodes 'C', and that is what every other kind here is derived from. A Boolean NUMBER is the one place
+	 * a caller can SEE the encoding of a BOOL, so it answers "c" -- and Core Foundation's own Boolean
+	 * constant answers the same character from the other side (the CFBoolean row in libagora-core's
+	 * CFRuntime.c), which is what keeps [@YES isEqual:kCFBooleanTrue] true. */
+	return 'c';
 }
 
 - (long long)longLongValue
