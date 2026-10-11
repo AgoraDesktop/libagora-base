@@ -1624,12 +1624,12 @@ static void arg_mutable_cfdata(void)
  * Foundation after every mutation, and a Foundation set arriving as an argument is converted through that
  * bitmap rather than cast -- casting it is what segfaulted.
  *
- * NOT ASSERTED HERE, AND RECORDED INSTEAD: -isEqual: between a Core Foundation-backed set and an equal one.
- * libagora-base writes it symmetrically over -isSupersetOfSet:, and the second direction sends THAT method
- * to the other object, so a Foundation set compares itself against Core Foundation's storage through
- * Foundation's offsets. The door this needs is -isEqual:/-hash ON THE ROW, and the gap PREDATES this
- * type -- the immutable row never had -isSupersetOfSet: either, so no Core Foundation-backed set has ever
- * compared equal to an equal one. */
+ * AND EQUALITY IS ASSERTED, WHICH IS A CORRECTION TO WHAT THIS COMMENT FIRST SAID. It claimed the gap was
+ * still owed, on the reasoning that base's -isEqual: is symmetric over -isSupersetOfSet: and the second
+ * direction would read Core Foundation's storage through Foundation's offsets. MEASURED, THAT REASONING
+ * WAS WRONG: base's implementation asks its argument through the accessors, so once -isSupersetOfSet: was
+ * answered on BOTH rows -- which is what fixed this -- equality works in both directions, and -hash agrees.
+ * A claim of what cannot work is as much a measurement as a claim of what can. */
 static void arg_mutable_cfcharset(void)
 {
 	CFMutableCharacterSetRef cs = CFCharacterSetCreateMutable(NULL);
@@ -1670,11 +1670,32 @@ static void arg_mutable_cfcharset(void)
 	check(CFCharacterSetIsCharacterMember(cs, 'a') && !CFCharacterSetIsCharacterMember(cs, 'y'),
 	      "-formIntersectionWithCharacterSet: did not reach Core Foundation");
 
+	/* THE VALUE SEMANTICS, BOTH WAYS -- WHICH THIS COMMENT ONCE CLAIMED WERE IMPOSSIBLE, AND THEY WORK.
+	 * The comparison is made HERE, while the set is still the two characters that can be written out as an
+	 * equal one; measured, equality, superset-ness and -hash all agree in both directions. */
+	{
+		NSCharacterSet *same = [NSCharacterSet characterSetWithCharactersInString:@"aQ"];
+
+		check([(id)cs isSupersetOfSet:same] && [same isSupersetOfSet:(id)cs],
+		      "a Core Foundation character set and an equal one are not supersets of each other");
+		check([(id)cs isEqual:same] && [same isEqual:(id)cs],
+		      "a Core Foundation character set is not equal to an equal one, in one direction or the other");
+		check([(id)cs hash] == [same hash],
+		      "a Core Foundation character set hashes differently from an equal one");
+	}
+
+	/* AND ONE THING NOTICEABLY NOT ASSERTED, MEASURED AND LEFT OPEN: the same comparison through
+	 * +characterSetWithBitmapRepresentation: of the Core Foundation set's own -bitmapRepresentation.
+	 * The bitmap's bytes are right (8192, and the members are in it), but a set BUILT from them does not
+	 * compare equal to the set that produced them. That is a question about the bitmap round trip and not
+	 * about equality, so it is recorded here rather than folded into the assertions above. */
 	[(NSMutableCharacterSet *)cs invert];
 	check(!CFCharacterSetIsCharacterMember(cs, 'a') && CFCharacterSetIsCharacterMember(cs, 'z'),
 	      "-invert did not reach Core Foundation");
 
 	check([[(id)cs description] length] > 0, "a mutable Core Foundation character set answered no description");
+
+
 }
 
 /* AND THE SEVENTH AND LAST MUTABLE TYPE, WHICH FOUND A MISSING DOOR IN FOUNDATION. An attributed string is
