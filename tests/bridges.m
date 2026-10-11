@@ -1677,6 +1677,82 @@ static void arg_mutable_cfcharset(void)
 	check([[(id)cs description] length] > 0, "a mutable Core Foundation character set answered no description");
 }
 
+/* AND THE SEVENTH AND LAST MUTABLE TYPE, WHICH FOUND A MISSING DOOR IN FOUNDATION. An attributed string is
+ * a string plus a RUN ARRAY, and MEASURED, libagora-base's only storage-writing method is
+ * -replaceCharactersInRange:withString: -- the run helper -fnShiftRunsAfter:by: has exactly one caller, the
+ * same method. So the row answers every mutation door over Core Foundation rather than leaving Foundation's
+ * implementations to write their runs into a Core Foundation object.
+ *
+ * A FOUNDATION ATTRIBUTED STRING ARRIVING AS AN ARGUMENT IS RECONSTRUCTED, NOT CAST: unlike the character
+ * sets there is no shared wire form, so the conversion walks the immutable primitive pair this class already
+ * answers (-string and -attributesAtIndex:effectiveRange:) and rebuilds a Core Foundation one run by run.
+ *
+ * AND CFAttributedStringSetAttributes ASKED THE DICTIONARY FOR -_cfMutableCopy, WHICH libagora-base DID NOT
+ * IMPLEMENT. MEASURED: '-[AGDictionaryItems _cfMutableCopy] is not implemented', an uncaught exception and
+ * a terminal abort -- so a Foundation dictionary could not reach Core Foundation's attributed-string code at
+ * all. That door is now on NSDictionary, and it is the third gap this bridging work has found in this
+ * library rather than in the bridge.
+ *
+ * -mutableString IS NOT BRIDGED AND CANNOT BE: it hands out a live mutable string view, and Core Foundation's
+ * attributed string exposes no such view. The case does not drive it. */
+static void arg_mutable_cfattributed(void)
+{
+	CFMutableAttributedStringRef a = CFAttributedStringCreateMutable(NULL, 0);
+	NSRange effective = NSMakeRange(0, 0);
+	id value;
+
+	check([(id)a isKindOfClass:[NSMutableAttributedString class]],
+	      "a CFMutableAttributedStringRef is not an NSMutableAttributedString");
+
+	[(NSMutableAttributedString *)a replaceCharactersInRange:NSMakeRange(0, 0) withString:@"hello"];
+	check(CFAttributedStringGetLength(a) == 5 && [[(id)a string] isEqualToString:@"hello"],
+	      "-replaceCharactersInRange:withString: left Core Foundation holding %s", [[(id)a string] UTF8String]);
+
+	[(NSMutableAttributedString *)a addAttribute:@"mark" value:@"X" range:NSMakeRange(0, 2)];
+	value = (id)CFAttributedStringGetAttribute(a, 0, CFSTR("mark"), NULL);
+	check(value != nil && [[value description] isEqualToString:@"X"],
+	      "-addAttribute:value:range: did not reach Core Foundation");
+
+	[(NSMutableAttributedString *)a addAttributes:@{ @"weight": @3 } range:NSMakeRange(1, 3)];
+	value = (id)CFAttributedStringGetAttribute(a, 2, CFSTR("weight"), NULL);
+	check(value != nil, "-addAttributes:range: did not reach Core Foundation");
+
+	[(NSMutableAttributedString *)a removeAttribute:@"mark" range:NSMakeRange(0, 5)];
+	check([(id)a attribute:@"mark" atIndex:0 effectiveRange:&effective] == nil,
+	      "-removeAttribute:range: did not reach Core Foundation");
+
+	/* THE DOOR THAT NEEDED -_cfMutableCopy, AND THE CLEARING IS TESTED WHERE IT CAN BE SEEN. weight was
+	 * set on range (1,3); setting attributes on (1,2) with clearOtherAttributes OVERLAPS it, so the weight
+	 * must be gone at index 1 -- my first version of this check cleared range (0,1), which does not overlap
+	 * the weight at all and therefore clears nothing, and the check failed while the bridge was right. */
+	[(NSMutableAttributedString *)a setAttributes:@{ @"only": @1 } range:NSMakeRange(1, 1)];
+	check((id)CFAttributedStringGetAttribute(a, 1, CFSTR("weight"), NULL) == NULL,
+	      "-setAttributes:range: did not clear the attribute it replaced");
+	check([(id)a attribute:@"only" atIndex:1 effectiveRange:&effective] != nil,
+	      "-setAttributes:range: did not reach Core Foundation");
+	check([(id)a attribute:@"weight" atIndex:2 effectiveRange:&effective] != nil,
+	      "-setAttributes:range: cleared an attribute outside the range it was given");
+
+	[(NSMutableAttributedString *)a appendAttributedString:[[NSAttributedString alloc] initWithString:@"!"]];
+	check(CFAttributedStringGetLength(a) == 6, "-appendAttributedString: left Core Foundation holding %ld units",
+	      (long)CFAttributedStringGetLength(a));
+
+	[(NSMutableAttributedString *)a insertAttributedString:[[NSAttributedString alloc] initWithString:@"N"] atIndex:0];
+	check([[(id)a string] isEqualToString:@"Nhello!"], "-insertAttributedString:atIndex: gave %s",
+	      [[(id)a string] UTF8String]);
+
+	[(NSMutableAttributedString *)a deleteCharactersInRange:NSMakeRange(0, 1)];
+	check(CFAttributedStringGetLength(a) == 6 && [[(id)a string] isEqualToString:@"hello!"],
+	      "-deleteCharactersInRange: gave %s", [[(id)a string] UTF8String]);
+
+	/* AND CORE FOUNDATION MUTATING, READ BACK THROUGH FOUNDATION. */
+	CFAttributedStringReplaceString(a, CFRangeMake(0, CFAttributedStringGetLength(a)), CFSTR("zz"));
+	check([(id)a length] == 2 && [[(id)a string] isEqualToString:@"zz"],
+	      "CFAttributedStringReplaceString left Foundation holding %s", [[(id)a string] UTF8String]);
+	check([(id)a attributesAtIndex:0 effectiveRange:&effective] != nil,
+	      "the attributes are not readable through the immutable primitive");
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1703,6 +1779,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Core Foundation's mutable string, from both sides", arg_mutable_cfstring },
 	{ "Core Foundation's mutable data, from both sides", arg_mutable_cfdata },
 	{ "Core Foundation's mutable character set, from both sides", arg_mutable_cfcharset },
+	{ "Core Foundation's mutable attributed string, from both sides", arg_mutable_cfattributed },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },

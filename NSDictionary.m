@@ -121,6 +121,18 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 
 @implementation NSDictionary
 
+/* AND THE PRIVATE DOOR CORE FOUNDATION ASKS A DICTIONARY FOR. MEASURED, AND IT COST AN ABORT: setting
+ * attributes on a Core Foundation attributed string calls CFAttributedStringSetAttributes, which
+ * dispatches to the dictionary it was handed and sends -_cfMutableCopy -- so a Foundation dictionary
+ * reaching Core Foundation's attributed-string code raised
+ * '-[AGDictionaryItems _cfMutableCopy] is not implemented' and terminated the process.
+ *
+ * Cocoa's -mutableCopy already returns a +1 object, which is what a _cf-prefixed door owes. */
+- (id)_cfMutableCopy
+{
+	return [self mutableCopy];
+}
+
 /* THE MUTATION WORD IS PART OF THE STORAGE CONTRACT. Everything that bumps it does so inside the storage
  * operations themselves, which are the primitives a class with storage elsewhere overrides (-initAsCopyOf:,
  * -setObjectInternal:forKey:, -removeObjectInternalForKey:, -removeAllInternalObjects); what a subclass
