@@ -1330,6 +1330,67 @@ static void arg_mutable_array_primitives(void)
 	[a release];
 }
 
+/* AND THE MUTABLE HALF OF A CORE FOUNDATION ARRAY, WHICH IS THE FIRST OF THESE TYPES TO HAVE ONE.
+ * CFMutableArrayRef and CFArrayRef SHARE ONE TYPE ID, so Core Foundation picks the class at CREATION from
+ * the category its constructor passes -- __NSCFMutableArray against __NSCFArray -- and the owned class's
+ * methods ARE Core Foundation's, over Core Foundation's storage.
+ *
+ * THE EXPECTATIONS ARE WHAT APPLE ANSWERS: a mutable Core Foundation array is an NSMutableArray and an
+ * immutable one is not; mutation works from EITHER side and is visible to the other; and the two
+ * TWO-ARGUMENT mutators are here because they are the ones that were silently broken -- an owned class
+ * built with an abbreviated type encoding receives NO SEND for a selector with two arguments or more, and
+ * measured, "v@:@@Q" gave the message to Foundation's implementation while Foundation's own
+ * "v32@0:8@16Q24" delivered it. That is why a mutable row takes its types from the prototype.
+ *
+ * THE IMMUTABLE HALF IS ASSERTED WITH -respondsToSelector: AND NOT BY TRYING IT. Sending -addObject: to a
+ * Core Foundation array that is not mutable TERMINATES the process with a message (the same way it did
+ * before any of this existed), and a case that terminates is a FAILED case in this harness -- the fork
+ * would report it as one. So the question "is this array mutable" is asked the way a program should ask it. */
+static void arg_mutable_cfarray(void)
+{
+	CFMutableArrayRef m = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
+	CFArrayRef immutable = CFArrayCreate(NULL, (const void *[]){ CFSTR("only") }, 1, &kCFTypeArrayCallBacks);
+	NSUInteger seen = 0;
+
+	check([(id)m isKindOfClass:[NSMutableArray class]],
+	      "a CFMutableArrayRef is not an NSMutableArray");
+	check(![(id)immutable isKindOfClass:[NSMutableArray class]],
+	      "a CFArrayRef claims to be mutable");
+	check(![(id)immutable respondsToSelector:@selector(addObject:)],
+	      "an immutable CFArray responds to -addObject:");
+
+	/* BOTH DIRECTIONS, THROUGH BOTH APIS. */
+	[(NSMutableArray *)m addObject:@"a"];
+	[(NSMutableArray *)m addObject:@"b"];
+	[(NSMutableArray *)m insertObject:@"z" atIndex:0];
+	check([(id)m count] == 3 && CFArrayGetCount(m) == 3,
+	      "after two -addObject: and an -insertObject:atIndex:, Foundation sees %ld and Core Foundation %ld",
+	      (long)[(id)m count], (long)CFArrayGetCount(m));
+	check([[(id)CFArrayGetValueAtIndex(m, 0) description] isEqualToString:@"z"],
+	      "the inserted element is not first where Core Foundation looks");
+
+	CFArrayAppendValue(m, CFSTR("c"));
+	check([(id)m count] == 4 && [[(id)[(id)m objectAtIndex:3] description] isEqualToString:@"c"],
+	      "Core Foundation's own append is not visible through Foundation");
+
+	[(NSMutableArray *)m replaceObjectAtIndex:0 withObject:@"Q"];
+	check([[(id)CFArrayGetValueAtIndex(m, 0) description] isEqualToString:@"Q"],
+	      "-replaceObjectAtIndex:withObject: did not reach Core Foundation");
+
+	[(NSMutableArray *)m removeObjectAtIndex:0];
+	check(CFArrayGetCount(m) == 3 && [[(id)CFArrayGetValueAtIndex(m, 0) description] isEqualToString:@"a"],
+	      "-removeObjectAtIndex: did not reach Core Foundation");
+
+	for (id element in (id)m) {
+		(void)element;
+		seen++;
+	}
+	check(seen == 3, "fast enumeration over a mutable Core Foundation array saw %lu", (unsigned long)seen);
+
+	[(NSMutableArray *)m removeAllObjects];
+	check(CFArrayGetCount(m) == 0 && [(id)m count] == 0, "-removeAllObjects did not reach Core Foundation");
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1350,6 +1411,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Core Foundation asks a Foundation calendar to compute", arg_forward_cfcalendar },
 	{ "NSNumber's Booleans are Core Foundation's CFBoolean", arg_cfboolean },
 	{ "A mutable array answers from storage of its own", arg_mutable_array_primitives },
+	{ "Core Foundation's mutable array, from both sides", arg_mutable_cfarray },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },
