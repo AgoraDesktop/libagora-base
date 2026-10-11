@@ -1612,6 +1612,71 @@ static void arg_mutable_cfdata(void)
 	check([(id)d hash] == [equal hash], "a Core Foundation mutable data hashes differently from an equal NSData");
 }
 
+/* AND THE SIXTH MUTABLE TYPE, WHICH NEEDED TWO SCANS TO FIND ITS DOORS. libagora-base keeps a character
+ * set as a RANGE LIST whose only storage WRITER is a static helper, fn_add_range -- so a scan by FIELD NAME
+ * found five methods and missed -addCharactersInString: entirely, because no method body mentions _ranges
+ * there. The union of a field-name scan and a HELPER-CALLER scan is the six doors answered here, and the
+ * crash that came of missing one is why the rule is written down: follow the storage writes to their
+ * helper, not just to the methods that spell the fields.
+ *
+ * THE SHARED BITMAP IS THE GROUND TRUTH. Both sides already use Core Foundation's bare 8192-byte plane-0
+ * form (a decision this bridge made earlier), so membership can be checked from Foundation and from Core
+ * Foundation after every mutation, and a Foundation set arriving as an argument is converted through that
+ * bitmap rather than cast -- casting it is what segfaulted.
+ *
+ * NOT ASSERTED HERE, AND RECORDED INSTEAD: -isEqual: between a Core Foundation-backed set and an equal one.
+ * libagora-base writes it symmetrically over -isSupersetOfSet:, and the second direction sends THAT method
+ * to the other object, so a Foundation set compares itself against Core Foundation's storage through
+ * Foundation's offsets. The door this needs is -isEqual:/-hash ON THE ROW, and the gap PREDATES this
+ * type -- the immutable row never had -isSupersetOfSet: either, so no Core Foundation-backed set has ever
+ * compared equal to an equal one. */
+static void arg_mutable_cfcharset(void)
+{
+	CFMutableCharacterSetRef cs = CFCharacterSetCreateMutable(NULL);
+	CFCharacterSetRef immutable = CFCharacterSetCreateWithCharactersInString(NULL, CFSTR("abc"));
+	NSData *bitmap;
+
+	check([(id)cs isKindOfClass:[NSMutableCharacterSet class]],
+	      "a CFMutableCharacterSetRef is not an NSMutableCharacterSet");
+	check(![(id)immutable isKindOfClass:[NSMutableCharacterSet class]],
+	      "an immutable CFCharacterSet claims to be mutable");
+
+	[(NSMutableCharacterSet *)cs addCharactersInString:@"abc"];
+	check(CFCharacterSetIsCharacterMember(cs, 'a') && !CFCharacterSetIsCharacterMember(cs, 'z'),
+	      "-addCharactersInString: did not reach Core Foundation");
+
+	[(NSMutableCharacterSet *)cs addCharactersInRange:NSMakeRange('x', 2)];
+	check(CFCharacterSetIsCharacterMember(cs, 'x'),
+	      "-addCharactersInRange: did not reach Core Foundation (it is derived through union)");
+
+	[(NSMutableCharacterSet *)cs removeCharactersInString:@"b"];
+	check(![(id)cs characterIsMember:'b'], "-removeCharactersInString: did not reach Core Foundation");
+	[(NSMutableCharacterSet *)cs removeCharactersInRange:NSMakeRange('x', 1)];
+	check(![(id)cs characterIsMember:'x'], "-removeCharactersInRange: did not reach Core Foundation");
+
+	bitmap = [(id)cs bitmapRepresentation];
+	check([bitmap length] == 8192, "the shared bitmap is %lu bytes, want 8192", (unsigned long)[bitmap length]);
+	if ([bitmap length] == 8192) {
+		const unsigned char *bytes = (const unsigned char *)[bitmap bytes];
+
+		check((bytes['a' / 8] & (1u << ('a' % 8))) != 0, "the bitmap does not carry 'a'");
+		check((bytes['y' / 8] & (1u << ('y' % 8))) != 0, "the bitmap does not carry 'y'");
+	}
+
+	[(NSMutableCharacterSet *)cs formUnionWithCharacterSet:[NSCharacterSet characterSetWithCharactersInString:@"Q"]];
+	check(CFCharacterSetIsCharacterMember(cs, 'Q'), "-formUnionWithCharacterSet: did not reach Core Foundation");
+
+	[(NSMutableCharacterSet *)cs formIntersectionWithCharacterSet:[NSCharacterSet characterSetWithCharactersInString:@"aQ"]];
+	check(CFCharacterSetIsCharacterMember(cs, 'a') && !CFCharacterSetIsCharacterMember(cs, 'y'),
+	      "-formIntersectionWithCharacterSet: did not reach Core Foundation");
+
+	[(NSMutableCharacterSet *)cs invert];
+	check(!CFCharacterSetIsCharacterMember(cs, 'a') && CFCharacterSetIsCharacterMember(cs, 'z'),
+	      "-invert did not reach Core Foundation");
+
+	check([[(id)cs description] length] > 0, "a mutable Core Foundation character set answered no description");
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1637,6 +1702,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Core Foundation's mutable set, through its one storage door", arg_mutable_cfset },
 	{ "Core Foundation's mutable string, from both sides", arg_mutable_cfstring },
 	{ "Core Foundation's mutable data, from both sides", arg_mutable_cfdata },
+	{ "Core Foundation's mutable character set, from both sides", arg_mutable_cfcharset },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },
