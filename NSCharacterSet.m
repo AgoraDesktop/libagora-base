@@ -92,7 +92,23 @@ static BOOL fn_contains(NSCharacterSet *set, unsigned int character)
  * ADJACENT in the list (a bitmap cannot tell those apart, and saying so here is cheaper than a second format).
  *
  * THE CALLER OWNS THE ANSWER: `*outPairs` is malloc'd (or NULL when there are none) and it is the caller's to
- * free. A bitmap that is too short to be one at all reads as NO RANGES rather than as a bounds error. */
+ * free. A bitmap that is too short to be one at all reads as NO RANGES rather than as a bounds error.
+ *
+ * AND IT READS PLANE 0 AND NOTHING ELSE, WHICH IS A LIMITATION OF THIS TYPE RATHER THAN OF THE DECODER.
+ * This library's character sets are BMP-only -- -longCharacterIsMember: refuses anything above 0xFFFF and
+ * -hasMemberInPlane: answers plane 0 only -- so there is nowhere to put a higher plane even if the bytes
+ * were read. MEASURED, AND IT MATTERS WHEN CORE FOUNDATION SENDS ONE: a Core Foundation set that spans
+ * planes (inverting an ordinary set does, because the complement of "a" is most of Unicode) answers
+ * -bitmapRepresentation with CORE FOUNDATION'S FULL FORM -- 139280 bytes, 8192 for each of SEVENTEEN
+ * planes -- and rebuilding a Foundation set from it loses everything above plane 0. The rebuilt set is a
+ * subset of Core Foundation's, not equal to it, and hashes differently:
+ *
+ *     [cfSet isSupersetOf:rebuilt] yes      [rebuilt isSupersetOf:cfSet] NO
+ *
+ * A Core Foundation set that is BRIDGED does not lose anything -- the owned class answers both plane doors
+ * over Core Foundation -- so this bites only where a Foundation-owned set is built from Core Foundation's
+ * bytes. Read it, do not fix it silently: teaching this type the annex planes is a decision about the type,
+ * not about the decoder. */
 static unsigned long fn_ranges_from_bitmap(NSData *bitmap, unsigned int **outPairs)
 {
 	const unsigned char *bytes = (const unsigned char *)[bitmap bytes];

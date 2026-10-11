@@ -1684,11 +1684,15 @@ static void arg_mutable_cfcharset(void)
 		      "a Core Foundation character set hashes differently from an equal one");
 	}
 
-	/* AND ONE THING NOTICEABLY NOT ASSERTED, MEASURED AND LEFT OPEN: the same comparison through
-	 * +characterSetWithBitmapRepresentation: of the Core Foundation set's own -bitmapRepresentation.
-	 * The bitmap's bytes are right (8192, and the members are in it), but a set BUILT from them does not
-	 * compare equal to the set that produced them. That is a question about the bitmap round trip and not
-	 * about equality, so it is recorded here rather than folded into the assertions above. */
+	/* THE ROUND TRIP AFTER -invert IS NOT THE SAME QUESTION, AND MEASURING IT FOUND WHY. An earlier version
+	 * of this comment said the bitmap round trip was broken -- it is not: a BMP-only set round-trips
+	 * BYTE-IDENTICALLY through +characterSetWithBitmapRepresentation:. What the inverted set shows is this
+	 * library's own limitation: its character sets are BMP-ONLY (-longCharacterIsMember: refuses above
+	 * 0xFFFF, -hasMemberInPlane: answers plane 0 only), while Core Foundation's bitmap for a set spanning
+	 * planes is 139280 bytes -- SEVENTEEN planes -- so rebuilding a Foundation set from it drops everything
+	 * above plane 0 and the rebuilt set is a SUBSET, not an equal. Recorded at the decoder in
+	 * NSCharacterSet.m, and not asserted here because asserting a subset relationship as if it were
+	 * equality would be the mistake this comment exists to stop. */
 	[(NSMutableCharacterSet *)cs invert];
 	check(!CFCharacterSetIsCharacterMember(cs, 'a') && CFCharacterSetIsCharacterMember(cs, 'z'),
 	      "-invert did not reach Core Foundation");
