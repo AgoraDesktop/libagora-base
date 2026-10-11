@@ -257,6 +257,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)removeObjectAtIndex:(NSUInteger)index;
 - (void)removeAllObjects;
 - (void)replaceObjectAtIndex:(NSUInteger)index withObject:(ObjectType)object;
+/* APPLE DECLARES THIS ON THE MUTABLE CLASS, and Core Foundation SENDS it: CFArrayReplaceValues dispatches
+ * through CF_OBJC_FUNCDISPATCHV to this exact selector, which is how a CFArrayReplaceValues on a Foundation
+ * array reaches Foundation's storage. It was the one door of the ten CFArray.c sends that this class did not
+ * answer -- MEASURED with -instancesRespondToSelector:, alongside the other nine, which all answered. */
+- (void)replaceObjectsInRange:(NSRange)range withObjects:(const ObjectType _Nonnull * _Nullable)objects count:(NSUInteger)count;
 - (void)addObjectsFromArray:(NSArray<ObjectType> *)other;
 - (void)removeLastObject;
 - (void)removeObject:(ObjectType)object;

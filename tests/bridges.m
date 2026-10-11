@@ -1989,6 +1989,66 @@ static void arg_cfcharset_annex(void)
 	      (unsigned long)[[(id)plain bitmapRepresentation] length]);
 }
 
+/* AND THE TWO DOORS CORE FOUNDATION SENDS TO A FOUNDATION ARRAY, ONE OF WHICH DID NOT EXIST. CFArray.c
+ * dispatches to ten selectors; nine of them this Foundation answered and the tenth -- Apple's own
+ * -replaceObjectsInRange:withObjects:count:, sent by CFArrayReplaceValues -- it did not, so a range
+ * replacement over a Foundation array raised NSInvalidArgumentException and took the process with it. The
+ * immutability test in CFArraySortValues needed the mutable class FOUND BY NAME rather than as a class
+ * reference, which is what had made Core Foundation unloadable on its own. */
+static CFComparisonResult arg_compare_strings(const void *a, const void *b, void *context)
+{
+	(void)context;
+	return (CFComparisonResult)CFStringCompare((CFStringRef)a, (CFStringRef)b, 0);
+}
+
+static void arg_cf_array_doors(void)
+{
+	NSMutableArray *m = [NSMutableArray arrayWithObjects:@"a", @"b", @"c", @"d", nil];
+	NSArray *source = [NSArray arrayWithObjects:@"x", @"y", @"z", nil];
+	NSMutableArray *sortable = [NSMutableArray arrayWithObjects:@"cherry", @"apple", @"banana", nil];
+	NSArray *fixed = [NSArray arrayWithObjects:@"cherry", @"apple", nil];
+	id items[3];
+	id own[4];
+
+	check([m respondsToSelector:@selector(replaceObjectsInRange:withObjects:count:)],
+	      "NSMutableArray does not answer -replaceObjectsInRange:withObjects:count:, the door "
+	      "CFArrayReplaceValues dispatches to");
+
+	/* A REAL C ARRAY OUT OF A FOUNDATION ARRAY, not the array object cast to one. */
+	[source getObjects:items range:NSMakeRange(0, 3)];
+	[m replaceObjectsInRange:NSMakeRange(1, 2) withObjects:(const id *)items count:3];
+	check([[m componentsJoinedByString:@" "] isEqualToString:@"a x y z d"],
+	      "replaceObjectsInRange:{1,2} with x y z gave '%s', want 'a x y z d'",
+	      [[m componentsJoinedByString:@" "] UTF8String]);
+
+	/* THE ALIASING CASE APPLE'S CONTRACT ALLOWS: the receiver's OWN objects passed back in. This is why the
+	 * implementation takes them first -- without that, removing the range releases them before they are read. */
+	[m getObjects:own range:NSMakeRange(0, 4)];
+	[m replaceObjectsInRange:NSMakeRange(0, 1) withObjects:(const id *)own count:4];
+	check([[m componentsJoinedByString:@" "] isEqualToString:@"a x y z x y z d"],
+	      "replacing {0,1} with the receiver's own four gave '%s', want 'a x y z x y z d'",
+	      [[m componentsJoinedByString:@" "] UTF8String]);
+
+	[m replaceObjectsInRange:NSMakeRange(1, 3) withObjects:NULL count:0];
+	check([[m componentsJoinedByString:@" "] isEqualToString:@"a x y z d"],
+	      "replacing {1,3} with nothing gave '%s', want 'a x y z d'",
+	      [[m componentsJoinedByString:@" "] UTF8String]);
+
+	/* AND THE SORT, WHOSE IMMUTABILITY TEST IS THE DOOR THAT HAD TO FIND ITS CLASS BY NAME: a mutable
+	 * Foundation array is sorted IN PLACE, and an immutable one is left alone. Both halves matter -- the
+	 * second is what the isKindOfClass: test exists for. */
+	CFArraySortValues((CFMutableArrayRef)sortable, CFRangeMake(0, (CFIndex)[sortable count]),
+			  arg_compare_strings, NULL);
+	check([[sortable componentsJoinedByString:@" "] isEqualToString:@"apple banana cherry"],
+	      "CFArraySortValues gave '%s' for a Foundation NSMutableArray, want 'apple banana cherry'",
+	      [[sortable componentsJoinedByString:@" "] UTF8String]);
+	CFArraySortValues((CFMutableArrayRef)fixed, CFRangeMake(0, (CFIndex)[fixed count]),
+			  arg_compare_strings, NULL);
+	check([[fixed componentsJoinedByString:@" "] isEqualToString:@"cherry apple"],
+	      "CFArraySortValues REORDERED an NSArray: '%s', want 'cherry apple'",
+	      [[fixed componentsJoinedByString:@" "] UTF8String]);
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -2005,6 +2065,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFAttributedString", arg_cfattributed },
 	{ "Foundation receives a native CFCharacterSet", arg_cfcharset },
 	{ "Core Foundation's bitmap annex planes survive a round trip", arg_cfcharset_annex },
+	{ "The array doors CFArrayReplaceValues and CFArraySortValues send", arg_cf_array_doors },
 	{ "Foundation receives a native CFReadStream", arg_cfreadstream },
 	{ "Core Foundation asks a Foundation stream for its error", arg_forward_cfstreamerror },
 	{ "Core Foundation asks a Foundation calendar to compute", arg_forward_cfcalendar },

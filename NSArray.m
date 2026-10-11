@@ -1413,6 +1413,50 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 	[self replaceObjectAtIndex:index withObject:object];
 }
 
+/* CFArrayReplaceValues DISPATCHES TO THIS NAME, which is why it exists: Core Foundation's range replacement
+ * door sends it, and until this method was here a CFArrayReplaceValues over a Foundation array raised
+ * NSInvalidArgumentException and took the process with it. IT ROUTES THROUGH THIS CLASS'S OWN PRIMITIVES --
+ * -removeObjectAtIndex: and -insertObject:atIndex: -- rather than reaching into _items, for the reason every
+ * other door here does: the primitives are where the mutation word is bumped, and Core Foundation reads that
+ * word to know the storage changed underneath it.
+ *
+ * THE INCOMING OBJECTS ARE TAKEN FIRST, AND THAT IS NOT AN OPTIMISATION. `objects` is allowed to hold objects
+ * this array already contains -- Apple's contract permits a caller to pass the receiver's own elements -- so
+ * removing the range before reading them would read freed memory. A temporary ARRAY is what retains them
+ * across the mutation, which keeps the ownership rule the same one every other door uses rather than a second
+ * hand-rolled scheme.
+ *
+ * OUT OF THE RANGE FROM THE TOP DOWN: removing a lower index first would shift the ones above it. */
+- (void)replaceObjectsInRange:(NSRange)range withObjects:(const id [])objects count:(NSUInteger)count
+{
+	NSMutableArray *incoming;
+	NSUInteger i;
+
+	if (range.location > _count || range.length > _count - range.location) {
+		[NSException raise:NSRangeException
+			    format:@"-[NSMutableArray replaceObjectsInRange:withObjects:count:]: "
+				   @"range {%lu, %lu} beyond bounds %lu",
+			    (unsigned long)range.location, (unsigned long)range.length, _count];
+	}
+	if (objects == NULL && count > 0) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"-[NSMutableArray replaceObjectsInRange:withObjects:count:]: "
+				   @"objects is NULL with count %lu",
+			    (unsigned long)count];
+	}
+	incoming = [[NSMutableArray alloc] initWithCapacity:count];
+	for (i = 0; i < count; i++) {
+		[incoming addObject:objects[i]];
+	}
+	for (i = range.length; i > 0; i--) {
+		[self removeObjectAtIndex:range.location + i - 1];
+	}
+	for (i = 0; i < count; i++) {
+		[self insertObject:[incoming objectAtIndex:i] atIndex:range.location + i];
+	}
+	[incoming release];
+}
+
 - (void)insertObject:(id)object atIndex:(unsigned long)index
 {
 	if (index > _count) {
