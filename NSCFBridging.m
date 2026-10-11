@@ -62,22 +62,22 @@
  *                                    CFAbsoluteTime (CFRunLoop.c:4577)
  *   CFAttributedStringGetAttributes  SEGFAULT, and NOT a raise: the door is never reached
  *
- * AND THE NINTH WAS NOT A DEFECT EITHER -- IT WAS MY ATTRIBUTION. The survey ran each type in a child
- * process and printed each door's name BEFORE calling it, so a death looked like it belonged to the door
- * last named. MEASURED SINCE, IN-PROCESS AND IN A CHILD: CFAttributedStringGetAttributes on a Foundation
- * attributed string with a NULL effective range ANSWERS, and the door after it is where the child died.
- * What the survey's "DIED" line names is therefore NOT reliable evidence about that door.
+ * AND THE NINTH WAS NOT A DEFECT EITHER, NOR WAS THE FORK THEORY I BUILT ON TOP OF IT. Both are
+ * retracted, and both were my own doing. CFAttributedStringGetAttributes on a Foundation attributed string
+ * with a NULL effective range ANSWERS -- measured in-process and in a child. The "doors that work in the
+ * parent die in a child" reproduction was MY PROBE'S BUG: it passed @"x" to -stringWithUTF8String:, which
+ * wants a C string, so the probe read an object as text and died wherever it ran. Retested properly, the
+ * doors answer in the parent AND in a child:
  *
- * WHAT IS OPEN IS BIGGER AND NOT ABOUT ANY ONE DOOR: DOORS THAT WORK IN THE PARENT DIE IN A FORKED CHILD.
- * Reproduced in twenty lines -- build a Foundation dictionary, set and array in the PARENT, then fork and
- * call the doors in the child: the child dies where the same calls return normally in the parent. The
- * survey forks per type and the suite forks per case, so BOTH of those "DIED"/crash reports are suspect
- * until this is understood, and the survey's method needs revisiting because of it (a printed name is not
- * an attribution if the death is not about the door).
+ *     child: CFStringGetFastestEncoding ok    parent: ok
+ *     child: CFRunLoopTimerGetNextFireDate ok parent: ok
+ *     child: CFDictionaryContainsKey ok       parent: ok
  *
- * WHAT IS NOT AFFECTED: the eight doors above were re-verified IN-PROCESS by the same survey run in the
- * parent, and the suite's 72 cases pass, so the fixes stand.
- *
+ * WHAT REMAINS TRUE IS NARROWER AND MATTERS FOR READING THIS SURVEY: ONE death in its run (the attributed
+ * child) was NOT reproduced in four variations, so a "DIED" line here is an unexplained death and not an
+ * attribution to the door last named. A harness that prints a name before a call can only say WHERE the
+ * process stopped, which is not the same as what was wrong -- and the honest use of this list is to check
+ * each door in-process, which is what closed the eight above. *
  * AND THREE APPARENT GAPS WERE NOT GAPS AT ALL: -getObjects:range:, -getObjects:andKeys: and
  * -copyWithZone: on NSArray already existed, and CFArray.c:558 was already answered by the first of them.
  * CHECK THIS FILE'S CLASSES' HEADERS BEFORE IMPLEMENTING ANY OF THE ABOVE -- writing those three
