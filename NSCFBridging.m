@@ -32,6 +32,41 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreFoundation/ForSwiftFoundationOnly.h>
 
+/* ==================================================================================================== */
+/* THE SURFACE SURVEY: WHAT CORE FOUNDATION ASKS FOR THAT FOUNDATION DOES NOT ANSWER                     */
+/* ==================================================================================================== */
+/* METHOD, SO IT CAN BE REPEATED: a program that applies Core Foundation's OWN functions to FOUNDATION
+ * objects, one CHILD PROCESS per type so a crash cannot take the run with it, each door's name printed
+ * before it is called so the last line before a death names the door, and exceptions caught so a raise is
+ * recorded rather than fatal. Seventeen types, about ninety doors.
+ *
+ * MEASURED, AND NOT ONE OF THEM IS FIXED YET:
+ *
+ *   CFStringGetFastestEncoding       -[NSString _fastestEncodingInCFStringEncoding]  -- exists on
+ *                                    NSCFConstantString only, where ASCII is the honest answer, so every
+ *                                    OTHER Foundation string raises when Core Foundation asks
+ *   CFArraySetValueAtIndex           -[NSMutableArray setObject:atIndex:]             -- only NSOrderedSet
+ *                                    has it; the signature follows -replaceObjectAtIndex:withObject:
+ *   CFDictionaryContainsKey          -[NSDictionary containsKey:]                     -- returns a CHAR
+ *                                    (CFDictionary.c:231), not a BOOL
+ *   CFDictionaryGetValueIfPresent    -[NSDictionary __getValue:forKey:]               -- private; its call
+ *                                    site has not been found, so its signature is NOT known
+ *   CFDictionaryCreateCopy           -[NSDictionary copyWithZone:]                    -- Cocoa's own
+ *   CFSetGetValues                   -[NSSet getObjects:]
+ *   CFSetCreateCopy                  -[NSSet copyWithZone:]                           -- Cocoa's own
+ *   CFRunLoopTimerGetNextFireDate    -[NSTimer _cffireTime]                           -- answers a
+ *                                    CFAbsoluteTime (CFRunLoop.c:4577)
+ *   CFAttributedStringGetAttributes  SEGFAULT, and NOT a raise: the door is never reached
+ *
+ * AND THREE APPARENT GAPS WERE NOT GAPS AT ALL: -getObjects:range:, -getObjects:andKeys: and
+ * -copyWithZone: on NSArray already existed, and CFArray.c:558 was already answered by the first of them.
+ * CHECK THIS FILE'S CLASSES' HEADERS BEFORE IMPLEMENTING ANY OF THE ABOVE -- writing those three
+ * duplicates is the mistake this paragraph exists to prevent.
+ *
+ * THE SIGNATURES THAT MATTER COME FROM CORE FOUNDATION'S OWN CALL SITES, not from guessing: the three
+ * cited above are the ones measured. A private door whose call site has not been found (like
+ * __getValue:forKey:) is a door to LOOK UP and not to invent. */
+
 /* ------------------------------------------------------------------------ */
 /* the method Core Foundation asks for                                       */
 /* ------------------------------------------------------------------------ */
