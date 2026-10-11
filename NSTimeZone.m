@@ -214,11 +214,13 @@ static NSInteger fn_tz_offset(NSString *name, double secondsSince1970, BOOL *isD
 
 - (NSInteger)secondsFromGMT
 {
-	if (_name == nil) {
-		return _secondsFromGMT;
-	}
-	/* Without a date, Cocoa means "now". */
-	return fn_tz_offset(_name, [[NSDate date] timeIntervalSince1970], NULL);
+	/* DERIVED, AND THAT IS THE ONLY THING THAT HAD TO CHANGE FOR CORE FOUNDATION. Without a date,
+	 * Cocoa means "now" -- which is what -secondsFromGMTForDate: already says, so the body above is
+	 * repeated here only in its choice of date. A Core Foundation-owned NSTimeZone inherits this and
+	 * answers it with Core Foundation's clock, where the old body read the ivar `_name` and died on
+	 * storage that class does not have. The primitive itself (above) keeps reading the ivars, exactly
+	 * as NSDate's -timeIntervalSinceReferenceDate does. */
+	return [self secondsFromGMTForDate:[NSDate date]];
 }
 
 - (NSString *)name

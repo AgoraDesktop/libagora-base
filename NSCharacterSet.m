@@ -23,6 +23,12 @@
 
 #define FN_MAX_CHARACTER	0xFFFF
 
+/* THE BITMAP'S TWO NUMBERS, HERE RATHER THAN BESIDE THE METHODS THAT USE THEM, because the range decoder
+ * below reads them and it is defined before those methods. See the note at -bitmapRepresentation for what
+ * the format is now and why. */
+#define FN_CHARSET_MAGIC 0x534e4346	/* 'FNCS', little-endian on disk; the LEGACY annotated form's marker */
+#define FN_CHARSET_BITMAP_BYTES 8192	/* 65536 bits, the BMP — one bit per plane-0 character */
+
 /* §63.56: THE TWO INTERNAL CONSTRUCTORS, DECLARED HERE AND NO LONGER IN THE HEADER. They are this library's
  * own path — `+characterSetWithCharactersInString:` and `+characterSetWithRange:` are `[[self alloc] initWith…]`
  * and the ten cached built-ins go through `-initWithRange:` — and Apple declares neither, so they were never
@@ -76,6 +82,58 @@ static BOOL fn_contains(NSCharacterSet *set, unsigned int character)
 		}
 	}
 	return NO;
+}
+
+/* THE RANGES AS THE BITMAP SEES THEM, AND IT IS THE ONE SHAPE BOTH SIDES CAN PRODUCE. A Core Foundation-owned
+ * character set has no range list -- Core Foundation's only door for a set's CONTENTS is its bitmap -- so
+ * -description and -encodeWithCoder: read the ranges back out of -bitmapRepresentation instead of out of
+ * `_ranges`. The pairs come back in the (location, length) layout `_ranges` already uses, so the callers keep
+ * their shape; the count is per RUN OF BITS, which is the number the range list holds unless two ranges are
+ * ADJACENT in the list (a bitmap cannot tell those apart, and saying so here is cheaper than a second format).
+ *
+ * THE CALLER OWNS THE ANSWER: `*outPairs` is malloc'd (or NULL when there are none) and it is the caller's to
+ * free. A bitmap that is too short to be one at all reads as NO RANGES rather than as a bounds error. */
+static unsigned long fn_ranges_from_bitmap(NSData *bitmap, unsigned int **outPairs)
+{
+	const unsigned char *bytes = (const unsigned char *)[bitmap bytes];
+	NSUInteger length = [bitmap length];
+	unsigned int *pairs = NULL;
+	unsigned long count = 0;
+	unsigned long c = 0;
+
+	if (outPairs != NULL) {
+		*outPairs = NULL;
+	}
+	if (bytes == NULL || length < (NSUInteger)FN_CHARSET_BITMAP_BYTES) {
+		return 0;
+	}
+	while (c <= 0xFFFF) {
+		unsigned long start;
+
+		if ((bytes[c / 8] & (1u << (c % 8))) == 0) {
+			c++;
+			continue;
+		}
+		start = c;
+		while (c <= 0xFFFF && (bytes[c / 8] & (1u << (c % 8))) != 0) {
+			c++;
+		}
+		if (outPairs != NULL) {
+			unsigned int *grown = (unsigned int *)realloc(pairs, (count + 1) * 2 * sizeof(unsigned int));
+
+			if (grown == NULL) {
+				break;
+			}
+			pairs = grown;
+			pairs[count * 2] = (unsigned int)start;
+			pairs[count * 2 + 1] = (unsigned int)(c - start);
+		}
+		count++;
+	}
+	if (outPairs != NULL) {
+		*outPairs = pairs;
+	}
+	return count;
 }
 
 + (NSCharacterSet *)characterSetWithCharactersInString:(NSString *)string
@@ -137,13 +195,20 @@ static NSString *const kRangesKey = @"NS.ranges";
 
 - (void)encodeWithCoder:(NSCoder *)coder
 {
-	NSMutableArray *pairs = [NSMutableArray arrayWithCapacity:_rangeCount * 2];
+	unsigned int *ranges = NULL;
+	unsigned long count = fn_ranges_from_bitmap([self bitmapRepresentation], &ranges);
+	NSMutableArray *pairs = [NSMutableArray arrayWithCapacity:(NSUInteger)count * 2];
 	unsigned long i;
 
-	for (i = 0; i < _rangeCount; i++) {
-		[pairs addObject:[NSNumber numberWithUnsignedInt:_ranges[i * 2]]];
-		[pairs addObject:[NSNumber numberWithUnsignedInt:_ranges[i * 2 + 1]]];
+	/* THE RANGES COME FROM THE BITMAP, for the reason fn_ranges_from_bitmap gives: a Core Foundation-owned
+	 * set has no range list. The PAYLOAD SHAPE is unchanged -- an array of (location, length) pairs under
+	 * kRangesKey -- so -initWithCoder: still reads it, including the archive this class wrote before the
+	 * change. */
+	for (i = 0; i < count; i++) {
+		[pairs addObject:[NSNumber numberWithUnsignedInt:ranges[i * 2]]];
+		[pairs addObject:[NSNumber numberWithUnsignedInt:ranges[i * 2 + 1]]];
 	}
+	free(ranges);
 	[coder encodeObject:pairs forKey:kRangesKey];
 }
 
@@ -278,7 +343,11 @@ static NSString *const kRangesKey = @"NS.ranges";
 
 - (NSString *)description
 {
-	return [NSString stringWithFormat:@"<NSCharacterSet: %lu range(s)>", _rangeCount];
+	/* THE COUNT COMES FROM THE BITMAP AND NOT FROM `_rangeCount`, for the reason fn_ranges_from_bitmap gives:
+	 * a Core Foundation-owned set has no range list, and this method is one of the doors that has to answer
+	 * for both. (CFCopyDescription reaches it: it asks -description through NSObject's -_copyDescription.) */
+	return [NSString stringWithFormat:@"<NSCharacterSet: %lu range(s)>",
+					 (unsigned long)fn_ranges_from_bitmap([self bitmapRepresentation], NULL)];
 }
 
 - (id)copy
@@ -521,14 +590,15 @@ static NSCharacterSet *fn_url_set(NSString *extra, NSCharacterSet **cache)
  * these are EXACT rather than approximate: a code point above the BMP is genuinely a non-member,
  * plane 0 is genuinely non-empty exactly when the set is, and any other plane is genuinely empty.
  *
- * THE BITMAP'S BYTE LAYOUT IS THIS LIBRARY'S and the ROUND TRIP is the contract - Apple documents
- * what the representation is for, not what is in it, which is the same standing as the byte-order
- * family and the alignment bits. A header holding a magic and the range count, then 8192 bytes of
- * BMP membership, which is what makes the file form meaningful: a file in this format is a character
- * set, and its representation is itself.
+ * THE BITMAP'S BYTE LAYOUT IS NOW CORE FOUNDATION'S AND APPLE'S, AND THIS IS THE ONE PLACE THAT CHANGED
+ * SHAPE: 8192 bytes of BMP membership with nothing in front of them. It used to carry a header -- a magic
+ * word and the range count -- and that form is still ACCEPTED on the way in
+ * (+characterSetWithBitmapRepresentation: tells the two apart BY the magic), because a caller may have
+ * stored one. Going OUT it is bare, because a Core Foundation-owned character set answers
+ * -bitmapRepresentation with CFCharacterSetCreateBitmapRepresentation's bytes, and two spellings of one
+ * bitmap would make a saved file's round trip depend on which side produced it. The two macros live at the
+ * top of this file: the range decoder reads them, and the decoder is defined before these methods.
  */
-#define FN_CHARSET_MAGIC 0x534e4346	/* 'FNCS', little-endian on disk */
-#define FN_CHARSET_BITMAP_BYTES 8192	/* 65536 bits, the BMP */
 
 - (BOOL)longCharacterIsMember:(UTF32Char)character
 {
@@ -545,29 +615,23 @@ static NSCharacterSet *fn_url_set(NSString *extra, NSCharacterSet **cache)
 
 - (NSData *)bitmapRepresentation
 {
-	unsigned char *bytes = (unsigned char *)calloc(1, 8 + FN_CHARSET_BITMAP_BYTES);
-	unsigned int header[2];
+	unsigned char *bytes = (unsigned char *)calloc(1, FN_CHARSET_BITMAP_BYTES);
 	NSData *result;
 	unsigned long i;
-	unsigned long offset;
 
 	if (bytes == NULL) {
 		return [NSData data];
 	}
-	header[0] = FN_CHARSET_MAGIC;
-	header[1] = (unsigned int)_rangeCount;
-	memcpy(bytes, header, 8);
 	for (i = 0; i < _rangeCount; i++) {
 		unsigned long loc = _ranges[i * 2];
 		unsigned long len = _ranges[i * 2 + 1];
 		unsigned long c;
 
 		for (c = loc; c < loc + len && c <= 0xFFFF; c++) {
-			bytes[8 + (c / 8)] |= (unsigned char)(1u << (c % 8));
+			bytes[c / 8] |= (unsigned char)(1u << (c % 8));
 		}
 	}
-	(void)offset;
-	result = [NSData dataWithBytes:bytes length:8 + FN_CHARSET_BITMAP_BYTES];
+	result = [NSData dataWithBytes:bytes length:FN_CHARSET_BITMAP_BYTES];
 	free(bytes);
 	return result;
 }
@@ -577,25 +641,33 @@ static NSCharacterSet *fn_url_set(NSString *extra, NSCharacterSet **cache)
 	NSCharacterSet *set;
 	unsigned int header[2];
 	const unsigned char *bytes;
+	const unsigned char *bits;
 	unsigned long c;
 	unsigned long start = 0;
 	BOOL inRange = NO;
+	BOOL annotated = NO;
 
-	if ([data length] < 8 + FN_CHARSET_BITMAP_BYTES) {
-		return nil;
-	}
 	bytes = (const unsigned char *)[data bytes];
-	memcpy(header, bytes, 8);
-	if (header[0] != FN_CHARSET_MAGIC) {
+	if (bytes == NULL || [data length] < (NSUInteger)FN_CHARSET_BITMAP_BYTES) {
 		return nil;
 	}
+	/* TWO FORMS ARE ACCEPTED: THIS LIBRARY'S OLD ANNOTATED ONE (a magic word and a range count in front of the
+	 * bits) and CORE FOUNDATION'S BARE PLANE-0 BITMAP, which is what -bitmapRepresentation EMITS now. The magic
+	 * word is what tells them apart -- a bare bitmap has no room for one, because its first four bytes are real
+	 * bits -- and the annotated form stays readable so that a bitmap a caller stored before this change still
+	 * loads. */
+	if ([data length] >= 8 + (NSUInteger)FN_CHARSET_BITMAP_BYTES) {
+		memcpy(header, bytes, 8);
+		annotated = (header[0] == FN_CHARSET_MAGIC);
+	}
+	bits = annotated ? bytes + 8 : bytes;
 	/* A MUTABLE SET IS BUILT AND RETURNED: this method assembles ranges, and the immutable
 	 * class has no -addCharactersInRange: — sending it one is an unrecognized selector, which is
 	 * exactly the abort this probe caught. The answer is still an NSCharacterSet: the mutable
 	 * class is its subclass. */
 	set = [[NSMutableCharacterSet alloc] init];
 	for (c = 0; c <= 0xFFFF; c++) {
-		BOOL member = (bytes[8 + (c / 8)] & (1u << (c % 8))) != 0;
+		BOOL member = (bits[c / 8] & (1u << (c % 8))) != 0;
 
 		if (member && !inRange) {
 			start = c;

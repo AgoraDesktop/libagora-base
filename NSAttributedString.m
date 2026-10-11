@@ -29,6 +29,7 @@
 #import <Foundation/NSError.h>
 #import <Foundation/NSDate.h>
 #import <Foundation/NSNumber.h>
+#import <Foundation/NSValue.h>	/* the span collection in -enumerateAttributesInRange:, which carries ranges */
 #import <Foundation/NSURL.h>
 #import <Foundation/NSLocale.h>
 /* FNTextBreaking IS THE WORD/LINE-BREAK SUBSTRATE these doors answer over (§62.42); the 2026-09-30 pass made
@@ -501,14 +502,14 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 		 * the +1 ownership needs (both measured here). A store of text has to own its string, so it takes
 		 * a real copy through the constructor. */
 		_string = [[NSString alloc] initWithString:(str != nil ? str : @"")];
-		if ([_string length] > 0) {
+		if ([[self string] length] > 0) {
 			/* ONE RUN COVERING THE WHOLE STRING, ALWAYS - with a nil dictionary when there are no
 			 * attributes. A RANGE WITH NO RUN IS THE "no attributes here" STATE, and an edit that lands in
 			 * one has nothing to merge into, which is how an -addAttributes: over a fresh string came back
 			 * with no attributes at all. */
 			fn_run run;
 
-			run.range = NSMakeRange(0, [_string length]);
+			run.range = NSMakeRange(0, [[self string] length]);
 			/* A REAL COPY, AND NOT -copy: the store must OWN its dictionary, and this library's -copy
 			 * returns SELF for an immutable dictionary (measured: copy-same-object=1) without the +1 that
 			 * ownership needs - so every store was releasing a reference it did not hold, freeing the
@@ -528,20 +529,27 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 	if (self != nil) {
 		NSString *source = [attrStr string];
 		NSUInteger i;
+		NSUInteger n = [attrStr length];
 
 		_string = [[NSString alloc] initWithString:(source != nil ? source : @"")];
-		for (i = 0; i < [attrStr length]; ) {
-			fn_run *run = [attrStr fnRunContaining:i];
+		/* OVER THE PRIMITIVE AND NOT OVER THE SOURCE'S RUN TABLE: attrStr may be a Core Foundation-owned
+		 * string, whose runs are Core Foundation's storage and not this class's `_runs`. -attributesAtIndex:
+		 * effectiveRange: answers the longest range the attributes at that index apply over, so walking
+		 * from 0 in those jumps visits every run once and arrives at each run's own attributes. */
+		for (i = 0; i < n; ) {
+			NSRange effective;
+			NSDictionary *attrs = [attrStr attributesAtIndex:i effectiveRange:&effective];
+			NSUInteger end = effective.location + effective.length;
 			fn_run copy;
 
-			if (run == NULL) {
-				break;
+			if (end <= i) {
+				break;	/* an empty effective range would walk forever */
 			}
-			copy.range = run->range;
-			copy.attrs = run->attrs != nil
-				? [[NSDictionary alloc] initWithDictionary:run->attrs] : nil;
+			copy.range = NSMakeRange(i, end - i);
+			copy.attrs = attrs != nil
+				? [[NSDictionary alloc] initWithDictionary:attrs] : nil;
 			[self fnInsertRun:copy at:_runCount];
-			i = run->range.location + run->range.length;
+			i = end;
 		}
 	}
 	return self;
@@ -881,9 +889,9 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 {
 	fn_run *run;
 
-	if (location >= [_string length]) {
+	if (location >= [[self string] length]) {
 		[NSException raise:NSRangeException format:@"index %lu is out of range for a string of length %lu",
-			(unsigned long)location, (unsigned long)[_string length]];
+			(unsigned long)location, (unsigned long)[[self string] length]];
 	}
 	run = [self fnRunContaining:location];
 	if (run == NULL) {
@@ -1000,19 +1008,26 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 	{
 		NSUInteger i;
 
-		for (i = 0; i < _runCount; i++) {
-			fn_run *run = [self fnRunAt:i];
-			NSUInteger runEnd = run->range.location + run->range.length;
-			NSUInteger start = run->range.location > range.location ? run->range.location
-									       : range.location;
-			NSUInteger end = runEnd < range.location + range.length ? runEnd
-									       : range.location + range.length;
+		/* OVER THE PRIMITIVE, and this is the walk that used to be a loop over the run table: the runs of a
+		 * Core Foundation-owned string are Core Foundation's storage, and -attributesAtIndex:effectiveRange:
+		 * is where this class answers them. Each step advances to the end of the effective range, so no
+		 * character is visited twice, and the clip is what keeps the answer inside the substring. */
+		for (i = range.location; i < range.location + range.length; ) {
+			NSRange effective;
+			NSDictionary *attrs = [self attributesAtIndex:i effectiveRange:&effective];
+			NSUInteger end = effective.location + effective.length;
+			NSUInteger clip = end < range.location + range.length ? end
+									     : range.location + range.length;
 
-			if (end > start) {
-				[(NSMutableAttributedString *)answer addAttributes:run->attrs
-									     range:NSMakeRange(start - range.location,
-											       end - start)];
+			if (end <= i) {
+				break;
 			}
+			if (clip > i) {
+				[(NSMutableAttributedString *)answer addAttributes:attrs
+									     range:NSMakeRange(i - range.location,
+											       clip - i)];
+			}
+			i = end;
 		}
 	}
 	return [answer autorelease];
@@ -1072,22 +1087,37 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 			   options:(NSAttributedStringEnumerationOptions)opts
 			usingBlock:(void (^)(NSDictionary *attrs, NSRange range, BOOL *stop))block
 {
-	NSRange span;
-	NSUInteger step, i;
+	NSMutableArray *spans = [NSMutableArray array];
+	NSMutableArray *dicts = [NSMutableArray array];
+	NSUInteger i;
+	NSUInteger limit = enumerationRange.location + enumerationRange.length;
 	BOOL stop = NO;
 
 	if (block == NULL) {
 		return;
 	}
-	[self fnSplitAt:enumerationRange.location];
-	[self fnSplitAt:enumerationRange.location + enumerationRange.length];
-	span = [self fnRunSpanCovering:enumerationRange];
-	step = span.length > 0 ? span.length : 0;
-	for (i = 0; i < step && !stop; i++) {
-		NSUInteger index = (opts & NSAttributedStringEnumerationReverse) ? span.length - 1 - i : i;
-		fn_run *run = [self fnRunAt:span.location + index];
+	/* OVER THE PRIMITIVE, AND COLLECTED RATHER THAN WALKED IN PLACE. The old body SPLIT the run table at the
+	 * range's boundaries and then walked it -- which is this class's own storage, and a Core Foundation-owned
+	 * string has none. The spans come from -attributesAtIndex:effectiveRange: and the ORDER is applied
+	 * afterwards, because the reverse option walks the same spans backwards and the two loops that would
+	 * otherwise do that are two loops that can drift apart. */
+	for (i = enumerationRange.location; i < limit; ) {
+		NSRange effective;
+		NSDictionary *attrs = [self attributesAtIndex:i effectiveRange:&effective];
+		NSUInteger end = effective.location + effective.length;
+		NSUInteger clip = end < limit ? end : limit;
 
-		block(run->attrs != nil ? run->attrs : [NSDictionary dictionary], run->range, &stop);
+		if (end <= i) {
+			break;
+		}
+		[spans addObject:[NSValue valueWithRange:NSMakeRange(i, clip - i)]];
+		[dicts addObject:(attrs != nil ? attrs : (id)[NSDictionary dictionary])];
+		i = end;
+	}
+	for (i = 0; i < [spans count] && !stop; i++) {
+		NSUInteger at = (opts & NSAttributedStringEnumerationReverse) ? [spans count] - 1 - i : i;
+
+		block([dicts objectAtIndex:at], [[spans objectAtIndex:at] rangeValue], &stop);
 	}
 }
 
@@ -1200,21 +1230,31 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
  * this library already codes through -encodeBytes:length:forKey:. */
 - (void)encodeWithCoder:(NSCoder *)coder
 {
-	NSMutableArray *runs = [NSMutableArray arrayWithCapacity:_runCount];
+	NSMutableArray *runs = [NSMutableArray arrayWithCapacity:[self length]];
 	NSMutableDictionary *plist = [NSMutableDictionary dictionary];
 	NSData *payload;
 	NSUInteger i;
 
-	for (i = 0; i < _runCount; i++) {
-		fn_run *run = [self fnRunAt:i];
+	/* THE SAME WALK AS -attributedSubstringFromRange:, and for the same reason: a Core Foundation-owned
+	 * string's runs are Core Foundation's storage, so the archive is built from the primitive rather than
+	 * from this class's `_runs`. The payload's SHAPE is unchanged -- a string and a list of
+	 * {location, length, attributes} -- so -initWithCoder: still reads it. */
+	for (i = 0; i < [self length]; ) {
+		NSRange effective;
+		NSDictionary *attrs = [self attributesAtIndex:i effectiveRange:&effective];
+		NSUInteger end = effective.location + effective.length;
 		NSMutableDictionary *entry = [NSMutableDictionary dictionary];
 
-		[entry setObject:[NSNumber numberWithUnsignedInteger:run->range.location] forKey:@"location"];
-		[entry setObject:[NSNumber numberWithUnsignedInteger:run->range.length] forKey:@"length"];
-		if (run->attrs != nil) {
-			[entry setObject:run->attrs forKey:@"attributes"];
+		if (end <= i) {
+			break;
+		}
+		[entry setObject:[NSNumber numberWithUnsignedInteger:i] forKey:@"location"];
+		[entry setObject:[NSNumber numberWithUnsignedInteger:end - i] forKey:@"length"];
+		if (attrs != nil) {
+			[entry setObject:attrs forKey:@"attributes"];
 		}
 		[runs addObject:entry];
+		i = end;
 	}
 	[plist setObject:[self string] forKey:@"string"];
 	[plist setObject:runs forKey:@"runs"];
@@ -1600,8 +1640,8 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 		 * others. THE FORMATTER BUG IS STILL THERE AND IS NAMED where it can be found: something inside
 		 * -initWithFormat: copies a plain object, and it is now a CATCHABLE exception rather than a dead
 		 * process, which is what makes it cheap to hunt. */
-		NSString *head = [_string substringToIndex:range.location];
-		NSString *tail = [_string substringFromIndex:range.location + range.length];
+		NSString *head = [[self string] substringToIndex:range.location];
+		NSString *tail = [[self string] substringFromIndex:range.location + range.length];
 		/* THE CLASS FORM OF THE FORMATTER, and the difference is measured: -initWithFormat: reached -copy on
 		 * a bare object and died, and the mutable-string route reached a SECOND unimplemented mutator
 		 * (-[NSOwnedString appendString:], recorded in NSString.m's own comment). +stringWithFormat: is
@@ -1842,7 +1882,7 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 	 * the drawing layer's business, not the store's). */
 	while (i < _runCount) {
 		fn_run *run = [self fnRunAt:i];
-		NSUInteger limit = [_string length];
+		NSUInteger limit = [[self string] length];
 
 		if (run->range.location >= limit) {
 			[self fnRemoveRunsFrom:i count:1];

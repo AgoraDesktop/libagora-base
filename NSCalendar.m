@@ -352,8 +352,8 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 - (NSDateComponents *)components:(NSCalendarUnit)units fromDate:(NSDate *)date
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	NSDateComponents *out;
 
 	if (calendar == NULL) {
@@ -439,7 +439,7 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 		 * is nothing to convert. */
 		return nil;
 	}
-	calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday, _minimumDaysInFirstWeek,
+	calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday], [self minimumDaysInFirstWeek],
 			       &status);
 	if (calendar == NULL) {
 		return nil;
@@ -499,7 +499,7 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 				   "search, not arithmetic"];
 	}
 	roll = (options & NSCalendarOptionsWrapComponents) != 0;
-	calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday, _minimumDaysInFirstWeek,
+	calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday], [self minimumDaysInFirstWeek],
 			       &status);
 	if (calendar == NULL) {
 		return nil;
@@ -600,7 +600,7 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 				   "here: wrapping the smaller units is a different question from how many "
 				   "whole units fit"];
 	}
-	calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday, _minimumDaysInFirstWeek,
+	calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday], [self minimumDaysInFirstWeek],
 			       &status);
 	if (calendar == NULL) {
 		return [[NSDateComponents alloc] init];
@@ -647,8 +647,8 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 	       forDate:(NSDate *)date
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	int32_t limit;
 
 	if (calendar == NULL) {
@@ -710,8 +710,8 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 	    forDate:(NSDate *)date
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	NSInteger length;
 	NSDate *start;
 
@@ -776,8 +776,8 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 - (BOOL)isDate:(NSDate *)date inSameDayAsDate:(NSDate *)other
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	int32_t year, month, day, otherYear, otherMonth, otherDay;
 
 	if (calendar == NULL) {
@@ -810,25 +810,25 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 	/* THE COMPARISON THAT USED TO BE -isEqualToCalendar:'S (§63.59): that name was this library's own -
 	 * Apple declares no such door - and -isEqual: was its only caller. `calendar` is typed so every
 	 * accessor below keeps its declared return type: on an `id` receiver, `[other firstWeekday] ==
-	 * _firstWeekday` would compare a pointer with an integer. */
+	 * [self firstWeekday]` would compare a pointer with an integer. */
 	calendar = (NSCalendar *)other;
-	return [[calendar calendarIdentifier] isEqualToString:_identifier]
-	    && [[calendar timeZone] isEqualToTimeZone:_timeZone]
-	    && [calendar firstWeekday] == _firstWeekday
-	    && [calendar minimumDaysInFirstWeek] == _minimumDaysInFirstWeek;
+	return [[calendar calendarIdentifier] isEqualToString:[self calendarIdentifier]]
+	    && [[calendar timeZone] isEqualToTimeZone:[self timeZone]]
+	    && [calendar firstWeekday] == [self firstWeekday]
+	    && [calendar minimumDaysInFirstWeek] == [self minimumDaysInFirstWeek];
 }
 
 - (NSUInteger)hash
 {
-	return [_identifier hash] ^ _firstWeekday ^ (_minimumDaysInFirstWeek << 3);
+	return [[self calendarIdentifier] hash] ^ [self firstWeekday] ^ ([self minimumDaysInFirstWeek] << 3);
 }
 
 - (NSString *)description
 {
 	return [NSString stringWithFormat:@"<NSCalendar: %@ %@ firstWeekday=%lu minDays=%lu>",
-					 _identifier, [_timeZone name],
-					 (unsigned long)_firstWeekday,
-					 (unsigned long)_minimumDaysInFirstWeek];
+					 [self calendarIdentifier], [[self timeZone] name],
+					 (unsigned long)[self firstWeekday],
+					 (unsigned long)[self minimumDaysInFirstWeek]];
 }
 
 /* Mutable (its time zone, locale and week rules), so a copy is a real one. */
@@ -836,13 +836,13 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 {
 	NSCalendar *copy;
 
-	copy = [[NSCalendar alloc] initWithCalendarIdentifier:_identifier];
-	[copy setTimeZone:_timeZone];
-	if (_locale != nil) {
-		[copy setLocale:_locale];
+	copy = [[NSCalendar alloc] initWithCalendarIdentifier:[self calendarIdentifier]];
+	[copy setTimeZone:[self timeZone]];
+	if ([self locale] != nil) {
+		[copy setLocale:[self locale]];
 	}
-	[copy setFirstWeekday:_firstWeekday];
-	[copy setMinimumDaysInFirstWeek:_minimumDaysInFirstWeek];
+	[copy setFirstWeekday:[self firstWeekday]];
+	[copy setMinimumDaysInFirstWeek:[self minimumDaysInFirstWeek]];
 	return copy;
 }
 
@@ -882,106 +882,106 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 
 - (NSString *)AMSymbol
 {
-	NSArray *symbols = fn_cal_symbols(_identifier, [self locale], UDAT_AM_PMS, 0, 2);
+	NSArray *symbols = fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_AM_PMS, 0, 2);
 
 	return [symbols count] > 0 ? (NSString *)[symbols objectAtIndex:0] : nil;
 }
 
 - (NSString *)PMSymbol
 {
-	NSArray *symbols = fn_cal_symbols(_identifier, [self locale], UDAT_AM_PMS, 0, 2);
+	NSArray *symbols = fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_AM_PMS, 0, 2);
 
 	return [symbols count] > 1 ? (NSString *)[symbols objectAtIndex:1] : nil;
 }
 
 - (NSArray *)eraSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_ERAS, 0, 2);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_ERAS, 0, 2);
 }
 
 - (NSArray *)longEraSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_ERA_NAMES, 0, 2);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_ERA_NAMES, 0, 2);
 }
 
 - (NSArray *)monthSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_MONTHS, 0, 13);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_MONTHS, 0, 13);
 }
 
 - (NSArray *)shortMonthSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_SHORT_MONTHS, 0, 13);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_SHORT_MONTHS, 0, 13);
 }
 
 - (NSArray *)veryShortMonthSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_NARROW_MONTHS, 0, 13);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_NARROW_MONTHS, 0, 13);
 }
 
 - (NSArray *)standaloneMonthSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_STANDALONE_MONTHS, 0, 13);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_STANDALONE_MONTHS, 0, 13);
 }
 
 - (NSArray *)shortStandaloneMonthSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_STANDALONE_SHORT_MONTHS, 0, 13);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_STANDALONE_SHORT_MONTHS, 0, 13);
 }
 
 - (NSArray *)veryShortStandaloneMonthSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_STANDALONE_NARROW_MONTHS, 0, 13);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_STANDALONE_NARROW_MONTHS, 0, 13);
 }
 
 - (NSArray *)weekdaySymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_WEEKDAYS, UCAL_SUNDAY, 7);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_WEEKDAYS, UCAL_SUNDAY, 7);
 }
 
 - (NSArray *)shortWeekdaySymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_SHORT_WEEKDAYS, UCAL_SUNDAY, 7);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_SHORT_WEEKDAYS, UCAL_SUNDAY, 7);
 }
 
 - (NSArray *)veryShortWeekdaySymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_NARROW_WEEKDAYS, UCAL_SUNDAY, 7);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_NARROW_WEEKDAYS, UCAL_SUNDAY, 7);
 }
 
 - (NSArray *)standaloneWeekdaySymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_STANDALONE_WEEKDAYS, UCAL_SUNDAY, 7);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_STANDALONE_WEEKDAYS, UCAL_SUNDAY, 7);
 }
 
 - (NSArray *)shortStandaloneWeekdaySymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_STANDALONE_SHORT_WEEKDAYS, UCAL_SUNDAY, 7);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_STANDALONE_SHORT_WEEKDAYS, UCAL_SUNDAY, 7);
 }
 
 - (NSArray *)veryShortStandaloneWeekdaySymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_STANDALONE_NARROW_WEEKDAYS, UCAL_SUNDAY, 7);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_STANDALONE_NARROW_WEEKDAYS, UCAL_SUNDAY, 7);
 }
 
 - (NSArray *)quarterSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_QUARTERS, 0, 4);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_QUARTERS, 0, 4);
 }
 
 - (NSArray *)shortQuarterSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_SHORT_QUARTERS, 0, 4);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_SHORT_QUARTERS, 0, 4);
 }
 
 - (NSArray *)standaloneQuarterSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_STANDALONE_QUARTERS, 0, 4);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_STANDALONE_QUARTERS, 0, 4);
 }
 
 - (NSArray *)shortStandaloneQuarterSymbols
 {
-	return fn_cal_symbols(_identifier, [self locale], UDAT_STANDALONE_SHORT_QUARTERS, 0, 4);
+	return fn_cal_symbols([self calendarIdentifier], [self locale], UDAT_STANDALONE_SHORT_QUARTERS, 0, 4);
 }
 
 /* =================================================================================================
@@ -1018,8 +1018,8 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 - (NSDateComponents *)componentsInTimeZone:(NSTimeZone *)timeZone fromDate:(NSDate *)date
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], timeZone, [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	NSDateComponents *out;
 
 	if (calendar == NULL) {
@@ -1134,8 +1134,8 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 	      nanosecond:(NSInteger)nanosecondValue
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	NSDate *answer;
 
 	if (calendar == NULL) {
@@ -1195,7 +1195,7 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 				   "NSCalendarOptionsNone here: the match policies describe a search over "
 				   "candidate dates, not a field set"];
 	}
-	calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday, _minimumDaysInFirstWeek, &status);
+	calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday], [self minimumDaysInFirstWeek], &status);
 	if (calendar == NULL) {
 		return nil;
 	}
@@ -1233,7 +1233,7 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 		[NSException raise:NSInvalidArgumentException
 			    format:@"-dateBySettingUnit: has no rule for that unit here"];
 	}
-	calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday, _minimumDaysInFirstWeek, &status);
+	calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday], [self minimumDaysInFirstWeek], &status);
 	if (calendar == NULL) {
 		return nil;
 	}
@@ -1278,7 +1278,7 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 			    format:@"-maximumRangeOfUnit: / -minimumRangeOfUnit: has no rule for that unit "
 				   "here"];
 	}
-	calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday, _minimumDaysInFirstWeek, &status);
+	calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday], [self minimumDaysInFirstWeek], &status);
 	if (calendar == NULL) {
 		return NSMakeRange(NSNotFound, 0);
 	}
@@ -1313,8 +1313,8 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 	}
 	if (smaller == NSCalendarUnitDay && larger == NSCalendarUnitYear) {
 		UErrorCode status = U_ZERO_ERROR;
-		UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-						  _minimumDaysInFirstWeek, &status);
+		UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+						  [self minimumDaysInFirstWeek], &status);
 		int32_t doy;
 
 		if (calendar == NULL) {
@@ -1343,8 +1343,8 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 - (NSDate *)startOfDayForDate:(NSDate *)date
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	NSDate *answer;
 
 	if (calendar == NULL) {
@@ -1374,8 +1374,8 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 - (NSDate *)fn_truncate:(NSDate *)date toUnit:(NSCalendarUnit)unit
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	NSDate *answer;
 
 	if (calendar == NULL) {
@@ -1483,8 +1483,8 @@ toUnitGranularity:(NSCalendarUnit)unit
 - (BOOL)isDateInWeekend:(NSDate *)date
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	UBool weekend;
 
 	if (calendar == NULL) {
@@ -1500,8 +1500,8 @@ toUnitGranularity:(NSCalendarUnit)unit
 		 containingDate:(NSDate *)date
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UCalendar *calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday,
-					  _minimumDaysInFirstWeek, &status);
+	UCalendar *calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday],
+					  [self minimumDaysInFirstWeek], &status);
 	UDate day, runStart, runEnd;
 
 	if (calendar == NULL) {
@@ -1578,7 +1578,7 @@ toUnitGranularity:(NSCalendarUnit)unit
 				   "NSCalendarOptionsNone here: a backwards search is the search this "
 				   "class does not perform"];
 	}
-	calendar = fn_cal_open(_identifier, _timeZone, _firstWeekday, _minimumDaysInFirstWeek, &status);
+	calendar = fn_cal_open([self calendarIdentifier], [self timeZone], [self firstWeekday], [self minimumDaysInFirstWeek], &status);
 	if (calendar == NULL) {
 		return NO;
 	}

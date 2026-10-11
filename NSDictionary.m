@@ -159,8 +159,15 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 
 - (id)initAsCopyOf:(NSDictionary *)source
 {
-	unsigned long i;
-
+	/* OVER THE SOURCE'S PRIMITIVES AND NOT OVER ITS BUCKETS. This walked `source->_buckets` and
+	 * `source->_bucketCount` -- THE SOURCE'S OWN STORAGE -- which a Core Foundation-owned dictionary
+	 * (__NSCFDictionary) does not have: MEASURED, [[NSDictionary alloc] initWithDictionary:aCFDictionary]
+	 * died here reading the source's bucket count out of Core Foundation storage. It was reached not by a
+	 * caller copying a dictionary deliberately but from the BRIDGE's own path:
+	 * -[NSAttributedString copy] copies each run's attribute dictionary this way, so copying a Core
+	 * Foundation-owned attributed string took this down with it. -keyEnumerator and -objectForKey: are the
+	 * two primitives this family is written over (see AGDictionaryEmpty), and both answer for an owned
+	 * class. */
 	/* THE CLASS IS CHOSEN BY THE DATA (§C.3 item 2), for this family's general class only - a mutable
 	 * receiver inherits this very implementation and must keep it. An EMPTY source copies to the shared
 	 * empty instance rather than to a general one with nothing in it. */
@@ -172,11 +179,16 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 	if (self == nil) {
 		return nil;
 	}
-	for (i = 0; i < source->_bucketCount; i++) {
-		struct FNDictEntry *entry;
+	{
+		NSEnumerator *keys = [source keyEnumerator];
+		id key;
 
-		for (entry = source->_buckets[i]; entry != NULL; entry = entry->next) {
-			[self setObjectInternal:entry->value forKey:entry->key];
+		while ((key = [keys nextObject]) != nil) {
+			id value = [source objectForKey:key];
+
+			if (value != nil) {
+				[self setObjectInternal:value forKey:key];
+			}
 		}
 	}
 	return self;

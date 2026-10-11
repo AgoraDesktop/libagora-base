@@ -398,10 +398,22 @@ static double fn_now(void)
 	return _userInfo;
 }
 
+/* THE PRIMITIVE THE OTHER DOORS DO NOT NAME, and it exists because -description reads it: a Core
+ * Foundation-owned timer has no `_repeats`, and CF's own door for the question is
+ * CFRunLoopTimerDoesRepeat. -fire reads the ivar too, but -fire is one of the methods the owned class
+ * answers from Core Foundation, so this is the only reader that needed a name. */
+- (BOOL)fnRepeats
+{
+	return _repeats;
+}
+
 - (NSString *)description
 {
+	/* OVER THE ACCESSORS AND NOT THE IVARS, for the reason every other type's description was routed: a Core
+	 * Foundation-owned timer has none of them, and CFCopyDescription reaches this through NSObject's
+	 * -_copyDescription. THE TEXT IS UNCHANGED. */
 	return [NSString stringWithFormat:@"<%@: %p interval=%.3f repeats=%d valid=%d>", [self class],
-				  self, _interval, (int)_repeats, (int)_valid];
+				  self, [self timeInterval], (int)[self fnRepeats], (int)[self isValid]];
 }
 
 @end

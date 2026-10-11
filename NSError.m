@@ -158,6 +158,15 @@ NSInteger const NSValidationErrorMinimum = 10064;
 	return self;
 }
 
+/* THE THREE PRIMITIVES. NSError is not a class cluster -- it is one class with three ivars, the domain,
+ * the code and the user-info dictionary -- so this is the whole primitive set, and everything else in this
+ * file that used to read those ivars now names them through `self`: -localizedDescription and its
+ * siblings, the underlying-error walks, -isEqual:, -hash, -description and the coder doors. That is what
+ * lets a Core Foundation-owned error (`__NSCFError`, answered from CFErrorGetDomain, CFErrorGetCode and
+ * CFErrorCopyUserInfo) inherit them instead of reading storage it does not have.
+ *
+ * THE ONE PLACE THE IVARS MAY STILL BE READ IS -initWithDomain:code:userInfo:, which WRITES them: this
+ * class is the concrete base class, not an abstract one, and these three read its storage. */
 - (NSErrorDomain)domain
 {
 	return _domain;
@@ -177,13 +186,13 @@ NSInteger const NSValidationErrorMinimum = 10064;
  * HAS the value is the error's own answer. */
 - (nullable id)fnUserInfoValueForKey:(NSErrorUserInfoKey)key
 {
-	id held = [_userInfo objectForKey:key];
+	id held = [[self userInfo] objectForKey:key];
 	NSErrorUserInfoValueProvider provider;
 
 	if (held != nil) {
 		return held;
 	}
-	provider = [_domain length] > 0 ? [fn_user_info_value_providers objectForKey:_domain] : nil;
+	provider = [[self domain] length] > 0 ? [fn_user_info_value_providers objectForKey:[self domain]] : nil;
 	if (provider == nil) {
 		provider = fn_wildcard_provider;
 	}
@@ -201,7 +210,7 @@ NSInteger const NSValidationErrorMinimum = 10064;
 		return described;
 	}
 	return [NSString stringWithFormat:@"The operation could not be completed. (%@ error %ld.)",
-					 _domain, (long)_code];
+					 [self domain], (long)[self code]];
 }
 
 - (NSString *)localizedFailureReason
@@ -242,13 +251,13 @@ NSInteger const NSValidationErrorMinimum = 10064;
  * makes the plural door the more specific one. */
 - (NSArray *)underlyingErrors
 {
-	id many = [_userInfo objectForKey:NSMultipleUnderlyingErrorsKey];
+	id many = [[self userInfo] objectForKey:NSMultipleUnderlyingErrorsKey];
 
 	if ([many isKindOfClass:[NSArray class]]) {
 		return many;
 	}
 	{
-		id one = [_userInfo objectForKey:NSUnderlyingErrorKey];
+		id one = [[self userInfo] objectForKey:NSUnderlyingErrorKey];
 
 		return [one isKindOfClass:[NSError class]] ? [NSArray arrayWithObject:one] : [NSArray array];
 	}
@@ -287,19 +296,19 @@ NSInteger const NSValidationErrorMinimum = 10064;
 	if (other == self) {
 		return YES;
 	}
-	if (_code != [other code] || ![[other domain] isEqualToString:_domain]) {
+	if ([self code] != [other code] || ![[other domain] isEqualToString:[self domain]]) {
 		return NO;
 	}
 	{
 		NSDictionary *theirs = [other userInfo];
 
-		if (theirs == _userInfo) {
+		if (theirs == [self userInfo]) {
 			return YES;
 		}
-		if (theirs == nil || _userInfo == nil) {
+		if (theirs == nil || [self userInfo] == nil) {
 			return NO;
 		}
-		return [_userInfo isEqualToDictionary:theirs];
+		return [[self userInfo] isEqualToDictionary:theirs];
 	}
 }
 
@@ -316,15 +325,15 @@ NSInteger const NSValidationErrorMinimum = 10064;
 
 - (NSUInteger)hash
 {
-	return [_domain hash] ^ (NSUInteger)_code;
+	return [[self domain] hash] ^ (NSUInteger)[self code];
 }
 
 - (NSString *)description
 {
 	/* Cocoa's shape: domain, code, the localised description, then the userInfo. */
 	return [NSString stringWithFormat:@"Error Domain=%@ Code=%ld \"%@\" UserInfo=%@",
-					 _domain, (long)_code, [self localizedDescription],
-					 (_userInfo != nil) ? [_userInfo description] : @"(null)"];
+					 [self domain], (long)[self code], [self localizedDescription],
+					 ([self userInfo] != nil) ? [[self userInfo] description] : @"(null)"];
 }
 
 - (id)copy

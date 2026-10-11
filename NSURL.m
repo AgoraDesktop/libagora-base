@@ -483,15 +483,30 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 	return [self initWithPartsFromString:spelling];
 }
 
+/* ===================================================================================================
+ * THE PRIMITIVES, AND THIS IS THE WHOLE SET A CORE FOUNDATION-OWNED SUBCLASS HAS TO ANSWER. Every one of
+ * them READS THE BASE CLASS'S OWN IVARS and nothing else, and every other method in this file -- the
+ * speller, the path arithmetic, the resource-value doors -- now names them through `self` rather than
+ * reading the ivars again. That is the treatment NSDate and NSTimeZone got, and it is the whole reason
+ * __NSCFURL can exist: NSURL is not a class cluster, so this class IS the class with the storage.
+ *
+ * -fnEncodedPath IS ONE OF THEM AND -path IS NOT. The ENCODED spelling is what Core Foundation stores
+ * (CFURLCopyPath answers it), so that is the primitive; -path's DECODING is this library's rule for
+ * reading a path back and is applied on top of it. The `fn` prefix keeps it off the public surface.
+ *
+ * -password IS HERE RATHER THAN BESIDE THE OTHER DOORS, for the same reason: it is a read of storage. */
+- (NSString *)fnEncodedPath { return _path; }
+
 - (NSString *)scheme { return _scheme; }
 - (nullable NSString *)host { return _host; }
 - (nullable NSString *)user { return _user; }
+- (nullable NSString *)password { return _password; }
 - (nullable NSNumber *)port { return _port; }
 /* THE PATH IS DECODED, and that is the FSH rule in the other direction: the
  * spelling of a file URL percent-encodes a space (an FSH path may have one), so
  * reading `-path` back must undo it. The ENCODED spelling is what -absoluteString
  * shows and what the path arithmetic operates on. */
-- (NSString *)path { return fn_decode(_path); }
+- (NSString *)path { return fn_decode([self fnEncodedPath]); }
 - (nullable NSString *)query { return _query; }
 - (nullable NSString *)fragment { return _fragment; }
 - (NSString *)absoluteString { return _absoluteString; }
@@ -507,32 +522,37 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 {
 	NSMutableString *spelling = [[NSMutableString alloc] init];
 
-	[spelling appendString:_scheme];
+	[spelling appendString:[self scheme]];
 	[spelling appendString:@":"];
 	/* A file URL ALWAYS shows its empty authority (`file:///x`), and so does any URL
-	 * with a host; only an opaque URL (no authority at all) omits it. */
-	if (_isFile || _host != nil) {
+	 * with a host; only an opaque URL (no authority at all) omits it.
+	 *
+	 * EVERY PART COMES FROM A PRIMITIVE AND NOT FROM THE IVAR, because this is the speller a
+	 * Core Foundation-owned URL turns to for -URLByAppendingPathComponent: and its neighbours --
+	 * those build a NEW Foundation URL out of THIS one's parts, so the parts have to be readable
+	 * from an object whose storage is Core Foundation's. */
+	if ([self isFileURL] || [self host] != nil) {
 		[spelling appendString:@"//"];
-		if (_user != nil) {
-			[spelling appendString:_user];
+		if ([self user] != nil) {
+			[spelling appendString:[self user]];
 			[spelling appendString:@"@"];
 		}
-		if (_host != nil) {
-			[spelling appendString:_host];
+		if ([self host] != nil) {
+			[spelling appendString:[self host]];
 		}
-		if (_port != nil) {
+		if ([self port] != nil) {
 			[spelling appendString:@":"];
-			[spelling appendString:[_port stringValue]];
+			[spelling appendString:[[self port] stringValue]];
 		}
 	}
 	[spelling appendString:newPath];
-	if (_query != nil) {
+	if ([self query] != nil) {
 		[spelling appendString:@"?"];
-		[spelling appendString:_query];
+		[spelling appendString:[self query]];
 	}
-	if (_fragment != nil) {
+	if ([self fragment] != nil) {
 		[spelling appendString:@"#"];
-		[spelling appendString:_fragment];
+		[spelling appendString:[self fragment]];
 	}
 	{
 		NSURL *made = [[NSURL alloc] initWithString:spelling];
@@ -548,7 +568,7 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 {
 	NSMutableString *path = [[NSMutableString alloc] init];
 
-	[path appendString:_path];
+	[path appendString:[self fnEncodedPath]];
 	if ([path length] == 0) {
 		[path appendString:@"/"];
 	} else if (![path hasSuffix:@"/"]) {
@@ -561,12 +581,13 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 - (nullable NSURL *)URLByAppendingPathExtension:(NSString *)extension
 {
 	NSMutableString *path;
+	NSString *encoded = [self fnEncodedPath];
 
 	/* No path, nothing to extend — Cocoa's contract too. */
-	if ([_path length] == 0) {
+	if ([encoded length] == 0) {
 		return nil;
 	}
-	path = [[NSMutableString alloc] initWithString:_path];
+	path = [[NSMutableString alloc] initWithString:encoded];
 	[path appendString:@"."];
 	[path appendString:fn_encode(extension)];
 	return [self fnURLWithPath:path];
@@ -574,7 +595,7 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 
 - (NSURL *)URLByDeletingLastPathComponent
 {
-	NSMutableString *path = [[NSMutableString alloc] initWithString:_path];
+	NSMutableString *path = [[NSMutableString alloc] initWithString:[self fnEncodedPath]];
 	NSRange slash;
 
 	if ([path length] == 0) {
@@ -608,13 +629,13 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 
 - (NSURL *)URLByDeletingPathExtension
 {
-	NSUInteger length = [_path length];
+	NSUInteger length = [[self fnEncodedPath] length];
 	NSUInteger i;
 	NSRange dot = NSMakeRange(NSNotFound, 0);
 	NSRange slash = NSMakeRange(NSNotFound, 0);
 
 	for (i = 0; i < length; i++) {
-		unichar c = [_path characterAtIndex:i];
+		unichar c = [[self fnEncodedPath] characterAtIndex:i];
 
 		if (c == '/') {
 			slash = NSMakeRange(i, 1);
@@ -629,7 +650,7 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 	    || (slash.location != NSNotFound && dot.location <= slash.location + 1)) {
 		return self;
 	}
-	return [self fnURLWithPath:[_path substringToIndex:dot.location]];
+	return [self fnURLWithPath:[[self fnEncodedPath] substringToIndex:dot.location]];
 }
 
 /* --------------------------------------------------------------- identity */
@@ -645,17 +666,17 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 	/* BY THE SPELLING, and case-sensitively: this class does no case folding (a
 	 * host's case is the DNS's business and nothing here resolves one), so the
 	 * rule is stated rather than half-applied. */
-	return [_absoluteString isEqualToString:[(NSURL *)other absoluteString]];
+	return [[self absoluteString] isEqualToString:[(NSURL *)other absoluteString]];
 }
 
 - (NSUInteger)hash
 {
-	return [_absoluteString hash];
+	return [[self absoluteString] hash];
 }
 
 - (NSString *)description
 {
-	return [NSString stringWithFormat:@"<%@: %@>", [self class], _absoluteString];
+	return [NSString stringWithFormat:@"<%@: %@>", [self class], [self absoluteString]];
 }
 
 - (id)copy
@@ -1308,6 +1329,14 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 	[[self fnCache] setObject:(value != nil ? value : (id)[NSNull null]) forKey:key];
 }
 
+/* THE CACHE IS A PRIMITIVE TOO, AND IT IS THE THIRD KIND: the two above are asked from a Core
+ * Foundation-owned URL and answered from Core Foundation's storage, but THIS one has no Core Foundation
+ * counterpart at all -- a CFURL has no cache of measured resource values, and Core Foundation's own
+ * resource lookup reads the file system. So the owned class answers NIL, and every door below goes
+ * through THIS METHOD rather than through the ivar, which is what makes "no cache" a working answer
+ * rather than a crash on uninitialised storage: `[nil setObject:...]` is a no-op and `[nil
+ * removeObjectForKey:]` likewise, so the doors degrade to "nothing was cached" -- which is the truth
+ * about an object that never cached anything. */
 - (nullable NSMutableDictionary *)fnCache
 {
 	if (_cachedResourceValues == nil) {
@@ -1447,7 +1476,7 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 	/* AND THE CACHE FORGETS, RATHER THAN GUESSING: the file system may store what it likes (a
 	 * coarser timestamp, a refused change), so the object drops what it knew about this key and the
 	 * next read measures again. */
-	[_cachedResourceValues removeObjectForKey:key];
+	[[self fnCache] removeObjectForKey:key];
 	return YES;
 }
 
@@ -1544,12 +1573,12 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 
 - (void)removeCachedResourceValueForKey:(NSURLResourceKey)key
 {
-	[_cachedResourceValues removeObjectForKey:key];
+	[[self fnCache] removeObjectForKey:key];
 }
 
 - (void)removeAllCachedResourceValues
 {
-	[_cachedResourceValues removeAllObjects];
+	[[self fnCache] removeAllObjects];
 }
 
 - (void)setTemporaryResourceValue:(nullable id)value forKey:(NSURLResourceKey)key
@@ -1557,7 +1586,7 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 	/* A TEMPORARY VALUE IS A CACHE ENTRY AND NOTHING MORE: it is never written to the file system (which
 	 * is what makes it temporary) and it is read back by the doors above exactly like a measured one. */
 	if (value == nil) {
-		[_cachedResourceValues removeObjectForKey:key];
+		[[self fnCache] removeObjectForKey:key];
 		return;
 	}
 	[[self fnCache] setObject:value forKey:key];
@@ -1574,26 +1603,23 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 	return nil;
 }
 
-- (nullable NSString *)password
-{
-	return _password;
-}
-
 - (nullable NSString *)relativePath
 {
 	/* THE PATH SPELT AS IT IS, plus the query and fragment - the "or the path if absolute" half of
 	 * Apple's contract, whose exact composition its own page leaves AMBIGUOUS (notably whether the
 	 * fragment is included). THIS LIBRARY INCLUDES the fragment, and the choice is stated here rather
-	 * than left implied. The path is the ENCODED spelling, like -resourceSpecifier below. */
-	NSMutableString *answer = [[NSMutableString alloc] initWithString:_path];
+	 * than left implied. The path is the ENCODED spelling, like -resourceSpecifier below -- and both are
+	 * read through the PRIMITIVES now rather than out of the ivars, which is what lets a Core
+	 * Foundation-owned URL answer them at all. */
+	NSMutableString *answer = [[NSMutableString alloc] initWithString:[self fnEncodedPath]];
 
-	if (_query != nil) {
+	if ([self query] != nil) {
 		[answer appendString:@"?"];
-		[answer appendString:_query];
+		[answer appendString:[self query]];
 	}
-	if (_fragment != nil) {
+	if ([self fragment] != nil) {
 		[answer appendString:@"#"];
-		[answer appendString:_fragment];
+		[answer appendString:[self fragment]];
 	}
 	return [answer autorelease];
 }
@@ -1602,12 +1628,12 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 {
 	/* EVERYTHING AFTER THE SCHEME'S COLON, exactly as it is spelt: "//host/path?q#f" for an authority
 	 * URL and "/path" for a file URL. The scheme is REQUIRED, so the colon is always there. */
-	NSRange colon = [_absoluteString rangeOfString:@":"];
+	NSRange colon = [[self absoluteString] rangeOfString:@":"];
 
 	if (colon.location == NSNotFound) {
-		return _absoluteString;
+		return [self absoluteString];
 	}
-	return [_absoluteString substringFromIndex:colon.location + 1];
+	return [[self absoluteString] substringFromIndex:colon.location + 1];
 }
 
 - (nullable NSString *)lastPathComponent
@@ -1632,7 +1658,7 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 
 - (NSURL *)standardizedURL
 {
-	return [self fnURLWithPath:fn_standardize_path(_path)];
+	return [self fnURLWithPath:fn_standardize_path([self fnEncodedPath])];
 }
 
 - (const char * _Nullable)fileSystemRepresentation
@@ -1811,10 +1837,10 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 	/* isDirectory:YES ADDS the trailing slash that SPELLS "directory"; NO REMOVES any. Apple's rule is
 	 * SYNTACTIC, like -fileURLWithPath:isDirectory:, so nothing is stat-ed. */
 	if (isDirectory) {
-		return [appended fnURLWithPath:fn_ensure_trailing_slash(appended->_path)];
+		return [appended fnURLWithPath:fn_ensure_trailing_slash([appended fnEncodedPath])];
 	}
 	{
-		NSMutableString *path = [[[NSMutableString alloc] initWithString:appended->_path] autorelease];
+		NSMutableString *path = [[[NSMutableString alloc] initWithString:[appended fnEncodedPath]] autorelease];
 
 		while ([path hasSuffix:@"/"] && [path length] > 1) {
 			[path deleteCharactersInRange:NSMakeRange([path length] - 1, 1)];
@@ -1834,7 +1860,7 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 {
 	/* PURELY SYNTACTIC, as Apple defines it: the PATH ends with a slash (which -fileURLWithPath:
 	 * isDirectory:YES and -URLByAppendingPathComponent:isDirectory:YES are how a caller produces). */
-	return [_path hasSuffix:@"/"];
+	return [[self fnEncodedPath] hasSuffix:@"/"];
 }
 
 - (NSURL *)URLByResolvingSymlinksInPath
@@ -1865,7 +1891,7 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 
 - (NSURL *)URLByStandardizingPath
 {
-	return [self fnURLWithPath:fn_standardize_path(_path)];
+	return [self fnURLWithPath:fn_standardize_path([self fnEncodedPath])];
 }
 
 /* ---- QUERYING --------------------------------------------------------------------------------- */
@@ -1946,12 +1972,12 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 	 * taken RAW from `_path` exactly as -query/-fragment take theirs - and NIL when the path carries no
 	 * ';'. This is the form RFC 3986 dropped; the parse keeps the ';' in `_path`, so it is read back here
 	 * rather than re-parsed. */
-	NSRange semi = [_path rangeOfString:@";"];
+	NSRange semi = [[self fnEncodedPath] rangeOfString:@";"];
 
 	if (semi.location == NSNotFound) {
 		return nil;
 	}
-	return [_path substringFromIndex:semi.location + 1];
+	return [[self fnEncodedPath] substringFromIndex:semi.location + 1];
 }
 
 /* ONLY THE CACHE IS RELEASED HERE, AND THE REST IS A RECORDED DEBT RATHER THAN A SILENT FIX. This

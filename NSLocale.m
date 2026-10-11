@@ -388,7 +388,7 @@ static NSCharacterSet *fn_character_set(USet *set)
  * answer for it is nil: the door does not invent a locale the archive never named. */
 - (void)encodeWithCoder:(NSCoder *)coder
 {
-	[coder encodeObject:_identifier forKey:@"NS.localeIdentifier"];
+	[coder encodeObject:[self localeIdentifier] forKey:@"NS.localeIdentifier"];
 }
 
 - (id)initWithCoder:(NSCoder *)coder
@@ -513,6 +513,15 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 	return self;
 }
 
+/* THE PRIMITIVE, AND THE ONLY ONE THIS CLASS HAS. NSLocale is not a class cluster -- it is one class with
+ * one ivar, the canonical identifier -- so the treatment NSDate got is a single method here: everything
+ * else in this file that used to read `_identifier` now names it through `self`, which is what lets a Core
+ * Foundation-owned locale (`__NSCFLocale`, answered from CFLocaleGetIdentifier) inherit thirty-odd
+ * derived doors -- the language/script/region codes, the ICU-backed display names and symbols, the
+ * separators, -isEqual:, -hash, -description -- instead of reading storage it does not have.
+ *
+ * THE ONE PLACE THE IVAR MAY STILL BE READ IS -initWithLocaleIdentifier: (which writes it). The class is
+ * not abstract: as the concrete base class it keeps its storage, and the primitive reads THAT. */
 - (NSString *)localeIdentifier
 {
 	return _identifier;
@@ -543,7 +552,7 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 	if (![value isKindOfClass:[NSString class]] || ![key isKindOfClass:[NSString class]]) {
 		return nil;
 	}
-	here = [_identifier UTF8String];
+	here = [[self localeIdentifier] UTF8String];
 	there = [(NSString *)value UTF8String];
 	if (here == NULL || there == NULL) {
 		return nil;
@@ -574,10 +583,10 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 
 - (id)objectForKey:(NSString *)key
 {
-	NSArray *parts = fn_parts(_identifier);
+	NSArray *parts = fn_parts([self localeIdentifier]);
 
 	if ([key isEqualToString:NSLocaleIdentifier]) {
-		return _identifier;
+		return [self localeIdentifier];
 	}
 	if ([key isEqualToString:NSLocaleLanguageCode]) {
 		return fn_language(parts);
@@ -605,17 +614,17 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 		return NO;
 	}
 	locale = (NSLocale *)other;
-	return [_identifier isEqualToString:locale->_identifier];
+	return [[self localeIdentifier] isEqualToString:[locale localeIdentifier]];
 }
 
 - (NSUInteger)hash
 {
-	return [_identifier hash];
+	return [[self localeIdentifier] hash];
 }
 
 - (NSString *)description
 {
-	return [NSString stringWithFormat:@"<NSLocale: %@>", _identifier];
+	return [NSString stringWithFormat:@"<NSLocale: %@>", [self localeIdentifier]];
 }
 
 - (id)copy
@@ -738,32 +747,32 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 
 - (nullable NSString *)languageCode
 {
-	return fn_language(fn_parts(_identifier));
+	return fn_language(fn_parts([self localeIdentifier]));
 }
 
 - (nullable NSString *)scriptCode
 {
-	return fn_script(fn_parts(_identifier));
+	return fn_script(fn_parts([self localeIdentifier]));
 }
 
 - (nullable NSString *)countryCode
 {
-	return fn_region(fn_parts(_identifier));
+	return fn_region(fn_parts([self localeIdentifier]));
 }
 
 - (nullable NSString *)regionCode
 {
-	return fn_region(fn_parts(_identifier));
+	return fn_region(fn_parts([self localeIdentifier]));
 }
 
 - (nullable NSString *)variantCode
 {
-	return fn_variant(fn_parts(_identifier));
+	return fn_variant(fn_parts([self localeIdentifier]));
 }
 
 - (NSString *)languageIdentifier
 {
-	NSArray *parts = fn_parts(_identifier);
+	NSArray *parts = fn_parts([self localeIdentifier]);
 	NSString *language = fn_language(parts);
 	NSString *script = fn_script(parts);
 
@@ -785,25 +794,25 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 
 - (nullable NSString *)calendarIdentifier
 {
-	return fn_keyword_default(_identifier, "calendar", 1);
+	return fn_keyword_default([self localeIdentifier], "calendar", 1);
 }
 
 - (nullable NSString *)collationIdentifier
 {
-	return fn_keyword_default(_identifier, "collation", 0);
+	return fn_keyword_default([self localeIdentifier], "collation", 0);
 }
 
 - (nullable NSString *)collatorIdentifier
 {
 	/* The collation identifier for the locale — the same ICU keyword as -collationIdentifier. */
-	return fn_keyword_default(_identifier, "collation", 0);
+	return fn_keyword_default([self localeIdentifier], "collation", 0);
 }
 
 - (nullable NSString *)currencyCode
 {
 	UChar buffer[8];
 	UErrorCode status = U_ZERO_ERROR;
-	int32_t length = ucurr_forLocale([_identifier UTF8String], buffer, 8, &status);
+	int32_t length = ucurr_forLocale([[self localeIdentifier] UTF8String], buffer, 8, &status);
 
 	if (U_FAILURE(status) || length <= 0) {
 		return nil;
@@ -815,7 +824,7 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 {
 	UChar buffer[8];
 	UErrorCode status = U_ZERO_ERROR;
-	int32_t length = ucurr_forLocale([_identifier UTF8String], buffer, 8, &status);
+	int32_t length = ucurr_forLocale([[self localeIdentifier] UTF8String], buffer, 8, &status);
 	UBool choice = 0;
 	int32_t symbolLength = 0;
 	const UChar *symbol;
@@ -824,7 +833,7 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 		return nil;
 	}
 	status = U_ZERO_ERROR;
-	symbol = ucurr_getName(buffer, [_identifier UTF8String], UCURR_SYMBOL_NAME, &choice, &symbolLength, &status);
+	symbol = ucurr_getName(buffer, [[self localeIdentifier] UTF8String], UCURR_SYMBOL_NAME, &choice, &symbolLength, &status);
 	if (U_FAILURE(status) || symbol == NULL || symbolLength <= 0) {
 		return nil;
 	}
@@ -833,38 +842,38 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 
 - (nullable NSString *)decimalSeparator
 {
-	return fn_number_symbol(_identifier, UNUM_DECIMAL_SEPARATOR_SYMBOL);
+	return fn_number_symbol([self localeIdentifier], UNUM_DECIMAL_SEPARATOR_SYMBOL);
 }
 
 - (nullable NSString *)groupingSeparator
 {
-	return fn_number_symbol(_identifier, UNUM_GROUPING_SEPARATOR_SYMBOL);
+	return fn_number_symbol([self localeIdentifier], UNUM_GROUPING_SEPARATOR_SYMBOL);
 }
 
 - (nullable NSString *)quotationBeginDelimiter
 {
-	return fn_delimiter(_identifier, ULOCDATA_QUOTATION_START);
+	return fn_delimiter([self localeIdentifier], ULOCDATA_QUOTATION_START);
 }
 
 - (nullable NSString *)quotationEndDelimiter
 {
-	return fn_delimiter(_identifier, ULOCDATA_QUOTATION_END);
+	return fn_delimiter([self localeIdentifier], ULOCDATA_QUOTATION_END);
 }
 
 - (nullable NSString *)alternateQuotationBeginDelimiter
 {
-	return fn_delimiter(_identifier, ULOCDATA_ALT_QUOTATION_START);
+	return fn_delimiter([self localeIdentifier], ULOCDATA_ALT_QUOTATION_START);
 }
 
 - (nullable NSString *)alternateQuotationEndDelimiter
 {
-	return fn_delimiter(_identifier, ULOCDATA_ALT_QUOTATION_END);
+	return fn_delimiter([self localeIdentifier], ULOCDATA_ALT_QUOTATION_END);
 }
 
 - (nullable NSCharacterSet *)exemplarCharacterSet
 {
 	UErrorCode status = U_ZERO_ERROR;
-	ULocaleData *data = ulocdata_open([_identifier UTF8String], &status);
+	ULocaleData *data = ulocdata_open([[self localeIdentifier] UTF8String], &status);
 	USet *set;
 	NSCharacterSet *result;
 
@@ -888,7 +897,7 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 - (BOOL)usesMetricSystem
 {
 	UErrorCode status = U_ZERO_ERROR;
-	UMeasurementSystem system = ulocdata_getMeasurementSystem([_identifier UTF8String], &status);
+	UMeasurementSystem system = ulocdata_getMeasurementSystem([[self localeIdentifier] UTF8String], &status);
 
 	if (U_FAILURE(status)) {
 		return NO;
@@ -929,22 +938,22 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 
 - (nullable NSString *)localizedStringForCalendarIdentifier:(NSString *)calendarIdentifier
 {
-	return fn_keyword_display(_identifier, "calendar", calendarIdentifier);
+	return fn_keyword_display([self localeIdentifier], "calendar", calendarIdentifier);
 }
 
 - (nullable NSString *)localizedStringForCollationIdentifier:(NSString *)collationIdentifier
 {
-	return fn_keyword_display(_identifier, "collation", collationIdentifier);
+	return fn_keyword_display([self localeIdentifier], "collation", collationIdentifier);
 }
 
 - (nullable NSString *)localizedStringForCollatorIdentifier:(NSString *)collatorIdentifier
 {
-	return fn_keyword_display(_identifier, "collation", collatorIdentifier);
+	return fn_keyword_display([self localeIdentifier], "collation", collatorIdentifier);
 }
 
 - (nullable NSString *)localizedStringForCurrencyCode:(NSString *)currencyCode
 {
-	return fn_currency_display(currencyCode, _identifier);
+	return fn_currency_display(currencyCode, [self localeIdentifier]);
 }
 
 
