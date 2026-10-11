@@ -1391,6 +1391,57 @@ static void arg_mutable_cfarray(void)
 	check(CFArrayGetCount(m) == 0 && [(id)m count] == 0, "-removeAllObjects did not reach Core Foundation");
 }
 
+/* AND THE SECOND MUTABLE TYPE, WHICH NEEDED NO FOUNDATION ROUTING AT ALL. NSMutableDictionary's own
+ * implementation already delegates to three internal storage doors -- -setObjectInternal:forKey:,
+ * -removeObjectInternalForKey: and -removeAllInternalObjects -- and measured, it touches storage nowhere
+ * else, so a class with storage of its own only has to answer those three (and bring its own mutation word
+ * for the fast-enumeration loop, which is the one thing it cannot inherit). Core Foundation's dictionary is
+ * a CFBasicHash underneath, so the class is chosen by the CATEGORY its mutable creator passes to the
+ * re-stamp every dictionary and set goes through.
+ *
+ * MEASURED AND NOT ASSUMED: CFDictionaryGetValue finds a value that Foundation's tagged NSString stored and
+ * the other way round, -isKindOfClass: says yes for the mutable one and no for an immutable one, and an
+ * immutable Core Foundation dictionary does not respond to -setObject:forKey: at all. */
+static void arg_mutable_cfdictionary(void)
+{
+	CFMutableDictionaryRef d = CFDictionaryCreateMutable(NULL, 0, &kCFTypeDictionaryKeyCallBacks,
+							     &kCFTypeDictionaryValueCallBacks);
+	CFDictionaryRef immutable = CFDictionaryCreate(NULL, NULL, NULL, 0, &kCFTypeDictionaryKeyCallBacks,
+						       &kCFTypeDictionaryValueCallBacks);
+	NSUInteger seen = 0;
+
+	check([(id)d isKindOfClass:[NSMutableDictionary class]],
+	      "a CFMutableDictionaryRef is not an NSMutableDictionary");
+	check(![(id)immutable isKindOfClass:[NSMutableDictionary class]],
+	      "an immutable CFDictionary claims to be mutable");
+	check(![(id)immutable respondsToSelector:@selector(setObject:forKey:)],
+	      "an immutable CFDictionary responds to -setObject:forKey:");
+
+	/* FOUNDATION MUTATES, CORE FOUNDATION LOOKS -- and the key was a tagged NSString. */
+	[(NSMutableDictionary *)d setObject:@"v" forKey:@"k"];
+	check([(id)d count] == 1 && CFDictionaryGetCount(d) == 1,
+	      "after -setObject:forKey:, Foundation sees %ld and Core Foundation %ld",
+	      (long)[(id)d count], (long)CFDictionaryGetCount(d));
+	check([[(id)CFDictionaryGetValue(d, CFSTR("k")) description] isEqualToString:@"v"],
+	      "Core Foundation cannot read a value Foundation stored under a tagged key");
+
+	/* AND THE OTHER WAY ROUND. */
+	CFDictionarySetValue(d, CFSTR("k2"), CFSTR("v2"));
+	check([[(id)[(id)d objectForKey:@"k2"] description] isEqualToString:@"v2"],
+	      "Foundation cannot read a value Core Foundation stored");
+
+	for (id key in (id)d) {
+		(void)key;
+		seen++;
+	}
+	check(seen == 2, "fast enumeration over a mutable Core Foundation dictionary saw %lu", (unsigned long)seen);
+
+	[(NSMutableDictionary *)d removeObjectForKey:@"k"];
+	check(CFDictionaryGetCount(d) == 1, "-removeObjectForKey: did not reach Core Foundation");
+	[(NSMutableDictionary *)d removeAllObjects];
+	check(CFDictionaryGetCount(d) == 0 && [(id)d count] == 0, "-removeAllObjects did not reach Core Foundation");
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1412,6 +1463,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "NSNumber's Booleans are Core Foundation's CFBoolean", arg_cfboolean },
 	{ "A mutable array answers from storage of its own", arg_mutable_array_primitives },
 	{ "Core Foundation's mutable array, from both sides", arg_mutable_cfarray },
+	{ "Core Foundation's mutable dictionary, from both sides", arg_mutable_cfdictionary },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },

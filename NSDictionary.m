@@ -51,6 +51,9 @@ struct FNDictEntry {
 - (void)setObjectInternal:(id)value forKey:(id)key;
 - (void)removeObjectInternalForKey:(id)key;
 - (void)removeAllInternalObjects;
+/* THE FAST-ENUMERATION WORD, on the same terms NSMutableArray's is (see NSArray.m): it is an ADDRESS a
+ * loop polls and compares, so a class with storage of its own has to say where its own word lives. */
+- (unsigned long *)fnMutationWord;
 - (id __unsafe_unretained *)keySnapshot;
 - (void)dropKeySnapshot;
 @end
@@ -117,6 +120,15 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 @end
 
 @implementation NSDictionary
+
+/* THE MUTATION WORD IS PART OF THE STORAGE CONTRACT. Everything that bumps it does so inside the storage
+ * operations themselves, which are the primitives a class with storage elsewhere overrides (-initAsCopyOf:,
+ * -setObjectInternal:forKey:, -removeObjectInternalForKey:, -removeAllInternalObjects); what a subclass
+ * CANNOT answer by inheriting is the address, because it has no _mutations ivar. */
+- (unsigned long *)fnMutationWord
+{
+	return &_mutations;
+}
 
 /* THE DOOR IS `+alloc` (§C.3 item 1), AND THERE IS NO `+allocWithZone:` IN THIS LIBRARY. A concrete class
  * INHERITS this method, and `[super alloc]` in a class method starts the lookup at NSDictionary's
@@ -859,7 +871,7 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 		return 0;
 	}
 	state->itemsPtr = buffer;
-	state->mutationsPtr = &_mutations;
+	state->mutationsPtr = [self fnMutationWord];
 	state->state = cursor + produced;
 	return produced;
 }
