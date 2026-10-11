@@ -18,6 +18,7 @@
  * round-trips exactly through a double).
  */
 
+#include <CoreFoundation/CoreFoundation.h>	/* CFBooleanGetTypeID, for the registration below */
 #import <Foundation/NSNumber.h>
 #import <Foundation/NSDecimalNumber.h>
 #include <string.h>
@@ -132,6 +133,35 @@ AG_NUMBER_DECL(Double, double)
 }
 AG_NUMBER_DECL(Bool, BOOL)
 @end
+
+/* THE BOOLEAN HALF OF NSNumber IS A CORE FOUNDATION TYPE, WHICH IS APPLE'S ARRANGEMENT AND NOT AN
+ * INVERSION OF IT: Apple's own documentation says NSNumber is toll-free bridged with CFNumber "for integer
+ * and floating point values, and CFBoolean for Boolean values", and an NSNumber made from a BOOL really is
+ * an __NSCFBoolean there.
+ *
+ * MEASURED, BEFORE THIS REGISTRATION EXISTED, IN THE SHAPE A CALLER WOULD SEE IT:
+ *
+ *     CFGetTypeID(@YES) == CFBooleanGetTypeID()   NO   (Apple: yes)
+ *     CFBooleanGetValue((CFBooleanRef)@YES)        0    (Apple: 1)  <- wrong, and SILENT
+ *
+ * The second one is the dangerous one: CFBooleanGetValue dispatches to -boolValue for an Objective-C
+ * argument and falls back to an IDENTITY test against kCFBooleanTrue when the argument's class is not
+ * bridged to CFBoolean -- so every Boolean NSNumber in the process answered false to Core Foundation.
+ * Serialization code that branches on CFBooleanGetValue, or on CFGetTypeID(x) == CFBooleanGetTypeID(),
+ * had a wrong answer rather than no answer.
+ *
+ * THE REGISTRATION NAMES A PRIVATE CLASS ON PURPOSE, and it is the boolean class specifically:
+ * _CFRuntimeBridgeTypeToClass is looked up by walking the class chain, so AGNumberBoolean answers CFBoolean
+ * while AGNumberSigned and the rest still reach NSNumber and answer CFNumber. Registering [NSNumber class]
+ * for CFBoolean instead would have overwritten the numeric registration and made every number a Boolean.
+ *
+ * IT LIVES HERE, IN NSNumber.m, FOR THE REASON THE CONSTANT-STRING DOORS LIVE IN NSCFConstantString.m:
+ * AGNumberBoolean is declared in this file and nowhere else, and a registration that named it from
+ * NSCFBridging.m would not compile. */
+static void __attribute__((constructor)) agora_register_cf_boolean(void)
+{
+	_CFRuntimeBridgeTypeToClass(CFBooleanGetTypeID(), (const void *)[AGNumberBoolean class]);
+}
 
 @implementation NSNumber
 
