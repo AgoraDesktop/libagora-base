@@ -3381,6 +3381,28 @@ static NSComparisonResult fn_compare_turkic(NSString *a, NSString *b, NSStringCo
 		unsigned char *b = fn_bytes_in_encoding(piece, encoding, lossy, &n);
 
 		if (b == NULL) {
+			/* THE SAME QUESTION, ASKED IN CORE FOUNDATION'S NUMBERING -- AND IT IS ASKED HERE BECAUSE
+			 * CFStringGetBytes DISPATCHES INTO THIS VERY METHOD. Core Foundation hands over a
+			 * CFStringEncoding (kCFStringEncodingUTF8 is 0x08000100 where NSUTF8StringEncoding is 4;
+			 * kCFStringEncodingISOLatin1 is 0x201 where NSISOLatin1StringEncoding is 5), which is a number no
+			 * NSStringEncoding table knows, so the conversion above answers NULL for EVERY bridged string Core
+			 * Foundation asks about. MEASURED, and it is the single root of three separate-looking failures:
+			 * CFURLCreateWithString on a CFSTR lost its host (through UnescapeAllWithUTF8, which checks this
+			 * answer and returns NULL), the file-URL path parsed an unwritten buffer (through
+			 * constructBuffers, which did not check), and CFStringGetBytes answered 0 where the direct
+			 * -getBytes: answered 1.
+			 *
+			 * THE RETRY COMES SECOND, NEVER FIRST: a caller of this Cocoa method gets its own encoding tried
+			 * exactly as before, and only a conversion that produced NOTHING is re-asked under Core
+			 * Foundation's numbering. CFStringConvertEncodingToNSStringEncoding is Core Foundation's own table
+			 * lookup and dispatches nowhere, which is what makes it safe to call from here. */
+			NSStringEncoding cfEncoding = CFStringConvertEncodingToNSStringEncoding(encoding);
+
+			if (cfEncoding != encoding) {
+				b = fn_bytes_in_encoding(piece, cfEncoding, lossy, &n);
+			}
+		}
+		if (b == NULL) {
 			if (leftover != NULL) {
 				*leftover = range;	/* nothing was converted */
 			}

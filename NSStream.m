@@ -30,6 +30,7 @@
 #import <Foundation/NSError.h>
 #import <Foundation/NSRunLoop.h>
 #import <Foundation/NSString.h>
+#include <CoreFoundation/CFStream.h>	/* CFStreamError, for the private door Core Foundation asks through */
 
 /* THE FILE AND MEMORY KEYS - the two this library ACTS on. */
 NSStreamPropertyKey const NSStreamFileCurrentOffsetKey = @"NSStreamFileCurrentOffsetKey";
@@ -162,6 +163,35 @@ NSErrorDomain const NSStreamSOCKSErrorDomain = @"NSStreamSOCKSErrorDomain";
 - (nullable NSError *)streamError
 {
 	return _streamError;
+}
+
+/* AND THE PRIVATE DOOR CORE FOUNDATION ASKS FOR THAT ERROR THROUGH. `-streamError` IS COCOA'S AND ANSWERS
+ * AN NSError; `-_cfStreamError` IS CORE FOUNDATION'S AND ANSWERS A {domain, error} PAIR, and CFStream.c
+ * sends the second one at ANY stream it is handed, one of ours included. MEASURED, before this existed:
+ *
+ *     CFReadStreamGetError((CFReadStreamRef)anNSInputStream)
+ *         -> NSInvalidArgumentException: -[NSInputStream _cfStreamError] is not implemented
+ *
+ * so a Foundation stream could not be asked for its error by Core Foundation at all -- the same species of
+ * hole as the forward-declared doors, in the direction nobody had looked. THE FIX BELONGS HERE RATHER THAN
+ * IN CORE FOUNDATION: the object is Foundation's, so Foundation answers for it.
+ *
+ * THE MAPPING IS CORE FOUNDATION'S OWN CONVENTION AND NOT AN INVENTION: kCFStreamErrorDomainPOSIX (1) is
+ * where a stream's errno lives, and a domain Core Foundation does not name becomes
+ * kCFStreamErrorDomainCustom, with the code carried across unchanged -- the same number that would have
+ * been reported on the Cocoa side. An error-free stream answers {0, 0}, which is what a status of NotOpen
+ * or Open means in Core Foundation's terms. */
+- (CFStreamError)_cfStreamError
+{
+	CFStreamError result = { 0, 0 };
+	NSError *error = [self streamError];
+
+	if (error != nil) {
+		result.domain = [[error domain] isEqualToString:NSPOSIXErrorDomain] ? kCFStreamErrorDomainPOSIX
+									   : kCFStreamErrorDomainCustom;
+		result.error = (SInt32)[error code];
+	}
+	return result;
 }
 
 - (void)dealloc

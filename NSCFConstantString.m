@@ -46,18 +46,40 @@
 
 /* AND THE TWO ENCODING DOORS CORE FOUNDATION ASKS IT FOR. CFString.c dispatches to these, and the class
  * the compiler CFSTR is did not answer them: '-[NSCFConstantString _fastestEncodingInCFStringEncoding]
- * is not implemented', raised the moment CFURL built a Core Foundation URL from a string. BOTH ARE Core
- * Foundation QUESTIONS WITH Core Foundation ANSWERS, so they ask Core Foundation rather than duplicating
- * its encoding logic. They live in THIS file because the class is declared here and not in a header. */
+ * is not implemented', raised the moment CFURL built a Core Foundation URL from a string.
+ *
+ * THEY ANSWER FROM THIS CLASS'S OWN STORAGE, AND THAT IS NOT A STYLE CHOICE -- ASKING CORE FOUNDATION
+ * FOR THE ANSWER IS AN INFINITE RECURSION. It was written that way first: `return
+ * CFStringGetFastestEncoding((CFStringRef)self)`. But that door DISPATCHES STRAIGHT BACK HERE --
+ * CFStringGetFastestEncoding begins with CF_OBJC_FUNCDISPATCHV(_kCFRuntimeIDCFString, ...,
+ * _fastestEncodingInCFStringEncoding), and the dispatch fires because this object's class chain reaches
+ * the NSString that Foundation registered for CFString. Measured with a backtrace 523,844 frames deep,
+ * alternating between the two, and it is what made CFTimeZoneCreateWithName() die for every argument:
+ * Core Foundation builds its zone path through CFURL, CFURL asks a CFSTR for its encoding, and away the
+ * stack went.
+ *
+ * AND A CFSTR IS ASCII BY CONSTRUCTION (the note at the top of this file), WHICH IS EXACTLY WHAT CORE
+ * FOUNDATION ANSWERS FOR AN EIGHT-BIT STRING: both doors above return
+ * __CFStringGetEightBitStringEncoding() when __CFStrIsEightBit(str), and that function is
+ * kCFStringEncodingASCII in this tree. So the answer below is Core Foundation's own, without asking it. */
 - (CFStringEncoding)_fastestEncodingInCFStringEncoding
 {
-	return CFStringGetFastestEncoding((CFStringRef)self);
+	return kCFStringEncodingASCII;
 }
 
 - (CFStringEncoding)_smallestEncodingInCFStringEncoding
 {
-	return CFStringGetSmallestEncoding((CFStringRef)self);
+	return kCFStringEncodingASCII;
 }
+
+/* AND THE THIRD DOOR ON THE SAME PATH USED TO BE HERE, AND IT WAS IN THE WRONG CLASS -- MOVED TO NSString
+ * (see NSCFBridging.m). It is not a constant-string question: CFStringGetCString dispatches to it for ANY
+ * bridged string, and the string Core Foundation is asking about here is usually not this class at all. The
+ * measurement that moved it: -_createSubstringWithRange: on a CFSTR returns a copy -- an NSOwnedString --
+ * and Core Foundation's next step on that copy raised
+ * '-[NSOwnedString _getCString:maxLength:encoding:] is not implemented', which in the URL parser surfaces as
+ * a component answering NULL (and sometimes as a crash). The two encoding doors ABOVE stay, because they are
+ * genuinely about a constant string: a CFSTR is ASCII by construction. */
 
 
 /* NO DEALLOC, NO FREE: the storage is the compiler's, in the program's own data segment, and it lives
