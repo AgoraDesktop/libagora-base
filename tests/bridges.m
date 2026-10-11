@@ -252,6 +252,123 @@ static void reg_equality(void)
 	CFRelease(c1);
 }
 
+/* THE REFERENCE COUNT IS CORE FOUNDATION'S, AND THIS GROUP MEASURES IT RATHER THAN TRUSTING IT.
+ *
+ * WHY IT HAS TO BE MEASURED: libobjc2 keeps ITS retain count at ((uintptr_t *)obj)[-1], and for a
+ * CFRuntime allocation that word is the MALLOC CHUNK HEADER. So a CF object retained through the
+ * Objective-C count does not merely leak -- it rewrites the allocator's metadata (measured: 0x41 -> 0x42
+ * under CFRetain -> 0x41 under CFRelease, on CFArray, CFString, CFData, CFDictionary and CFSet alike),
+ * and Core Foundation's own count is never touched, so nothing Core Foundation made was ever freed. Both
+ * doors were wrong in the same way and neither produced a wrong ANSWER, which is why the suite reported
+ * 48 of 51 while this was true: every case above drives a Core Foundation door and reads a value, and no
+ * case looked at the word the allocator owns.
+ *
+ * THE WORD IS READ, NOT COMPARED TO A CONSTANT: its VALUE is the allocator's business (0x41, 0x31, 0x51
+ * -- a chunk size with the low bits used as flags), so the assertion is that the two counts leave it
+ * ALONE. */
+static void reg_reference_count(void)
+{
+	struct { const char *name; CFTypeRef obj; } cases[5];
+	size_t i;
+
+	cases[0].name = "CFArray";
+	cases[0].obj = (CFTypeRef)CFArrayCreate(kCFAllocatorDefault, NULL, 0, &kCFTypeArrayCallBacks);
+	cases[1].name = "CFString";
+	cases[1].obj = (CFTypeRef)CFStringCreateWithCString(NULL, "x", kCFStringEncodingUTF8);
+	cases[2].name = "CFData";
+	cases[2].obj = (CFTypeRef)CFDataCreate(NULL, (const UInt8 *)"x", 1);
+	cases[3].name = "CFDictionary";
+	cases[3].obj = (CFTypeRef)CFDictionaryCreate(NULL, NULL, NULL, 0, &kCFTypeDictionaryKeyCallBacks,
+						     &kCFTypeDictionaryValueCallBacks);
+	cases[4].name = "CFSet";
+	cases[4].obj = (CFTypeRef)CFSetCreate(NULL, NULL, 0, &kCFTypeSetCallBacks);
+
+	for (i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+		uintptr_t before, afterCF, afterObjC;
+
+		if (cases[i].obj == NULL) {
+			check(0, "%s: could not be made", cases[i].name);
+			continue;
+		}
+		before = ((const uintptr_t *)cases[i].obj)[-1];
+
+		CFRetain(cases[i].obj);
+		CFRelease(cases[i].obj);
+		afterCF = ((const uintptr_t *)cases[i].obj)[-1];
+
+		[(id)cases[i].obj retain];
+		[(id)cases[i].obj release];
+		afterObjC = ((const uintptr_t *)cases[i].obj)[-1];
+
+		check(before == afterCF,
+		      "%s: CFRetain/CFRelease moved the word before the object (%#lx -> %#lx)",
+		      cases[i].name, (unsigned long)before, (unsigned long)afterCF);
+		check(before == afterObjC,
+		      "%s: -retain/-release moved the word before the object (%#lx -> %#lx)",
+		      cases[i].name, (unsigned long)before, (unsigned long)afterObjC);
+	}
+
+	/* AND THE COUNT THAT DOES MOVE IS CORE FOUNDATION'S OWN, which is the other half: a function that
+	 * changed no count at all would pass the checks above. */
+	{
+		CFMutableArrayRef a = CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks);
+		CFIndex fresh = CFGetRetainCount(a);
+
+		CFRetain(a);
+		check(CFGetRetainCount(a) == fresh + 1, "CFRetain did not raise the Core Foundation count");
+		[(id)a retain];
+		check(CFGetRetainCount(a) == fresh + 2, "-retain did not raise the Core Foundation count");
+		[(id)a release];
+		CFRelease(a);
+		CFRelease(a);	/* the count it was created with */
+	}
+}
+
+/* AND THE THIRD DOOR OF THE SAME FAMILY, WHICH IS THE ONE THAT CANNOT BE ANSWERED WITH A COUNT: -autorelease.
+ *
+ * WHY IT NEEDS ITS OWN GROUP. libobjc2's autorelease() asks three questions in order -- the runtime's pool
+ * flag, then objc_class_flag_fast_arc, and if both are no it SENDS -autorelease TO THE OBJECT. A Core
+ * Foundation-owned class cannot take the second flag (that flag is what puts the retain count back in the
+ * malloc chunk header -- see reg_reference_count above), so the object is answering a message the runtime
+ * sent because it does not know how to autorelease it. Calling objc_autorelease from that method is a
+ * message back to that method, and it was written that way first: a stack that ran away rather than a
+ * wrong count.
+ *
+ * THE FIRST CHECK BELOW IS THAT CASE, and it has to run FIRST: no pool exists yet in this child, so
+ * useARCAutoreleasePool is still NO when the message arrives. It passes only if the implementation primes
+ * that flag (an empty push and pop) before deferring.
+ *
+ * THE SECOND IS THE SEMANTIC, and it is the one that can be WRONG rather than fatal: inside a pool that
+ * then drains, the deferred release must actually arrive -- at Core Foundation's count, since that is the
+ * count this object has. Against the previous implementation (which answered CFAutorelease, a stub that
+ * returns its argument) the object was simply never in the pool and this count stayed at 2. */
+static void reg_autorelease(void)
+{
+	CFStringRef s = CFStringCreateWithCString(NULL, "autoreleased", kCFStringEncodingUTF8);
+	NSAutoreleasePool *pool;
+
+	check(s != NULL, "the string could not be made");
+	if (s == NULL) {
+		return;
+	}
+
+	/* NO POOL YET: this is the call that used to run the stack away. */
+	[(id)s autorelease];
+	check(CFGetRetainCount(s) == 1, "an autorelease outside any pool changed the count to %ld",
+	      (long)CFGetRetainCount(s));
+
+	/* AND INSIDE ONE, THE DRAIN IS WHERE THE RELEASE ARRIVES. */
+	CFRetain(s);
+	check(CFGetRetainCount(s) == 2, "CFRetain did not raise the count to 2");
+	pool = [[NSAutoreleasePool alloc] init];
+	[(id)s autorelease];
+	[pool drain];
+	check(CFGetRetainCount(s) == 1, "the pool's drain did not deliver the release: count is %ld, want 1",
+	      (long)CFGetRetainCount(s));
+
+	CFRelease(s);
+}
+
 static const struct { const char *name; void (*fn)(void); } g_regressions[] = {
 	{ "regression: the class cluster",        reg_cluster },
 	{ "regression: tagged pointers",          reg_tagged },
@@ -260,6 +377,8 @@ static const struct { const char *name; void (*fn)(void); } g_regressions[] = {
 	{ "regression: a native Core Foundation object", reg_native },
 	{ "regression: Foundation through CF",    reg_foundation },
 	{ "regression: equality across the bridge", reg_equality },
+	{ "regression: whose reference count",    reg_reference_count },
+	{ "regression: autorelease of a CF object", reg_autorelease },
 };
 
 /* ------------------------------------------------------------------------ */
@@ -548,11 +667,97 @@ static void arg_cfnull(void)
 
 static void arg_cfurl(void)
 {
-	CFURLRef u = CFURLCreateWithString(NULL, CFSTR("http://example.com/a"), NULL);
+	/* THE SAME TEXT IS MADE INTO A URL TWICE, ONCE FROM A NATIVE CFString AND ONCE FROM CFSTR(), AND THE
+	 * SECOND IS THE REGRESSION CASE. Core Foundation's URL parser used to record the components differently
+	 * for the two: CFURLCopyHostName answered "example.com" for a URL made from CFStringCreateWithCString and
+	 * NULL for one made from CFSTR, whose class is a Foundation object and whose parse therefore went through
+	 * Core Foundation's Objective-C-dispatch path. THE PARSER WAS NOT AT FAULT -- measured, with temporary
+	 * instrumentation, both parses produced flags=0x2001c029 with HAS_HOST set and three ranges. The byte door
+	 * underneath it was: CFStringGetBytes dispatches into Foundation's
+	 * -getBytes:maxLength:usedLength:encoding:options:range:remainingRange: and handed it a CFStringEncoding
+	 * (kCFStringEncodingUTF8 is 0x08000100 where NSUTF8StringEncoding is 4), a number no NSStringEncoding
+	 * table knows, so every bridged string converted to nothing. _retainedComponentString's
+	 * UnescapeAllWithUTF8 checks that answer and returns NULL, which is where the host went.
+	 *
+	 * THAT DOOR NOW RE-ASKS THE CONVERSION IN CORE FOUNDATION'S NUMBERING (libagora-base/NSString.m), and
+	 * this case asserts BOTH FORMS so they cannot drift apart again -- the six component questions below are
+	 * asked of each. */
+	CFStringRef text = CFStringCreateWithCString(NULL, "http://example.com/a/b?q=1#frag", kCFStringEncodingUTF8);
+	CFStringRef fileText = CFStringCreateWithCString(NULL, "file:///tmp/x", kCFStringEncodingUTF8);
+	CFURLRef u = CFURLCreateWithString(NULL, text, NULL);
+	CFURLRef f = CFURLCreateWithString(NULL, fileText, NULL);
+	CFURLRef bridged = CFURLCreateWithString(NULL, CFSTR("http://example.com/a/b?q=1#frag"), NULL);
 	NSString *path = [(id)u path];
 
-	check(path != nil && [path isEqualToString:@"/a"],
-	      "a native CFURL answered path %s, want /a", path ? [path UTF8String] : "(nil)");
+	check(path != nil && [path isEqualToString:@"/a/b"],
+	      "a native CFURL answered path %s, want /a/b", path ? [path UTF8String] : "(nil)");
+
+	/* AND THE SAME QUESTIONS OF THE URL BUILT FROM A BARE CFSTR. Every expectation is the one above, so a
+	 * bridged string that reaches Core Foundation's byte door with an unconvertible encoding fails HERE. */
+	check(bridged != NULL, "a CFURL could not be made from a CFSTR at all");
+	if (bridged != NULL) {
+		CFStringRef host = CFURLCopyHostName(bridged);
+
+		check(host != NULL, "a CFSTR-built CFURL lost its host in the parser (the defect this case guards)");
+		if (host != NULL) {
+			check([(id)host isEqualToString:@"example.com"],
+			      "a CFSTR-built CFURL answered host %s, want example.com", [(id)host UTF8String]);
+			CFRelease(host);
+		}
+		check([[(id)bridged scheme] isEqualToString:@"http"],
+		      "a CFSTR-built CFURL answered scheme %s", [[(id)bridged scheme] UTF8String] ?: "(nil)");
+		check([[(id)bridged path] isEqualToString:@"/a/b"],
+		      "a CFSTR-built CFURL answered path %s, want /a/b", [[(id)bridged path] UTF8String] ?: "(nil)");
+		check([[(id)bridged query] isEqualToString:@"q=1"],
+		      "a CFSTR-built CFURL answered query %s, want q=1", [[(id)bridged query] UTF8String] ?: "(nil)");
+		check([[(id)bridged fragment] isEqualToString:@"frag"],
+		      "a CFSTR-built CFURL answered fragment %s, want frag", [[(id)bridged fragment] UTF8String] ?: "(nil)");
+		check([[(id)bridged absoluteString] isEqualToString:@"http://example.com/a/b?q=1#frag"],
+		      "a CFSTR-built CFURL answered absoluteString %s",
+		      [[(id)bridged absoluteString] UTF8String] ?: "(nil)");
+	}
+
+	/* AND THE REST OF THE PRIMITIVES, ONE LINE EACH, BECAUSE A TYPE IS NOT BRIDGED BY ITS FIRST DOOR.
+	 * Twelve of them had to be written for this class -- NSURL reads ten ivars through its accessors -- and
+	 * -path alone would have observed exactly one. Every expectation below is what an NSURL answers for
+	 * the same string, so a door that reaches uninitialised storage, or the wrong Core Foundation door,
+	 * fails here rather than in a caller's program. */
+	check([[(id)u absoluteString] isEqualToString:@"http://example.com/a/b?q=1#frag"],
+	      "a native CFURL answered absoluteString %s", [[(id)u absoluteString] UTF8String]);
+	check([[(id)u scheme] isEqualToString:@"http"],
+	      "a native CFURL answered scheme %s", [[(id)u scheme] UTF8String] ?: "(nil)");
+	check([[(id)u host] isEqualToString:@"example.com"],
+	      "a native CFURL answered host %s", [[(id)u host] UTF8String] ?: "(nil)");
+	check([[(id)u query] isEqualToString:@"q=1"],
+	      "a native CFURL answered query %s, want q=1", [[(id)u query] UTF8String] ?: "(nil)");
+	check([[(id)u fragment] isEqualToString:@"frag"],
+	      "a native CFURL answered fragment %s, want frag", [[(id)u fragment] UTF8String] ?: "(nil)");
+	check(![(id)u isFileURL], "a native http URL says it is a file URL");
+	check([(id)f isFileURL], "a native file URL says it is not a file URL");
+	check([[(id)f path] isEqualToString:@"/tmp/x"],
+	      "a native file URL answered path %s, want /tmp/x", [[(id)f path] UTF8String]);
+	check([[(id)u relativeString] isEqualToString:@"http://example.com/a/b?q=1#frag"],
+	      "a native CFURL answered relativeString %s", [[(id)u relativeString] UTF8String]);
+
+	/* AND TEN OF THE DERIVED ONES, WHICH ARE THE HALF THAT PROVES THE BASE CLASS WAS ROUTED THROUGH THE
+	 * PRIMITIVES RATHER THAN LEFT READING ITS IVARS: every one of these is computed in libagora-base out
+	 * of parts that a Core Foundation object has none of. */
+	check([[(id)u relativePath] isEqualToString:@"/a/b?q=1#frag"],
+	      "a native CFURL answered relativePath %s", [[(id)u relativePath] UTF8String]);
+	check([[(id)u resourceSpecifier] isEqualToString:@"//example.com/a/b?q=1#frag"],
+	      "a native CFURL answered resourceSpecifier %s", [[(id)u resourceSpecifier] UTF8String]);
+	check([[(id)u lastPathComponent] isEqualToString:@"b"],
+	      "a native CFURL answered lastPathComponent %s", [[(id)u lastPathComponent] UTF8String]);
+	check(![(id)u hasDirectoryPath], "a native CFURL says a file-less path is a directory");
+	check([[(id)u URLByDeletingLastPathComponent] absoluteString] != nil,
+	      "a native CFURL answered nothing for URLByDeletingLastPathComponent");
+	check([[(id)u URLByAppendingPathComponent:@"c"] absoluteString] != nil,
+	      "a native CFURL answered nothing for URLByAppendingPathComponent:");
+	check([[(id)u standardizedURL] absoluteString] != nil,
+	      "a native CFURL answered nothing for standardizedURL");
+	check([(id)u baseURL] == nil, "a native CFURL has a base URL");
+	check([[u description] isEqualToString:[f description]] == NO,
+	      "two different URLs have the same description");
 }
 
 static void arg_cftz(void)
@@ -562,6 +767,420 @@ static void arg_cftz(void)
 
 	check(name != nil && [name isEqualToString:@"UTC"],
 	      "a native CFTimeZone answered name %s, want UTC", name ? [name UTF8String] : "(nil)");
+}
+
+static void arg_cflocale(void)
+{
+	CFLocaleRef l = CFLocaleCreate(NULL, CFSTR("en_US"));
+	NSString *ident = [(id)l localeIdentifier];
+
+	check(ident != nil && [ident isEqualToString:@"en_US"],
+	      "a native CFLocale answered localeIdentifier %s, want en_US", ident ? [ident UTF8String] : "(nil)");
+	/* AND DERIVED DOORS, BECAUSE THIS TYPE HAS EXACTLY ONE PRIMITIVE: everything below rides on
+	 * -localeIdentifier, computed in libagora-base out of ICU, so if the primitive is not the one the
+	 * owned class answers these read storage a Core Foundation object does not have. */
+	check([[(id)l languageCode] isEqualToString:@"en"],
+	      "a native CFLocale answered languageCode %s, want en",
+	      [[(id)l languageCode] UTF8String] ?: "(nil)");
+	check([[(id)l countryCode] isEqualToString:@"US"],
+	      "a native CFLocale answered countryCode %s, want US",
+	      [[(id)l countryCode] UTF8String] ?: "(nil)");
+	check([[(id)l objectForKey:NSLocaleLanguageCode] isEqualToString:@"en"],
+	      "a native CFLocale answered objectForKey:NSLocaleLanguageCode %s, want en",
+	      [[(id)l objectForKey:NSLocaleLanguageCode] UTF8String] ?: "(nil)");
+	check([[(id)l description] isEqualToString:@"<NSLocale: en_US>"],
+	      "a native CFLocale answered description %s", [[(id)l description] UTF8String] ?: "(nil)");
+	check([(id)l isEqual:[NSLocale localeWithLocaleIdentifier:@"en_US"]],
+	      "a native CFLocale is not -isEqual: to the NSLocale with the same identifier");
+}
+
+static void arg_cferror(void)
+{
+	CFErrorRef e = CFErrorCreate(NULL, CFSTR("AgoraTest"), 42, NULL);
+	NSString *domain = [(id)e domain];
+
+	check(domain != nil && [domain isEqualToString:@"AgoraTest"],
+	      "a native CFError answered domain %s, want AgoraTest", domain ? [domain UTF8String] : "(nil)");
+	check([(id)e code] == 42, "a native CFError answered code %ld, want 42", (long)[(id)e code]);
+	check([(id)e userInfo] != nil, "a native CFError has no userInfo");
+	/* DERIVED, over the three primitives: -description is composed in libagora-base out of all three. */
+	check([[(id)e description] length] > 0, "a native CFError answered no description");
+}
+
+static void arg_cfattributed(void)
+{
+	/* THE TWO PRIMITIVES, THEN THE DOORS THE ROUTING IN libagora-base WAS FOR. The string is made WITH an
+	 * attribute on it, because a run-less attributed string would not exercise the run door at all -- and
+	 * "no attributes" is a case the two sides do not agree about anyway (the base class answers nil, Core
+	 * Foundation answers an empty dictionary). */
+	CFStringRef key = CFStringCreateWithCString(NULL, "k", kCFStringEncodingUTF8);
+	CFStringRef value = CFStringCreateWithCString(NULL, "v", kCFStringEncodingUTF8);
+	CFStringRef text = CFStringCreateWithCString(NULL, "hello", kCFStringEncodingUTF8);
+	CFDictionaryRef attrs = CFDictionaryCreate(NULL, (const void **)&key, (const void **)&value, 1,
+						   &kCFTypeDictionaryKeyCallBacks,
+						   &kCFTypeDictionaryValueCallBacks);
+	CFAttributedStringRef a;
+	NSString *s;
+	NSRange reported = NSMakeRange(999, 999);
+
+	a = CFAttributedStringCreate(NULL, text, attrs);
+	check(a != NULL, "the attributed string could not be made");
+	if (a == NULL) {
+		return;
+	}
+
+	/* THE PRIMITIVES. */
+	s = [(id)a string];
+	check(s != nil && [s isEqualToString:@"hello"],
+	      "a native CFAttributedString answered string %s, want hello", s ? [s UTF8String] : "(nil)");
+	check([(id)a length] == 5, "a native CFAttributedString answered length %ld, want 5",
+	      (long)[(id)a length]);
+	check([(id)a attributesAtIndex:0 effectiveRange:&reported] != nil,
+	      "a native CFAttributedString answered no attributes at all");
+	check(reported.location == 0 && reported.length == 5,
+	      "the attributes at 0 apply over {%lu,%lu}, want {0,5}",
+	      (unsigned long)reported.location, (unsigned long)reported.length);
+	/* AND THE SAME DOOR WITH A NULL OUT-PARAMETER, which both sides allow and which the owned class must not
+	 * dereference. */
+	check([[[(id)a attributesAtIndex:0 effectiveRange:NULL] objectForKey:@"k"] isEqualToString:@"v"],
+	      "the attribute value did not come back through a NULL effective range");
+
+	/* AND THE FOUR DOORS THAT USED TO WALK THE RUN TABLE, which are what the libagora-base routing was for:
+	 * a read, a copy, the initialiser, and the enumerator. Each would otherwise have read Core Foundation
+	 * storage as if it were this class's `_runs`. */
+	check([[(id)a attributedSubstringFromRange:NSMakeRange(1, 3)] string] != nil,
+	      "a native CFAttributedString answered nothing for attributedSubstringFromRange:");
+	check([[(id)a copy] isEqualToAttributedString:a],
+	      "a native CFAttributedString's -copy is not equal to it");
+	{
+		NSMutableAttributedString *relayed =
+			[[[NSMutableAttributedString alloc] initWithAttributedString:(id)a] autorelease];
+		__block NSUInteger spans = 0;
+
+		check(relayed != nil && [[relayed string] isEqualToString:@"hello"],
+		      "-initWithAttributedString: did not carry the string over");
+		check([relayed length] == 5, "-initWithAttributedString: carried %lu characters, want 5",
+		      (unsigned long)[relayed length]);
+		[(id)a enumerateAttributesInRange:NSMakeRange(0, 5) options:0
+				       usingBlock:^(NSDictionary *at, NSRange r, BOOL *stop) {
+			(void)at; (void)r; (void)stop;
+			spans++;
+		}];
+		check(spans == 1, "the enumerator reported %lu spans, want 1", (unsigned long)spans);
+	}
+}
+
+static void arg_cfcharset(void)
+{
+	/* THE TEXT IS A BARE CFSTR, AND IT USED TO HAVE TO BE A NATIVE CFString: a CFSTR reached Core
+	 * Foundation's byte door through the Objective-C-dispatch path and came back converted to nothing. That
+	 * is fixed at the door (libagora-base/NSString.m), so the CFSTR form is now the stronger test and is the
+	 * one used. */
+	CFStringRef text = CFSTR("abc");
+	CFCharacterSetRef w = CFCharacterSetCreateWithCharactersInString(NULL, text);
+	CFCharacterSetRef inv;
+	CFMutableCharacterSetRef mut;
+	NSData *bitmap;
+	const unsigned char *bytes;
+
+	check(w != NULL, "the character set could not be made");
+	if (w == NULL) {
+		return;
+	}
+
+	/* THE PRIMITIVES. */
+	check([(id)w characterIsMember:'a'], "a native CFCharacterSet says 'a' is not a member");
+	check(![(id)w characterIsMember:'z'], "a native CFCharacterSet says 'z' is a member");
+	check([(id)w longCharacterIsMember:'a'], "a native CFCharacterSet says 'a' is not a member (long form)");
+	check([(id)w hasMemberInPlane:0], "a native CFCharacterSet has nothing in plane 0");
+	check(![(id)w hasMemberInPlane:1], "a native CFCharacterSet claims plane 1 has members");
+
+	/* AND THE BITMAP, WHICH IS THE ONE THING THIS TYPE'S BRIDGE CHANGED THE SHAPE OF: Core Foundation's bare
+	 * 8192-byte plane-0 form, with the bits in it, on BOTH sides now. */
+	bitmap = [(id)w bitmapRepresentation];
+	check([bitmap length] == 8192, "the bitmap is %lu bytes, want 8192", (unsigned long)[bitmap length]);
+	if ([bitmap length] == 8192) {
+		bytes = (const unsigned char *)[bitmap bytes];
+
+		check((bytes['a' / 8] & (1u << ('a' % 8))) != 0, "the bitmap does not carry 'a'");
+		check((bytes['z' / 8] & (1u << ('z' % 8))) == 0, "the bitmap carries 'z'");
+		/* THE ROUND TRIP, which is what the format decision was for: a bitmap out of an owned set goes back
+		 * in through the Foundation class method. */
+		check([[NSCharacterSet characterSetWithBitmapRepresentation:bitmap] characterIsMember:'a'],
+		      "a bitmap from an owned set did not come back holding 'a'");
+	}
+
+	/* AND THE TWO DOORS THAT ANSWER WITH A WHOLE SET. */
+	inv = [(id)w invertedSet];
+	check(inv != NULL && [(id)inv characterIsMember:'z'], "the inverted set does not hold 'z'");
+	mut = [(id)w mutableCopy];
+	check(mut != NULL && [(id)mut characterIsMember:'a'], "the mutable copy does not hold 'a'");
+	check([[(id)w description] length] > 0, "an owned set answered no description");
+}
+
+static void arg_cfreadstream(void)
+{
+	/* Core Foundation's own constructor, so the object under test is Core Foundation's and not one Foundation
+	 * built. The bytes live on this stack frame for the length of the case, which is what kCFAllocatorNull's
+	 * "do not free this" deallocator is for. */
+	const UInt8 bytes[] = { 'a', 'b', 'c' };
+	CFReadStreamRef s = CFReadStreamCreateWithBytesNoCopy(NULL, bytes, (CFIndex)sizeof bytes, kCFAllocatorNull);
+	UInt8 buffer[8];
+	CFIndex n;
+
+	check(s != NULL, "the read stream could not be made");
+	if (s == NULL) {
+		return;
+	}
+	/* THE ONE DOOR THAT HAS NO CORE FOUNDATION COUNTERPART, and the answer Foundation expects of a stream no
+	 * Foundation loop is watching. */
+	check([(id)s fnStreamDescriptor] == -1, "a CF read stream answered descriptor %d, want -1",
+	      [(id)s fnStreamDescriptor]);
+
+	[(id)s open];
+	check([(id)s streamStatus] == 2, "status after open is %lu, want 2 (kCFStreamStatusOpen)",
+	      (unsigned long)[(id)s streamStatus]);
+	check([(id)s hasBytesAvailable], "a CF read stream over three bytes says it has none");
+	n = [(id)s read:buffer maxLength:sizeof buffer];
+	check(n == 3, "a CF read stream read %ld bytes, want 3", (long)n);
+	check(buffer[0] == 'a' && buffer[2] == 'c', "the bytes read back are not the bytes that went in");
+	check([(id)s propertyForKey:(id)CFSTR("no such property")] == nil,
+	      "a CF read stream answered an unknown property");
+	[(id)s close];
+}
+
+static void arg_cfwrite_stream(void)
+{
+	CFWriteStreamRef s = CFWriteStreamCreateWithAllocatedBuffers(NULL, kCFAllocatorSystemDefault);
+	const char *text = "xyz";
+
+	check(s != NULL, "the write stream could not be made");
+	if (s == NULL) {
+		return;
+	}
+	[(id)s open];
+	check([(id)s streamStatus] == 2, "status after open is %lu, want 2 (kCFStreamStatusOpen)",
+	      (unsigned long)[(id)s streamStatus]);
+	check([(id)s hasSpaceAvailable], "a CF write stream says it has no space");
+	check([(id)s write:text maxLength:3] == 3, "a CF write stream wrote %ld bytes, want 3",
+	      (long)[(id)s write:text maxLength:3]);
+	[(id)s close];
+}
+
+static void arg_cftimer(void)
+{
+	/* CORE FOUNDATION'S OWN TIMER, with a context and no callout needed: nothing here runs a run loop, so the
+	 * callback is never reached. */
+	CFRunLoopTimerContext context = { 0, NULL, NULL, NULL, NULL };
+	CFRunLoopTimerRef t = CFRunLoopTimerCreate(NULL, CFAbsoluteTimeGetCurrent() + 100.0, 5.0, 0, 0,
+						   NULL, &context);
+
+	check(t != NULL, "the timer could not be made");
+	if (t == NULL) {
+		return;
+	}
+	check([(id)t timeInterval] == 5.0, "a native CFRunLoopTimer answered timeInterval %g, want 5",
+	      (double)[(id)t timeInterval]);
+	check([(id)t isValid], "a native CFRunLoopTimer is not valid");
+	check([(id)t tolerance] == 0.0, "a native CFRunLoopTimer answered tolerance %g, want 0",
+	      (double)[(id)t tolerance]);
+	check([(id)t fireDate] != nil, "a native CFRunLoopTimer answered no fire date");
+	/* -fnRepeats IS EXERCISED THROUGH -description AND IS NOT CALLED DIRECTLY: it is a private accessor with no
+	 * declaration in a public header, so a message to it compiles as an `id` return and would read eight bytes
+	 * where one was written. The description below carries its answer, which is Core Foundation's
+	 * CFRunLoopTimerDoesRepeat. */
+	/* AND THE ONE PRIMITIVE WITH NO CORE FOUNDATION COUNTERPART: a CF timer holds a context, not a user-info
+	 * object, so nil is the true answer. */
+	check([(id)t userInfo] == nil, "a CF timer answered a userInfo object");
+	check([[(id)t description] length] > 0, "a native CFRunLoopTimer answered no description");
+
+	/* THE WRITE DOORS, AND ONE OF THEM IS INERT ON THIS PLATFORM -- MEASURED, NOT ASSUMED: Core Foundation's
+	 * own CFRunLoopTimerGetTolerance/SetTolerance are written `#if TARGET_OS_MAC`, with `return 0.0` and an
+	 * empty body otherwise, so a CF timer's tolerance IS 0 here and the setter IS a no-op. That is the answer
+	 * this case asserts, because it is what this platform's Core Foundation does. */
+	[(id)t setTolerance:0.5];
+	check([(id)t tolerance] == 0.0, "a CF timer's tolerance is %g, want 0 (Core Foundation stubs it off-Mac)",
+	      (double)[(id)t tolerance]);
+	[(id)t fire];	/* must not crash: a CF timer's callout belongs to Core Foundation's run loop */
+	check([(id)t isValid], "a native CFRunLoopTimer stopped being valid without -invalidate");
+	[(id)t invalidate];
+	check(![(id)t isValid], "an invalidated CFRunLoopTimer still says it is valid");
+}
+
+static void arg_cfcalendar(void)
+{
+	/* A BARE CFSTR FOR THE IDENTIFIER, for the reason arg_cfcharset gives: it used to have to be a native
+	 * CFString, and now that the byte door converts, the bridged form is the stronger test.
+	 *
+	 * AND THIS CASE IS WHY CFTimeZoneCopySystem'S tm_zone GUARD EXISTS: constructing any Core Foundation
+	 * calendar reaches _CFCalendarInitialize -> CFTimeZoneCopyDefault -> CFTimeZoneCopySystem, which used to
+	 * segfault inside libc on this system (no /etc/localtime, no TZ, and a localtime that leaves tm_zone NULL).
+	 * That crash is what kept this type unverifiable, and it is fixed in libagora-core/CFTimeZone.c. */
+	CFStringRef identifier = CFSTR("gregorian");
+	CFCalendarRef c = CFCalendarCreateWithIdentifier(NULL, identifier);
+
+	check(c != NULL, "the calendar could not be made");
+	if (c == NULL) {
+		return;
+	}
+
+	/* THE FIVE READ PRIMITIVES, which are the whole state this class has. */
+	check([[(id)c calendarIdentifier] isEqualToString:@"gregorian"],
+	      "a native CFCalendar answered identifier %s, want gregorian",
+	      [[(id)c calendarIdentifier] UTF8String] ?: "(nil)");
+	check([(id)c timeZone] != nil, "a native CFCalendar has no time zone");
+	check([(id)c locale] != nil, "a native CFCalendar has no locale");
+	check([(id)c firstWeekday] >= 1 && [(id)c firstWeekday] <= 7,
+	      "a native CFCalendar answered firstWeekday %lu", (unsigned long)[(id)c firstWeekday]);
+	check([(id)c minimumDaysInFirstWeek] >= 1,
+	      "a native CFCalendar answered minimumDaysInFirstWeek %lu",
+	      (unsigned long)[(id)c minimumDaysInFirstWeek]);
+
+	/* AND THE FOUR WRITES. */
+	[(id)c setFirstWeekday:3];
+	check([(id)c firstWeekday] == 3, "setFirstWeekday: did not take: %lu",
+	      (unsigned long)[(id)c firstWeekday]);
+	[(id)c setMinimumDaysInFirstWeek:4];
+	check([(id)c minimumDaysInFirstWeek] == 4, "setMinimumDaysInFirstWeek: did not take: %lu",
+	      (unsigned long)[(id)c minimumDaysInFirstWeek]);
+
+	/* AND ONE COMPUTATION DOOR, WHICH IS THE WHOLE POINT OF THE ROUTING IN libagora-base: the decomposition
+	 * runs in ICU, against the identifier, time zone and locale that a Core Foundation calendar supplied
+	 * THROUGH the accessors. Nothing in the table answers this door; it is inherited, and it works.
+	 *
+	 * THE CALENDAR IS PUT IN UTC FIRST, AND THAT IS NOT FUSSINESS: its time zone is the SYSTEM one, so
+	 * 1970-01-01T00:00:00Z decomposes to 1969 in a western zone. THIS CASE ASSERTED 1970 AND WAS WRONG, and the
+	 * failure was the calendar being RIGHT -- the same species of wrong expectation this suite has had to
+	 * correct five times before (kCFAllocatorDefault, the epoch, the date test, the groups that only printed).
+	 * Setting the zone makes the expectation independent of where the suite runs, and it exercises
+	 * -setTimeZone: on the way. */
+	[(id)c setTimeZone:(id)[NSTimeZone timeZoneWithName:@"UTC"]];
+	{
+		NSDateComponents *parts = [(id)c components:NSCalendarUnitYear | NSCalendarUnitMonth
+						  fromDate:[NSDate dateWithTimeIntervalSince1970:0.0]];
+
+		check(parts != nil && [parts year] == 1970,
+		      "a CF calendar in UTC decomposed 1970-01-01 into year %ld, want 1970",
+		      parts != nil ? (long)[parts year] : -1);
+	}
+	check([[(id)c description] length] > 0, "a native CFCalendar answered no description");
+}
+
+/* THE OTHER DIRECTION: A CORE FOUNDATION DOOR ASKED OF A FOUNDATION OBJECT. Every case above hands Core
+ * Foundation's object to Foundation; this one hands Foundation's object to Core Foundation, which is where
+ * the forwarding doors live -- a door Core Foundation sends that Foundation does not implement RAISES, and
+ * nothing in the bridge had looked in this direction at all before.
+ *
+ * THIS ONE IS FIXED AND THE CASE GUARDS IT. Before libagora-base implemented -_cfStreamError, the first
+ * check below was an uncaught NSInvalidArgumentException naming -[NSInputStream _cfStreamError] -- measured
+ * with a probe, and a raise in this harness is a forked child that exits non-zero, so this case fails when
+ * the door is missing rather than passing quietly.
+ *
+ * THE CALENDAR PAIR WAS THE SAME HOLE AND IS FIXED TOO: the case below this one drives
+ * CFCalendarDecomposeAbsoluteTime, ComposeAbsoluteTime and AddComponents at a Foundation NSCalendar. */
+static void arg_forward_cfstreamerror(void)
+{
+	NSInputStream *broken = [[NSInputStream alloc] initWithFileAtPath:@"/nonexistent/agora/definitely/not/here"];
+	CFStreamError err;
+	NSError *cocoa;
+
+	/* A STREAM THAT WAS NEVER OPENED IS ERROR-FREE, which is Core Foundation's {0, 0}. */
+	err = CFReadStreamGetError((CFReadStreamRef)broken);
+	check(err.domain == 0 && err.error == 0,
+	      "an unopened Foundation stream reported {%ld,%d} to Core Foundation, want {0,0}",
+	      (long)err.domain, (int)err.error);
+
+	/* AND AFTER A FAILED OPEN THE PAIR CARRIES THE NSError's OWN DOMAIN AND CODE, which is the whole
+	 * point of the door: the same numbers Cocoa reports, in Core Foundation's numbering. */
+	[broken open];
+	cocoa = [broken streamError];
+	check(cocoa != nil, "a Foundation stream on a nonexistent path reported no error after -open");
+	if (cocoa != nil) {
+		err = CFReadStreamGetError((CFReadStreamRef)broken);
+		check(err.domain == kCFStreamErrorDomainPOSIX,
+		      "a POSIX stream error was reported to Core Foundation as domain %ld, want %d (POSIX)",
+		      (long)err.domain, (int)kCFStreamErrorDomainPOSIX);
+		check(err.error == (SInt32)[cocoa code],
+		      "Core Foundation read error %d where Cocoa reported %ld",
+		      (int)err.error, (long)[cocoa code]);
+	}
+
+	/* AND THE WRITE SIDE INHERITS IT, because the door is on NSStream's own head. */
+	{
+		NSOutputStream *out = [[NSOutputStream alloc] initToFileAtPath:@"/nonexistent/agora/out" append:NO];
+
+		err = CFWriteStreamGetError((CFWriteStreamRef)out);
+		check(err.domain == 0 && err.error == 0,
+		      "an unopened Foundation output stream reported {%ld,%d}, want {0,0}",
+		      (long)err.domain, (int)err.error);
+		[out release];
+	}
+	[broken release];
+}
+
+/* AND THE THREE CALENDAR DOORS, THE SAME SPECIES OF HOLE IN THE SAME DIRECTION, NOW FIXED. Core
+ * Foundation's compose, decompose and add each dispatch at an Objective-C calendar through a selector
+ * whose parts are '...:at :componentDescription :va_list' -- the shape Swift's bridge implements upstream,
+ * which the call sites' own comment records ("Note: We do not toll-free bridge for Swift"). Nothing
+ * implemented them here, and a Foundation NSCalendar handed to any of the three raised, measured:
+ *
+ *     -[NSCalendar _composeAbsoluteTime:::] is not implemented
+ *
+ * libagora-base answers all three now (NSCFBridging.m), and the expectations below are Core Foundation's
+ * own values rather than values read back out of this implementation: the reference instant is
+ * 2001-01-01 00:00:00 UTC, 1970-01-01 is -978307200 seconds from it, and adding a month to the 31st of
+ * January CLAMPS to the 28th because that is what ICU does and what Cocoa's own
+ * -dateByAddingComponents:toDate:options: does -- a field-wise add would have rolled over into March, which
+ * is how the first version of the door was caught being wrong. */
+static void arg_forward_cfcalendar(void)
+{
+	NSCalendar *cal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
+	int y = 0, mo = 0, d = 0, h = 0, mi = 0, s = 0;
+	CFAbsoluteTime at = 0;
+
+	[cal setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
+
+	/* DECOMPOSE. */
+	check(CFCalendarDecomposeAbsoluteTime((CFCalendarRef)cal, 0.0, "yMdHms", &y, &mo, &d, &h, &mi, &s),
+	      "Core Foundation could not decompose an instant through a Foundation calendar");
+	check(y == 2001 && mo == 1 && d == 1 && h == 0 && mi == 0 && s == 0,
+	      "a Foundation calendar decomposed the reference instant as %04d-%02d-%02d %02d:%02d:%02d, want 2001-01-01 00:00:00",
+	      y, mo, d, h, mi, s);
+
+	/* COMPOSE. */
+	check(CFCalendarComposeAbsoluteTime((CFCalendarRef)cal, &at, "yMdHms", 1970, 1, 1, 0, 0, 0),
+	      "Core Foundation could not compose an instant through a Foundation calendar");
+	check(at == -978307200.0, "a Foundation calendar composed 1970-01-01 as %.1f, want -978307200.0", (double)at);
+
+	/* ADD, both directions. */
+	at = 0;
+	check(CFCalendarAddComponents((CFCalendarRef)cal, &at, 0, "d", 1) && at == 86400.0,
+	      "one day added to the reference instant gave %.1f, want 86400.0", (double)at);
+	at = 0;
+	check(CFCalendarAddComponents((CFCalendarRef)cal, &at, 0, "d", -1) && at == -86400.0,
+	      "one day subtracted from the reference instant gave %.1f, want -86400.0", (double)at);
+
+	/* AND THE CLAMP. */
+	at = 0;
+	check(CFCalendarComposeAbsoluteTime((CFCalendarRef)cal, &at, "yMd", 2001, 1, 31),
+	      "the 31st of January could not be composed");
+	check(CFCalendarAddComponents((CFCalendarRef)cal, &at, 0, "M", 1),
+	      "a month could not be added");
+	y = mo = d = 0;
+	check(CFCalendarDecomposeAbsoluteTime((CFCalendarRef)cal, at, "yMd", &y, &mo, &d)
+	      && y == 2001 && mo == 2 && d == 28,
+	      "2001-01-31 plus one month came back as %04d-%02d-%02d, want 2001-02-28 (ICU clamps; a field-wise add rolls over)",
+	      y, mo, d);
+
+	/* NANOSECONDS, which Core Foundation carries on a character of its own and takes from the instant
+	 * rather than from a field. */
+	{
+		int32_t nanos = 0;
+
+		check(CFCalendarDecomposeAbsoluteTime((CFCalendarRef)cal, 0.25, "#", &nanos) && nanos == 250000000,
+		      "the sub-second part of 0.25 decomposed as %d, want 250000000", (int)nanos);
+	}
+	[cal release];
 }
 
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
@@ -575,6 +1194,16 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFNull",    arg_cfnull },
 	{ "Foundation receives a native CFURL",     arg_cfurl },
 	{ "Foundation receives a native CFTimeZone", arg_cftz },
+	{ "Foundation receives a native CFLocale",  arg_cflocale },
+	{ "Foundation receives a native CFError",   arg_cferror },
+	{ "Foundation receives a native CFAttributedString", arg_cfattributed },
+	{ "Foundation receives a native CFCharacterSet", arg_cfcharset },
+	{ "Foundation receives a native CFReadStream", arg_cfreadstream },
+	{ "Core Foundation asks a Foundation stream for its error", arg_forward_cfstreamerror },
+	{ "Core Foundation asks a Foundation calendar to compute", arg_forward_cfcalendar },
+	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
+	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
+	{ "Foundation receives a native CFCalendar", arg_cfcalendar },
 };
 
 static void (*g_trampoline_group)(void);
