@@ -463,6 +463,34 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 	[_owner replaceCharactersInRange:range withString:str];
 }
 
+/* AND THE THREE DOORS THE THREE ABOVE ARE NOT ENOUGH FOR, WHICH IS THE SAME LESSON NSMutableString ITSELF
+ * TAUGHT: this library's mutable string keeps its storage behind -setString: and -appendUTF8String: and
+ * reads it with its own -UTF8String, so a SUBCLASS THAT ANSWERS ONLY THE COCOA PRIMITIVES GETS ITS OWN
+ * STORAGE USED INSTEAD. MEASURED, on a proxy for a Core Foundation-backed attributed string: -appendString:
+ * through this proxy wrote THE PROXY's storage and -description read it back, so the proxy said "!" while
+ * its owner still said "hello". These three forward to the owner, whose doors are the public ones. */
+- (const char *)UTF8String
+{
+	return [[_owner string] UTF8String];
+}
+
+- (void)setString:(NSString *)str
+{
+	[_owner replaceCharactersInRange:NSMakeRange(0, [_owner length]) withString:str];
+}
+
+- (void)appendUTF8String:(const char *)utf8
+{
+	NSString *built;
+
+	if (utf8 == NULL || *utf8 == '\0') {
+		return;
+	}
+	built = [[NSString alloc] initWithUTF8String:utf8];
+	[_owner replaceCharactersInRange:NSMakeRange([_owner length], 0) withString:built];
+	[built release];
+}
+
 @end
 
 @implementation NSMutableAttributedString (NSExtendedMutableAttributedString)

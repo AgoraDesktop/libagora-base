@@ -1718,15 +1718,14 @@ static void arg_mutable_cfcharset(void)
  * all. That door is now on NSDictionary, and it is the third gap this bridging work has found in this
  * library rather than in the bridge.
  *
- * AND -mutableString IS DRIVEN ONLY THROUGH CORE FOUNDATION'S OWN DOOR, BECAUSE THE OTHER ROAD IS RUINED
- * AND THE FIRST VERSION OF THIS COMMENT BLAMED THE WRONG SIDE. It said Core Foundation exposes no mutable
- * string view; its HEADER DECLARES ONE (CFAttributedStringGetMutableString) and the function DISPATCHES to
- * -mutableString for a Foundation attributed string. What is measured: a Foundation one answers it with a
- * view; Core Foundation's OWN object returns NULL because the native path is commented out in
- * CFAttributedString.c; and OUR Core Foundation-backed object, reached through FOUNDATION's -mutableString,
- * gets a view that READS AS EMPTY, ignores -appendString:, and yet DOES apply
- * -replaceCharactersInRange:withString:. Reads wrong, writes partly -- so the case asserts Core Foundation's
- * door and leaves the other one alone rather than pinning a behaviour that should change. */
+ * AND -mutableString IS DRIVEN THROUGH BOTH ROADS, WHICH TOOK THREE CORRECTIONS TO GET TO. (1) This comment
+ * said Core Foundation exposes no mutable string view -- its HEADER DECLARES ONE
+ * (CFAttributedStringGetMutableString), and the function DISPATCHES to -mutableString for a Foundation
+ * attributed string. (2) The inherited proxy then turned out to read as EMPTY on a Core Foundation owner,
+ * because -length was missing from the attributed rows. (3) And even with that fixed, -appendString: through
+ * the proxy wrote the PROXY's storage instead of the owner's, because this library's mutable string writes
+ * with -appendUTF8String: and reads with its own -UTF8String, so a subclass answering only the Cocoa
+ * primitives gets its own storage used. All three are fixed, and this case now holds the result. */
 static void arg_mutable_cfattributed(void)
 {
 	CFMutableAttributedStringRef a = CFAttributedStringCreateMutable(NULL, 0);
@@ -1794,6 +1793,26 @@ static void arg_mutable_cfattributed(void)
 		      "Core Foundation's mutable-string door did not answer for a Foundation attributed string");
 		check(CFAttributedStringGetMutableString(a) == NULL,
 		      "Core Foundation's mutable-string door answered for a Core Foundation object, whose native path is commented out");
+
+		/* AND THE ROAD THAT USED TO BE RUINED: an ATTRIBUTED STRING'S OWN -mutableString, which Core
+		 * Foundation's door cannot reach for its own object but a caller can. It must read the receiver's
+		 * characters and WRITE THROUGH to it, in both directions. */
+		check([[(NSMutableAttributedString *)a mutableString] length] == [(id)a length],
+		      "a mutable-string view of a Core Foundation attributed string reports a different length");
+		{
+			NSMutableString *view = [(NSMutableAttributedString *)a mutableString];
+
+			check([[[view description] substringToIndex:1] isEqualToString:@"z"],
+			      "a mutable-string view of a Core Foundation attributed string does not read its characters back");
+			[view appendString:@"!"];
+			check(CFAttributedStringGetLength(a) == 3 && [[(id)a string] isEqualToString:@"zz!"],
+			      "a write through the mutable-string view did not reach the attributed string (CF holds %s)",
+			      [[(id)a string] UTF8String]);
+			[view replaceCharactersInRange:NSMakeRange(0, 1) withString:@"Q"];
+			check([[view description] isEqualToString:[(id)a string]],
+			      "the view and its attributed string disagree: view %s, string %s",
+			      [[view description] UTF8String], [[(id)a string] UTF8String]);
+		}
 	}
 }
 
