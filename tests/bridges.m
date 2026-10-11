@@ -1230,6 +1230,106 @@ static void arg_cfboolean(void)
 	}
 }
 
+/* ---------------------------------------------------------------------------------------------------- */
+/* AND THE MUTABLE ARRAY'S STORAGE CONTRACT, WHICH THE MUTABLE BRIDGE RESTS ON.                         */
+/* ---------------------------------------------------------------------------------------------------- */
+/* A Core Foundation array handed to Foundation has to answer as an NSMutableArray without inheriting this
+ * library's storage code -- AGArrayMutable implements NOTHING, so everything NSMutableArray does reads
+ * _items, _count and _mutations, which over a Core Foundation object is silent corruption. The class below
+ * is the proof that the routing is COMPLETE: it puts its elements somewhere else entirely, answers the
+ * seven primitives and nothing else, and every other method of NSMutableArray has to work over that
+ * storage. A method that still reads the class's own ivars gives a wrong answer here or dies. */
+@interface FNForeignMutableArray : NSMutableArray {
+	@public
+	id _store[32];
+	unsigned long _storeCount;
+	unsigned long _storeMutations;
+}
+@end
+
+@implementation FNForeignMutableArray
+- (NSUInteger)count { return _storeCount; }
+- (id)objectAtIndex:(NSUInteger)i { return _store[i]; }
+- (void)insertObject:(id)o atIndex:(NSUInteger)i
+{
+	unsigned long k;
+
+	for (k = _storeCount; k > i; k--) { _store[k] = _store[k - 1]; }
+	_store[i] = [o retain];
+	_storeCount++;
+	_storeMutations++;
+}
+- (void)removeObjectAtIndex:(NSUInteger)i
+{
+	unsigned long k;
+
+	[_store[i] release];
+	for (k = i; k + 1 < _storeCount; k++) { _store[k] = _store[k + 1]; }
+	_storeCount--;
+	_storeMutations++;
+}
+- (void)removeAllObjects
+{
+	unsigned long k;
+
+	for (k = 0; k < _storeCount; k++) { [_store[k] release]; }
+	_storeCount = 0;
+	_storeMutations++;
+}
+- (void)replaceObjectAtIndex:(NSUInteger)i withObject:(id)o
+{
+	[o retain];
+	[_store[i] release];
+	_store[i] = o;
+	_storeMutations++;
+}
+- (unsigned long *)fnMutationWord { return &_storeMutations; }
+@end
+
+static void arg_mutable_array_primitives(void)
+{
+	FNForeignMutableArray *a = [[FNForeignMutableArray alloc] init];
+	NSArray *snapshot;
+	NSString *joined;
+	NSUInteger seen = 0;
+
+	[a addObject:@"a"];
+	[a addObject:@"b"];
+	[a addObject:@"c"];
+	check([a count] == 3, "-addObject: did not reach foreign storage");
+	[a removeLastObject];
+	check([a count] == 2, "-removeLastObject did not reach foreign storage");
+	[a insertObject:@"z" atIndex:0];
+	check([[a objectAtIndex:0] isEqual:@"z"], "-insertObject:atIndex: did not reach foreign storage");
+	[a replaceObjectAtIndex:1 withObject:@"A"];
+	check([[a objectAtIndex:1] isEqual:@"A"], "-replaceObjectAtIndex:withObject: did not reach foreign storage");
+	[a exchangeObjectAtIndex:0 withObjectAtIndex:2];
+	check([[a objectAtIndex:0] isEqual:@"b"] && [[a objectAtIndex:2] isEqual:@"z"],
+	      "-exchangeObjectAtIndex:withObjectAtIndex: read storage of its own");
+	[a setObject:@"q" atIndexedSubscript:0];
+	check([[a objectAtIndex:0] isEqual:@"q"], "setObject:atIndexedSubscript: read storage of its own");
+	[a removeObjectIdenticalTo:@"A"];
+	check([a count] == 2, "-removeObjectIdenticalTo: read storage of its own");
+	[a addObjectsFromArray:@[ @"1", @"2" ]];
+	check([a count] == 4, "-addObjectsFromArray: read storage of its own");
+	[a removeObject:@"2" inRange:NSMakeRange(0, [a count])];
+	check([a count] == 3, "-removeObject:inRange: read storage of its own");
+	snapshot = [a copy];
+	check([snapshot count] == 3 && [snapshot isKindOfClass:[NSArray class]], "-copy read storage of its own");
+	[a sortUsingSelector:@selector(compare:)];
+	check([[a objectAtIndex:0] isEqual:@"1"], "-sortUsingSelector: read storage of its own");
+	for (id element in a) {
+		(void)element;
+		seen++;
+	}
+	check(seen == 3, "fast enumeration did not read the storage's own mutation word");
+	joined = [a componentsJoinedByString:@","];
+	check(joined != nil && [joined length] > 0, "a derived string door read storage of its own");
+	[a removeAllObjects];
+	check([a count] == 0, "-removeAllObjects did not reach foreign storage");
+	[a release];
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1249,6 +1349,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Core Foundation asks a Foundation stream for its error", arg_forward_cfstreamerror },
 	{ "Core Foundation asks a Foundation calendar to compute", arg_forward_cfcalendar },
 	{ "NSNumber's Booleans are Core Foundation's CFBoolean", arg_cfboolean },
+	{ "A mutable array answers from storage of its own", arg_mutable_array_primitives },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },

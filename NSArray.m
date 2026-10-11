@@ -1297,6 +1297,24 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 
 @end
 
+/* THE PRIMITIVE SET OF A MUTABLE ARRAY, AND IT IS THE STORAGE CONTRACT -- what a class that keeps its
+ * elements SOMEWHERE ELSE must answer before the rest of this class works over that storage. Two of the
+ * seven (-count and -objectAtIndex:) are NSArray's own primitives, shared with the immutable half; four are
+ * the storage operations; and the seventh is the fast-enumeration word, which is storage too: it is an
+ * address the loop polls, so a class with no _mutations ivar has to say where its own word lives.
+ *
+ * WHY THIS EXISTS AT ALL: a Core Foundation array that Foundation is handed must answer as an NSMutableArray
+ * without inheriting this class's storage code. AGArrayMutable implements NOTHING and inherits all of it, so
+ * the ONLY way to give such a class a safe mutable surface is for everything here that is not one of the
+ * seven to read and write through the seven. MEASURED for the sites this touched: -items and -count were
+ * read directly in ten places besides the storage operations, and the mutation word in six.
+ *
+ * THE SEVEN, for the record: -count, -objectAtIndex:, -insertObject:atIndex:, -removeObjectAtIndex:,
+ * -removeAllObjects, -replaceObjectAtIndex:withObject:, and -fnMutationWord. */
+@interface NSMutableArray (FNStoragePrimitives)
+- (unsigned long *)fnMutationWord;
+@end
+
 @implementation NSMutableArray
 
 /* THE SAME DOOR AS THE IMMUTABLE FRONT (§C.3 item 1), and it is what makes a mutable constructor answer a
@@ -1333,12 +1351,19 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 	unsigned long done = 0;
 
 	state->itemsPtr = buffer;
-	state->mutationsPtr = &_mutations;
-	while (state->state < _count && done < len) {
-		buffer[done++] = _items[state->state];
+	state->mutationsPtr = [self fnMutationWord];
+	while (state->state < [self count] && done < len) {
+		buffer[done++] = [self objectAtIndex:state->state];
 		state->state++;
 	}
 	return done;
+}
+
+/* THE SEVENTH PRIMITIVE. Everything that bumps or watches the word goes through here, so a subclass with
+ * its own storage answers with its OWN address rather than inheriting one that points into this class. */
+- (unsigned long *)fnMutationWord
+{
+	return &_mutations;
 }
 
 + (NSMutableArray *)array
@@ -1376,7 +1401,7 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 
 - (void)addObject:(id)object
 {
-	[self insertObject:object atIndex:_count];
+	[self insertObject:object atIndex:[self count]];
 }
 
 - (void)insertObject:(id)object atIndex:(unsigned long)index
@@ -1455,7 +1480,7 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 	if (object == nil) {
 		return;
 	}
-	if (index == _count) {
+	if (index == [self count]) {
 		[self addObject:object];
 		return;
 	}
@@ -1465,7 +1490,7 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 - (id)copy
 {
 	/* A snapshot, like every other mutable type here. */
-	return [[NSArray alloc] initWithObjects:_items count:_count];
+	return [[NSArray alloc] initWithArray:self];
 }
 
 - (void)addObjectsFromArray:(NSArray *)other
@@ -1531,22 +1556,22 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 
 - (void)removeLastObject
 {
-	if (_count > 0) {
-		[self removeObjectAtIndex:_count - 1];
+	if ([self count] > 0) {
+		[self removeObjectAtIndex:[self count] - 1];
 	}
 }
 
 - (void)removeObject:(id)object
 {
-	[self removeObject:object inRange:NSMakeRange(0, _count)];
+	[self removeObject:object inRange:NSMakeRange(0, [self count])];
 }
 
 - (void)removeObjectIdenticalTo:(id)object
 {
 	NSUInteger i;
 
-	for (i = 0; i < _count; i++) {
-		if (_items[i] == object) {
+	for (i = 0; i < [self count]; i++) {
+		if ([self objectAtIndex:i] == object) {
 			[self removeObjectAtIndex:i];
 			return;
 		}
@@ -1557,8 +1582,8 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 {
 	NSUInteger i;
 
-	for (i = range.location; i < _count && i < range.location + range.length; i++) {
-		if (_items[i] == object) {
+	for (i = range.location; i < [self count] && i < range.location + range.length; i++) {
+		if ([self objectAtIndex:i] == object) {
 			[self removeObjectAtIndex:i];
 			return;
 		}
@@ -1625,8 +1650,10 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 {
 	NSUInteger i;
 
-	for (i = range.location; i < _count && i < range.location + range.length; i++) {
-		if (_items[i] == object || [_items[i] isEqual:object]) {
+	for (i = range.location; i < [self count] && i < range.location + range.length; i++) {
+		id element = [self objectAtIndex:i];
+
+		if (element == object || [element isEqual:object]) {
 			[self removeObjectAtIndex:i];
 			return;
 		}
@@ -1638,7 +1665,7 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 	NSUInteger i;
 
 	for (i = 0; i < range.length; i++) {
-		if (range.location < _count) {
+		if (range.location < [self count]) {
 			[self removeObjectAtIndex:range.location];
 		}
 	}
@@ -1653,24 +1680,29 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 - (void)exchangeObjectAtIndex:(NSUInteger)first withObjectAtIndex:(NSUInteger)second
 {
 	id held;
+	id secondHeld;
 
-	if (first >= _count || second >= _count || first == second) {
+	if (first >= [self count] || second >= [self count] || first == second) {
 		return;
 	}
-	held = _items[first];
-	_items[first] = _items[second];
-	_items[second] = held;
-	_mutations++;
+	/* BOTH ARE HELD BEFORE EITHER IS STORED: -replaceObjectAtIndex:withObject: releases what it displaces,
+	 * so the element that is about to be put back would be freed before it could be put back. */
+	held = [[self objectAtIndex:first] retain];
+	secondHeld = [[self objectAtIndex:second] retain];
+	[self replaceObjectAtIndex:first withObject:secondHeld];
+	[self replaceObjectAtIndex:second withObject:held];
+	[held release];
+	[secondHeld release];
 }
 
 - (void)replaceObjectsInRange:(NSRange)range withObjectsFromArray:(NSArray *)other
 {
 	NSUInteger i = 0;
 
-	if (range.location >= _count) {
+	if (range.location >= [self count]) {
 		return;
 	}
-	for (i = 0; i < range.length && range.location + i < _count; i++) {
+	for (i = 0; i < range.length && range.location + i < [self count]; i++) {
 		if (i < [other count]) {
 			[self replaceObjectAtIndex:range.location + i
 				     withObject:[other objectAtIndex:i]];
@@ -1682,7 +1714,7 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 
 - (void)sortUsingSelector:(SEL)comparator
 {
-	NSArray *sorted = [[NSArray alloc] initWithObjects:_items count:_count];
+	NSArray *sorted = [[NSArray alloc] initWithArray:self];
 
 	[self setArray:[sorted sortedArrayUsingSelector:comparator]];
 }
