@@ -21,7 +21,7 @@
  * header, not a dependency. */
 #include <unicode/uchar.h>
 
-#define FN_MAX_CHARACTER	0xFFFF
+#define FN_MAX_CHARACTER	0x10FFFF
 
 /* THE BITMAP'S TWO NUMBERS, HERE RATHER THAN BESIDE THE METHODS THAT USE THEM, because the range decoder
  * below reads them and it is defined before those methods. See the note at -bitmapRepresentation for what
@@ -94,21 +94,58 @@ static BOOL fn_contains(NSCharacterSet *set, unsigned int character)
  * THE CALLER OWNS THE ANSWER: `*outPairs` is malloc'd (or NULL when there are none) and it is the caller's to
  * free. A bitmap that is too short to be one at all reads as NO RANGES rather than as a bounds error.
  *
- * AND IT READS PLANE 0 AND NOTHING ELSE, WHICH IS A LIMITATION OF THIS TYPE RATHER THAN OF THE DECODER.
- * This library's character sets are BMP-only -- -longCharacterIsMember: refuses anything above 0xFFFF and
- * -hasMemberInPlane: answers plane 0 only -- so there is nowhere to put a higher plane even if the bytes
- * were read. MEASURED, AND IT MATTERS WHEN CORE FOUNDATION SENDS ONE: a Core Foundation set that spans
- * planes (inverting an ordinary set does, because the complement of "a" is most of Unicode) answers
- * -bitmapRepresentation with CORE FOUNDATION'S FULL FORM -- 139280 bytes, 8192 for each of SEVENTEEN
- * planes -- and rebuilding a Foundation set from it loses everything above plane 0. The rebuilt set is a
- * subset of Core Foundation's, not equal to it, and hashes differently:
+ * AND IT READS ALL SEVENTEEN PLANES, WHICH IS A DECISION ABOUT THE TYPE TAKEN RATHER THAN A DECODER CHANGE
+ * MADE QUIETLY. THIS COMMENT USED TO SAY THE OPPOSITE -- that this type was BMP-only, that a set built from
+ * a spanning Core Foundation bitmap lost everything above plane 0, that [rebuilt isSupersetOf:cfSet] was NO,
+ * and that fixing it was a decision for someone else to take. The decision was taken:
  *
- *     [cfSet isSupersetOf:rebuilt] yes      [rebuilt isSupersetOf:cfSet] NO
+ *   - the decoder reads Core Foundation's FULL FORM -- 8192 bytes of plane 0, then for each annex plane one
+ *     INDEX BYTE and that plane's 8192 bytes (CFCharacterSet.c's CFCharacterSetCreateBitmapRepresentation
+ *     computes its length the same way: 16385 bytes for two planes, 139280 for seventeen, both MEASURED);
+ *   - -longCharacterIsMember: reaches the whole code space and -hasMemberInPlane: is a containment test,
+ *     which it never was: the old answer, plane == 0 && _rangeCount > 0, said YES for plane 0 of a set that
+ *     holds only U+1F600 and NO for plane 1 of a set that holds it;
+ *   - -bitmapRepresentation emits the full form when the set needs it, and the bare 8192 bytes otherwise
+ *     (the bare form is a PREFIX of the full one, so a BMP-only set's bytes do not change);
+ *   - FN_MAX_CHARACTER is the code space's last code point rather than the BMP's, so -initWithRange: and
+ *     -invertedSet: cover what the decoder can now produce.
  *
- * A Core Foundation set that is BRIDGED does not lose anything -- the owned class answers both plane doors
- * over Core Foundation -- so this bites only where a Foundation-owned set is built from Core Foundation's
- * bytes. Read it, do not fix it silently: teaching this type the annex planes is a decision about the type,
- * not about the decoder. */
+ * MEASURED AFTER, with a set holding 'a' and U+1F600: rebuilt from Core Foundation's bytes it answers YES
+ * for both doors, is a superset of Core Foundation's set BOTH WAYS, and Core Foundation's bitmap for the
+ * result is BYTE-IDENTICAL (16385 bytes, CFEqual) to the one Core Foundation produced. */
+/* ONE PLANE'S 8192 BYTES AS RANGES, STARTING AT codeBase. Plane 0 and every annex plane walk their bits
+ * the same way, so Core Foundation's format cannot be read differently in its two halves. */
+static unsigned long fn_ranges_from_plane(const unsigned char *planeBytes, unsigned int codeBase,
+					  unsigned int **pairs, unsigned long count, BOOL collecting)
+{
+	unsigned long c = 0;
+
+	while (c < 0x10000) {
+		unsigned long start;
+
+		if ((planeBytes[c / 8] & (1u << (c % 8))) == 0) {
+			c++;
+			continue;
+		}
+		start = c;
+		while (c < 0x10000 && (planeBytes[c / 8] & (1u << (c % 8))) != 0) {
+			c++;
+		}
+		if (collecting) {
+			unsigned int *grown = (unsigned int *)realloc(*pairs, (count + 1) * 2 * sizeof(unsigned int));
+
+			if (grown == NULL) {
+				break;
+			}
+			*pairs = grown;
+			(*pairs)[count * 2] = codeBase + (unsigned int)start;
+			(*pairs)[count * 2 + 1] = (unsigned int)(c - start);
+		}
+		count++;
+	}
+	return count;
+}
+
 static unsigned long fn_ranges_from_bitmap(NSData *bitmap, unsigned int **outPairs)
 {
 	const unsigned char *bytes = (const unsigned char *)[bitmap bytes];
@@ -123,28 +160,17 @@ static unsigned long fn_ranges_from_bitmap(NSData *bitmap, unsigned int **outPai
 	if (bytes == NULL || length < (NSUInteger)FN_CHARSET_BITMAP_BYTES) {
 		return 0;
 	}
-	while (c <= 0xFFFF) {
-		unsigned long start;
+	count = fn_ranges_from_plane(bytes, 0, &pairs, count, outPairs != NULL);
+	if (length > (NSUInteger)FN_CHARSET_BITMAP_BYTES) {
+		NSUInteger offset = FN_CHARSET_BITMAP_BYTES;
 
-		if ((bytes[c / 8] & (1u << (c % 8))) == 0) {
-			c++;
-			continue;
-		}
-		start = c;
-		while (c <= 0xFFFF && (bytes[c / 8] & (1u << (c % 8))) != 0) {
-			c++;
-		}
-		if (outPairs != NULL) {
-			unsigned int *grown = (unsigned int *)realloc(pairs, (count + 1) * 2 * sizeof(unsigned int));
+		while (offset + 1 + FN_CHARSET_BITMAP_BYTES <= length) {
+			unsigned int plane = bytes[offset];
 
-			if (grown == NULL) {
-				break;
-			}
-			pairs = grown;
-			pairs[count * 2] = (unsigned int)start;
-			pairs[count * 2 + 1] = (unsigned int)(c - start);
+			count = fn_ranges_from_plane(bytes + offset + 1, plane * 0x10000, &pairs, count,
+						     outPairs != NULL);
+			offset += 1 + FN_CHARSET_BITMAP_BYTES;
 		}
-		count++;
 	}
 	if (outPairs != NULL) {
 		*outPairs = pairs;
@@ -607,47 +633,126 @@ static NSCharacterSet *fn_url_set(NSString *extra, NSCharacterSet **cache)
  * plane 0 is genuinely non-empty exactly when the set is, and any other plane is genuinely empty.
  *
  * THE BITMAP'S BYTE LAYOUT IS NOW CORE FOUNDATION'S AND APPLE'S, AND THIS IS THE ONE PLACE THAT CHANGED
- * SHAPE: 8192 bytes of BMP membership with nothing in front of them. It used to carry a header -- a magic
- * word and the range count -- and that form is still ACCEPTED on the way in
- * (+characterSetWithBitmapRepresentation: tells the two apart BY the magic), because a caller may have
- * stored one. Going OUT it is bare, because a Core Foundation-owned character set answers
- * -bitmapRepresentation with CFCharacterSetCreateBitmapRepresentation's bytes, and two spellings of one
- * bitmap would make a saved file's round trip depend on which side produced it. The two macros live at the
- * top of this file: the range decoder reads them, and the decoder is defined before these methods.
+ * SHAPE, AND IT IS NOW CORE FOUNDATION'S OWN SHAPE: 8192 bytes of plane-0 membership, followed -- only for
+ * a set that reaches past the BMP -- by one INDEX BYTE and 8192 bytes for each annex plane, the planes in
+ * ascending order. The bare 8192 bytes are therefore a PREFIX of the full form rather than a second
+ * spelling, so a BMP-only set's bytes are what they always were and a saved file still reloads. This
+ * library's OLD ANNOTATED FORM -- a magic word and a range count in front of the bits -- is still ACCEPTED
+ * on the way in (+characterSetWithBitmapRepresentation: tells the two apart BY the magic), because a caller
+ * may have stored one; it is no longer emitted. The two macros live at the top of this file: the range
+ * decoder reads them, and the decoder is defined before these methods.
  */
 
 - (BOOL)longCharacterIsMember:(UTF32Char)character
 {
-	if (character > 0xFFFF) {
-		return NO;
-	}
-	return [self characterIsMember:(unichar)character];
+	/* THE WHOLE CODE SPACE NOW, NOT JUST THE BMP. _ranges holds 32-bit code points and fn_contains compares
+	 * them as such, so the refusal that used to stand here was the only thing keeping a set that came from
+	 * Core Foundation's bytes from answering for its own unicode characters. */
+	return fn_contains(self, (unsigned int)character);
 }
 
 - (BOOL)hasMemberInPlane:(uint8_t)plane
 {
-	return (plane == 0) && (_rangeCount > 0);
+	/* A PLANE IS A RANGE OF CODE POINTS, so this is a containment test and not a statement about plane 0.
+	 * The old answer -- plane == 0 && _rangeCount > 0 -- was wrong even for plane 0: a set holding only
+	 * U+1F600 has ranges and no BMP member. */
+	unsigned int base = (unsigned int)plane * 0x10000;
+	unsigned long i;
+
+	for (i = 0; i < _rangeCount; i++) {
+		unsigned int location = _ranges[i * 2];
+		unsigned int length = _ranges[i * 2 + 1];
+
+		if (location + length > base && location < base + 0x10000) {
+			return YES;
+		}
+	}
+	return NO;
 }
 
 - (NSData *)bitmapRepresentation
 {
-	unsigned char *bytes = (unsigned char *)calloc(1, FN_CHARSET_BITMAP_BYTES);
+	/* CORE FOUNDATION'S FULL FORM WHEN THE SET REACHES PAST THE BMP, ITS BARE FORM OTHERWISE, AND THE BARE
+	 * FORM IS A PREFIX OF THE FULL ONE -- so a caller that only ever sees BMP sets can store and reload
+	 * either spelling. The full form is CFCharacterSetCreateBitmapRepresentation's: 8192 bytes for plane 0,
+	 * then for each non-BMP plane ONE INDEX BYTE and that plane's 8192 bytes, the planes in ASCENDING index
+	 * order. MEASURED against Core Foundation's own encoder, which computes its length the same way --
+	 * 16385 bytes for two planes, 139280 for seventeen. */
+	unsigned int planes[256];
+	unsigned int planeCount = 0;
+	unsigned long i, total;
+	unsigned char *bytes;
 	NSData *result;
-	unsigned long i;
 
+	for (i = 0; i < _rangeCount; i++) {
+		unsigned long loc = _ranges[i * 2];
+		unsigned long end = loc + _ranges[i * 2 + 1];
+		unsigned int first = (unsigned int)(loc / 0x10000);
+		unsigned int last = (unsigned int)((end - 1) / 0x10000);
+		unsigned int plane;
+
+		for (plane = (first == 0) ? 1 : first; plane <= last && plane < 256; plane++) {
+			unsigned int seen = 0;
+
+			for (unsigned long k = 0; k < planeCount; k++) {
+				if (planes[k] == plane) {
+					seen = 1;
+					break;
+				}
+			}
+			if (seen == 0) {
+				planes[planeCount++] = plane;
+			}
+		}
+	}
+	/* The planes into ascending order, which is the order Core Foundation writes them in. */
+	for (i = 0; i < planeCount; i++) {
+		unsigned long k;
+
+		for (k = i + 1; k < planeCount; k++) {
+			if (planes[k] < planes[i]) {
+				unsigned int swap = planes[i];
+
+				planes[i] = planes[k];
+				planes[k] = swap;
+			}
+		}
+	}
+
+	total = FN_CHARSET_BITMAP_BYTES + (unsigned long)planeCount * (1 + FN_CHARSET_BITMAP_BYTES);
+	bytes = (unsigned char *)calloc(1, (size_t)total);
 	if (bytes == NULL) {
 		return [NSData data];
 	}
 	for (i = 0; i < _rangeCount; i++) {
 		unsigned long loc = _ranges[i * 2];
-		unsigned long len = _ranges[i * 2 + 1];
+		unsigned long end = loc + _ranges[i * 2 + 1];
 		unsigned long c;
 
-		for (c = loc; c < loc + len && c <= 0xFFFF; c++) {
+		for (c = loc; c < end && c < FN_CHARSET_BITMAP_BYTES * 8; c++) {
 			bytes[c / 8] |= (unsigned char)(1u << (c % 8));
 		}
 	}
-	result = [NSData dataWithBytes:bytes length:FN_CHARSET_BITMAP_BYTES];
+	for (i = 0; i < planeCount; i++) {
+		unsigned long at = FN_CHARSET_BITMAP_BYTES + i * (1 + FN_CHARSET_BITMAP_BYTES);
+		unsigned int base = planes[i] * 0x10000;
+		unsigned long k;
+
+		bytes[at] = (unsigned char)planes[i];
+		for (k = 0; k < _rangeCount; k++) {
+			unsigned long loc = _ranges[k * 2];
+			unsigned long end = loc + _ranges[k * 2 + 1];
+			unsigned long c;
+
+			for (c = loc; c < end; c++) {
+				if (c < base || c - base >= 0x10000) {
+					continue;
+				}
+				bytes[at + 1 + (c - base) / 8] |= (unsigned char)(1u << ((c - base) % 8));
+			}
+		}
+	}
+	result = [NSData dataWithBytes:bytes length:(NSUInteger)total];
 	free(bytes);
 	return result;
 }
@@ -658,9 +763,10 @@ static NSCharacterSet *fn_url_set(NSString *extra, NSCharacterSet **cache)
 	unsigned int header[2];
 	const unsigned char *bytes;
 	const unsigned char *bits;
+	NSData *decoded;
+	unsigned int *pairs = NULL;
 	unsigned long c;
-	unsigned long start = 0;
-	BOOL inRange = NO;
+	unsigned long count;
 	BOOL annotated = NO;
 
 	bytes = (const unsigned char *)[data bytes];
@@ -682,20 +788,22 @@ static NSCharacterSet *fn_url_set(NSString *extra, NSCharacterSet **cache)
 	 * exactly the abort this probe caught. The answer is still an NSCharacterSet: the mutable
 	 * class is its subclass. */
 	set = [[NSMutableCharacterSet alloc] init];
-	for (c = 0; c <= 0xFFFF; c++) {
-		BOOL member = (bits[c / 8] & (1u << (c % 8))) != 0;
-
-		if (member && !inRange) {
-			start = c;
-			inRange = YES;
-		} else if (!member && inRange) {
-			[(NSMutableCharacterSet *)set addCharactersInRange:NSMakeRange((NSUInteger)start, (NSUInteger)(c - start))];
-			inRange = NO;
-		}
+	/* AND IT DECODES THROUGH THE SHARED RANGE DECODER RATHER THAN A SECOND WALK OF ITS OWN. This method used
+	 * to carry an INLINE PLANE-0 LOOP, which is how a set built from Core Foundation's bytes went on losing
+	 * the annex even after the decoder learned to read it: the two walks had to be kept in step by hand and
+	 * only one of them was. The decoder takes an NSData, so the annotated form's eight-byte header is
+	 * stripped here and the rest is handed over unchanged. */
+	if (bits != bytes) {
+		decoded = [data subdataWithRange:NSMakeRange(8, [data length] - 8)];
+	} else {
+		decoded = data;
 	}
-	if (inRange) {
-		[(NSMutableCharacterSet *)set addCharactersInRange:NSMakeRange((NSUInteger)start, 0x10000 - (NSUInteger)start)];
+	count = fn_ranges_from_bitmap(decoded, &pairs);
+	for (c = 0; c < count; c++) {
+		[(NSMutableCharacterSet *)set addCharactersInRange:NSMakeRange((NSUInteger)pairs[c * 2],
+									       (NSUInteger)pairs[c * 2 + 1])];
 	}
+	free(pairs);
 	return set;
 }
 

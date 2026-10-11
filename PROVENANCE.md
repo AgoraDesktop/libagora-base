@@ -105,10 +105,13 @@ of its own (`__NSCFBoolean`), `[NSNumber numberWithBool:]` reports CFBoolean's t
 `-agKind` answers Apple's `'c'`, and the suite holds `CFBooleanGetValue(@YES)`, `[kCFBooleanTrue boolValue]`
 and `[kCFBooleanTrue isEqual:@YES]` as cases.
 
-- **Character sets are BMP-only in this library.** `-longCharacterIsMember:` refuses anything above
-  `0xFFFF` and `-hasMemberInPlane:` answers plane 0 only, so a Core Foundation set that spans planes --
-  inverting an ordinary set makes its complement most of Unicode -- loses everything above plane 0 when
-  it is rebuilt into a Foundation-*owned* set. A BRIDGED set loses nothing.
+- **Character sets now reach all seventeen planes, WHICH THEY DID NOT.** This bullet used to say the type
+  was BMP-only and that a Core Foundation set spanning planes lost everything above plane 0 on the way into
+  a Foundation-owned set. That is FIXED: the decoder reads Core Foundation's full form, both plane doors
+  answer for the whole code space, and `-bitmapRepresentation` emits the full form when a set needs it --
+  measured by taking Core Foundation's bitmap for a set holding `'a'` and `U+1F600` (16385 bytes), rebuilding
+  a Foundation set from those bytes, and finding Core Foundation's bitmap for the result is
+  **byte-identical**, with the superset test passing BOTH ways.
 - **Seven `incorrect signature` reports remain** (all pointer-only differences, audited at the rows in
   `libagora-core/internalInclude/CFBridgedMethods.h`). Whether libobjc2 installs a trampoline for a
   pointer-only difference is **not measured**.
