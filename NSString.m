@@ -4864,17 +4864,28 @@ static NSComparisonResult fn_compare_turkic(NSString *a, NSString *b, NSStringCo
 	if (encoding != NSUTF8StringEncoding && encoding != NSASCIIStringEncoding) {
 		return 0;
 	}
-	(void)[self UTF8String];
-	if (encoding == NSASCIIStringEncoding) {
-		size_t i;
+	/* AND THE COUNT COMES FROM THE ACCESSOR, NOT FROM THIS CLASS'S OWN FIELD, WHICH IS A CORRECTION AND
+	 * NOT A STYLE. `_utf8size` is an NSOwnedString field; a subclass WITH NO SUCH FIELD -- which is what a
+	 * Core Foundation mutable string is, and what this library's own NSString.h says a subclass may be
+	 * ("answers -length, -characterAtIndex: and -UTF8String ... without any storage of its own") -- read
+	 * FOREIGN MEMORY here and answered garbage. MEASURED: 32 for "ab", which made -compare: return 1 for
+	 * two equal strings and -isEqual: answer NO, so every Core Foundation mutable string compared unequal
+	 * to itself. The count is the length of the same buffer the accessor just produced, so this costs one
+	 * pass over bytes -UTF8String has already materialised. */
+	{
+		const char *utf8 = [self UTF8String];
 
-		for (i = 0; i < _utf8size; i++) {
-			if ((unsigned char)_utf8[i] > 0x7F) {
-				return 0;
+		if (encoding == NSASCIIStringEncoding) {
+			size_t i, n = strlen(utf8);
+
+			for (i = 0; i < n; i++) {
+				if ((unsigned char)utf8[i] > 0x7F) {
+					return 0;
+				}
 			}
 		}
+		return strlen(utf8);
 	}
-	return _utf8size;
 }
 
 /* Scalars, counted from the UNITS — a surrogate pair is one character, which is

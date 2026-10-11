@@ -1492,6 +1492,63 @@ static void arg_mutable_cfset(void)
 	check(CFSetGetCount(s) == 0 && [(id)s count] == 0, "-removeAllObjects did not reach Core Foundation");
 }
 
+/* AND THE FOURTH MUTABLE TYPE, WHICH FOUND A BUG IN THIS LIBRARY RATHER THAN IN THE BRIDGE.
+ * libagora-base's mutable string keeps its characters behind two doors -- -setString: and
+ * -appendUTF8String: -- and every other mutation is derived from one of them (-appendString: calls
+ * -appendUTF8String:; -replaceCharactersInRange:withString: builds a string and calls -setString:). So
+ * the owned class answers those two plus the three accessor doors, and libagora-base needed no routing.
+ *
+ * WHAT IT DID NEED WAS A FIX. NSString.h promises that a subclass answering -length, -characterAtIndex:
+ * and -UTF8String "is correct through the derived doors without any storage of its own" -- and MEASURED,
+ * that was FALSE: NSOwnedString's -lengthOfBytesUsingEncoding: returned its own _utf8size field, so a
+ * subclass with no such field read foreign memory and answered 32 for "ab". Every Core Foundation mutable
+ * string then compared UNEQUAL TO ITSELF (compare: 1, isEqual: NO, a different hash), and the assertions
+ * below are what caught it. The count now comes from the accessor the contract names.
+ *
+ * EVERY PUBLIC MUTABLE DOOR IS DRIVEN AND CORE FOUNDATION IS CHECKED AFTER EACH, and the VALUE SEMANTICS
+ * ARE ASSERTED TOO -- equality and hash -- because a string that reads correctly and compares wrongly is
+ * the failure this case exists for. */
+static void arg_mutable_cfstring(void)
+{
+	CFMutableStringRef s = CFStringCreateMutable(NULL, 0);
+	CFStringRef immutable = CFStringCreateWithCString(NULL, "immutable", kCFStringEncodingUTF8);
+	NSUInteger replaced;
+
+	check([(id)s isKindOfClass:[NSMutableString class]], "a CFMutableStringRef is not an NSMutableString");
+	check(![(id)immutable isKindOfClass:[NSMutableString class]], "an immutable CFString claims to be mutable");
+	check(![(id)immutable respondsToSelector:@selector(appendString:)],
+	      "an immutable CFString responds to -appendString:");
+
+	/* -appendString: IS THE DERIVED DOOR OVER -appendUTF8String:, AND EQUALITY IS THE CHECK THAT MATTERS. */
+	[(NSMutableString *)s appendString:@"ab"];
+	check(CFStringGetLength(s) == 2, "-appendString: left Core Foundation holding %ld units", (long)CFStringGetLength(s));
+	check([(id)s isEqualToString:@"ab"], "a Core Foundation mutable string holding ab is not equal to ab");
+	check([(id)s hash] == [@"ab" hash], "a Core Foundation mutable string hashes differently from an equal string");
+
+	CFStringAppend(s, CFSTR("cd"));
+	check([(id)s length] == 4 && [(id)s isEqualToString:@"abcd"],
+	      "CFStringAppend left Foundation holding %s", [(id)s UTF8String]);
+
+	/* -setString: IS THE DOOR ITSELF. */
+	[(NSMutableString *)s setString:@"xyz"];
+	check(CFStringGetLength(s) == 3 && [(id)s isEqualToString:@"xyz"],
+	      "-setString: left Core Foundation holding %s", [(id)s UTF8String]);
+
+	[(NSMutableString *)s replaceCharactersInRange:NSMakeRange(0, 1) withString:@"Q"];
+	check([(id)s isEqualToString:@"Qyz"], "-replaceCharactersInRange:withString: gave %s", [(id)s UTF8String]);
+
+	[(NSMutableString *)s appendFormat:@"-%d", 7];
+	check([(id)s isEqualToString:@"Qyz-7"], "-appendFormat: gave %s", [(id)s UTF8String]);
+
+	replaced = [(NSMutableString *)s replaceOccurrencesOfString:@"Q" withString:@"Z" options:0
+							   range:NSMakeRange(0, [(id)s length])];
+	check(replaced == 1 && [(id)s isEqualToString:@"Zyz-7"],
+	      "-replaceOccurrencesOfString: replaced %lu and gave %s", (unsigned long)replaced, [(id)s UTF8String]);
+
+	check(![[(id)s copy] isKindOfClass:[NSMutableString class]],
+	      "a copy of a mutable Core Foundation string is itself mutable");
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1515,6 +1572,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Core Foundation's mutable array, from both sides", arg_mutable_cfarray },
 	{ "Core Foundation's mutable dictionary, from both sides", arg_mutable_cfdictionary },
 	{ "Core Foundation's mutable set, through its one storage door", arg_mutable_cfset },
+	{ "Core Foundation's mutable string, from both sides", arg_mutable_cfstring },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },
