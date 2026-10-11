@@ -1,0 +1,20 @@
+@PACKAGE_INIT@
+
+# Consume Foundation (libagora-base), Agora's Foundation.
+#
+# CORE FOUNDATION IS FOUND FIRST AND NOT OPTIONALLY, for the same reason libagora-drawing's package finds it:
+# after the toll-free bridging work Foundation's headers name Core Foundation's types -- `CFStringRef`,
+# `CFDataRef`, `CFArrayRef` -- and its objects ARE Core Foundation objects, so a consumer cannot preprocess
+# these headers without Core Foundation beside them.
+#
+# AND FOUNDATION IS THE ORDER THE OTHER WAY ROUND FROM CORE FOUNDATION, WHICH IS THE POINT OF THE WHOLE TIER:
+# Core Foundation knows nothing of Foundation and must not (its suite proves it can be loaded alone), while
+# Foundation is built on Core Foundation and cannot exist without it.
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(CoreFoundation CONFIG)
+
+include("${CMAKE_CURRENT_LIST_DIR}/FoundationTargets.cmake")
+
+check_required_components(Foundation)

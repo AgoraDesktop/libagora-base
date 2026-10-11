@@ -94,7 +94,15 @@ target_compile_options(Foundation INTERFACE
     "-fobjc-runtime=gnustep-2.0"
     "-fblocks")
 
-target_include_directories(Foundation PUBLIC "${_agora_include_dir}")
+# THE SHIM GOES IN THE BUILD INTERFACE AND THE PREFIX IN THE INSTALL ONE, WHICH IS WHAT MAKES THIS TARGET
+# EXPORTABLE AT ALL. A path inside the build tree cannot be put in an installed target's interface -- CMake
+# refuses the export outright, saying so: "INTERFACE_INCLUDE_DIRECTORIES property contains path: ... which is
+# prefixed in the build directory" -- and a consumer of the installed library needs ${INCLUDEDIR}, where
+# these headers land under Foundation/. libagora-drawing has spelled it this way all along.
+target_include_directories(Foundation
+    PUBLIC
+        "$<BUILD_INTERFACE:${_agora_include_dir}>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 
 # plist.h sits beside the sources, not under Foundation/.
 target_include_directories(Foundation PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -107,9 +115,10 @@ target_compile_options(Foundation PRIVATE
     -Wno-objc-root-class)
 
 target_link_libraries(Foundation
+    PUBLIC
+        CoreFoundation::CoreFoundation
     PRIVATE
         objc
-        CoreFoundation::CoreFoundation
         dispatch
         ICU::uc ICU::i18n ICU::data
         ZLIB::ZLIB
@@ -121,6 +130,38 @@ add_subdirectory(tests)
 install(DIRECTORY . DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Foundation
         FILES_MATCHING PATTERN "*.h")
 install(TARGETS Foundation
+    EXPORT FoundationTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# ---------------------------------------------------------------------------
+# AND IT IS EXPORTED, WHICH IT WAS NOT. Foundation installed its headers and its
+# library and no CMake package at all, so `find_package(Foundation)` could not be
+# written and a consumer had to spell the include and link paths out by hand --
+# exactly the state libagora-drawing was in until a client was written against it.
+#
+# CORE FOUNDATION IS A PUBLIC DEPENDENCY HERE FOR THE SAME REASON IT IS IN THE
+# DRAWING LIBRARY: a consumer of Foundation reaches Core Foundation itself --
+# CFStringRef for a format, CFTypeID to ask what a bridged object is -- and a
+# target that kept it PRIVATE would fail to link with "DSO missing from command
+# line" at the first such call, which is how that was found there.
+# ---------------------------------------------------------------------------
+include(CMakePackageConfigHelpers)
+
+install(EXPORT FoundationTargets
+    FILE FoundationTargets.cmake
+    NAMESPACE Foundation::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Foundation)
+
+configure_package_config_file(cmake/FoundationConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/FoundationConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Foundation)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/FoundationConfigVersion.cmake
+    VERSION 1.0.0
+    COMPATIBILITY SameMajorVersion)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/FoundationConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/FoundationConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Foundation)
