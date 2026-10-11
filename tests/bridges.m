@@ -1549,6 +1549,69 @@ static void arg_mutable_cfstring(void)
 	      "a copy of a mutable Core Foundation string is itself mutable");
 }
 
+/* AND THE FIFTH MUTABLE TYPE, WHICH TOOK THE STRING'S LESSON AND NEEDED NO SECOND ATTEMPT. The class was
+ * READ before a door was chosen: libagora-base's NSData.h names the two buffer accessors (-bytes and
+ * -mutableBytes), and measured, the mutable class writes storage in exactly seven methods -- -mutableBytes,
+ * -setLength:, -appendBytes:length:, -replaceBytesInRange:withBytes:length:, -resetBytesInRange:,
+ * -increaseLengthBy: and -setData:. All seven are ANSWERED rather than left to Foundation's implementation,
+ * because a method here that Foundation still runs writes ITS storage into a Core Foundation object.
+ *
+ * A CFData's variety -- immutable, fixed-mutable, mutable -- shares one type id, so the class is chosen by
+ * the category its initialiser passes, the same road the array took.
+ *
+ * AND THE VALUE SEMANTICS ARE ASSERTED, which is what the mutable string's turn taught: a data that reads
+ * back correctly and compares or hashes wrongly would pass every byte check here. */
+static void arg_mutable_cfdata(void)
+{
+	CFMutableDataRef d = CFDataCreateMutable(NULL, 0);
+	CFDataRef immutable = CFDataCreate(NULL, (const UInt8 *)"imm", 3);
+	const unsigned char reference[4] = { 1, 2, 3, 4 };
+	const unsigned char *got;
+	NSData *equal;
+
+	check([(id)d isKindOfClass:[NSMutableData class]], "a CFMutableDataRef is not an NSMutableData");
+	check(![(id)immutable isKindOfClass:[NSMutableData class]], "an immutable CFData claims to be mutable");
+
+	[(NSMutableData *)d appendBytes:reference length:4];
+	check(CFDataGetLength(d) == 4, "-appendBytes:length: left Core Foundation holding %ld bytes",
+	      (long)CFDataGetLength(d));
+	CFDataAppendBytes(d, (const UInt8 *)"\x05\x06", 2);
+	check([(id)d length] == 6, "CFDataAppendBytes left Foundation holding %lu bytes", (unsigned long)[(id)d length]);
+	got = (const unsigned char *)[(NSData *)d bytes];
+	check(got[0] == 1 && got[3] == 4 && got[4] == 5 && got[5] == 6,
+	      "Foundation read %d %d %d %d %d %d from Core Foundation's bytes",
+	      got[0], got[1], got[2], got[3], got[4], got[5]);
+
+	[(NSMutableData *)d setLength:3];
+	check(CFDataGetLength(d) == 3, "-setLength: left Core Foundation holding %ld bytes", (long)CFDataGetLength(d));
+
+	[(NSMutableData *)d increaseLengthBy:2];
+	got = (const unsigned char *)[(NSData *)d bytes];
+	check(CFDataGetLength(d) == 5 && got[4] == 0, "-increaseLengthBy: left Core Foundation holding %ld bytes and a final byte of %d",
+	      (long)CFDataGetLength(d), got[4]);
+
+	[(NSMutableData *)d replaceBytesInRange:NSMakeRange(0, 1) withBytes:"\xff" length:1];
+	check(((const unsigned char *)[(NSData *)d bytes])[0] == 0xFF,
+	      "-replaceBytesInRange:withBytes:length: did not reach Core Foundation");
+
+	[(NSMutableData *)d resetBytesInRange:NSMakeRange(0, 2)];
+	got = (const unsigned char *)[(NSData *)d bytes];
+	check(got[0] == 0 && got[1] == 0, "-resetBytesInRange: left %d %d", got[0], got[1]);
+
+	/* THE WRITE ACCESSOR ITSELF, and then Foundation's view of the byte it changed. */
+	((unsigned char *)[(NSMutableData *)d mutableBytes])[2] = 0x41;
+	check(((const unsigned char *)[(NSData *)d bytes])[2] == 0x41,
+	      "a write through -mutableBytes is not visible through -bytes");
+
+	[(NSMutableData *)d setData:[NSData dataWithBytes:"zz" length:2]];
+	check(CFDataGetLength(d) == 2, "-setData: left Core Foundation holding %ld bytes", (long)CFDataGetLength(d));
+
+	/* AND THE VALUE SEMANTICS, not just the bytes. */
+	equal = [NSData dataWithBytes:"zz" length:2];
+	check([(id)d isEqual:equal], "a Core Foundation mutable data is not equal to an equal NSData");
+	check([(id)d hash] == [equal hash], "a Core Foundation mutable data hashes differently from an equal NSData");
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1573,6 +1636,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Core Foundation's mutable dictionary, from both sides", arg_mutable_cfdictionary },
 	{ "Core Foundation's mutable set, through its one storage door", arg_mutable_cfset },
 	{ "Core Foundation's mutable string, from both sides", arg_mutable_cfstring },
+	{ "Core Foundation's mutable data, from both sides", arg_mutable_cfdata },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },
