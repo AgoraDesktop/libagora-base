@@ -1442,6 +1442,56 @@ static void arg_mutable_cfdictionary(void)
 	check(CFDictionaryGetCount(d) == 0 && [(id)d count] == 0, "-removeAllObjects did not reach Core Foundation");
 }
 
+/* AND THE THIRD MUTABLE TYPE, WHICH IS THE CHEAPEST OF THE THREE AND THE FIRST TO NEED NO FOUNDATION
+ * ROUTING AT ALL. A set's whole storage contract is ONE door -- -fnReplaceMembers: -- and measured, every
+ * mutable operation funnels through it: -addObject: copies the members, appends and replaces, and
+ * -unionSet:, -minusSet:, -intersectSet: and -setSet: compute a new membership and replace. So the owned
+ * class answers that door and inherits a complete mutable set; the only thing it cannot inherit is the
+ * fast-enumeration word, which is an address.
+ *
+ * -unionSet: IS DRIVEN HERE ON PURPOSE: it is a DERIVED operation, so it only works if the single door is
+ * answered over Core Foundation's storage -- a class that answered the door but read Foundation's members
+ * anywhere else would pass the direct checks and fail this one. A set is a CFBasicHash like a dictionary,
+ * so the class is chosen by the category its mutable creator passes. */
+static void arg_mutable_cfset(void)
+{
+	CFMutableSetRef s = CFSetCreateMutable(NULL, 0, &kCFTypeSetCallBacks);
+	CFSetRef immutable = CFSetCreate(NULL, NULL, 0, &kCFTypeSetCallBacks);
+	NSUInteger seen = 0;
+
+	check([(id)s isKindOfClass:[NSMutableSet class]], "a CFMutableSetRef is not an NSMutableSet");
+	check(![(id)immutable isKindOfClass:[NSMutableSet class]], "an immutable CFSet claims to be mutable");
+	check(![(id)immutable respondsToSelector:@selector(addObject:)],
+	      "an immutable CFSet responds to -addObject:");
+
+	[(NSMutableSet *)s addObject:@"a"];
+	[(NSMutableSet *)s addObject:@"b"];
+	check([(id)s count] == 2 && CFSetGetCount(s) == 2,
+	      "after two -addObject:, Foundation sees %ld and Core Foundation %ld", (long)[(id)s count], (long)CFSetGetCount(s));
+	check(CFSetContainsValue(s, CFSTR("a")), "Core Foundation cannot see a member Foundation added");
+
+	CFSetAddValue(s, CFSTR("c"));
+	check([(id)s containsObject:@"c"], "Foundation cannot see a member Core Foundation added");
+
+	[(NSMutableSet *)s removeObject:@"a"];
+	check(CFSetGetCount(s) == 2 && ![(id)s containsObject:@"a"],
+	      "-removeObject: did not reach Core Foundation");
+
+	/* THE DERIVED DOOR: it computes a membership and hands it to -fnReplaceMembers:. */
+	[(NSMutableSet *)s unionSet:[NSSet setWithObject:@"z"]];
+	check([(id)s containsObject:@"z"] && CFSetContainsValue(s, CFSTR("z")),
+	      "-unionSet: did not reach Core Foundation through the storage door");
+
+	for (id member in (id)s) {
+		(void)member;
+		seen++;
+	}
+	check(seen == 3, "fast enumeration over a mutable Core Foundation set saw %lu", (unsigned long)seen);
+
+	[(NSMutableSet *)s removeAllObjects];
+	check(CFSetGetCount(s) == 0 && [(id)s count] == 0, "-removeAllObjects did not reach Core Foundation");
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1464,6 +1514,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "A mutable array answers from storage of its own", arg_mutable_array_primitives },
 	{ "Core Foundation's mutable array, from both sides", arg_mutable_cfarray },
 	{ "Core Foundation's mutable dictionary, from both sides", arg_mutable_cfdictionary },
+	{ "Core Foundation's mutable set, through its one storage door", arg_mutable_cfset },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },

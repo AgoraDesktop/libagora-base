@@ -44,7 +44,20 @@
 @end
 
 
+/* THE FAST-ENUMERATION WORD, on the same terms NSMutableArray's and NSDictionary's are: it is an ADDRESS a
+ * loop polls and compares, so a class whose members live somewhere else has to say where its own word is.
+ * The set's storage contract is ONE door -- -fnReplaceMembers: -- and everything mutable funnels through it,
+ * which is why this is the only thing the set needed. */
+@interface NSSet (FNStoragePrimitive)
+- (unsigned long *)fnMutationWord;
+@end
+
 @implementation NSSet
+
+- (unsigned long *)fnMutationWord
+{
+	return &_mutations;
+}
 
 /* THE DOOR IS `+alloc` (§C.3 item 1): a concrete class INHERITS this, and `[super alloc]` starts the
  * lookup at NSSet's superclass with the receiver still being the class that was asked, so the routing
@@ -618,7 +631,7 @@ static void fnAppendSetMember(NSMutableString *out, id member, id locale, NSUInt
 	while (produced < length && (object = [enumerator nextObject]) != nil) {
 		buffer[produced++] = object;
 	}
-	state->mutationsPtr = &_mutations;
+	state->mutationsPtr = [self fnMutationWord];
 	if (produced == 0) {
 		return 0;
 	}
