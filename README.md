@@ -16,7 +16,7 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
 
 ## Status
 
-**Imported, building, and running; toll-free bridging still owed.**
+**Imported, building, running, and toll-free bridged to `libagora-core`.**
 
 1. **The build is wired and verified.** Every `.m` in the directory is compiled (a directory glob, as
    Fiwix's own build generates its rules) with clang, plus `plist.c` — the property-list core that
@@ -25,9 +25,26 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
    `libagora-core` (Core Foundation), `libagora-dispatch`, the system ICU, zlib and libcurl, and Core
    Graphics' headers come from the sibling `libagora-drawing`. An Objective-C smoke test using
    `NSString`/`NSArray`/`NSAutoreleasePool` links and runs.
-2. **Toll-free bridging is still owed.** The imported Foundation has no CoreFoundation, so its value
-   types are standalone (`NSString` → `NSOwnedString` owns its own buffer). Agora's `libagora-base`
-   must **toll-free bridge** them to `libagora-core` the way Apple does — `CFStringRef` and
-   `NSString *` *are the same object* — by making the concrete value classes the CF objects and
-   registering them with Core Foundation (`_CFRuntimeBridgeTypeToClass` plus the `__CFSwiftBridge`
-   bridge structs).
+2. **Toll-free bridging is made.** `CFStringRef` and `NSString *` *are the same object*, and so are
+   the other seventeen types the two libraries share: `CFArray`/`NSArray`, `CFData`/`NSData`,
+   `CFDictionary`/`NSDictionary`, `CFSet`/`NSSet`, `CFNumber`/`NSNumber`, `CFDate`/`NSDate`,
+   `CFNull`/`NSNull`, `CFURL`/`NSURL`, `CFTimeZone`/`NSTimeZone`, `CFLocale`/`NSLocale`,
+   `CFError`/`NSError`, `CFAttributedString`/`NSAttributedString`,
+   `CFCharacterSet`/`NSCharacterSet`, `CFCalendar`/`NSCalendar`, `CFReadStream`/`NSInputStream`,
+   `CFWriteStream`/`NSOutputStream` and `CFRunLoopTimer`/`NSTimer`. The bridge is three mechanisms,
+   each measured rather than assumed:
+
+   - **Core Foundation's own objects wear an Objective-C class**, built from a table in
+     `libagora-core/CFRuntime.c`, so a `CFStringRef` Core Foundation created answers `-length` and a
+     `CFURLRef` answers `-host`;
+   - **the CF-facing doors are answered by this Foundation**, including the ones whose signatures Core
+     Foundation's own numbering makes easy to get wrong (the byte doors, which are handed a
+     `CFStringEncoding` where Cocoa expects an `NSStringEncoding`) and the calendar's three varargs
+     doors, which upstream only Swift's bridge implements;
+   - **the reference count in force is Core Foundation's**, so `CFRetain`/`CFRelease` and
+     `-retain`/`-release` move one count rather than two.
+
+   Verified by `tests/bridges.m`: **63 cases**, every one of the eighteen types in both directions,
+   and — a direction nothing had tested before — Core Foundation asking a *Foundation* object
+   (`CFReadStreamGetError`, `CFCalendarDecomposeAbsoluteTime`, `CFCalendarComposeAbsoluteTime`,
+   `CFCalendarAddComponents`). `PROVENANCE.md` records what is deliberately *not* bridged.
