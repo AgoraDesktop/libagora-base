@@ -54,6 +54,40 @@
 
 @implementation NSSet
 
+/* THE DOORS CORE FOUNDATION ASKS A SET BY NAME, FOUND BY THE SURFACE SURVEY AND ONE ITS DOORS DID NOT
+ * REACH: CFSetGetValues asks -getObjects: (CFSet.c:243), and Core Foundation's SET value door asks
+ * -__getValue:forObj: (CFSet.c:228) -- NOT the dictionary's ...forKey:, which is why the survey's list was
+ * incomplete and why the call sites are the authority. -copyWithZone: is Cocoa's own. */
+- (void)getObjects:(id __unsafe_unretained *)objects
+{
+	NSArray *all = [self allObjects];
+	NSUInteger i, n = [all count];
+
+	for (i = 0; i < n; i++) {
+		objects[i] = [all objectAtIndex:i];
+	}
+}
+
+- (BOOL)__getValue:(id *)value forObj:(id)member
+{
+	id found = [self member:member];
+
+	if (value != NULL) {
+		*value = found;
+	}
+	return (found != nil);
+}
+
+/* AND THIS TREE HAS NO NSZone -- NSNumberFormatter.m records that decision -- so the parameter is typed
+ * as the pointer Core Foundation actually sends (a NULL zone), which keeps the selector's encoding
+ * consistent with the rest of this library instead of inventing a type it does not have. Cocoa's -copy
+ * already returns +1, which is what a copy door owes. */
+- (id)copyWithZone:(void *)zone
+{
+	(void)zone;
+	return [self copy];
+}
+
 - (unsigned long *)fnMutationWord
 {
 	return &_mutations;

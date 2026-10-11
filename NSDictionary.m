@@ -121,6 +121,44 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 
 @implementation NSDictionary
 
+/* THE DOORS CORE FOUNDATION ASKS A DICTIONARY BY NAME, FOUND BY THE SURFACE SURVEY, AND THE SIGNATURES
+ * COME FROM ITS CALL SITES RATHER THAN FROM A GUESS: CFDictionaryContainsKey asks -containsKey: and
+ * expects a CHAR (CFDictionary.c:231) -- not a BOOL, which is 'C' here and would be a different signature
+ * -- and CFDictionaryGetValueIfPresent asks -__getValue:forKey: (CFDictionary.c:246), whose out-parameter
+ * is where the value goes and whose answer says whether there was one. -copyWithZone: is Cocoa's own and
+ * simply was not here; Cocoa's -copy already returns +1, which is what a copy door owes. */
+- (char)containsKey:(id)key
+{
+	return ([self objectForKey:key] != nil) ? (char)1 : (char)0;
+}
+
+/* AND Core Foundation's SET door, which asks for -__setObject:forKey: -- measured by the surface survey on
+ * a MUTABLE dictionary, which its first pass never reached. */
+- (void)__setObject:(id)value forKey:(id)key
+{
+	[self setObject:value forKey:key];
+}
+
+- (BOOL)__getValue:(id *)value forKey:(id)key
+{
+	id found = [self objectForKey:key];
+
+	if (value != NULL) {
+		*value = found;
+	}
+	return (found != nil);
+}
+
+/* AND THIS TREE HAS NO NSZone -- NSNumberFormatter.m records that decision -- so the parameter is typed
+ * as the pointer Core Foundation actually sends (a NULL zone), which keeps the selector's encoding
+ * consistent with the rest of this library instead of inventing a type it does not have. Cocoa's -copy
+ * already returns +1, which is what a copy door owes. */
+- (id)copyWithZone:(void *)zone
+{
+	(void)zone;
+	return [self copy];
+}
+
 /* AND THE PRIVATE DOOR CORE FOUNDATION ASKS A DICTIONARY FOR. MEASURED, AND IT COST AN ABORT: setting
  * attributes on a Core Foundation attributed string calls CFAttributedStringSetAttributes, which
  * dispatches to the dictionary it was handed and sends -_cfMutableCopy -- so a Foundation dictionary

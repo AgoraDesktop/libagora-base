@@ -1404,6 +1404,15 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 	[self insertObject:object atIndex:[self count]];
 }
 
+
+/* CFArraySetValueAtIndex DISPATCHES TO THIS NAME, and it is this class's own replacement door under Core
+ * Foundation's spelling -- found by the surface survey, with the signature taken from the door it
+ * forwards to. */
+- (void)setObject:(id)object atIndex:(NSUInteger)index
+{
+	[self replaceObjectAtIndex:index withObject:object];
+}
+
 - (void)insertObject:(id)object atIndex:(unsigned long)index
 {
 	if (index > _count) {

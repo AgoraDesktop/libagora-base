@@ -17,6 +17,7 @@
  */
 
 #import <Foundation/NSRunLoop.h>
+#include <CoreFoundation/CoreFoundation.h>	/* CFAbsoluteTime, for the door CFRunLoop asks a timer for */
 #include <Block.h>	/* AT THE TOP: it sat below the NSTimer code, so that code could not see the
 			 * runtime entry points while the performer further down could (§63.190). */
 #import <Foundation/NSTimer.h>
@@ -176,6 +177,16 @@ static double fn_now(void)
 #define FN_WAIT_CAP 0.05
 
 @implementation NSTimer
+
+/* CFRunLoopTimerGetNextFireDate DISPATCHES TO THIS, AND IT ANSWERS A CFAbsoluteTime (CFRunLoop.c:4577) --
+ * this Foundation's reference-date convention already, so the date door is the whole implementation.
+ * Found by the surface survey. */
+- (CFAbsoluteTime)_cffireTime
+{
+	NSDate *fire = [self fireDate];
+
+	return (fire != nil) ? (CFAbsoluteTime)[fire timeIntervalSinceReferenceDate] : (CFAbsoluteTime)0.0;
+}
 
 + (NSTimer *)timerWithTimeInterval:(NSTimeInterval)interval
 			    target:(id)target

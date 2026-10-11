@@ -40,7 +40,11 @@
  * before it is called so the last line before a death names the door, and exceptions caught so a raise is
  * recorded rather than fatal. Seventeen types, about ninety doors.
  *
- * MEASURED, AND NOT ONE OF THEM IS FIXED YET:
+ * MEASURED. THE EIGHT DOORS BELOW THAT RAISED ARE NOW ANSWERED -- each implemented over the class's own
+ * public API, with its signature taken from Core Foundation's call site -- and MEASURED WORKING by
+ * re-running the survey: every door that raised answers, and the suite is green. The ninth is still open.
+ *
+ * THE SURVEY THAT FOUND THEM:
  *
  *   CFStringGetFastestEncoding       -[NSString _fastestEncodingInCFStringEncoding]  -- exists on
  *                                    NSCFConstantString only, where ASCII is the honest answer, so every
@@ -57,6 +61,12 @@
  *   CFRunLoopTimerGetNextFireDate    -[NSTimer _cffireTime]                           -- answers a
  *                                    CFAbsoluteTime (CFRunLoop.c:4577)
  *   CFAttributedStringGetAttributes  SEGFAULT, and NOT a raise: the door is never reached
+ *
+ * STILL OPEN, AND IT IS NOT A RAISE: CFAttributedStringGetAttributes SEGFAULTS on a Foundation attributed
+ * string, so the door is never reached and no exception reports it. A suite case that drives the closed
+ * doors was ATTEMPTED in the same turn and crashed the same way, in a place this session could not
+ * attribute before its budget ran out -- so the doors are verified by the survey quoted above rather than
+ * by a case, and the crash is the first thing to look at next.
  *
  * AND THREE APPARENT GAPS WERE NOT GAPS AT ALL: -getObjects:range:, -getObjects:andKeys: and
  * -copyWithZone: on NSArray already existed, and CFArray.c:558 was already answered by the first of them.
@@ -203,6 +213,23 @@
 {
 	return [self getCString:buffer maxLength:maxLength
 		       encoding:CFStringConvertEncodingToNSStringEncoding(encoding)];
+}
+
+
+/* AND THE TWO ENCODING DOORS, ON NSString FOR THE SAME REASON: CFStringGetFastestEncoding dispatches to
+ * -_fastestEncodingInCFStringEncoding for ANY string Core Foundation holds. They lived only on
+ * NSCFConstantString -- where ASCII is the honest answer, because a CFSTR IS ASCII -- so every OTHER
+ * Foundation string raised when Core Foundation asked. MEASURED by the surface survey. For a string of
+ * unknown contents the honest answer is the encoding this family stores, UTF-8, and the constant-string
+ * class keeps its narrower ASCII answer by overriding. */
+- (CFStringEncoding)_fastestEncodingInCFStringEncoding
+{
+	return kCFStringEncodingUTF8;
+}
+
+- (CFStringEncoding)_smallestEncodingInCFStringEncoding
+{
+	return kCFStringEncodingUTF8;
 }
 
 @end
