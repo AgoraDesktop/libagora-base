@@ -555,6 +555,7 @@ static void fn_calendar_write_field(NSDateComponents *c, int field, int32_t valu
 	NSDateComponents *components = [[NSDateComponents alloc] init];
 	NSDate *date = nil;
 	BOOL converted = NO;
+	Boolean yearIsWeekBased = false;
 
 	if (componentDesc != NULL) {
 		const unsigned char *desc = componentDesc;
@@ -568,13 +569,45 @@ static void fn_calendar_write_field(NSDateComponents *c, int field, int32_t valu
 		[components setSecond:0];
 		[components setNanosecond:0];
 
+		/* CORE FOUNDATION'S LEGACY REINTERPRETATION OF 'y', REPRODUCED AT LAST, AND IT NEEDS A FIRST PASS.
+		 * Its own code carries the rule with a compatibility note: a 'y' becomes a year-FOR-WEEK-OF-YEAR when
+		 * the caller names a weekday and a week of the year and NEITHER a month nor a day, and names no
+		 * year-for-week-of-year of its own. (CFCalendar.c, in the comment above the field loop.) */
+		{
+			Boolean seenMonth = false, seenDay = false, seenWeekday = false;
+			Boolean seenWeekOY = false, seenYearWOY = false, seenOldWeek = false;
+
+			for (const unsigned char *scan = componentDesc; *scan != '\0'; scan++) {
+				switch (fn_calendar_field_for_char(*scan)) {
+				case FNCalendarFieldMonth: seenMonth = true; break;
+				case FNCalendarFieldDay: seenDay = true; break;
+				case FNCalendarFieldWeekday: seenWeekday = true; break;
+				case FNCalendarFieldWeekOfYear:
+					if (*scan == '^') {
+						seenOldWeek = true;
+					} else {
+						seenWeekOY = true;
+					}
+					break;
+				case FNCalendarFieldYearWOY: seenYearWOY = true; break;
+				default: break;
+				}
+			}
+			yearIsWeekBased = (Boolean)(!(seenDay && seenMonth)
+						    && (seenWeekday && (seenWeekOY || seenOldWeek))
+						    && !(seenWeekOY || seenYearWOY));
+		}
+
 		while (*desc != '\0') {
 			int32_t value = va_arg(args, int32_t);
+			int field = (*desc == '#') ? FNCalendarFieldNanosecond : fn_calendar_field_for_char(*desc);
 
-			if (*desc != '#') {	/* '#' is nanoseconds and is carried on the same field */
-				fn_calendar_write_field(components, fn_calendar_field_for_char(*desc), value);
-			} else {
+			if (*desc == '#') {
 				[components setNanosecond:(NSInteger)value];
+			} else if (field == FNCalendarFieldYear && yearIsWeekBased) {
+				[components setYearForWeekOfYear:(NSInteger)value];
+			} else {
+				fn_calendar_write_field(components, field, value);
 			}
 			desc++;
 		}

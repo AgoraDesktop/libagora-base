@@ -1180,6 +1180,26 @@ static void arg_forward_cfcalendar(void)
 		check(CFCalendarDecomposeAbsoluteTime((CFCalendarRef)cal, 0.25, "#", &nanos) && nanos == 250000000,
 		      "the sub-second part of 0.25 decomposed as %d, want 250000000", (int)nanos);
 	}
+
+	/* AND THE LEGACY REINTERPRETATION OF 'y', WHICH CORE FOUNDATION APPLIES AND THIS BRIDGE NOW REPRODUCES
+	 * RATHER THAN DEVIATING FROM. With a WEEKDAY and a WEEK-OF-YEAR -- its old-week character '^' -- and
+	 * neither a month nor a day, Core Foundation reads the year it is given as the YEAR-FOR-WEEK-OF-YEAR, so
+	 * the 'y' spelling must agree exactly with an explicit 'Y'. THE CONTROL IS THE OTHER HALF OF THE RULE:
+	 * without a weekday it must NOT fire, or ordinary years would be reinterpreted behind a caller's back. */
+	{
+		CFAbsoluteTime asYear = 0, asYearWOY = 0, controlY = 0, controlYWOY = 0;
+
+		CFCalendarComposeAbsoluteTime((CFCalendarRef)cal, &asYear, "y^E", 2020, 1, 1);
+		CFCalendarComposeAbsoluteTime((CFCalendarRef)cal, &asYearWOY, "Y^E", 2020, 1, 1);
+		check(asYear == asYearWOY,
+		      "the legacy 'y' rule did not fire: 'y^E' gave %.1f where 'Y^E' gave %.1f",
+		      (double)asYear, (double)asYearWOY);
+
+		CFCalendarComposeAbsoluteTime((CFCalendarRef)cal, &controlY, "yd", 2020, 1);
+		CFCalendarComposeAbsoluteTime((CFCalendarRef)cal, &controlYWOY, "Yd", 2020, 1);
+		check(controlY != controlYWOY,
+		      "the legacy 'y' rule fired WITHOUT a weekday: 'yd' and 'Yd' both gave %.1f", (double)controlY);
+	}
 	[cal release];
 }
 
