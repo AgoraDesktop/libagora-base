@@ -1183,6 +1183,53 @@ static void arg_forward_cfcalendar(void)
 	[cal release];
 }
 
+/* AND THE BOOLEAN CORNER OF NSNumber, WHICH IS A BRIDGE OF ITS OWN AND WAS NOT ONE. Apple's NSNumber
+ * documentation says NSNumber is toll-free bridged with CFNumber "for integer and floating point values,
+ * and CFBoolean for Boolean values", and an NSNumber made from a BOOL really is a CFBoolean there. Here it
+ * was not: the type was registered for nothing, so Core Foundation answered the wrong type id, CFBooleanGetValue
+ * answered FALSE for every Boolean (it dispatches to -boolValue and falls back to an identity test against
+ * kCFBooleanTrue), and messaging kCFBooleanTrue crashed outright because the constant wore no class.
+ *
+ * THE EXPECTATIONS ARE APPLE'S NUMBERS AND NOT THIS IMPLEMENTATION'S. The last check is the one that keeps
+ * a wrong fix from passing: registering [NSNumber class] for the Boolean type would make every one of these
+ * true while turning EVERY number into a Boolean, so the discriminator is asserted with them. */
+static void arg_cfboolean(void)
+{
+	/* the type ids, in both directions of the question */
+	check(CFGetTypeID((CFTypeRef)@YES) == CFBooleanGetTypeID(),
+	      "an NSNumber made from YES reported a type id that is not CFBoolean's");
+	check(CFGetTypeID((CFTypeRef)@NO) == CFBooleanGetTypeID(),
+	      "an NSNumber made from NO reported a type id that is not CFBoolean's");
+	check(CFGetTypeID((CFTypeRef)@1) == CFNumberGetTypeID(),
+	      "an NSNumber made from the integer 1 is no longer a CFNumber");
+	check(CFGetTypeID((CFTypeRef)[NSNumber numberWithDouble:1.5]) == CFNumberGetTypeID(),
+	      "an NSNumber made from a double is no longer a CFNumber");
+
+	/* THE SILENT ONE: every Boolean answered false to Core Foundation before this. */
+	check(CFBooleanGetValue((CFBooleanRef)@YES) == 1, "CFBooleanGetValue said YES was false");
+	check(CFBooleanGetValue((CFBooleanRef)@NO) == 0, "CFBooleanGetValue said NO was true");
+
+	/* AND THE CRASHING ONE: Core Foundation's own constants had no class to message. */
+	check([(NSNumber *)kCFBooleanTrue boolValue] == 1, "kCFBooleanTrue did not answer -boolValue 1");
+	check([(NSNumber *)kCFBooleanFalse boolValue] == 0, "kCFBooleanFalse did not answer -boolValue 0");
+
+	/* THE PRIMITIVES BEHIND THAT: a Boolean built by Foundation and Core Foundation's constant have to be
+	 * equal, which only holds if the owned class's -agKind and value doors agree with AGNumberBoolean. */
+	check([(NSNumber *)kCFBooleanTrue isEqual:@YES], "kCFBooleanTrue is not equal to an NSNumber YES");
+	check(![(NSNumber *)kCFBooleanTrue isEqual:@NO], "kCFBooleanTrue is equal to an NSNumber NO");
+	check([[(NSNumber *)kCFBooleanTrue description] length] > 0,
+	      "Core Foundation's Boolean answered no description through Foundation");
+	{
+		/* -objCType ANSWERS A C STRING AND NOT AN NSString, which this check got wrong first time: it sent
+		 * -length to the char * and the case died of SIGSEGV in the forked child. The suite caught it as a
+		 * failed case rather than a hang, which is what the fork is for. */
+		const char *encoding = [(NSNumber *)kCFBooleanTrue objCType];
+
+		check(encoding != NULL && encoding[0] != '\0',
+		      "Core Foundation's Boolean answered no objCType through Foundation");
+	}
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1201,6 +1248,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFReadStream", arg_cfreadstream },
 	{ "Core Foundation asks a Foundation stream for its error", arg_forward_cfstreamerror },
 	{ "Core Foundation asks a Foundation calendar to compute", arg_forward_cfcalendar },
+	{ "NSNumber's Booleans are Core Foundation's CFBoolean", arg_cfboolean },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },
