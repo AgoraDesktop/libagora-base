@@ -77,7 +77,12 @@
  * child) was NOT reproduced in four variations, so a "DIED" line here is an unexplained death and not an
  * attribution to the door last named. A harness that prints a name before a call can only say WHERE the
  * process stopped, which is not the same as what was wrong -- and the honest use of this list is to check
- * each door in-process, which is what closed the eight above. *
+ * each door in-process, which is what closed the eight above.
+ *
+ * AND THE EIGHT ARE NOW HELD BY A CASE, not by this list: tests/bridges.m's "The Core Foundation doors a
+ * surface survey found missing" drives every one of them and asserts the ANSWERS (a char, an
+ * out-parameter, a replaced element, a fire date), so a regression fails a case rather than needing someone
+ * to re-run a survey and read it carefully. *
  * AND THREE APPARENT GAPS WERE NOT GAPS AT ALL: -getObjects:range:, -getObjects:andKeys: and
  * -copyWithZone: on NSArray already existed, and CFArray.c:558 was already answered by the first of them.
  * CHECK THIS FILE'S CLASSES' HEADERS BEFORE IMPLEMENTING ANY OF THE ABOVE -- writing those three

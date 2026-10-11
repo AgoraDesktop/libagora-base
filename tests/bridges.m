@@ -1778,6 +1778,76 @@ static void arg_mutable_cfattributed(void)
 	      "the attributes are not readable through the immutable primitive");
 }
 
+/* AND THE DOORS A SURFACE SURVEY FOUND MISSING, ALL EIGHT NOW ANSWERED. Core Foundation's own functions
+ * were applied to FOUNDATION objects -- one child per type, each door named before it was called -- and
+ * eight raised where a Foundation implementation simply was not there. Each is now answered, WITH ITS
+ * SIGNATURE TAKEN FROM CORE FOUNDATION'S CALL SITE rather than guessed: -containsKey: returns a CHAR there
+ * (not a BOOL, which is a different encoding in this tree), a SET's value door is -__getValue:forObj: while
+ * a dictionary's is -__getValue:forKey:, and CFDictionarySetValue asks -__setObject:forKey:
+ * (CFDictionary.c:397), which the survey's first pass never reached because it held only an immutable
+ * dictionary.
+ *
+ * THE ASSERTIONS ARE THE ANSWERS, NOT THE ABSENCE OF A RAISE: a door that returns the wrong thing is as
+ * broken as one that raises.
+ *
+ * AN EARLIER VERSION OF THIS CASE WAS REMOVED BECAUSE IT CRASHED, AND THAT WAS A MISTAKE OF MINE RATHER
+ * THAN A FINDING: the probe I had been bisecting with passed @"x" to -stringWithUTF8String:, which wants a
+ * C string, so it died wherever it ran and printed nothing when it failed to link. Retested properly the
+ * doors answer in the parent and in a child, and the case below is the same battery. One death in the
+ * original survey was never reproduced in four variations, so a "DIED" line there is an UNEXPLAINED death
+ * and not an attribution -- which is why the eight doors are held by assertions rather than by that list. */
+static void arg_cf_surface_doors(void)
+{
+	NSString *str = [NSString stringWithUTF8String:"hello"];
+	NSDictionary *dict = @{ @"k": @"v" };
+	NSMutableDictionary *mdict = [NSMutableDictionary dictionary];
+	NSSet *set = [NSSet setWithObject:@"a"];
+	NSMutableArray *array = [NSMutableArray arrayWithObject:@"a"];
+	NSTimer *timer = [NSTimer timerWithTimeInterval:2.0 target:nil selector:@selector(description)
+					       userInfo:nil repeats:NO];
+	NSAttributedString *as = [[NSAttributedString alloc] initWithString:@"hi" attributes:@{ @"a": @1 }];
+	const void *values[4];
+	id out = nil;
+
+	/* THE TWO ENCODING DOORS, which lived only on the constant-string class. */
+	check(CFStringGetFastestEncoding((CFStringRef)str) != 0,
+	      "CFStringGetFastestEncoding answered nothing for an ordinary Foundation string");
+	check(CFStringGetSmallestEncoding((CFStringRef)str) != 0,
+	      "CFStringGetSmallestEncoding answered nothing for an ordinary Foundation string");
+
+	/* THE DICTIONARY'S, INCLUDING THE CHAR RETURN AND THE OUT-PARAMETER. */
+	check(CFDictionaryContainsKey((CFDictionaryRef)dict, CFSTR("k")) != 0,
+	      "CFDictionaryContainsKey did not find a key that is there");
+	check(CFDictionaryContainsKey((CFDictionaryRef)dict, CFSTR("nope")) == 0,
+	      "CFDictionaryContainsKey found a key that is not there");
+	check(CFDictionaryGetValueIfPresent((CFDictionaryRef)dict, CFSTR("k"), (const void **)&out) && out != nil,
+	      "CFDictionaryGetValueIfPresent did not report the value it was asked for");
+	check(CFDictionaryCreateCopy(NULL, (CFDictionaryRef)dict) != NULL,
+	      "CFDictionaryCreateCopy did not copy a Foundation dictionary");
+	CFDictionarySetValue((CFMutableDictionaryRef)mdict, CFSTR("a"), CFSTR("1"));
+	check(CFDictionaryGetCount((CFMutableDictionaryRef)mdict) == 1,
+	      "CFDictionarySetValue did not reach a Foundation mutable dictionary");
+	CFDictionaryRemoveValue((CFMutableDictionaryRef)mdict, CFSTR("a"));
+	check(CFDictionaryGetCount((CFMutableDictionaryRef)mdict) == 0,
+	      "CFDictionaryRemoveValue did not reach a Foundation mutable dictionary");
+
+	/* THE SET'S, INCLUDING -__getValue:forObj:. */
+	CFSetGetValues((CFSetRef)set, values);
+	check(values[0] != NULL, "CFSetGetValues filled nothing");
+	check(CFSetGetValue((CFSetRef)set, CFSTR("a")) != NULL,
+	      "CFSetGetValue did not find a member that is there -- a set's value door is -__getValue:forObj:");
+	check(CFSetCreateCopy(NULL, (CFSetRef)set) != NULL, "CFSetCreateCopy did not copy a Foundation set");
+
+	/* AND THE ARRAY, THE TIMER AND THE ATTRIBUTED DOOR, WHOSE ANSWERS ARE THE CHANGE ITSELF. */
+	CFArraySetValueAtIndex((CFMutableArrayRef)array, 0, CFSTR("z"));
+	check([[(id)CFArrayGetValueAtIndex((CFArrayRef)array, 0) description] isEqualToString:@"z"],
+	      "CFArraySetValueAtIndex did not replace the element");
+	check(CFRunLoopTimerGetNextFireDate((CFRunLoopTimerRef)timer) != 0.0,
+	      "CFRunLoopTimerGetNextFireDate answered nothing for a Foundation timer");
+	check(CFAttributedStringGetAttributes((CFAttributedStringRef)as, 0, NULL) != NULL,
+	      "CFAttributedStringGetAttributes answered nothing for a NULL effective range");
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -1805,6 +1875,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Core Foundation's mutable data, from both sides", arg_mutable_cfdata },
 	{ "Core Foundation's mutable character set, from both sides", arg_mutable_cfcharset },
 	{ "Core Foundation's mutable attributed string, from both sides", arg_mutable_cfattributed },
+	{ "The Core Foundation doors a surface survey found missing", arg_cf_surface_doors },
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },
