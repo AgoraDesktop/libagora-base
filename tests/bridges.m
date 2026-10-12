@@ -175,6 +175,20 @@ static void reg_cfstr(void)
 	check([(NSString *)CFSTR("x") length] == 1, "[CFSTR(\"x\") length] %ld", (long)[(NSString *)CFSTR("x") length]);
 	check(CFStringGetLength(CFSTR("")) == 0, "CFSTR(\"\") length %ld", (long)CFStringGetLength(CFSTR("")));
 	check(CFEqual(CFSTR("x"), (CFStringRef)@"x"), "CFEqual(CFSTR(\"x\"), @\"x\") is false");
+
+	/* **AND THE INVARIANT EVERY OTHER DISPATCH GUARD IN CORE FOUNDATION RESTS ON: THE CONSTANT'S CLASS HAS A
+	 * NAME.** `_CFIsAnObject` refuses an object whose class has no name — which is exactly what a ZEROED
+	 * constant-string placeholder looks like — so this single fact decides whether a CFSTR is handed to
+	 * Objective-C or kept away from it, and it is the FIRST thing to break when `libagora-core` is loaded before
+	 * `libagora-base`. MEASURED BOTH WAYS:
+	 *
+	 *     Foundation first (every binary in this tree)   class_getName -> NSCFConstantString
+	 *     Core Foundation first (an ad-hoc probe)        class_getName -> NULL, and objc_retain SEGFAULTS
+	 *
+	 * The two `-length` cases above already pass only BECAUSE this holds; this case says so, so that a link-order
+	 * change arrives as a named failure rather than as a crash four layers away in a dictionary comparison. */
+	check(class_getName(object_getClass((id)CFSTR("x"))) != NULL,
+	      "the constant's class has NO NAME, so Core Foundation's own guards will not treat a CFSTR as an object");
 }
 
 static void reg_singletons(void)
