@@ -31,12 +31,20 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
    `CFNull`/`NSNull`, `CFURL`/`NSURL`, `CFTimeZone`/`NSTimeZone`, `CFLocale`/`NSLocale`,
    `CFError`/`NSError`, `CFAttributedString`/`NSAttributedString`,
    `CFCharacterSet`/`NSCharacterSet`, `CFCalendar`/`NSCalendar`, `CFReadStream`/`NSInputStream`,
-   `CFWriteStream`/`NSOutputStream` and `CFRunLoopTimer`/`NSTimer`. The bridge is three mechanisms,
+   `CFWriteStream`/`NSOutputStream` and `CFRunLoopTimer`/`NSTimer`. The bridge is four mechanisms,
    each measured rather than assumed:
 
    - **Core Foundation's own objects wear an Objective-C class**, built from a table in
      `libagora-core/CFRuntime.c`, so a `CFStringRef` Core Foundation created answers `-length` and a
-     `CFURLRef` answers `-host`;
+     `CFURLRef` answers `-host`; **and a type Foundation does not bridge at all wears `__NSCFType`**,
+     Apple's generic class, so a `CTFontRef`, a `CGColorSpaceRef` or a `CFUUIDRef` is an object
+     Foundation can hold in an `NSArray` or an `NSDictionary` — before this it had NO class, and
+     `-setObject:forKey:` died in `objc_retain` on a null isa;
+   - **Core Foundation's own doors keep Core Foundation's own callbacks**, so `CFHash`, `CFEqual` and
+     `CFCopyDescription` on a `CFUUIDRef` or a `CTFontDescriptorRef` answer from the type's own
+     `hash`/`equal`/`copyDebugDesc` rather than NSObject's pointer identity. A BRIDGED owned class is
+     the exception and must be: `__NSCFString` *is* an `NSString`, and `CFHash` has to reach
+     Foundation's `-hash` for the toll-free agreement to hold;
    - **the CF-facing doors are answered by this Foundation**, including the ones whose signatures Core
      Foundation's own numbering makes easy to get wrong (the byte doors, which are handed a
      `CFStringEncoding` where Cocoa expects an `NSStringEncoding`) and the calendar's three varargs
@@ -51,8 +59,9 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
    had to be made to read through its own storage doors rather than its fields, which is where the same
    defect kept appearing.
 
-   Verified by `tests/bridges.m`: **74 cases**, every one of the eighteen types in both directions, the
-   seven mutable ones from both APIs, and — a direction nothing had tested before — Core Foundation
+   Verified by `tests/bridges.m`: **76 cases**, every one of the eighteen types in both directions, the
+   seven mutable ones from both APIs, a type Foundation never bridges, and — a direction nothing had
+   tested before — Core Foundation
    asking a *Foundation* object (`CFReadStreamGetError`, `CFCalendarDecomposeAbsoluteTime`,
    `CFCalendarComposeAbsoluteTime`, `CFCalendarAddComponents`, `CFDictionaryContainsKey` and the rest of
    the doors a surface survey found missing). `PROVENANCE.md` records both what is deliberately *not*

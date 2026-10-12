@@ -369,6 +369,78 @@ static void reg_autorelease(void)
 	CFRelease(s);
 }
 
+/* A CORE FOUNDATION TYPE FOUNDATION NEVER BRIDGES STILL WEARS A CLASS, AND THAT IS NEW.
+ *
+ * WHAT WAS WRONG: _CFRuntimeCreateInstance gave an isa only to a type Foundation had registered a class
+ * for. Every other type -- CFUUID, CFBitVector, CFTree, and every CoreText font and CoreGraphics colour
+ * space -- came back with isa == 0. Zero is not an object to libobjc2: objc_retain reads obj->isa BEFORE
+ * it decides whether to send -retain, so a null isa walks into the malloc chunk header. MEASURED, and
+ * this is what the case is for: [NSDictionary setObject:forKey:] with a CTFontRef value died in
+ * objc_test_class_flag <- objc_retain. Apple gives every CF type a class, __NSCFType when it has none of
+ * its own; Core Foundation now makes the same one.
+ *
+ * THE ASSERTIONS ARE THE THREE THINGS THAT WERE BROKEN, in the order a consumer meets them: the object
+ * has a class; Foundation can HOLD it (which is the objc_retain path, and the one that crashed); and Core
+ * Foundation still owns the reference count, so -retain/-release reach CFRetain/CFRelease rather than the
+ * allocator's word. A Core Foundation door is driven last, to show the class did not divert dispatch. */
+static void reg_unbridged_type(void)
+{
+	CFUUIDRef uuid = CFUUIDCreate(kCFAllocatorDefault);
+	NSArray *held;
+	CFStringRef text;
+	CFIndex base;
+	uintptr_t before;
+
+	check(uuid != NULL, "CFUUIDCreate returned NULL");
+	if (uuid == NULL) {
+		return;
+	}
+
+	/* ONE: A CLASS AT ALL. */
+	check(object_getClass((id)uuid) != nil, "an unbridged Core Foundation type has no class at all");
+	check(class_getName(object_getClass((id)uuid)) != NULL, "the unbridged object's class has no name");
+	check(CFGetTypeID((CFTypeRef)uuid) == CFUUIDGetTypeID(),
+	      "an unbridged Core Foundation object answered the wrong type id");
+
+	/* TWO: FOUNDATION CAN HOLD IT. This is the crash. */
+	held = [[NSArray alloc] initWithObjects:(id)uuid, nil];
+	check([held count] == 1, "an unbridged Core Foundation object could not be held by an NSArray");
+	check([held objectAtIndex:0] == (id)uuid, "the NSArray did not give the object back");
+	[held release];
+
+	/* THREE: AND CORE FOUNDATION OWNS THE COUNT. -retain must not touch the word before the object, and
+	 * the count it moves must be Core Foundation's. MEASURED AGAINST A BASELINE, NOT 1: CFUUID UNIQUES
+	 * ITS UUIDS (__CFUUIDAddUniqueUUIDHasLock) and the table holds a reference, so a fresh CFUUIDCreate
+	 * comes back with a count of 2 -- the caller's and the table's. Asserting 1 here was this suite's
+	 * SIXTH false failure, and the class change did not cause it: the base count was 2 even while the
+	 * object had no class at all. */
+	before = ((const uintptr_t *)uuid)[-1];
+	base = CFGetRetainCount((CFTypeRef)uuid);
+	[(id)uuid retain];
+	check(((const uintptr_t *)uuid)[-1] == before,
+	      "-retain on an unbridged object moved the allocator's word (%#lx -> %#lx)",
+	      (unsigned long)before, (unsigned long)((const uintptr_t *)uuid)[-1]);
+	check(CFGetRetainCount((CFTypeRef)uuid) == base + 1,
+	      "-retain did not raise the Core Foundation count: %ld, want %ld",
+	      (long)CFGetRetainCount((CFTypeRef)uuid), (long)(base + 1));
+	[(id)uuid release];
+	check(CFGetRetainCount((CFTypeRef)uuid) == base,
+	      "-release did not restore the Core Foundation count: %ld, want %ld",
+	      (long)CFGetRetainCount((CFTypeRef)uuid), (long)base);
+
+	/* AND A CORE FOUNDATION DOOR STILL REACHES CORE FOUNDATION, not a Foundation method that would not
+	 * know CFUUID's storage. */
+	text = CFUUIDCreateString(kCFAllocatorDefault, uuid);
+	check(text != NULL, "CFUUIDCreateString failed on an unbridged object");
+	if (text != NULL) {
+		check(CFStringGetLength(text) == 36, "the UUID string is not 36 characters: %ld",
+		      (long)CFStringGetLength(text));
+		CFRelease(text);
+	}
+
+	CFRelease(uuid);
+}
+
 static const struct { const char *name; void (*fn)(void); } g_regressions[] = {
 	{ "regression: the class cluster",        reg_cluster },
 	{ "regression: tagged pointers",          reg_tagged },
@@ -379,6 +451,7 @@ static const struct { const char *name; void (*fn)(void); } g_regressions[] = {
 	{ "regression: equality across the bridge", reg_equality },
 	{ "regression: whose reference count",    reg_reference_count },
 	{ "regression: autorelease of a CF object", reg_autorelease },
+	{ "regression: a type Foundation never bridges", reg_unbridged_type },
 };
 
 /* ------------------------------------------------------------------------ */

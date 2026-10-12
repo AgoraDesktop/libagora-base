@@ -85,16 +85,20 @@ Verified: the library builds with clang (0 errors), and an Objective-C smoke tes
 one object each, and so are the MUTABLE forms of seven of them (`CFMutableArray`, `CFMutableDictionary`,
 `CFMutableSet`, `CFMutableString`, `CFMutableData`, `CFMutableCharacterSet`, `CFMutableAttributedString`).
 The mechanism, the parts of the original plan that were superseded and why, and the doors that came back
-are recorded above. `libagora-base/tests/bridges.m` is the instrument: **74 cases**, each type in both
-directions, the mutable ones from both APIs, plus Core Foundation asking Foundation objects for a stream
-error, for calendar arithmetic and for the doors a surface survey found missing.
+are recorded above. `libagora-base/tests/bridges.m` is the instrument: **76 cases**, each type in both
+directions, the mutable ones from both APIs, a type Foundation never bridges (a `CFUUIDRef` is an
+object, an `NSArray` holds it, and its `CFHash`/`CFEqual` stay Core Foundation's), plus Core Foundation
+asking Foundation objects for a stream error, for calendar arithmetic and for the doors a surface survey
+found missing.
 
 **NOT BRIDGED, AND THE TWO REASONS ARE DIFFERENT — MEASURED, BOTH WAYS, RATHER THAN ASSUMED:**
 
-- **Foundation classes with no Core Foundation counterpart in this tree**: `NSBundle`, `NSMachPort`,
-  `NSMessagePort`, `NSSocketPort` and `NSUUID` are all here, and there is no `CFBundle`, `CFMachPort`,
-  `CFMessagePort`, `CFSocket` or `CFUUID` in `libagora-core` for them to be one object *with*. Nothing
-  is missing here that could be added without writing the Core Foundation half first.
+- **Pairs that exist on both sides and are still not bridged**: `libagora-core` has `CFBundle.c`,
+  `CFSocket.c` and `CFUUID.c`, and this Foundation has `NSBundle`, `NSSocketPort` and `NSUUID`, but no
+  registration in `NSCFBridging.m` names one for the other — so a `CFUUIDRef` is a Core Foundation object
+  and not an `NSUUID *`, and it is the type `reg_unbridged_type` uses to prove the generic class.
+  (`CFMachPort` and `CFMessagePort` do not exist in `libagora-core` at all, so `NSMachPort` and
+  `NSMessagePort` cannot be bridged without writing that half first.)
 So the bridge covers the eighteen types the two libraries share — plus their mutable forms where the type
 has one — and saying "everything is bridged" would overstate it in that direction.
 
