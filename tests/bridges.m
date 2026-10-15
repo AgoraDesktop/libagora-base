@@ -164,6 +164,30 @@ static void reg_tagged(void)
 		      "tagged pointer %s: CF length %ld vs ObjC length %ld (%s)",
 		      [tagged[i] UTF8String], (long)CFStringGetLength((CFStringRef)tagged[i]),
 		      (long)[tagged[i] length], class_getName(object_getClass(tagged[i])));
+
+		/* **AND THE RUNTIME'S OWN REFCOUNT DOOR HAS TO DECODE ONE TOO, WHICH IS A DIFFERENT PATH FROM THE
+		 * BRIDGE'S AND WAS NOT COVERED BY IT.** `NSObject -retainCount` hands the pointer straight to
+		 * `object_getRetainCount_np`, and that door read the word BEFORE the object without asking whether the
+		 * object was dereferenceable at all — so `[@"x" retainCount]` SEGFAULTED while `[@"x" length]`,
+		 * `[@"x" retain]` and `[@"x" release]` were all fine, because every one of those settles the
+		 * small-object case first (`isPersistentObject` answers YES for a tagged pointer, which is why the check
+		 * has to come BEFORE any dereference: there is no isa to read).
+		 *
+		 * THE TWO CLAIMS ARE THAT IT ANSWERS AT ALL AND THAT IT NEVER MOVES. A tagged pointer is never
+		 * released, so its count is the SATURATED one — `0x7ffffffffffffffe`, Apple's own reading of retainCount
+		 * for a constant string — and a retain cannot change it. Measured before the fix: SIGSEGV, in
+		 * `object_getRetainCount_np`, on the first of these literals. */
+		{
+			unsigned long before = (unsigned long)[tagged[i] retainCount];
+			unsigned long after;
+
+			[tagged[i] retain];
+			after = (unsigned long)[tagged[i] retainCount];
+			check(before > 1000 && after == before,
+			      "tagged pointer %s: retainCount %lu, then %lu after a retain — a never-released object "
+			      "answers the saturated count and does not move",
+			      [tagged[i] UTF8String], before, after);
+		}
 	}
 }
 
