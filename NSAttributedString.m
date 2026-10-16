@@ -36,6 +36,13 @@
  * the "Calculating linguistic units" group in-scope, and one truth about where a word or a line ends is the
  * reason these are wrappers over it rather than a second breaker. */
 #import <Foundation/FNTextBreaking.h>
+/* **THE HYPHENATION RESOURCE, WHICH IS CORE FOUNDATION'S AND IS THE ONE THING THIS FILE CANNOT ANSWER ITSELF.**
+ * `-lineBreakByHyphenatingBeforeIndex:withinRange:` owns no algorithm and no data: it asks
+ * `CFStringGetHyphenationLocationBeforeIndex`, the same door platform AppKit reads a paragraph's
+ * `-hyphenationFactor` through, and `libagora-core/CFHyphenation.c` is where the dictionaries, Liang's algorithm
+ * and the measurements live. */
+#import <CoreFoundation/CFString.h>
+#import <CoreFoundation/CFLocale.h>
 /* THE MARKDOWN IMPORTER, FOR THE baseURL: FILE DOOR this file adds (its category is declared in this class's
  * header, its body lives in NSAttributedStringMarkdown.m - so the import is what lets this file CALL it). */
 
@@ -705,6 +712,46 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 		}
 	}];
 	return answer;
+}
+
+- (NSUInteger)lineBreakByHyphenatingBeforeIndex:(NSUInteger)index withinRange:(NSRange)aRange
+{
+	NSUInteger length = [self length];
+	CFLocaleRef locale;
+	CFIndex found;
+
+	if (index > length || aRange.location > length || aRange.length > length - aRange.location) {
+		[NSException raise:NSRangeException format:@"lineBreakByHyphenatingBeforeIndex: index %lu range "
+			@"(%lu,%lu) is out of range for a string of length %lu", (unsigned long)index,
+			(unsigned long)aRange.location, (unsigned long)aRange.length, (unsigned long)length];
+	}
+	/* **THE RESOURCE IS CORE FOUNDATION'S AND THIS DOOR IS ONLY ITS CALLER.**
+	 * `CFStringGetHyphenationLocationBeforeIndex` owns everything about hyphenation - where the dictionaries are,
+	 * which algorithm reads them, what a soft hyphen means, which minima apply - and it is the same door platform
+	 * AppKit reads a paragraph's `-hyphenationFactor` through. A second copy of Liang's algorithm here would be a
+	 * second set of answers to disagree with; `libagora-core/CFHyphenation.c` is where that work lives and where
+	 * its measurements are recorded.
+	 *
+	 * THE LOCALE IS THE CURRENT ONE, AND THAT IS THIS LIBRARY'S READING RATHER THAN APPLE'S SILENCE. AppKit takes
+	 * the language from the text system's own settings, and an attributed string carries no language attribute in
+	 * this tier, so the process's locale is the only defensible default. IT IS NAMED BECAUSE A WRONG-LOCALE ANSWER
+	 * IS INVISIBLE: a caller typesetting German prose on an en_US machine gets English break points and this door
+	 * cannot tell. A caller that knows better can reach the Core Foundation door itself.
+	 *
+	 * AND THERE IS NO FALLBACK TO `-lineBreakBeforeIndex:withinRange:`. Apple describes the two as alternatives -
+	 * one answers where a LINE begins, this one "the index of the character before which a HYPHEN can be
+	 * inserted" - so a range with no hyphenation point answers `NSNotFound` and leaves the choice to the caller,
+	 * which is what makes the pair usable together: ask this one when hyphenating, ask that one when not. A door
+	 * that quietly answered a line break would make the two indistinguishable, and the caller could not tell
+	 * "no hyphen goes here" from "a hyphen goes here and I found it elsewhere". */
+	locale = CFLocaleCopyCurrent();
+	found = CFStringGetHyphenationLocationBeforeIndex((CFStringRef)[self string], (CFIndex)index,
+							  CFRangeMake((CFIndex)aRange.location, (CFIndex)aRange.length),
+							  0, locale, NULL);
+	if (locale != NULL) {
+		CFRelease(locale);
+	}
+	return (found == kCFNotFound) ? NSNotFound : (NSUInteger)found;
 }
 
 - (nullable NSURL *)URLAtIndex:(NSUInteger)index effectiveRange:(NSRangePointer)effectiveRange

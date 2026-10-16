@@ -658,6 +658,12 @@ static void d_hyphenation(void)
 		      "a location of 0 has no hyphenation point before it");
 		check(CFStringGetHyphenationLocationBeforeIndex(word, 11, CFRangeMake(3, 8), 0, locale, NULL) == 6,
 		      "a limit range's location is the earliest index the door may answer with");
+		/* **AND ITS END IS A CEILING, WHICH IS THE HALF OF `limitRange` THAT WAS WRONG UNTIL A DOOR ABOVE THIS ONE
+		 * WAS TESTED.** Apple calls `limitRange` "the range of characters within the string to search", so an
+		 * answer outside it is not an answer; treating it as a floor alone told a caller about the break at 6 when
+		 * the caller's range ended at 6. */
+		check(CFStringGetHyphenationLocationBeforeIndex(word, 11, CFRangeMake(0, 6), 0, locale, NULL) == 2,
+		      "a limit range's END is a ceiling: a range ending at 6 cannot be told about the break at 6");
 		if (word != NULL) {
 			CFRelease(word);
 		}

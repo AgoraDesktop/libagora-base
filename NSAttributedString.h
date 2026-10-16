@@ -45,12 +45,11 @@
  * under "the excluded AppKit half", which was STALE: those are the "Calculating linguistic units" group,
  * they are answered over `FNTextBreaking` - the word/line-break substrate this library already ships (§62.42,
  * the engine `-enumerateSubstringsInRange:options:` and `NSLinguisticTagger` sit on) - and the ledger owns
- * them. **ONLY THE HYPHENATING BREAK (`lineBreakByHyphenatingBeforeIndex:withinRange:`) IS STILL OWED, AND ITS
- * RECORDED REASON IS NOW SPENT.** The reason was "a hyphenation resource this system does not carry", and the
- * resource HAS ARRIVED: `libagora-core/CFHyphenation.c` answers `CFStringGetHyphenationLocationBeforeIndex` and
- * `CFStringIsHyphenationAvailableForLocale`, which is the pair platform `NSLayoutManager` reads a paragraph's
- * `-hyphenationFactor` through. What is left is this door's own work — find the word, ask the resource, report
- * the index — rather than a missing resource.
+ * them. **AND THE HYPHENATING BREAK ARRIVED WITH THE RESOURCE IT WAS WAITING FOR.** Its recorded reason was "a
+ * hyphenation resource this system does not carry", and that resource is now `libagora-core/CFHyphenation.c`:
+ * `CFStringGetHyphenationLocationBeforeIndex`, the same door platform AppKit reads a paragraph's
+ * `-hyphenationFactor` through. ALL FOUR DOORS OF THE GROUP ARE BUILT, and they are exercised together in
+ * `libagora-base/tests/linguistic_units.m`.
  */
 
 #import <Foundation/NSObject.h>
@@ -255,11 +254,18 @@ typedef enum {
  *     is inside a word, and it answers the index UNCHANGED when the walk would pass either end;
  *   - `-lineBreakBeforeIndex:withinRange:` answers the index where the line containing `index` begins (the
  *     nearest character at or before `index`, within the range, that stands at the start of a line), or
- *     `NSNotFound` when the range holds no such index.
- * ALL THREE RAISE NSRangeException for an out-of-bounds index, which is Apple's own precondition. */
+ *     `NSNotFound` when the range holds no such index;
+ *   - `-lineBreakByHyphenatingBeforeIndex:withinRange:` asks the SAME question with the HYPHENATION POINTS allowed
+ *     as answers - the nearest index before `index`, inside the range, where the hyphenation resource says a
+ *     hyphen may go, or `NSNotFound` when the range holds none. IT DOES NOT FALL BACK TO A LINE BREAK: the two
+ *     doors are alternatives a caller picks between, and a fallback would make them one door under two names.
+ *     The resource is Core Foundation's (`CFStringGetHyphenationLocationBeforeIndex`), and the locale it is asked
+ *     in is the process's, because an attributed string here carries no language.
+ * ALL FOUR RAISE NSRangeException for an out-of-bounds index, which is Apple's own precondition. */
 - (NSRange)doubleClickAtIndex:(NSUInteger)location;
 - (NSUInteger)nextWordFromIndex:(NSUInteger)location forward:(BOOL)isForward;
 - (NSUInteger)lineBreakBeforeIndex:(NSUInteger)index withinRange:(NSRange)aRange;
+- (NSUInteger)lineBreakByHyphenatingBeforeIndex:(NSUInteger)index withinRange:(NSRange)aRange;
 
 /* THE DEPRECATED URL DOOR, AND THE ONE ROW OF ITS GROUP THAT NEEDS NO DRAWING LAYER: Apple deprecated it in
  * 10.11 (there is no replacement; `NSDataDetector` is suggested) and published the SHAPE and not the
