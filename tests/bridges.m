@@ -479,6 +479,208 @@ static void reg_unbridged_type(void)
 	CFRelease(uuid);
 }
 
+/* **THE HYPHENATION RESOURCE, WHICH IS CORE FOUNDATION'S AND WAS DECLARED AND NOT DEFINED UNTIL NOW.**
+ * `CFStringGetHyphenationLocationBeforeIndex` and `CFStringIsHyphenationAvailableForLocale` are the pair
+ * `NSLayoutManager` reads `NSParagraphStyle -hyphenationFactor` through, and `libagora-core/CFHyphenation.c`
+ * records why the data is READ FROM THE SYSTEM rather than vendored (the Debian en_US patterns are
+ * GPL/LGPL/MPL, so they cannot be copied into this MIT tree, and Apple's own availability door is documented
+ * to answer FALSE for a locale whose data is absent — a lookup that can fail is the contract).
+ *
+ * **THE EXPECTATIONS ARE WRITTEN THE WAY A DICTIONARY WRITES THEM, AND THEY ARE THE DICTIONARY'S OWN
+ * ANSWERS.** Each word is spelled with the breaks this machine's `hyph_en_US.dic` derives through its own
+ * patterns — "matter" is `.ma4t3t2`, which forbids "ma|tter" with an even 4, ALLOWS "mat|ter" with an odd 3
+ * and forbids "matt|er" with 2 — and the case recovers the INDICES from the hyphenated spelling rather than
+ * restating them, so the expectation cannot drift from the word it describes. **`computer` IS THE CASE THAT
+ * SHOWS THE FILE'S MINIMA WORKING**: it breaks at 3 and NOWHERE ELSE, because `RIGHTHYPHENMIN 3` forbids the
+ * "comput|er" break that would leave only two characters.
+ *
+ * AND THE ONE FAMILY THIS TIER COULD NOT SETTLE IS ASSERTED NOWHERE. The dictionary's `ad` patterns
+ * contradict each other under Liang's maximum rule (`.ad1d4` allows "ad|d" and forbids "add|", `ad4d1in` the
+ * reverse), so "adder", "adding" and "added" come out with no break at all — words every English dictionary
+ * breaks. That is recorded at length in `CFHyphenation.c` and deliberately left out of this table, because a
+ * guess written as an expectation is worse than a gap that is named. */
+static void d_hyphenation(void)
+{
+	static const struct { const char *word; const char *hyphenated; } cases[] = {
+		{ "hyphenation", "hy-phen-ation" },
+		{ "representation", "rep-re-sen-ta-tion" },
+		{ "internationalization", "in-ter-na-tion-al-iza-tion" },
+		{ "typography", "ty-pog-ra-phy" },
+		/* **AMERICAN, AND THAT IS THE POINT OF THIS ROW.** The en_US dictionary's `n2a2r` forbids the n|a gap, so
+		 * the answer is Merriam-Webster's "dic-tio-nary" and NOT the British "dic-tion-ary" — a wrong hand-written
+		 * expectation of exactly that kind is what this table caught, which is why the expectation is spelled the way
+		 * a dictionary spells it rather than written as indices. */
+		{ "dictionary", "dic-tio-nary" },
+		{ "algorithm", "al-go-rithm" },
+		{ "necessary", "nec-es-sary" },
+		{ "associate", "as-so-ciate" },
+		{ "progressive", "pro-gres-sive" },
+		{ "breakable", "break-able" },
+		{ "aardvark", "aard-vark" },
+		{ "computer", "com-puter" },
+		{ "matter", "mat-ter" },
+		{ "letter", "let-ter" },
+		{ "running", "run-ning" },
+		{ "bigger", "big-ger" },
+		{ "sudden", "sud-den" },
+		{ "kitten", "kit-ten" },
+		{ "bottle", "bot-tle" },
+		{ "table", "ta-ble" },
+		{ "zebra", "ze-bra" },
+		{ "ox", "ox" },
+	};
+	CFLocaleRef locale = CFLocaleCreate(kCFAllocatorDefault, CFSTR("en_US"));
+	size_t i;
+	int agreed = 0;
+
+	check(locale != NULL, "the en_US locale could not be made");
+	if (locale == NULL) {
+		return;
+	}
+	/* **THE AVAILABILITY DOOR IS ASKED FIRST, AND THE ABSENT CASE IS A CASE.** Apple documents this door as the
+	 * way to find out whether there is data at all, so a machine without `hyph_en_US.dic` must be able to run
+	 * this suite: the case then asserts the same FACT from the other side — a locale with no data answers
+	 * kCFNotFound — and says so rather than failing. */
+	if (!CFStringIsHyphenationAvailableForLocale(locale)) {
+		CFStringRef word = CFStringCreateWithCString(kCFAllocatorDefault, "hyphenation", kCFStringEncodingUTF8);
+
+		printf("  (note: no en_US hyphenation dictionary on this machine; asserting the absent case only)\n");
+		check(CFStringGetHyphenationLocationBeforeIndex(word, 11, CFRangeMake(0, 11), 0, locale, NULL) == kCFNotFound,
+		      "an unavailable locale must answer kCFNotFound");
+		if (word != NULL) {
+			CFRelease(word);
+		}
+		CFRelease(locale);
+		return;
+	}
+	for (i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+		CFStringRef word = CFStringCreateWithCString(kCFAllocatorDefault, cases[i].word, kCFStringEncodingUTF8);
+		CFIndex expected[8], expectedCount = 0;
+		CFIndex found[8], foundCount = 0;
+		CFIndex letters = 0, cursor, k;
+		UTF32Char hyphen = 0;
+
+		if (word == NULL) {
+			check(0, "the word %s could not be made", cases[i].word);
+			continue;
+		}
+		/* THE EXPECTATION, RECOVERED FROM THE HYPHENATED SPELLING rather than restated as numbers. */
+		for (k = 0; cases[i].hyphenated[k] != '\0'; k++) {
+			if (cases[i].hyphenated[k] == '-') {
+				if (expectedCount < 8) {
+					expected[expectedCount++] = letters;
+				}
+			} else {
+				letters++;
+			}
+		}
+		/* AND THE ANSWER, WALKED BACKWARDS THE WAY A LAYOUT WOULD: each call finds the last break before the
+		 * index it is given, so asking again at the answer gives the one before that. */
+		cursor = CFStringGetLength(word);
+		while (foundCount < 8) {
+			CFIndex at = CFStringGetHyphenationLocationBeforeIndex(word, cursor, CFRangeMake(0, cursor), 0,
+								      locale, &hyphen);
+
+			if (at == kCFNotFound) {
+				break;
+			}
+			found[foundCount++] = at;
+			cursor = at;
+		}
+		/* `found` runs the way the walk did, which is BACKWARDS, so it is compared from its far end. */
+		if (foundCount != expectedCount) {
+			check(0, "%s: %ld breaks, expected %ld", cases[i].word, (long)foundCount, (long)expectedCount);
+		} else {
+			Boolean same = true;
+
+			for (k = 0; k < expectedCount; k++) {
+				if (found[expectedCount - 1 - k] != expected[k]) {
+					same = false;
+				}
+			}
+			check(same, "%s did not break as %s", cases[i].word, cases[i].hyphenated);
+			if (same) {
+				agreed++;
+			}
+		}
+		/* **AND THE HYPHEN IT SUGGESTS IS U+2010**, which Apple's header leaves as "the suggested hyphen character"
+		 * and this tier records as its choice; a run with no breaks must not have set it. */
+		if (foundCount > 0) {
+			check(hyphen == 0x2010, "%s suggested U+%04X rather than U+2010", cases[i].word, (unsigned)hyphen);
+		}
+		CFRelease(word);
+	}
+	printf("  (hyphenation: %d of %d words broke exactly as hyph_en_US.dic says)\n",
+	       agreed, (int)(sizeof cases / sizeof cases[0]));
+
+	/* **THE SOFT HYPHEN: THE AUTHOR'S OWN BREAK, AND THE DICTIONARY'S ANSWERS SHIFT BY IT.** U+00AD is not a
+	 * character any pattern could match, so it comes out of the word the dictionary sees and stays a candidate
+	 * of its own — which is why "hy\u00ADphenation" answers 2 (the soft hyphen's index), 3 and 7: the other two
+	 * are "hy-phen-ation"'s own 2 and 6, MOVED by the character that now sits between them. */
+	{
+		CFStringRef soft = CFStringCreateWithCString(kCFAllocatorDefault, "hy\xC2\xADphenation", kCFStringEncodingUTF8);
+		CFIndex at;
+
+		check(soft != NULL && CFStringGetLength(soft) == 12, "the soft-hyphen word is not twelve characters");
+		if (soft != NULL) {
+			at = CFStringGetHyphenationLocationBeforeIndex(soft, 12, CFRangeMake(0, 12), 0, locale, NULL);
+			check(at == 7, "the last break before the end of a soft-hyphenated word is 7, not %ld", (long)at);
+			at = CFStringGetHyphenationLocationBeforeIndex(soft, 3, CFRangeMake(0, 12), 0, locale, NULL);
+			check(at == 2, "a soft hyphen is a break of its own at index 2, not %ld", (long)at);
+			CFRelease(soft);
+		}
+	}
+	/* AND THE TWO WAYS A CALLER AVOIDS THE DOOR'S WORK: a location whose predecessor is not a letter has no
+	 * hyphenation point before it, and a capitalised word is folded to the dictionary's own case. */
+	{
+		CFStringRef spaced = CFStringCreateWithCString(kCFAllocatorDefault, "hyphenation ", kCFStringEncodingUTF8);
+		CFStringRef capital = CFStringCreateWithCString(kCFAllocatorDefault, "Hyphenation", kCFStringEncodingUTF8);
+
+		check(CFStringGetHyphenationLocationBeforeIndex(spaced, 12, CFRangeMake(0, 12), 0, locale, NULL) == kCFNotFound,
+		      "a location after a space has no hyphenation point before it");
+		check(CFStringGetHyphenationLocationBeforeIndex(capital, 11, CFRangeMake(0, 11), 0, locale, NULL) == 6,
+		      "a capitalised word is folded, so `Hyphenation` breaks like `hyphenation`");
+		if (spaced != NULL) {
+			CFRelease(spaced);
+		}
+		if (capital != NULL) {
+			CFRelease(capital);
+		}
+	}
+	/* **THE CONTRACT'S OWN REFUSALS**, each named in the header as a case the door must survive: an empty limit
+	 * range "generates no hyphen location", and a location of 0 has nothing before it by definition. */
+	{
+		CFStringRef word = CFStringCreateWithCString(kCFAllocatorDefault, "hyphenation", kCFStringEncodingUTF8);
+
+		check(CFStringGetHyphenationLocationBeforeIndex(word, 11, CFRangeMake(5, 0), 0, locale, NULL) == kCFNotFound,
+		      "an empty limit range generates no hyphen location");
+		check(CFStringGetHyphenationLocationBeforeIndex(word, 0, CFRangeMake(0, 11), 0, locale, NULL) == kCFNotFound,
+		      "a location of 0 has no hyphenation point before it");
+		check(CFStringGetHyphenationLocationBeforeIndex(word, 11, CFRangeMake(3, 8), 0, locale, NULL) == 6,
+		      "a limit range's location is the earliest index the door may answer with");
+		if (word != NULL) {
+			CFRelease(word);
+		}
+	}
+	/* AND A LOCALE WITH NO DICTIONARY AT ALL, which is the answer the availability door promises. `xx_ZZ` can
+	 * never name a file, so this asserts the ABSENT branch without depending on which languages a machine has. */
+	{
+		CFLocaleRef bogus = CFLocaleCreate(kCFAllocatorDefault, CFSTR("xx_ZZ"));
+		CFStringRef word = CFStringCreateWithCString(kCFAllocatorDefault, "hyphenation", kCFStringEncodingUTF8);
+
+		if (bogus != NULL) {
+			check(!CFStringIsHyphenationAvailableForLocale(bogus), "xx_ZZ must report no hyphenation data");
+			check(CFStringGetHyphenationLocationBeforeIndex(word, 11, CFRangeMake(0, 11), 0, bogus, NULL) == kCFNotFound,
+			      "and must answer kCFNotFound");
+			CFRelease(bogus);
+		}
+		if (word != NULL) {
+			CFRelease(word);
+		}
+	}
+	CFRelease(locale);
+}
+
 static const struct { const char *name; void (*fn)(void); } g_regressions[] = {
 	{ "regression: the class cluster",        reg_cluster },
 	{ "regression: tagged pointers",          reg_tagged },
@@ -603,6 +805,7 @@ static void d_str_lower(void) { CFStringRef s = CFStringCreateMutableCopy(NULL, 
 static void d_str_sub(void) { CFStringRef s = CFStringCreateWithSubstring(NULL, (CFStringRef)@"hello", CFRangeMake(1, 3)); printf("    = %s (want ell)\n", s ? [(NSString *)s UTF8String] : "(null)"); if (s) CFRelease(s); }
 
 static const struct { const char *name; void (*fn)(void); } g_extra_doors[] = {
+	{ "The hyphenation resource, which is Core Foundation's",        d_hyphenation },
 	{ "CFArrayApplyFunction on an NSArray",                       d_array_apply },
 	{ "CFDataFind on NSData",                                     d_data_find },
 	{ "CFTimeZoneGetSecondsFromGMT on NSTimeZone",                d_tz_seconds },

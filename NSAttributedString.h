@@ -45,8 +45,12 @@
  * under "the excluded AppKit half", which was STALE: those are the "Calculating linguistic units" group,
  * they are answered over `FNTextBreaking` - the word/line-break substrate this library already ships (§62.42,
  * the engine `-enumerateSubstringsInRange:options:` and `NSLinguisticTagger` sit on) - and the ledger owns
- * them. Only the HYPHENATING break (`lineBreakByHyphenatingBeforeIndex:withinRange:`) stays deferred, because
- * it needs a hyphenation resource this system does not carry.
+ * them. **ONLY THE HYPHENATING BREAK (`lineBreakByHyphenatingBeforeIndex:withinRange:`) IS STILL OWED, AND ITS
+ * RECORDED REASON IS NOW SPENT.** The reason was "a hyphenation resource this system does not carry", and the
+ * resource HAS ARRIVED: `libagora-core/CFHyphenation.c` answers `CFStringGetHyphenationLocationBeforeIndex` and
+ * `CFStringIsHyphenationAvailableForLocale`, which is the pair platform `NSLayoutManager` reads a paragraph's
+ * `-hyphenationFactor` through. What is left is this door's own work — find the word, ask the resource, report
+ * the index — rather than a missing resource.
  */
 
 #import <Foundation/NSObject.h>
