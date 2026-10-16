@@ -528,6 +528,19 @@ static void d_hyphenation(void)
 		{ "table", "ta-ble" },
 		{ "zebra", "ze-bra" },
 		{ "ox", "ox" },
+		/* **AND THE THREE WORDS THE `ad` FAMILY DERIVES NOTHING FOR, WHICH ARE NOW ASSERTED RATHER THAN NAMED.**
+		 * `.ad1d4`/`ad1d4`/`d1d4` put 1 at the "ad|d" gap and 4 at the "add|" gap while `ad4d1in` puts 4 at "ad|d"
+		 * and 1 at "add|i", so the maximum forbids BOTH and no break comes out — which is not what English
+		 * dictionaries print. That looked like this tier's mistake until an INDEPENDENT implementation of Liang
+		 * was run over the same data: `pyphen` 0.18.1 answers [] for all three, and so does the same
+		 * implementation over pyphen's OWN bundled copy of the en_US patterns — a different file of a different
+		 * size. The data says this, so the case says it too, and a word with no hyphenation point is spelled in
+		 * this table as itself, exactly as `ox` is. The family is not uniformly unbroken: `address` breaks
+		 * "ad-dress", and that row is here so a reader can see the difference. */
+		{ "adder", "adder" },
+		{ "adding", "adding" },
+		{ "added", "added" },
+		{ "address", "ad-dress" },
 	};
 	CFLocaleRef locale = CFLocaleCreate(kCFAllocatorDefault, CFSTR("en_US"));
 	size_t i;
@@ -612,7 +625,6 @@ static void d_hyphenation(void)
 	}
 	printf("  (hyphenation: %d of %d words broke exactly as hyph_en_US.dic says)\n",
 	       agreed, (int)(sizeof cases / sizeof cases[0]));
-
 	/* **THE SOFT HYPHEN: THE AUTHOR'S OWN BREAK, AND THE DICTIONARY'S ANSWERS SHIFT BY IT.** U+00AD is not a
 	 * character any pattern could match, so it comes out of the word the dictionary sees and stays a candidate
 	 * of its own — which is why "hy\u00ADphenation" answers 2 (the soft hyphen's index), 3 and 7: the other two
