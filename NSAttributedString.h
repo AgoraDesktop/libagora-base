@@ -180,7 +180,9 @@ typedef enum {
  * tree - so no caller can construct one and there is nothing to map.
  *
  * THE REST STILL REFUSE, EACH NAMING ITS FORMAT AND ITS REASON, rather than answering a silent nil that a
- * caller could not tell from an empty document: RTFD needs an attachment no class here defines; the doc
+ * caller could not tell from an empty document: RTFD needs an attachment no class here defines — **AND IT DISPATCHES
+ * NOW to the layer that has one** (see the seam below: `libagora-app` installs the writer, so a program that links the
+ * AppKit gets the format and one that links only Foundation keeps this refusal); the doc
  * format is Word's binary container, whose specification this system does not carry; HTML import needs a
  * parser and a fetch; and the polymorphic doors pick their format from a document-type attribute whose value
  * vocabulary belongs to the AppKit half that is not here. Apple's own shape for a door that cannot do its
@@ -194,6 +196,19 @@ typedef enum {
 	      documentAttributes:(nullable NSDictionary *)dict;
 - (nullable NSFileWrapper *)RTFDFileWrapperFromRange:(NSRange)range
 				documentAttributes:(nullable NSDictionary *)dict;
+
+/* **AND THE SEAM FOR THE HALF THAT HAS AN ATTACHMENT CLASS.** This library refuses RTFD for a reason that is true of
+ * IT — an RTFD document is a package of attachment FILES, and no class here is an attachment — but the format belongs
+ * to the layer above, where `NSTextAttachment` lives. So the refusal is a DISPATCH when someone has installed a writer,
+ * and a named refusal when nobody has: a program that links only Foundation keeps exactly the answer it had, and a
+ * program that links the AppKit gets the format. `libagora-app/NSAttributedStringRTFD.m` installs the one
+ * implementation from a constructor, so there is no second writer to disagree with the first.
+ *
+ * The writer returns the package directory; `-RTFDFromRange:documentAttributes:` serializes whatever it is given, so
+ * the two doors cannot disagree either. */
+typedef NSFileWrapper *(*NSAttributedStringRTFDWriter)(NSAttributedString *string, NSRange range,
+						      NSDictionary *dict);
+extern void _NSAttributedStringSetRTFDWriter(NSAttributedStringRTFDWriter writer);
 - (nullable NSDictionary *)fileWrapperFromRange:(NSRange)range
 			   documentAttributes:(nullable NSDictionary *)dict
 					error:(NSError ** _Nullable)error;

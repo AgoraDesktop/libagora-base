@@ -1538,23 +1538,38 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 	return [out dataUsingEncoding:NSUTF8StringEncoding];
 }
 
+/* **THE WRITER THE APPKIT INSTALLS, OR NONE** — see the seam's declaration in the header. It is a function pointer
+ * rather than a link-time call because this library may not be told about the layer above it, and it is ONE pointer
+ * rather than a settable protocol because the format has one writer. */
+static NSAttributedStringRTFDWriter fn_rtfd_writer = NULL;
+
+void _NSAttributedStringSetRTFDWriter(NSAttributedStringRTFDWriter writer)
+{
+	fn_rtfd_writer = writer;
+}
+
 - (nullable NSData *)RTFDFromRange:(NSRange)range documentAttributes:(nullable NSDictionary *)dict
 {
-	(void)range;
-	(void)dict;
-	fn_format_refusal_log(@"-RTFDFromRange:documentAttributes:", @"RTFD needs an attachment this library "
-			      @"has no class for");
-	return nil;
+	NSFileWrapper *package;
+
+	if (fn_rtfd_writer == NULL) {
+		fn_format_refusal_log(@"-RTFDFromRange:documentAttributes:", @"RTFD needs an attachment this library "
+				      @"has no class for");
+		return nil;
+	}
+	package = fn_rtfd_writer(self, range, dict);
+	return (package != nil) ? [package serializedRepresentation] : nil;
 }
 
 - (nullable NSFileWrapper *)RTFDFileWrapperFromRange:(NSRange)range
 				documentAttributes:(nullable NSDictionary *)dict
 {
-	(void)range;
-	(void)dict;
-	fn_format_refusal_log(@"-RTFDFileWrapperFromRange:documentAttributes:", @"RTFD needs an attachment this "
-			      @"library has no class for");
-	return nil;
+	if (fn_rtfd_writer == NULL) {
+		fn_format_refusal_log(@"-RTFDFileWrapperFromRange:documentAttributes:", @"RTFD needs an attachment this "
+				      @"library has no class for");
+		return nil;
+	}
+	return fn_rtfd_writer(self, range, dict);
 }
 
 - (nullable NSDictionary *)fileWrapperFromRange:(NSRange)range
