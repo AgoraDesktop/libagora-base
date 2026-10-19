@@ -535,7 +535,7 @@ extern NSURLResourceKey const NSURLFileProtectionKey;
  *     the specified resource, and no errors occurred". `NSURLVolumeCreationDateKey` (the file system records
  *     no volume creation time), `NSURLFileContentIdentifierKey` (content identifiers identify clone-shared
  *     content and there is no cloning), `NSURLMayShareFileContentKey` (no sharing substrate),
- *     `NSURLIsPackageKey`/`NSURLIsApplicationKey` (package identity is a Finder/LaunchServices notion; the
+ *     `NSURLIsPackageKey`/`NSURLIsApplicationKey` (package identity is a file-manager/LaunchServices notion; the
  *     build stages `/Applications` EMPTY and the kernel has no bundle marker - measured), and
  *     `NSURLVolumeIsRemovableKey`/`...IsEjectableKey` (the device tree publishes removable media as device
  *     CLASSES - `Disk/USB`, `Disk/Floppy` - but never associates a MOUNT with its device node, so a USB

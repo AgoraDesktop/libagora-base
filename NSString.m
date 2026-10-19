@@ -4087,7 +4087,7 @@ static NSComparisonResult fn_compare_turkic(NSString *a, NSString *b, NSStringCo
 - (NSComparisonResult)localizedStandardCompare:(NSString *)string
 {
 	/* APPLE'S OWN HEADER NOTE IS MOSTLY A WARNING, AND IT IS WORTH REPEATING VERBATIM: this door "should be
-	 * used whenever file names or other strings are presented in lists and tables where Finder-like sorting
+	 * used whenever file names or other strings are presented in lists and tables where file-manager-like sorting
 	 * is appropriate. The exact behavior of this method may be tweaked in future releases, and will be
 	 * different under different localizations, so clients should not depend on the exact sorting order."
 	 *

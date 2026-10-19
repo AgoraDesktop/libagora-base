@@ -793,7 +793,7 @@ __attribute__((swift_bridge("Swift.String")))
 @property (readonly, copy) NSString *stringByResolvingSymlinksInPath;
 
 /* THE OTHER TWO §63.48 ROWS, beside the path doors they belong to. `-localizedStandardCompare:` is the
- * Finder-style ordering Apple documents for file names in lists and tables; `-completePathIntoString:…`
+ * the file-manager-style ordering Apple documents for file names in lists and tables; `-completePathIntoString:…`
  * completes a partial path against the filesystem and reports how many candidates it found. Both take their
  * shapes from a citable source rather than from memory: the first from Apple's own header, the second from
  * GNUstep's published reference, which §2 admits as a secondary spec. */

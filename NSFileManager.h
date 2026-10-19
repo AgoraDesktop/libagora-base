@@ -76,8 +76,8 @@ extern NSString *const NSFileGroupOwnerAccountName;
  */
 extern NSString *const NSFileImmutable;		/* UF_IMMUTABLE: this kernel has no chflags(2) */
 extern NSString *const NSFileAppendOnly;	/* UF_APPEND likewise */
-extern NSString *const NSFileBusy;		/* the Finder's busy bit, which is not a file-system fact */
-extern NSString *const NSFileExtensionHidden;	/* ... nor is the Finder's extension-hiding bit */
+extern NSString *const NSFileBusy;		/* the reference file manager's busy bit, which is not a file-system fact */
+extern NSString *const NSFileExtensionHidden;	/* ... nor is the reference file manager's extension-hiding bit */
 extern NSString *const NSFileHFSCreatorCode;	/* no HFS here, so no creator code to report */
 extern NSString *const NSFileHFSTypeCode;	/* ... nor an HFS type code */
 extern NSString *const NSFileProtectionKey;	/* no data-protection classes on this system */
@@ -348,7 +348,7 @@ typedef enum {
  *
  * -trashItemAtURL: ANSWERS THE POSTCONDITION THIS SYSTEM'S HIERARCHY IMPLIES: THERE IS NO TRASH here -
  * the FSH has no wastebasket directory (docs/reference/fsh-notes.txt: the root holds /Applications,
- * /System, /Users, /Volumes and nothing the Finder would call a Trash), so the door answers NO with
+ * /System, /Users, /Volumes and nothing the system file manager would call a Trash), so the door answers NO with
  * ENOTSUP and a nil resulting URL, the same ground the iCloud block stands on. Nothing is a promise
  * the substrate cannot keep.
  *
