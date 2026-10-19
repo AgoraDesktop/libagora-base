@@ -77,9 +77,9 @@ typedef NSPointerFunctionsOptions NSHashTableOptions;
 
 - (NSPointerFunctions *)pointerFunctions;
 
-- (NSUInteger)count;
+@property (readonly) NSUInteger count;
 - (nullable ObjectType)anyObject;
-- (NSArray<ObjectType> *)allObjects;
+@property (readonly, copy) NSArray<ObjectType> *allObjects;
 - (NSSet<ObjectType> *)setRepresentation;
 - (BOOL)containsObject:(nullable ObjectType)anObject;
 - (nullable ObjectType)member:(nullable ObjectType)object;

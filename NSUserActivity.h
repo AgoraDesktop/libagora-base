@@ -115,7 +115,7 @@ FOUNDATION_EXPORT NSString * const NSUserActivityTypeBrowsingWeb;
  * caller's later mutation is not the activity's business. */
 - (nullable NSString *)title;
 - (void)setTitle:(nullable NSString *)aTitle;
-- (nullable NSDictionary *)userInfo;
+@property (nullable, readonly, copy) NSDictionary *userInfo;
 - (void)setUserInfo:(nullable NSDictionary *)aDictionary;
 
 /* MERGE IN MORE PAYLOAD: a key present in both takes the value from `otherDictionary`, which is what Apple's

@@ -185,11 +185,25 @@ typedef enum {
 #define NS_OPTIONS(_type, _name)	enum _name : _type _name; enum _name : _type
 #define NS_CLOSED_ENUM(_type, _name)	enum _name : _type _name; enum _name : _type
 #define NS_ERROR_ENUM(_type, _name)	enum _name : _type _name; enum _name : _type
-/* typed/extensible string enums: documented bare names */
-#define NS_TYPED_ENUM
-#define NS_STRING_ENUM
-#define NS_EXTENSIBLE_STRING_ENUM
-#define NS_TYPED_EXTENSIBLE_ENUM
+/* typed/extensible string enums.  Apple documents the bare names and their
+ * EFFECT (a `NSString *` typedef that Swift sees as a struct wrapper with a
+ * `rawValue`); the effect is carried by clang's `swift_wrapper` attribute, which
+ * is what Darwin's SDK expands these to. */
+#define NS_TYPED_ENUM			__attribute__((swift_wrapper(struct)))
+#define NS_STRING_ENUM			__attribute__((swift_wrapper(struct)))
+#define NS_EXTENSIBLE_STRING_ENUM	__attribute__((swift_wrapper(struct)))
+#define NS_TYPED_EXTENSIBLE_ENUM	__attribute__((swift_wrapper(struct)))
+
+/* Swift-side naming and behaviour attributes (Darwin's NS_SWIFT_NAME,
+ * NS_REFINED_FOR_SWIFT and NS_SWIFT_SENDABLE).  Each is a clang attribute the
+ * Swift importer reads; without them the importer's heuristics decide the Swift
+ * name, and a class that is safe to send across concurrency domains has no
+ * `Sendable` conformance at all. */
+#define NS_SWIFT_NAME(_name)		__attribute__((swift_name(#_name)))
+#define NS_REFINED_FOR_SWIFT		__attribute__((swift_private))
+#define NS_SWIFT_SENDABLE		__attribute__((swift_attr("@Sendable")))
+#define NS_SWIFT_NONISOLATED		__attribute__((swift_attr("@nonisolated")))
+#define NS_SWIFT_UI_ACTOR		__attribute__((swift_attr("@MainActor")))
 
 /* --- the symbols a shared library exports --- */
 #define FOUNDATION_EXPORT		extern

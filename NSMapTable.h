@@ -82,7 +82,7 @@ typedef NSPointerFunctionsOptions NSMapTableOptions;
 - (void)removeObjectForKey:(nullable KeyType)aKey;
 - (void)removeAllObjects;
 
-- (NSUInteger)count;
+@property (readonly) NSUInteger count;
 - (NSEnumerator<KeyType> *)keyEnumerator;
 - (NSEnumerator<ObjectType> *)objectEnumerator;
 - (NSDictionary<KeyType, ObjectType> *)dictionaryRepresentation;

@@ -83,7 +83,7 @@ extern NSString *const NSMallocException;
 
 - (NSString *)name;
 - (nullable NSString *)reason;
-- (nullable NSDictionary *)userInfo;
+@property (nullable, readonly, copy) NSDictionary *userInfo;
 
 - (void)raise;
 

@@ -58,6 +58,19 @@ FNObjectDeathHook fn_object_death_hook = NULL;
 	return [[self alloc] init];
 }
 
++ (id)allocWithZone:(struct _NSZone *)zone
+{
+	/* THE COMPATIBILITY DOOR (2026-10-17, user decision). Zones do not exist on this runtime, but
+	 * `+allocWithZone:` is the selector the Objective-C *allocator* sends: libobjc2's
+	 * objc_allocWithZone() reaches it, and Swift's `__allocating_init` (every `T()` on an imported
+	 * class) goes through that. Without it, `NSObject()` raises NSInvalidArgumentException.
+	 * Routing it through +alloc leaves the singleton door exactly where it is: a subclass that
+	 * overrides +alloc still answers its shared instance (NSNull does). Same shape as NSProxy's
+	 * deprecated door.  The parameter type matches the runtime's selector encoding. */
+	(void)zone;
+	return [self alloc];
+}
+
 - (id)init
 {
 	return self;

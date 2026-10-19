@@ -39,6 +39,10 @@ NS_ASSUME_NONNULL_BEGIN
  * unconditionally - and the rest of the contract has nothing to constrain.
  * =================================================================================================== */
 
+/* APPLE'S TYPE FOR A NOTIFICATION NAME, declared beside the names that are spelled with it. It is a typedef
+ * with no behaviour - the type Apple declares for the same constants. */
+typedef NSString *NSNotificationName NS_TYPED_EXTENSIBLE_ENUM;
+
 @interface NSNotification : NSObject <NSCopying, NSCoding>
 {
 	NSString *_name;
@@ -66,19 +70,15 @@ NS_ASSUME_NONNULL_BEGIN
  * (they are values the poster must not be able to change underneath the observers) and the object is
  * retained, because the object is the sender's statement of identity for as long as the notification
  * lives — which, for a posted one, is the delivery. */
-- (instancetype)initWithName:(NSString *)name
+- (instancetype)initWithName:(NSNotificationName)name
 		      object:(nullable id)object
 		    userInfo:(nullable NSDictionary *)userInfo;
 
-@property (readonly, copy) NSString *name;
+@property (readonly, copy) NSNotificationName name;
 @property (readonly, nullable) id object;
 @property (readonly, copy, nullable) NSDictionary *userInfo;
 
 @end
-
-/* APPLE'S TYPE FOR A NOTIFICATION NAME, declared beside the names that are spelled with it. It is a typedef
- * with no behaviour - the type Apple declares for the same constants. */
-typedef NSString *NSNotificationName;
 
 /* ---- THE NAMES OF NOTIFICATIONS THIS SYSTEM DOES NOT POST (the coverage slice) ----------------------
  *

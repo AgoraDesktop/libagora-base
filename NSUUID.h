@@ -23,6 +23,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_SENDABLE
 @interface NSUUID : NSObject <NSCopying>
 {
 	unsigned char _bytes[16];	/* in the order the string form prints them */

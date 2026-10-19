@@ -146,11 +146,11 @@ enum {
 - (NSString *)stringByReplacingMatchesInString:(NSString *)string
 				       options:(NSMatchingOptions)options
 					 range:(NSRange)range
-				  withTemplate:(NSString *)template;
+				  withTemplate:(NSString *)aTemplate;
 - (NSUInteger)replaceMatchesInString:(NSMutableString *)string
 			     options:(NSMatchingOptions)options
 			       range:(NSRange)range
-			withTemplate:(NSString *)template;
+			withTemplate:(NSString *)aTemplate;
 
 - (BOOL)isEqual:(nullable id)other;
 - (NSUInteger)hash;

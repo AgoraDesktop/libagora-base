@@ -79,7 +79,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /* THE SLOTS. `count` counts them, NULL or not, and SETTING it grows with NULLs or shrinks (relinquishing
  * what it drops). */
-- (NSUInteger)count;
+@property (readonly) NSUInteger count;
 - (void)setCount:(NSUInteger)count;
 
 /* The elements, in order, as an NSArray — every pointer handed back as an object, so this is only meaningful

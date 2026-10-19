@@ -62,7 +62,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSIndexPath *)indexPathByRemovingLastIndex;	/* empty path: NSRangeException */
 
 - (NSUInteger)indexAtPosition:(NSUInteger)position;	/* past -length: NSRangeException */
-- (NSUInteger)length;
+@property (readonly) NSUInteger length;
 - (void)getIndexes:(NSUInteger *)indexes;		/* all _length positions */
 - (void)getIndexes:(NSUInteger *)indexes range:(NSRange)positionRange;
 

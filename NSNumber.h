@@ -123,7 +123,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *)stringValue;			/* == -description */
 - (NSString *)descriptionWithLocale:(nullable id)locale;
-- (const char *)objCType;
+@property (readonly) const char *objCType;
 
 /* THE DECIMAL CASE (W3). NSDecimal is 44 bytes and this class's store is an 8-byte scalar union, so the
  * CREATION side is served by NSDecimalNumber — which is what Cocoa does, and what -initWithDecimal: says

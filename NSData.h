@@ -185,8 +185,8 @@ enum {
 			  options:(NSDataBase64DecodingOptions)options;
 - (nullable id)initWithBase64EncodedData:(NSData *)base64Data options:(NSDataBase64DecodingOptions)options;
 
-- (size_t)length;
-- (nullable const void *)bytes;
+@property (readonly) size_t length;
+@property (nullable, readonly) const void *bytes;
 - (void)getBytes:(void *)buffer length:(size_t)length;
 - (void)getBytes:(void *)buffer range:(NSRange)range;
 

@@ -72,7 +72,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSDate *)fireDate;
 - (void)setFireDate:(NSDate *)fireDate;
 - (NSTimeInterval)timeInterval;
-- (nullable id)userInfo;
+@property (nullable, readonly) id userInfo;
 
 /* THE FOUR CONVENIENCE PAIRS AND THE BLOCK INITIALIZER — Apple's own spelling, the block being
  * `void (^)(NSTimer *)`, which RECEIVES THE TIMER ITSELF. Each is the target/selector core above with a

@@ -44,9 +44,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)containsIndex:(NSUInteger)value;
 - (BOOL)containsIndexesInRange:(NSRange)range;
-- (NSUInteger)count;			/* the NUMBER OF INDEXES, not of ranges */
-- (NSUInteger)firstIndex;		/* NSNotFound when empty */
-- (NSUInteger)lastIndex;
+@property (readonly) NSUInteger count;			/* the NUMBER OF INDEXES, not of ranges */
+@property (readonly) NSUInteger firstIndex;		/* NSNotFound when empty */
+@property (readonly) NSUInteger lastIndex;
 - (NSUInteger)indexGreaterThanIndex:(NSUInteger)value;	/* NSNotFound when none */
 - (NSUInteger)indexLessThanIndex:(NSUInteger)value;
 - (void)enumerateIndexesUsingBlock:(void (^)(NSUInteger index, BOOL *stop))block;
@@ -62,7 +62,7 @@ NS_ASSUME_NONNULL_BEGIN
  * -lastIndexInRange: appear on no documented NSIndexSet page; the documented neighbours are -firstIndex
  * / -lastIndex and -indexInRange:options:passingTest:. Refusing to invent them was right — the CLAIM was
  * what was wrong, and it has been removed from the probe's list. */
-- (NSUInteger)countOfIndexesInRange:(NSRange)range;
+- (NSUInteger)countOfIndexesInRange:(NSRange)range NS_SWIFT_NAME(count(in:));
 - (NSUInteger)indexGreaterThanOrEqualToIndex:(NSUInteger)index;
 - (NSUInteger)indexLessThanOrEqualToIndex:(NSUInteger)index;
 

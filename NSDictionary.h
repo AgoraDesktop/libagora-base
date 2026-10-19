@@ -70,6 +70,19 @@ struct FNDictEntry;			/* opaque; defined in NSDictionary.m */
  * private name can reach an archive.
  * =================================================================================================== */
 
+/* SWIFT SPELLS THIS CLASS `[AnyHashable: Any]` (`swift_bridge`; §2.19 of
+ * SWIFT-PORT-HANDOFF.md). `NSDictionary *` in an imported signature becomes a
+ * Swift `Dictionary`, and the overlay's `Dictionary: _ObjectiveCBridgeable`
+ * puts an `NSDictionary *` back on the wire. The key type comes from the
+ * declaration: this class's type parameters are unconstrained, so the key is
+ * `AnyHashable` (the importer's fallback for a non-Hashable key) and the value
+ * is `Any`; `NSDictionary<NSString *, NSNumber *> *` imports as
+ * `[String: NSNumber]`.
+ *
+ * The bridge needs `AnyHashable: _ObjectiveCBridgeable`, which the Foundation
+ * overlay provides; without it the importer keeps the Objective-C class. The
+ * mutable class is NOT bridged - a `NSMutableDictionary *` stays the class. */
+__attribute__((swift_bridge("Swift.Dictionary")))
 @interface NSDictionary<__covariant KeyType, __covariant ObjectType> : NSObject <NSCopying, NSFastEnumeration, NSCoding>
 {
 	struct FNDictEntry **_buckets;	/* power-of-two count, so index = hash & (count-1) */
@@ -108,10 +121,10 @@ struct FNDictEntry;			/* opaque; defined in NSDictionary.m */
 		count:(NSUInteger)count;
 - (id)initWithObjectsAndKeys:(id)firstObject, ... NS_REQUIRES_NIL_TERMINATION;
 
-- (NSUInteger)count;
+@property (readonly) NSUInteger count;
 - (nullable ObjectType)objectForKey:(KeyType)key;
-- (NSArray<KeyType> *)allKeys;
-- (NSArray<ObjectType> *)allValues;
+@property (readonly, copy) NSArray<KeyType> *allKeys;
+@property (readonly, copy) NSArray<ObjectType> *allValues;
 - (NSArray<KeyType> *)allKeysForObject:(ObjectType)object;
 - (NSArray<ObjectType> *)objectsForKeys:(NSArray<KeyType> *)keys notFoundMarker:(ObjectType)marker;
 - (NSArray<KeyType> *)keysSortedByValueUsingSelector:(SEL)comparator;

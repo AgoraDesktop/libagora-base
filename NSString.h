@@ -219,6 +219,18 @@ typedef enum {
  * the PUBLIC class, so a literal archives as NSString rather than as the compiler's class.
  * =================================================================================================== */
 
+/* SWIFT SPELLS THIS CLASS `String` (Swift's `swift_bridge` attribute; §2.19 of
+ * SWIFT-PORT-HANDOFF.md). The attribute makes every `NSString *` in an imported
+ * signature a Swift `String`, and Swift's Foundation overlay supplies the
+ * `_ObjectiveCBridgeable` conformance that lets the compiler put an `NSString *`
+ * back on the wire at the boundary: `-appendString:` takes a `String`, `-substringFromIndex:`
+ * answers one, and Objective-C still sees the same selectors and the same ABI.
+ *
+ * It must stay on a class whose bridge *exists*: the importer only rewrites the
+ * signature when the Swift type can be converted back (see
+ * `canBridgeBackToObjectiveC` in the fork's ImportType.cpp), so without the
+ * overlay this line is inert rather than wrong. */
+__attribute__((swift_bridge("Swift.String")))
 @interface NSString : NSObject <NSCopying, NSCoding>
 
 /* THE NSCoding DOORS (§63.22). THE WIRE IS OURS: Apple's spelling for this class's coded form is not published
@@ -317,8 +329,8 @@ typedef enum {
 				  error:(NSError * _Nullable * _Nullable)errorPtr;
 
 /* The primitives every concrete subclass implements. */
-- (const char *)UTF8String;
-- (size_t)length;		/* UTF-16 CODE UNITS — Apple's contract (W1 slice 3) */
+@property (readonly) const char *UTF8String;
+@property (readonly) size_t length;		/* UTF-16 CODE UNITS — Apple's contract (W1 slice 3) */
 - (unsigned char)byteAtIndex:(size_t)index;		/* a UTF-8 BYTE — the house door */
 - (unsigned short)characterAtIndex:(size_t)index;	/* the UNIT at a unit index */
 
@@ -336,7 +348,7 @@ typedef enum {
 - (id)initWithCharacters:(const unichar * _Nullable)characters length:(NSUInteger)length;
 - (id)initWithCharactersNoCopy:(unichar * _Nullable)characters length:(NSUInteger)length
 		  freeWhenDone:(BOOL)freeBuffer;
-- (void)getCharacters:(unichar *)buffer range:(NSRange)range;
+- (void)getCharacters:(unichar *)buffer range:(NSRange)range NS_REFINED_FOR_SWIFT;
 - (size_t)lengthOfBytesUsingEncoding:(NSStringEncoding)encoding;
 - (nullable NSData *)dataUsingEncoding:(NSStringEncoding)encoding;
 - (nullable const char *)cStringUsingEncoding:(NSStringEncoding)encoding;

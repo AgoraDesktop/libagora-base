@@ -45,6 +45,15 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/* SWIFT SPELLS THIS CLASS `Set<AnyHashable>` (`swift_bridge`; §2.19 of
+ * SWIFT-PORT-HANDOFF.md). `NSSet *` in an imported signature becomes a Swift
+ * `Set`, and the overlay's `Set: _ObjectiveCBridgeable` puts an `NSSet *` back
+ * on the wire. The element is `AnyHashable` for the same reason a dictionary
+ * key is (this class's type parameter is unconstrained); an explicit
+ * `NSSet<NSString *> *` imports as `Set<String>`.
+ *
+ * The mutable class is NOT bridged - a `NSMutableSet *` stays the class. */
+__attribute__((swift_bridge("Swift.Set")))
 @interface NSSet<__covariant ObjectType> : NSObject <NSCopying, NSMutableCopying, NSFastEnumeration, NSCoding>
 {
 	NSArray *_members;		/* the members, once each; REPLACED by every mutation */
@@ -87,13 +96,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithObjects:(ObjectType _Nullable)firstObject, ... NS_REQUIRES_NIL_TERMINATION;
 - (instancetype)initWithSet:(NSSet<ObjectType> *)set copyItems:(BOOL)copyItems;
 
-- (NSUInteger)count;
+@property (readonly) NSUInteger count;
 /* BY VALUE: the member that is -isEqual: to `object`, or nil. This is the door that separates a set
  * from an array, and the probe measures exactly that (a distinguished object finds its twin). */
 - (nullable ObjectType)member:(ObjectType)object;
 - (BOOL)containsObject:(ObjectType)object;
-- (nullable ObjectType)anyObject;
-- (NSArray<ObjectType> *)allObjects;
+@property (nullable, readonly) ObjectType anyObject;
+@property (readonly, copy) NSArray<ObjectType> *allObjects;
 - (NSEnumerator<ObjectType> *)objectEnumerator;
 - (void)enumerateObjectsUsingBlock:(void (^)(ObjectType object, BOOL *stop))block;
 

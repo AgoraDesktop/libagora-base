@@ -69,7 +69,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (double)timeIntervalSince1970;
 - (double)timeIntervalSinceNow;
-- (double)timeIntervalSinceReferenceDate;
+@property (readonly) NSTimeInterval timeIntervalSinceReferenceDate;
 - (double)timeIntervalSinceDate:(NSDate *)other;
 - (NSDate *)dateByAddingTimeInterval:(double)seconds;
 - (NSString *)descriptionWithLocale:(nullable id)locale;

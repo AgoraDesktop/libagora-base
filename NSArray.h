@@ -74,6 +74,16 @@ NS_ASSUME_NONNULL_BEGIN
  * NSArray, so no private name can reach an archive.
  * =================================================================================================== */
 
+/* SWIFT SPELLS THIS CLASS `[Any]` (`swift_bridge`; §2.19 of
+ * SWIFT-PORT-HANDOFF.md). `NSArray *` in an imported signature becomes a Swift
+ * `Array`, and the overlay's `Array: _ObjectiveCBridgeable` puts an `NSArray *`
+ * back on the wire, so `-arrayByAddingObject:` takes an array and answers one
+ * while Objective-C keeps the selectors it had.
+ *
+ * The element type is `Any` because the class is unparameterized here; a
+ * parameterized `NSArray<NSString *> *` imports as `[String]`. The mutable
+ * classes are NOT bridged - a `NSMutableArray *` stays the class. */
+__attribute__((swift_bridge("Swift.Array")))
 @interface NSArray<__covariant ObjectType> : NSObject <NSCopying, NSFastEnumeration, NSCoding>
 {
 	id __unsafe_unretained *_items;	/* owned BY HAND: every slot is retained */
@@ -105,13 +115,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithArray:(NSArray<ObjectType> *)array copyItems:(BOOL)flag;
 - (id)initWithObjects:(ObjectType)firstObject, ... NS_REQUIRES_NIL_TERMINATION;
 
-- (NSUInteger)count;
+@property (readonly) NSUInteger count;
 - (ObjectType)objectAtIndex:(NSUInteger)index;
 /* Cocoa's subscript: `array[0]` lowers to this. */
 - (ObjectType)objectAtIndexedSubscript:(NSUInteger)index;
 
-- (nullable ObjectType)firstObject;
-- (nullable ObjectType)lastObject;
+@property (nullable, readonly) ObjectType firstObject;
+@property (nullable, readonly) ObjectType lastObject;
 /* NSNotFound for a missing element — NOT (NSUInteger)-1, which is what this
  * answered before the audit and which never equals NSNotFound. */
 - (NSUInteger)indexOfObject:(ObjectType)object;

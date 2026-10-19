@@ -87,13 +87,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithSet:(NSSet<ObjectType> *)set;
 - (instancetype)initWithSet:(NSSet<ObjectType> *)set copyItems:(BOOL)flag;
 
-- (NSUInteger)count;
+@property (readonly) NSUInteger count;
 - (nullable ObjectType)objectAtIndex:(NSUInteger)index;
 - (nullable ObjectType)objectAtIndexedSubscript:(NSUInteger)index;
 - (NSUInteger)indexOfObject:(ObjectType)object;
 - (BOOL)containsObject:(ObjectType)object;
-- (nullable ObjectType)firstObject;
-- (nullable ObjectType)lastObject;
+@property (nullable, readonly) ObjectType firstObject;
+@property (nullable, readonly) ObjectType lastObject;
 
 /* The two views: the ORDER (an array) and the MEMBERSHIP (a set). */
 - (NSArray<ObjectType> *)array;

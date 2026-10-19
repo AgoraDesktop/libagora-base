@@ -87,7 +87,7 @@ extern NSString * const NSDecimalNumberDivideByZeroException;
 
 /* ACCESSORS. The scalar ones convert, and the conversion rule is documented in the implementation. */
 - (NSDecimal)decimalValue;
-- (const char *)objCType;
+@property (readonly) const char *objCType;
 - (NSString *)stringValue;
 - (NSString *)descriptionWithLocale:(nullable id)locale;
 

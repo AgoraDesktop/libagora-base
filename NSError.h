@@ -87,12 +87,12 @@ extern NSInteger const NSFileProviderErrorDeletionRejected;
 		code:(NSInteger)code
 	    userInfo:(nullable NSDictionary *)userInfo;
 
-- (NSErrorDomain)domain;
-- (NSInteger)code;
-- (nullable NSDictionary *)userInfo;
+@property (readonly, copy) NSErrorDomain domain;
+@property (readonly) NSInteger code;
+@property (nullable, readonly, copy) NSDictionary *userInfo;
 
-- (NSString *)localizedDescription;
-- (nullable NSString *)localizedFailureReason;
+@property (readonly, copy) NSString *localizedDescription;
+@property (nullable, readonly, copy) NSString *localizedFailureReason;
 
 /* THE FIVE READERS THAT COME OUT OF userInfo, WITH APPLE'S KEYS — and every one of them asks a DOMAIN'S
  * PROVIDER when the dictionary does not carry the value (see the two class doors below), because that is
