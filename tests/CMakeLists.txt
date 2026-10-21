@@ -25,3 +25,11 @@ add_executable(normalization normalization.c)
 target_link_libraries(normalization PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
 add_test(NAME normalization COMMAND normalization)
+
+# CFNull and NSNull are one object across the bridge, and `CFEqual` on the pair was TRUE on x86-64 and
+# FALSE on aarch64 until issue 6. The `bridges` suite asks the same question inside `door_null`, but it
+# reports the type and not the reason — this suite reports the reason. See the file header.
+add_executable(null_identity null_identity.m)
+target_link_libraries(null_identity PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME null_identity COMMAND null_identity)
