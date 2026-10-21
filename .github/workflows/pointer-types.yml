@@ -10,9 +10,12 @@
 # -Werror=incompatible-pointer-types, on x86-64 AND on aarch64, and runs its suites. That single
 # diagnostic is the one that was silently true for six of the seven reports.
 #
-# MEASURED BEFORE COMMITTING: libagora-base builds clean under that flag on the development
-# machine's clang-19, and its three suites pass — so this gate starts GREEN and only goes red for a
-# new crossing. A gate that is red on arrival teaches people to ignore it.
+# MEASURED BEFORE COMMITTING, AND THE FIRST RUN CORRECTED IT: libagora-base builds clean under that
+# flag on clang-19 and its three suites pass on x86-64 — but the aarch64 leg fails one case that
+# has nothing to do with pointer types (issue 6, NSNull/CFNull `CFEqual`). So this gate is green on
+# the BUILD it exists to protect, on both architectures, and red on one aarch64 test because a real
+# bug is there. The red is left visible rather than suppressed: silencing a true failure to get a
+# green badge is the thing this workflow was written to stop.
 #
 # BOTH LEGS ARE NATIVE, and that is deliberate: one runner per architecture, each building and
 # running the trampolines its own processor needs. There is no cross-compilation here.
@@ -188,6 +191,11 @@ jobs:
           LD_LIBRARY_PATH: ${{ github.workspace }}/prefix/lib:${{ github.workspace }}/libagora-base/build
         run: |
           set -euo pipefail
+          # ⚠ ON AARCH64 THIS IS CURRENTLY RED, AND THE RED IS TRUE: issue 6, `CFEqual([NSNull null],
+          # kCFNull)` is false there and true on x86-64. It is a pre-existing run-time bug in the
+          # toll-free bridge, not a pointer-type regression, and it is left failing on purpose — a
+          # suite that is made to pass by excluding the case that fails is worth nothing. When 6 is
+          # fixed, this goes green on its own with no change to this file.
           ctest --test-dir libagora-base/build --output-on-failure
 
       - name: Install (consumers build against this prefix)
