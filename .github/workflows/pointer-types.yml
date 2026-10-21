@@ -1,0 +1,196 @@
+# Pointer-type safety, on both architectures Agora targets.
+#
+# WHY THIS EXISTS. Seven defects were reported from a single aarch64 machine: type boundaries that
+# the compiler had been asked about all along, as WARNINGS, on every developer build. Two of them
+# blocked the port outright (no ARM trampolines, and a Clang-23 alias rejection) and the rest broke
+# the build as soon as a newer compiler made the diagnostic fatal. Nothing compiled this tree
+# anywhere but a developer's own machine, so nothing noticed — an outside reporter did.
+#
+# So this workflow does one specific thing rather than "run CI": it builds libagora-base with
+# -Werror=incompatible-pointer-types, on x86-64 AND on aarch64, and runs its suites. That single
+# diagnostic is the one that was silently true for six of the seven reports.
+#
+# MEASURED BEFORE COMMITTING: libagora-base builds clean under that flag on the development
+# machine's clang-19, and its three suites pass — so this gate starts GREEN and only goes red for a
+# new crossing. A gate that is red on arrival teaches people to ignore it.
+#
+# BOTH LEGS ARE NATIVE, and that is deliberate: one runner per architecture, each building and
+# running the trampolines its own processor needs. There is no cross-compilation here.
+#
+#   * x86-64  (ubuntu-24.04) builds NSInvocation_amd64.S and runs the suites that load it.
+#   * aarch64 (ubuntu-24.04-arm) builds NSInvocation_arm64.S natively and loads it. THIS IS THE LEG
+#     ISSUE 4 WAS ABOUT: "building libagora-base on aarch64 Linux fails", because the build named
+#     an x86-64 assembler unconditionally. That failure has no way to hide from a native ARM runner.
+#
+# The architecture the build selects is ASSERTED rather than assumed — see "Assert the right
+# trampoline was chosen", which reads the generated build back and fails if the wrong one was
+# picked. A matrix that quietly built the same architecture twice would otherwise look like
+# coverage.
+#
+# WHAT NEITHER LEG PROVES: no suite here forwards a message, so the invocation trampolines are
+# assembled and loaded but never EXERCISED. A forwarding test belongs in tests/ and would turn issue
+# 4 from "builds on ARM" into "forwards on ARM". Until then that claim is not made.
+
+name: pointer types
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pointer-types-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The toolchain release the project documents. Not `clang-19` on PATH: runners have their own
+  # default clang, and the flag set here is the one CI is asserting.
+  LLVM_VERSION: "19"
+  # The diagnostic this workflow exists for.
+  POINTER_FLAGS: "-Werror=incompatible-pointer-types"
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: libagora-base x86-64
+            runner: ubuntu-24.04
+            target_processor: x86_64
+            native: "true"
+          - name: libagora-base aarch64
+            runner: ubuntu-24.04-arm
+            target_processor: aarch64
+            native: "true"
+
+    steps:
+      - name: Toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wget gnupg ca-certificates lsb-release
+          wget -qO /tmp/llvm.sh "https://apt.llvm.org/llvm.sh"
+          chmod +x /tmp/llvm.sh
+          sudo /tmp/llvm.sh "${LLVM_VERSION}"
+          clang-${LLVM_VERSION} --version
+          clang++-${LLVM_VERSION} --version
+
+      - name: System libraries
+        run: |
+          set -euo pipefail
+          # Each line is a REQUIRED find_package in the component that first asks for it:
+          #   ICU, ZLIB, CURL, OpenSSL          libagora-base
+          #   ICU                              libagora-core
+          #   PIXMAN, PNG, JPEG, Freetype      libagora-drawing
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build pkg-config \
+            libicu-dev zlib1g-dev libcurl4-openssl-dev libssl-dev \
+            libpng-dev libjpeg-dev libfreetype-dev libpixman-1-dev
+
+      # THE COMPONENTS ARE CHECKED OUT AS SIBLINGS, and that is load-bearing rather than tidy:
+      # libagora-base follows ../libagora-drawing for Core Graphics' headers, libagora-core follows
+      # ../libagora-dispatch, and libagora-drawing follows ../libagora-lcms2. A layout that broke
+      # those relative paths would fail in a way that looks like a missing package.
+      - name: libagora-base (the repository under test)
+        uses: actions/checkout@v4
+        with:
+          path: libagora-base
+
+      # Dependencies are the sibling repositories at their own main. Public repositories, so this is
+      # a plain clone: no token, and no org-wide secret to rotate.
+      - name: Dependencies
+        run: |
+          set -euo pipefail
+          for c in libagora-objc libagora-dispatch libagora-lcms2 libagora-core libagora-drawing; do
+            git clone --depth 1 "https://github.com/AgoraDesktop/${c}.git" "${c}"
+          done
+          ls -d libagora-*
+
+      - name: Build dependencies
+        run: |
+          set -euo pipefail
+          PREFIX="${GITHUB_WORKSPACE}/prefix"
+          C="clang-${LLVM_VERSION}"
+          CXX="clang++-${LLVM_VERSION}"
+          # libagora-objc is C++, so CXX is real, not ceremonial.
+          mkdir -p build-logs
+          for c in libagora-objc libagora-dispatch libagora-lcms2 libagora-core libagora-drawing; do
+            echo "::group::${c}"
+            extra=""
+            # From release/components.conf: the tools are not part of a library build.
+            if [ "${c}" = "libagora-lcms2" ]; then extra="-DLCMS2_BUILD_TOOLS=OFF"; fi
+            # shellcheck disable=SC2086
+            cmake -S "${c}" -B "${c}/build" -G Ninja \
+              -DCMAKE_C_COMPILER="${C}" \
+              -DCMAKE_CXX_COMPILER="${CXX}" \
+              -DCMAKE_OBJC_COMPILER="${C}" \
+              -DCMAKE_PREFIX_PATH="${PREFIX}" \
+              -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DBUILD_TESTING=OFF \
+              ${extra}
+            cmake --build "${c}/build" --parallel
+            # The prefix is what makes the component visible to the next one.
+            cmake --install "${c}/build"
+            echo "::endgroup::"
+          done
+
+      - name: libagora-base (-Werror on pointer types)
+        env:
+          TARGET_PROCESSOR: ${{ matrix.target_processor }}
+        run: |
+          set -euo pipefail
+          PREFIX="${GITHUB_WORKSPACE}/prefix"
+          C="clang-${LLVM_VERSION}"
+          # CMAKE_SYSTEM_PROCESSOR is passed explicitly so the value the build selects on is the
+          # one this matrix row names, rather than whatever CMake inferred. On a native build the
+          # two agree; stating it makes the row's intent checkable and the assertion below
+          # meaningful.
+          cmake -S libagora-base -B libagora-base/build -G Ninja \
+            -DCMAKE_C_COMPILER="${C}" \
+            -DCMAKE_OBJC_COMPILER="${C}" \
+            -DCMAKE_PREFIX_PATH="${PREFIX}" \
+            -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_PROCESSOR="${TARGET_PROCESSOR}" \
+            -DCMAKE_C_FLAGS="${POINTER_FLAGS}" \
+            -DCMAKE_OBJC_FLAGS="${POINTER_FLAGS}" 2>&1 | tee build-logs/configure.log
+          cmake --build libagora-base/build --parallel 2>&1 | tee build-logs/build.log
+
+      - name: Assert the right trampoline was chosen
+        run: |
+          set -euo pipefail
+          # The processor test is only useful if it actually selected something, so the choice is
+          # read back out of the generated build rather than trusted.
+          want="NSInvocation_$( [ "${{ matrix.target_processor }}" = "aarch64" ] && echo arm64 || echo amd64 ).S"
+          got="$(grep -ohE 'NSInvocation_(amd64|arm64)\.S' libagora-base/build/build.ninja | sort -u | tr -d '\n')"
+          echo "target processor: ${{ matrix.target_processor }}"
+          echo "expected:         ${want}"
+          echo "selected:         ${got}"
+          [ "${got}" = "${want}" ] || { echo "::error::wrong invocation trampoline selected"; exit 1; }
+
+      - name: Tests
+        env:
+          LD_LIBRARY_PATH: ${{ github.workspace }}/prefix/lib:${{ github.workspace }}/libagora-base/build
+        run: |
+          set -euo pipefail
+          ctest --test-dir libagora-base/build --output-on-failure
+
+      - name: Install (consumers build against this prefix)
+        run: cmake --install libagora-base/build
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.target_processor }}
+          path: build-logs/
+          if-no-files-found: ignore
+          retention-days: 7
