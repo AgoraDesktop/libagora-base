@@ -92,7 +92,38 @@ extern NSString *const NSLoadedClasses;
 
 - (NSString *)bundlePath;
 - (NSString * _Nullable)bundleIdentifier;
+/* **THE EXECUTABLE THIS BUNDLE WOULD RUN, AND — FOR AGORA — WHICH OF SEVERAL.** A bundle built for more than one
+ * machine carries one binary per platform, and `CFBundleExecutable` alone cannot say which: Apple's answer is a fat
+ * Mach-O, a container the ELF loaders on Linux and the BSDs do not have and would not exec. So a UNIVERSAL AGORA
+ * BUNDLE is several complete binaries side by side, and the manifest names them under `AGBundleExecutables`:
+ *
+ *     AGBundleExecutables = {
+ *         "linux-x86_64"   = "App-linux-x86_64";
+ *         "linux-aarch64"  = "App-linux-aarch64";
+ *         "freebsd-amd64"  = "App-freebsd-amd64";
+ *     };
+ *
+ * The key is **ours and not Apple's** — Apple has no equivalent because it never needed one — and that is stated
+ * rather than implied. A platform's name is `sysname` and `machine` from `uname`, lowercased and joined with a hyphen:
+ * `linux-x86_64`, `freebsd-amd64`. Both halves of that rule are measured on the running process rather than tabulated,
+ * so the packager and the reader agree by construction.
+ *
+ * THE RESOLUTION ORDER, and each step states why it is where it is:
+ *
+ *   1. `AGBundleExecutables[<this machine>]`, resolved against `Contents/MacOS` — the exact binary for the machine the
+ *      process is running on, which is the only answer that can be right.
+ *   2. `CFBundleExecutable`, which is Apple's key and today's behaviour — a bundle for one machine, or a bundle whose
+ *      variant table does not name this one.
+ *   3. nil.
+ *
+ * A path is answered whether or not the file is there, which is this class's existing contract: the MANIFEST is the
+ * source, not the disk. A caller about to exec asks the file manager as well. */
 - (NSString * _Nullable)executablePath;
+
+/* AND WHICH PLATFORM THIS PROCESS IS, in the spelling `AGBundleExecutables` uses — `linux-x86_64` and the like. This is
+ * the value the resolution above compares against, answered publicly so a packager can assert that it wrote an entry a
+ * machine will actually pick. */
++ (NSString *)currentPlatformName;
 - (NSString * _Nullable)resourcePath;
 - (NSDictionary * _Nullable)infoDictionary;
 - (id _Nullable)objectForInfoDictionaryKey:(NSString *)key;

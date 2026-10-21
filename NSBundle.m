@@ -32,6 +32,20 @@
 #import <Foundation/NSLocale.h>
 #import <Foundation/NSNumber.h>
 #include <objc/runtime.h>
+
+#include <sys/utsname.h>
+
+/* A LOWERCASED `uname` FIELD, INTO THE CALLER'S BUFFER — no static state, because the platform name is built from TWO
+ * fields in one expression and a shared buffer would make the answer depend on evaluation order. */
+static void fn_lowercase_into(const char *text, char *out, size_t size)
+{
+	size_t i;
+
+	for (i = 0; i + 1 < size && text[i] != '\0'; i++) {
+		out[i] = (text[i] >= 'A' && text[i] <= 'Z') ? (char)(text[i] - 'A' + 'a') : text[i];
+	}
+	out[i] = '\0';
+}
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +54,9 @@
 /* The Keys, named once: they are Apple's spellings and nothing below invents one. */
 static NSString *const FnBundleIdentifierKey = @"CFBundleIdentifier";
 static NSString *const FnBundleExecutableKey = @"CFBundleExecutable";
+/* **AGORA'S OWN KEY, because Apple has no equivalent and pretending otherwise would be inventing Apple's semantics.**
+ * It names a binary per machine for a bundle that carries several; see `-executablePath` in the header. */
+static NSString *const FnBundleExecutablesKey = @"AGBundleExecutables";
 static NSString *const FnPrincipalClassKey = @"NSPrincipalClass";
 static NSString *const FnBundleLocalizationsKey = @"CFBundleLocalizations";
 
@@ -362,6 +379,30 @@ static NSArray *fn_urls_for_paths(NSArray *paths)
 	return key != nil ? [[self fnLoadInfo] objectForKey:key] : nil;
 }
 
++ (NSString *)currentPlatformName
+{
+	static NSString *name = nil;
+
+	if (name == nil) {
+		/* **MEASURED, NOT TABULATED.** `uname` is the one answer every target of this tree has, and the spelling is the
+		 * two fields lowercased and joined, so a machine the packager never heard of still gets a name that matches
+		 * itself. `x86_64` stays `x86_64` and FreeBSD's `amd64` stays `amd64` — normalising them to one another would be a
+		 * table that has to be right about machines nobody has built for yet. */
+		struct utsname info;
+		char system[65];
+		char machine[65];
+
+		if (uname(&info) == 0) {
+			fn_lowercase_into(info.sysname, system, sizeof(system));
+			fn_lowercase_into(info.machine, machine, sizeof(machine));
+			name = [[NSString alloc] initWithFormat:@"%s-%s", system, machine];
+		} else {
+			name = [@"unknown" copy];
+		}
+	}
+	return name;
+}
+
 - (NSString * _Nullable)bundleIdentifier
 {
 	id value = [self objectForInfoDictionaryKey:FnBundleIdentifierKey];
@@ -371,11 +412,31 @@ static NSArray *fn_urls_for_paths(NSArray *paths)
 
 - (NSString * _Nullable)executablePath
 {
-	id name = [self objectForInfoDictionaryKey:FnBundleExecutableKey];
+	NSString *macos;
+	id variants;
+	id name;
 
+	/* STEP 1: THE EXACT BINARY FOR THIS MACHINE, IF THE MANIFEST HAS ONE. */
+	variants = [self objectForInfoDictionaryKey:FnBundleExecutablesKey];
+	if ([variants isKindOfClass:[NSDictionary class]]) {
+		id chosen = [(NSDictionary *)variants objectForKey:[NSBundle currentPlatformName]];
+
+		if ([chosen isKindOfClass:[NSString class]] && [chosen length] > 0) {
+			if ([_layout isEqualToString:_path]) {
+				return [_path stringByAppendingPathComponent:chosen];
+			}
+			return [[[_path stringByAppendingPathComponent:@"Contents"]
+				 stringByAppendingPathComponent:@"MacOS"]
+				stringByAppendingPathComponent:chosen];
+		}
+	}
+
+	/* STEP 2: APPLE'S KEY, WHICH IS THE WHOLE ANSWER FOR A SINGLE-MACHINE BUNDLE. */
+	name = [self objectForInfoDictionaryKey:FnBundleExecutableKey];
 	if (![name isKindOfClass:[NSString class]] || [name length] == 0) {
 		return nil;
 	}
+	(void)macos;
 	if ([_layout isEqualToString:_path]) {
 		/* FLAT: the executable sits in the bundle directory itself. */
 		return [_path stringByAppendingPathComponent:name];
