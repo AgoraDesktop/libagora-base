@@ -1182,7 +1182,7 @@ static void arg_cfattributed(void)
 	 * storage as if it were this class's `_runs`. */
 	check([[(id)a attributedSubstringFromRange:NSMakeRange(1, 3)] string] != nil,
 	      "a native CFAttributedString answered nothing for attributedSubstringFromRange:");
-	check([[(id)a copy] isEqualToAttributedString:a],
+	check([[(id)a copy] isEqualToAttributedString:(NSAttributedString *)a],
 	      "a native CFAttributedString's -copy is not equal to it");
 	{
 		NSMutableAttributedString *relayed =
@@ -1243,9 +1243,14 @@ static void arg_cfcharset(void)
 	}
 
 	/* AND THE TWO DOORS THAT ANSWER WITH A WHOLE SET. */
-	inv = [(id)w invertedSet];
+	/* **THE TWO COPIES COME BACK THROUGH THE BRIDGE, SO THEY ARRIVE AS OBJECTS AND ARE CAST BACK HERE.** The
+	 * receiver is a `CFCharacterSetRef` held in a Core Foundation variable, but `-invertedSet` and `-mutableCopy`
+	 * are asked of it as an OBJECT (that is the whole point of the door), so what they answer is typed
+	 * `NSCharacterSet *`/`id` — correct at run time because these are toll-free, and the cast is what tells the
+	 * compiler the two spellings of the same pointer were deliberate. */
+	inv = (CFCharacterSetRef)[(id)w invertedSet];
 	check(inv != NULL && [(id)inv characterIsMember:'z'], "the inverted set does not hold 'z'");
-	mut = [(id)w mutableCopy];
+	mut = (CFMutableCharacterSetRef)[(id)w mutableCopy];
 	check(mut != NULL && [(id)mut characterIsMember:'a'], "the mutable copy does not hold 'a'");
 	check([[(id)w description] length] > 0, "an owned set answered no description");
 }

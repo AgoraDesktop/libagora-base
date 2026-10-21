@@ -27,7 +27,7 @@
 #import <Foundation/NSObject.h>
 
 @class NSArray;
-@class NSCondition;
+@class FNCondition;	/* §63.170 re-homed this; see the note in NSOperation.h */
 @class NSOperation;
 @class NSString;
 
@@ -42,7 +42,7 @@ NS_ASSUME_NONNULL_BEGIN
 	 * detached twice and `-start` then sent to a chunk whose memory had already been freed and
 	 * reused (plan §15.3). */
 	NSMutableArray *_pending;
-	NSCondition *_condition;
+	FNCondition *_condition;
 	NSInteger _maxConcurrent;
 	NSUInteger _running;
 	BOOL _suspended;

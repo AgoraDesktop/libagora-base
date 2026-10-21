@@ -51,7 +51,7 @@
 #include <sys/types.h>
 
 @class NSArray;
-@class NSCondition;	/* the reaper's handshake with -waitUntilExit */
+@class FNCondition;	/* the reaper's handshake with -waitUntilExit — first-party since §63.170 */
 @class NSDictionary;
 @class NSError;
 @class NSString;
@@ -86,7 +86,7 @@ typedef enum {
 	BOOL _launched;
 	BOOL _exited;
 	int _status;			/* the RAW wait(2) status */
-	NSCondition *_condition;
+	FNCondition *_condition;
 	BOOL _reaperStarted;
 }
 

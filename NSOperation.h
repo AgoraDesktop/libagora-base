@@ -33,7 +33,11 @@
 
 @class NSArray;
 @class NSMutableArray;		/* the IVAR needs the name, and NSArray is not NSMutableArray */
-@class NSCondition;
+/* ⚠ `FNCondition`, NOT `NSCondition` (2026-10-21). §63.170 cut the 10.5 public class and re-homed its body
+ * first-party under this name (FNCondition.h), but THREE IVARS KEPT THE OLD CLASS'S SPELLING and the forward
+ * declaration kept naming a class that no longer exists anywhere in the tree. Nothing caught it because the
+ * ivar was only ever ASSIGNED and sent four messages, all of which resolve at run time. */
+@class FNCondition;
 
 /* THE LEGACY QUALITY-OF-SERVICE SPELLINGS (2026-09-20). Apple declares these as plain
  * macros that ALIAS the modern NSQualityOfService names - the older spelling kept
@@ -54,7 +58,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface NSOperation : NSObject
 {
 	NSMutableArray *_dependencies;
-	NSCondition *_condition;
+	FNCondition *_condition;
 	BOOL _cancelled;
 	BOOL _executing;
 	BOOL _finished;

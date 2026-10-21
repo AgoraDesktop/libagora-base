@@ -156,20 +156,29 @@ enum {
 	NSCompressionErrorMaximum = 5503
 };
 
-+ (NSData *)data;
-+ (NSData *)dataWithBytes:(const void * _Nullable)bytes length:(size_t)length;
-+ (nullable NSData *)dataWithBytesNoCopy:(void * _Nullable)bytes length:(size_t)length;
-+ (nullable NSData *)dataWithBytesNoCopy:(void * _Nullable)bytes length:(size_t)length freeWhenDone:(BOOL)freeWhenDone;
-+ (NSData *)dataWithData:(NSData *)other;
-+ (nullable NSData *)dataWithContentsOfFile:(NSString *)path;
-+ (nullable NSData *)dataWithContentsOfFile:(NSString *)path options:(NSDataReadingOptions)options error:(NSError * _Nullable * _Nullable)errorPtr;
-+ (nullable NSData *)dataWithBase64EncodedString:(NSString *)string;
-+ (nullable NSData *)dataWithBase64EncodedString:(NSString *)string options:(NSDataBase64DecodingOptions)options;
+/* ⚠⚠ EVERY FACTORY BELOW ANSWERS `instancetype`, NOT `NSData *` (2026-10-21). THE DECLARATION WAS NARROWER THAN
+ * THE IMPLEMENTATION: each of these is written `[[self alloc] …]` (NSData.m:135 and the rest), so a SUBCLASS
+ * HAS ALWAYS GOTTEN ITS OWN TYPE BACK AT RUN TIME — `[NSMutableData data]` answers an `NSMutableData` today.
+ * Spelling the return `NSData *` threw that away at the type level only, so `NSMutableData *b = [NSMutableData
+ * data]` was diagnosed as "initializing 'NSMutableData *' with an expression of type 'NSData *'", an error
+ * that names the RECEIVER and so reads as a mistake at the call site. It is not: it is this header.
+ *
+ * Found by a reporter on aarch64, where Clang 23 makes the diagnostic fatal. It understates the return in
+ * every compiler, which is why the fix is the declaration rather than a cast at each of the call sites. */
++ (instancetype)data;
++ (instancetype)dataWithBytes:(const void * _Nullable)bytes length:(size_t)length;
++ (nullable instancetype)dataWithBytesNoCopy:(void * _Nullable)bytes length:(size_t)length;
++ (nullable instancetype)dataWithBytesNoCopy:(void * _Nullable)bytes length:(size_t)length freeWhenDone:(BOOL)freeWhenDone;
++ (instancetype)dataWithData:(NSData *)other;
++ (nullable instancetype)dataWithContentsOfFile:(NSString *)path;
++ (nullable instancetype)dataWithContentsOfFile:(NSString *)path options:(NSDataReadingOptions)options error:(NSError * _Nullable * _Nullable)errorPtr;
++ (nullable instancetype)dataWithBase64EncodedString:(NSString *)string;
++ (nullable instancetype)dataWithBase64EncodedString:(NSString *)string options:(NSDataBase64DecodingOptions)options;
 
 /* THE URL FORMS (D7's kind (D)). Apple's nullability: the READING forms are nullable (a URL can
  * fail), the WRITING forms answer BOOL with an error out-parameter. */
-+ (nullable NSData *)dataWithContentsOfURL:(NSURL *)url;
-+ (nullable NSData *)dataWithContentsOfURL:(NSURL *)url options:(NSDataReadingOptions)options error:(NSError * _Nullable * _Nullable)errorPtr;
++ (nullable instancetype)dataWithContentsOfURL:(NSURL *)url;
++ (nullable instancetype)dataWithContentsOfURL:(NSURL *)url options:(NSDataReadingOptions)options error:(NSError * _Nullable * _Nullable)errorPtr;
 - (nullable id)initWithContentsOfURL:(NSURL *)url;
 - (nullable id)initWithContentsOfURL:(NSURL *)url options:(NSDataReadingOptions)options error:(NSError * _Nullable * _Nullable)errorPtr;
 - (BOOL)writeToURL:(NSURL *)url atomically:(BOOL)useAuxiliaryFile;
@@ -202,7 +211,7 @@ enum {
  * file), so these doors read the file instead of mapping it. What they must not do is claim a sharing
  * property the platform does not provide: the bytes are the file's, and nothing observes a later write.
  * ⚠ Also deprecated in Apple's SDKs, in favour of the options forms. */
-+ (nullable NSData *)dataWithContentsOfMappedFile:(NSString *)path;	/* ⚠ deprecated */
++ (nullable instancetype)dataWithContentsOfMappedFile:(NSString *)path;	/* ⚠ deprecated */
 - (nullable id)initWithContentsOfMappedFile:(NSString *)path;		/* ⚠ deprecated */
 
 /* THE OWNERSHIP-TRANSFERRING FORM. ⚠ THIS LIBRARY'S STORAGE IS ONE OWNED BLOCK, so the bytes are copied —
@@ -248,8 +257,8 @@ enum {
 	size_t _capacity;
 }
 
-+ (nullable NSMutableData *)dataWithCapacity:(size_t)capacity;
-+ (nullable NSMutableData *)dataWithLength:(size_t)length;
++ (nullable instancetype)dataWithCapacity:(size_t)capacity;
++ (nullable instancetype)dataWithLength:(size_t)length;
 - (nullable id)initWithCapacity:(size_t)capacity;
 - (nullable id)initWithLength:(size_t)length;
 
