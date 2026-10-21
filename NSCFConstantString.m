@@ -112,6 +112,37 @@
 
 /* THE STRONG DEFINITION OF THE BARE SYMBOL. Core Foundation declares it weakly, so this one wins at
  * load and every CFSTR() in the program -- Core Foundation's own and every caller's -- is an instance of
- * this class. */
+ * this class.
+ *
+ * ⚠⚠ TWO WAYS TO SAY IT, BECAUSE CLANG 23 STOPPED ACCEPTING ONE OF THEM (2026-10-21). The
+ * `__attribute__((alias(...)))` form is the honest spelling and is what older compilers want — but from
+ * Clang 23 a C alias may only point at a DEFINED VARIABLE OR FUNCTION, and an Objective-C class symbol is
+ * neither: it is compiler-generated metadata, so the attribute is rejected with "alias must point to a
+ * defined variable or function".
+ *
+ * The replacement is the same alias said one layer down, in the assembler, where a `.set` makes the two
+ * names the same symbol without asking what KIND of thing the target is. MEASURED: on this machine's
+ * clang-19 BOTH forms produce byte-identical objects — `__CFConstantStringClassReference` and
+ * `._OBJC_CLASS_NSCFConstantString` at one address — so the two paths agree rather than one being a
+ * guess about the other. The version test is here rather than in the build because the two spellings
+ * differ by compiler, not by architecture or flag. */
+#ifndef FN_CFCONSTSTRING_ELF_ALIAS
+#  if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 23
+#    define FN_CFCONSTSTRING_ELF_ALIAS 1
+#  else
+#    define FN_CFCONSTSTRING_ELF_ALIAS 0
+#  endif
+#endif
+
+#if FN_CFCONSTSTRING_ELF_ALIAS
+extern int __CFConstantStringClassReference[24];
+/* `.globl` because a `.set` does not bind the name into the object on its own; without it the symbol
+ * above would stay local and Core Foundation's weak definition would win, which is the opposite of the
+ * point. The target is the class symbol clang emits for the GNUstep 2.0 ABI — note the LEADING DOT, which
+ * is that ABI's spelling and not a typo. */
+__asm__(".globl __CFConstantStringClassReference\n"
+	".set __CFConstantStringClassReference, ._OBJC_CLASS_NSCFConstantString\n");
+#else
 extern int __CFConstantStringClassReference[24]
 	__attribute__((alias("._OBJC_CLASS_NSCFConstantString")));
+#endif
