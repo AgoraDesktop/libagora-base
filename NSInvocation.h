@@ -9,8 +9,8 @@
  * It is the half of the forwarding trio that has to MARSHAL: the runtime's
  * __objc_msg_forward2 hook is handed a call with a method's own arguments and must
  * answer with an IMP that arrives WITH THEM, so the arguments have to be captured
- * from the register file (ninvoke_amd64.S), stored (here), and put back
- * (fn_call_image) when -invoke runs the method for real.
+ * from the register file (NSInvocation_amd64.S, NSInvocation_arm64.S), stored
+ * (here), and put back (fn_call_image) when -invoke runs the method for real.
  *
  * THE ABI SUBSET IS THE DOCUMENTED BOUNDARY, and it is refused loudly rather than
  * half-supported: arguments and the return value travel in the REGISTERS —
@@ -109,7 +109,10 @@ typedef struct fn_regs {
 } fn_regs_t;
 
 /* The trampolines. fn_forward_entry is never called by name — the runtime calls it
- * through __objc_msg_forward2, with the forwarded method's arguments. */
+ * through __objc_msg_forward2, with the forwarded method's arguments. Which file
+ * defines them is the target's architecture: NSInvocation_amd64.S on x86-64,
+ * NSInvocation_arm64.S on AArch64. THE IMAGE BELOW IS THE SAME ON BOTH, which is why
+ * the offsets are a contract rather than a detail. */
 extern void fn_forward_entry(void);
 extern void fn_call_image(IMP function, fn_regs_t *regs);
 

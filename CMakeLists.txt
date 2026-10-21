@@ -78,10 +78,29 @@ file(GLOB FOUNDATION_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.m"
 # single copy of the runtime state is shared instead of one per binary. See README.md.
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
+# THE INVOCATION TRAMPOLINES ARE THE ONE PIECE OF THIS LIBRARY THAT IS PER-ARCHITECTURE.
+# They exist because the capture cannot be written in C (see the header of each file), so exactly one
+# of them belongs in the library and the choice is the TARGET's processor, not the host's.
+#
+# ⚠ THIS USED TO NAME NSInvocation_amd64.S UNCONDITIONALLY (2026-10-21), which meant an aarch64 build
+# tried to assemble x86-64 and failed on the first `pushq`. The empty branch refuses BY NAME rather than
+# picking a nearby file: a processor with no trampoline has no working message forwarding, and two
+# confusing assembler errors are a worse way to learn that than one sentence.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
+    set(FOUNDATION_INVOCATION_ASM NSInvocation_amd64.S)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64|armv8.*)$")
+    set(FOUNDATION_INVOCATION_ASM NSInvocation_arm64.S)
+else()
+    message(FATAL_ERROR
+        "No NSInvocation forwarding trampolines for CMAKE_SYSTEM_PROCESSOR='${CMAKE_SYSTEM_PROCESSOR}'. "
+        "This library's message forwarding is written in assembler once per architecture: "
+        "NSInvocation_amd64.S and NSInvocation_arm64.S exist. Add one for this target in the form of those two.")
+endif()
+
 add_library(Foundation SHARED
     ${FOUNDATION_SOURCES}
     plist.c
-    NSInvocation_amd64.S)
+    ${FOUNDATION_INVOCATION_ASM})
 
 set_target_properties(Foundation PROPERTIES OUTPUT_NAME agora-base)
 
