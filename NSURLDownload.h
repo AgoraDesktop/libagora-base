@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * NSURLDownload — A DOWNLOAD AS AN OBJECT, WITH A DELEGATE THAT DECIDES WHERE IT LANDS (§62.82), and the last
  * rows of `Networking / Legacy / URL Download`.

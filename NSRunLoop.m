@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  */
 /*
  * NSRunLoop.m — the timer and the loop that fires it (F13.18). One file, because the two are one

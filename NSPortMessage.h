@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSPortMessage` — THE OBJECT A PORT SENDS AND RECEIVES (§62.53). Apple deprecated the whole port family at 10.13
  * and §11.5 struck it here BY NAME, which is why `NSPort.h` still says that `-sendBeforeDate:components:from:reserved:`

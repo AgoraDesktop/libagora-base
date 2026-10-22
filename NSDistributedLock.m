@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * See NSDistributedLock.h for the three rules and for why the lock is a file. What is here is `open(2)`, which is
  * where the atomicity comes from — no lock file in this class does any read-then-write that could race.

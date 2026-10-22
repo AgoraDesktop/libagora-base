@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  */
 /*
  * NSDirectoryEnumerator — the deep walk (W8 slice 1; docs/design/foundation-plan.md §60).

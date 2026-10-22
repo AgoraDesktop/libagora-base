@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * NSBackgroundActivityScheduler — AN ACTIVITY THAT RUNS ITSELF AGAIN LATER (plan §62.66), and the last rows of
  * `App Support / System Interaction`. APPLE-DEPRECATED, AND THEREFORE IN SCOPE: §62.24's decision is that

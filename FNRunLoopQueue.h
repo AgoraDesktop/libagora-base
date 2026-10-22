@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * FNRunLoopQueue.h — THE RUN LOOP'S SEAM FOR THE NOTIFICATION QUEUE (2026-09-26, plan §62.61).
  *

@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * See NSConnection.h for what a connection is here and why the reply goes to a name. What is here is the request
  * and the answer, in one place each: `-handlePortMessage:` serves, `-fnSendInvocation:error:` asks.

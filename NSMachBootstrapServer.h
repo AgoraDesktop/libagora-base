@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSMachBootstrapServer` (§62.54) — Apple's door to the MACH BOOTSTRAP namespace, which does not exist here.
  * What does exist is the shared registry from NSPortNameServer.h, so `-servicePortWithName:` is a registry lookup

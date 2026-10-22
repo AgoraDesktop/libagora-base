@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * See NSPortCoder.h for the envelope rule (one object, one component) and for the two refusals. What is here is the
  * archiver doing the encoding and the port doing the carrying.

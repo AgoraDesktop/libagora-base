@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSSocketPortNameServer` (§62.54) — Apple's name server for the SOCKET port, and the one door in this family
  * that REFUSES. `-portForName:` is the shared registry's (a name is a name), but `-registerPort:name:` answers NO

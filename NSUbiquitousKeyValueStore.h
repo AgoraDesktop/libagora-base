@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * NSUbiquitousKeyValueStore — the iCloud key/value store (§62.87) with its change notification and the four
  * change reasons. This closes `Files and Data Persistence / iCloud key and value storage`.

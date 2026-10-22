@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  */
 /* NSDecimal.m — the arithmetic (W3). The LAYOUT is ours (the header says why); the value model,
  * signatures, rounding modes and error codes are Apple's. Digits are LSD-first, one per byte. */

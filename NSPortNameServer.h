@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSPortNameServer` — A NAME FOR A PORT (§62.54). Struck by name by §11.5 with the rest of the family, and back
  * under §62.24's policy.

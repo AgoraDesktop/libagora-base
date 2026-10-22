@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: GPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * **WHY THIS SUITE EXISTS, AND WHY IT IS THE ONE THAT WAS MISSING.** Normalization is the quietest algorithm in a text
  * stack: nothing crashes when it is wrong, no door refuses, and the symptom is a glyph in the wrong place or a

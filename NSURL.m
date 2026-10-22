@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  */
 /*
  * NSURL.m — NSURL: the parse, and the file-path rules. docs/design/foundation-plan.md, F8.
@@ -1239,8 +1238,8 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 	    [key isEqual:NSURLMayShareFileContentKey] || [key isEqual:NSURLIsPackageKey] ||
 	    [key isEqual:NSURLIsApplicationKey] || [key isEqual:NSURLVolumeIsRemovableKey] ||
 	    [key isEqual:NSURLVolumeIsEjectableKey]) {
-		/* UNAVAILABLE, which is Apple's "the resource property is NOT AVAILABLE for the specified resource,
-		 * and no errors occurred" - the grounds are in the header, measured one by one. */
+		/* UNAVAILABLE, which is Apple's way of saying the property is one this resource does not carry,
+		 * and that nothing failed while establishing it - the grounds are in the header, measured one by one. */
 		return nil;
 	}
 	if ([key isEqual:NSURLVolumeIsReadOnlyKey] ||

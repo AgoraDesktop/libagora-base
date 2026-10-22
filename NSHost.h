@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * NSHost — a host as a NAME and a set of ADDRESSES (2026-09-26, plan §62.63). APPLE-DEPRECATED, AND THEREFORE
  * IN SCOPE: §62.24's decision is that API Apple deprecated is a PORTING TARGET rather than an exclusion, so the

@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  */
 /*
  * NSURL — a URL as a VALUE. docs/design/foundation-plan.md, F8.
@@ -278,10 +277,9 @@ typedef NSString *NSURLFileResourceType;
 /* ⚠⚠ THE SECURITY-SCOPED PAIR, DECLARED ON THE CLASS BECAUSE THAT IS WHERE THE CORPUS HAS THEM, AND WITH THEIR
  * CONTRACT READ RATHER THAN GUESSED (§63.96's instrument, first applied in §63.103):
  *
- *   "Given a NSURL CREATED BY RESOLVING A BOOKMARK DATA CREATED WITH SECURITY SCOPE, make the resource referenced by
- *    the url accessible to the process. Each call to startAccessingSecurityScopedResource that returns YES must be
- *    balanced with a call to stopAccessingSecurityScopedResource… Calls to start and stop accessing the resource are
- *    REFERENCE COUNTED and may be NESTED."
+ *   RESOLVING A SECURITY-SCOPED BOOKMARK YIELDS A URL THAT CAN STILL BE OUT OF REACH: the pair is what turns it back
+ *   into a reachable item. Every -startAccessingSecurityScopedResource that answers YES owes a matching -stop…, and the
+ *   count behind the pair is REFERENCE COUNTED, so the accesses NEST rather than behaving as a single flag.
  *
  * ⚠ SO THE DOOR ANSWERS A QUESTION — WHETHER ACCESS WAS GRANTED — AND THE HONEST ANSWER HERE IS NO: this system has no
  * sandbox and no security-scoped bookmark to resolve, so there is nothing to grant. **THAT IS A CAPABILITY ANSWER AND
@@ -457,10 +455,9 @@ NSURL * _Nullable FNURLResolveRelative(NSString *reference, NSString * _Nullable
 /* ---- THE KEY MASSES WHOSE SUBJECT THIS SYSTEM DOES NOT HAVE (W8p, slice 6f) ------------------------
 
  *
- * THESE ARE DECLARED AND THEY ARE RECOGNISED, AND THE ANSWER THEY GET IS APPLE'S OWN: the getter's page says
- * "If this method returns [YES] and the value is populated with [nil], it means that the resource property is
- * NOT AVAILABLE for the specified resource, and that no errors occurred when determining that the resource
- * property was unavailable." A ubiquitous item, a thumbnail, a quarantine flag, an icon, a label, a UTI, a
+ * THESE ARE DECLARED AND THEY ARE RECOGNISED, AND THE ANSWER THEY GET IS APPLE'S OWN: a YES whose value is nil means the
+ * property is one this resource simply does not carry — absent rather than unreadable — and that nothing went wrong in
+ * establishing its absence. A ubiquitous item, a thumbnail, a quarantine flag, an icon, a label, a UTI, a
  * tag list and a file-protection level are things this system does not have, so their keys are ANSWERED NIL -
  * which is not the same as an error and not the same as a fabricated value. A program written for Apple
  * compiles, asks, and is told the truth.
@@ -533,8 +530,8 @@ extern NSURLResourceKey const NSURLFileProtectionKey;
  *   - `NSURLIsPurgeableKey`, `NSURLIsAliasFileKey`, `NSURLVolumeIsEncryptedKey` - NO, each a TRUE statement
  *     about the item with its ground named: nothing here evicts file content, the macOS alias format does not
  *     exist, and no volume is encrypted;
- *   - AND SEVEN THAT ARE UNAVAILABLE: nil, which is Apple's own "the resource property is NOT AVAILABLE for
- *     the specified resource, and no errors occurred". `NSURLVolumeCreationDateKey` (the file system records
+ *   - AND SEVEN THAT ARE UNAVAILABLE: nil, which is Apple's own way of saying the property is one this resource does
+ *     not carry and that nothing failed while establishing it. `NSURLVolumeCreationDateKey` (the file system records
  *     no volume creation time), `NSURLFileContentIdentifierKey` (content identifiers identify clone-shared
  *     content and there is no cloning), `NSURLMayShareFileContentKey` (no sharing substrate),
  *     `NSURLIsPackageKey`/`NSURLIsApplicationKey` (package identity is a file-manager/LaunchServices notion; the

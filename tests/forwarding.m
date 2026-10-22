@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: GPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * WHY THIS FILE EXISTS. `NSInvocation_amd64.S` and `NSInvocation_arm64.S` are the only per-architecture
  * code in this library, and until this suite nothing in libagora-base called either of them: the bridge

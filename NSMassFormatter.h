@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSMassFormatter` (§62.50), the second of Apple's formatter trio. See NSLengthFormatter.h for the value scheme
  * (§11.6.1 D2: the numbers are ours, the order is the documentation's) and for the locale stance that decides the

@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSConnection` — DISTRIBUTED OBJECTS, ON THIS SYSTEM'S OWN TRANSPORT (§62.56). Apple struck the family by name in
  * §11.5 and §62.24 put it back; this is the last thing the port family owed.

@@ -4,7 +4,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSMessagePortNameServer` (§62.54) — Apple's name server for its in-process message port, and HERE THE ONE THAT
  * ACTUALLY WORKS: a message port is a socket pair, so the far end is something this process holds and can publish.

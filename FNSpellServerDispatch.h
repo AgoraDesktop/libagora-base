@@ -2,7 +2,6 @@
  * Copyright © 2026 Kyle J. Cardoza.
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
- * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * FNSpellServerDispatch.h — THE DISPATCH HALF OF `NSSpellServer`: what a client's request does once it arrives
  * (§62.85). INTERNAL, and deliberately not public API.
