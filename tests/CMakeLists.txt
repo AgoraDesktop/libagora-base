@@ -33,3 +33,12 @@ add_executable(null_identity null_identity.m)
 target_link_libraries(null_identity PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
 add_test(NAME null_identity COMMAND null_identity)
+
+# THE ONLY PER-ARCHITECTURE CODE IN THIS LIBRARY, EXERCISED. `fn_forward_entry` captures the register
+# file of a call being forwarded and `fn_call_image` makes a call from a stored one; nothing else in the
+# tree calls either, so without this suite the aarch64 trampoline can be assembled, linked, loaded and
+# still be wrong. See the file header.
+add_executable(forwarding forwarding.m)
+target_link_libraries(forwarding PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME forwarding COMMAND forwarding)
