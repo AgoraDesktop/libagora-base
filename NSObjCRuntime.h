@@ -162,11 +162,14 @@ typedef NS_OPTIONS(NSUInteger, NSSortOptions) {
 	NSSortStable = (1UL << 4)
 };
 
-typedef enum {
+/* A real NS_ENUM, renamed for Swift: Darwin's imported type is `ComparisonResult`
+ * with `.orderedAscending`/`.orderedSame`/`.orderedDescending`, and the overlay's
+ * `Comparable` conformances compare against those cases. */
+typedef NS_ENUM(NSInteger, NSComparisonResult) {
 	NSOrderedAscending = -1,
 	NSOrderedSame = 0,
 	NSOrderedDescending = 1
-} NSComparisonResult;
+} NS_SWIFT_NAME(ComparisonResult);
 
 /* APPLE'S POINTER SPELLING FOR A RANGE, declared beside the range itself (it was a ledger row on its
  * own: §23's NSIndexSet unit is what needed it). */

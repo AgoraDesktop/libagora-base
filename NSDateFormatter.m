@@ -165,6 +165,17 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 		udat_close((UDateFormat *)_formatter);
 		_formatter = NULL;
 	}
+	/* THE SETTINGS ARE OWNED (the setters retain them), so the formatter releases
+	 * them. This library is manual reference counting, and a setter that assigns
+	 * without retaining is a use-after-free waiting for a heap layout to expose it:
+	 * the language gate caught exactly that, in `-stringFromDate:` after
+	 * `-setDateFormat:` with a Swift-bridged pattern. */
+	[_pattern release];
+	[_locale release];
+	[_timeZone release];
+	[_calendar release];
+	[_twoDigitStartDate release];
+	[_gregorianStartDate release];
 	[super dealloc];	/* NSObject's -dealloc is what frees the instance */
 }
 
@@ -404,6 +415,8 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	if (string == _pattern) {
 		return;
 	}
+	[string retain];
+	[_pattern release];
 	_pattern = string;
 	[self fnRebuild];
 }
@@ -440,6 +453,8 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	if (locale == _locale) {
 		return;
 	}
+	[locale retain];
+	[_locale release];
 	_locale = locale;
 	[self fnRebuild];
 }
@@ -454,6 +469,8 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	if (timeZone == _timeZone) {
 		return;
 	}
+	[timeZone retain];
+	[_timeZone release];
 	_timeZone = timeZone;
 	[self fnRebuild];
 }
@@ -480,16 +497,16 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	}
 	/* A formatter is MUTABLE, so a copy that shared this object's state would be a trap: the
 	 * settings are carried over and the ICU handle is built fresh by the setters. */
-	copy->_pattern = _pattern;
-	copy->_locale = _locale;
-	copy->_timeZone = _timeZone;
-	copy->_calendar = _calendar;
+	copy->_pattern = [_pattern retain];
+	copy->_locale = [_locale retain];
+	copy->_timeZone = [_timeZone retain];
+	copy->_calendar = [_calendar retain];
 	copy->_dateStyle = _dateStyle;
 	copy->_timeStyle = _timeStyle;
 	copy->_lenient = _lenient;
 	copy->_formattingContext = _formattingContext;
-	copy->_twoDigitStartDate = _twoDigitStartDate;
-	copy->_gregorianStartDate = _gregorianStartDate;
+	copy->_twoDigitStartDate = [_twoDigitStartDate retain];
+	copy->_gregorianStartDate = [_gregorianStartDate retain];
 	[copy fnRebuild];
 	return copy;
 }
@@ -517,6 +534,8 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	if (calendar == _calendar) {
 		return;
 	}
+	[calendar retain];
+	[_calendar release];
 	_calendar = calendar;
 	[self fnRebuild];
 }
@@ -766,6 +785,8 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	if (date == _twoDigitStartDate) {
 		return;
 	}
+	[date retain];
+	[_twoDigitStartDate release];
 	_twoDigitStartDate = date;
 	[self fnRebuild];
 }
@@ -780,6 +801,8 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	if (date == _gregorianStartDate) {
 		return;
 	}
+	[date retain];
+	[_gregorianStartDate release];
 	_gregorianStartDate = date;
 	[self fnRebuild];
 }
