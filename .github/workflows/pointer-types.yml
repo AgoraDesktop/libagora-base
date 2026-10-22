@@ -58,6 +58,14 @@ env:
   # default clang, and the flag set here is the one CI is asserting. Individual matrix rows override
   # this to test a SECOND compiler — see the clang-23 row.
   LLVM_VERSION: "19"
+  # ⚠ DEPENDENCIES ARE ALWAYS BUILT WITH THE DOCUMENTED COMPILER, and this exists because the first
+  # clang-23 run failed for the wrong reason: `libagora-dispatch` builds with `-Werror` and clang 23
+  # added `-Wunused-but-set-global`, so `queue.c:6549` stopped the run three components before
+  # libagora-base was ever configured. That is a real defect in ANOTHER component and deserves its own
+  # leg, but it must not make this workflow's subject untestable. So the compiler axis applies to the
+  # COMPONENT UNDER TEST only: dependencies are installed once, with the documented toolchain, and
+  # libagora-base is then compiled against that prefix with whichever compiler the row names.
+  DEP_LLVM_VERSION: "19"
   # The diagnostic this workflow exists for.
   POINTER_FLAGS: "-Werror=incompatible-pointer-types"
 
@@ -103,9 +111,15 @@ jobs:
           sudo apt-get install -y --no-install-recommends wget gnupg ca-certificates lsb-release
           wget -qO /tmp/llvm.sh "https://apt.llvm.org/llvm.sh"
           chmod +x /tmp/llvm.sh
-          sudo /tmp/llvm.sh "${LLVM_VERSION}"
+          # The dependency toolchain first, then the subject's if it is a different release. A row that
+          # names clang 23 therefore has BOTH installed: 19 to build the prefix, 23 to build this
+          # component.
+          sudo /tmp/llvm.sh "${DEP_LLVM_VERSION}"
+          if [ "${LLVM_VERSION}" != "${DEP_LLVM_VERSION}" ]; then
+            sudo /tmp/llvm.sh "${LLVM_VERSION}"
+          fi
+          clang-${DEP_LLVM_VERSION} --version
           clang-${LLVM_VERSION} --version
-          clang++-${LLVM_VERSION} --version
 
       - name: System libraries
         run: |
@@ -147,8 +161,11 @@ jobs:
           # declares the OBJC language is libagora-core — so a bare name fails three components in,
           # which is a confusing place to learn it. `command -v` rather than a hardcoded /usr/bin,
           # so this works wherever llvm.sh put the toolchain, on either architecture.
-          C="$(command -v clang-${LLVM_VERSION})"
-          CXX="$(command -v clang++-${LLVM_VERSION})"
+          # THE DEPENDENCY TOOLCHAIN, not the subject's: see DEP_LLVM_VERSION. Building the prefix with
+          # the documented compiler is what lets a newer-compiler row test ONE component instead of
+          # every component's warning set.
+          C="$(command -v clang-${DEP_LLVM_VERSION})"
+          CXX="$(command -v clang++-${DEP_LLVM_VERSION})"
           echo "CC=${C}"
           echo "CXX=${CXX}"
           # libagora-objc is C++, so CXX is real, not ceremonial.
