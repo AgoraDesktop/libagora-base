@@ -55,7 +55,7 @@ typedef struct {
 	NSInteger majorVersion;
 	NSInteger minorVersion;
 	NSInteger patchVersion;
-} NSOperatingSystemVersion;
+} NSOperatingSystemVersion NS_SWIFT_NAME(OperatingSystemVersion);
 
 /* THE THERMAL STATE BELONGS BEFORE THE CLASS, and it MOVED here in §62.98 for a reason worth keeping: the enum
  * used to sit below the interface with no door that could name it, so `-thermalState` was unwritable — an enum
@@ -85,6 +85,7 @@ typedef enum {
 	NSActivityTrackingEnabled = 1 << 10
 } NSActivityOptions;
 
+NS_SWIFT_NAME(ProcessInfo)
 @interface NSProcessInfo : NSObject
 
 + (NSProcessInfo *)processInfo;

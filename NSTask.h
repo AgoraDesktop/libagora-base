@@ -70,6 +70,7 @@ typedef enum {
 	NSTaskTerminationReasonUncaughtSignal = 2
 } NSTaskTerminationReason;
 
+NS_SWIFT_NAME(Process)
 @interface NSTask : NSObject
 {
 	NSURL *_executableURL;

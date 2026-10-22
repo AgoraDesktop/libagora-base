@@ -74,7 +74,7 @@ typedef NSRect *NSRectArray;
  * (the documented usage — they are opaque flags) observes nothing different. A program that
  * hard-codes a bit position, or bit-tests with a literal, would.
  */
-typedef unsigned long NSAlignmentOptions;
+typedef unsigned long NSAlignmentOptions NS_SWIFT_NAME(AlignmentOptions);
 
 #define NSAlignMinXInward	(1UL << 0)
 #define NSAlignMinYInward	(1UL << 1)

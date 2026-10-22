@@ -307,6 +307,7 @@ typedef enum {
 	NSFileManagerUnmountWithoutUI = 1 << 1
 } NSFileManagerUnmountOptions;
 
+NS_SWIFT_NAME(FileManager)
 @interface NSFileManager : NSObject
 {
 	/* ASSIGN, NOT WEAK, and that is MEASURED rather than chosen: Apple's own declaration comes back
