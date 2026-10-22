@@ -17,8 +17,8 @@
 # bug is there. The red is left visible rather than suppressed: silencing a true failure to get a
 # green badge is the thing this workflow was written to stop.
 #
-# BOTH LEGS ARE NATIVE, and that is deliberate: one runner per architecture, each building and
-# running the trampolines its own processor needs. There is no cross-compilation here.
+# BOTH ARCHITECTURES, AND ONE NEWER COMPILER. Legs: x86-64 and aarch64 on clang 19 (the documented
+# toolchain), plus x86-64 on clang 23.
 #
 #   * x86-64  (ubuntu-24.04) builds NSInvocation_amd64.S and runs the suites that load it.
 #   * aarch64 (ubuntu-24.04-arm) builds NSInvocation_arm64.S natively and loads it. THIS IS THE LEG
@@ -55,7 +55,8 @@ concurrency:
 
 env:
   # The toolchain release the project documents. Not `clang-19` on PATH: runners have their own
-  # default clang, and the flag set here is the one CI is asserting.
+  # default clang, and the flag set here is the one CI is asserting. Individual matrix rows override
+  # this to test a SECOND compiler — see the clang-23 row.
   LLVM_VERSION: "19"
   # The diagnostic this workflow exists for.
   POINTER_FLAGS: "-Werror=incompatible-pointer-types"
@@ -64,18 +65,35 @@ jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
+    env:
+      # Per-row so one row can test a different compiler without disturbing the documented one.
+      LLVM_VERSION: ${{ matrix.llvm_version }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: libagora-base x86-64
+          - name: libagora-base x86-64 (clang 19)
             runner: ubuntu-24.04
             target_processor: x86_64
-            native: "true"
-          - name: libagora-base aarch64
+            llvm_version: "19"
+          - name: libagora-base aarch64 (clang 19)
             runner: ubuntu-24.04-arm
             target_processor: aarch64
-            native: "true"
+            llvm_version: "19"
+          # ⚠ THE NEWER COMPILER IS A SEPARATE AXIS FROM THE ARCHITECTURE, and this row exists for
+          # ONE SPECIFIC DEFECT: issue 1, where Clang 23 began rejecting `__attribute__((alias(...)))`
+          # pointing at a compiler-generated Objective-C class symbol. The fix
+          # (NSCFConstantString.m, commit 1397cbf) selects the assembler spelling on
+          # `__clang_major__ >= 23`, so THE BRANCH THAT MATTERS IS UNREACHABLE ON clang-19 — it can
+          # only be compiled by a compiler new enough to reject the old form. Without this row that
+          # path is verified by forcing a macro locally and trusting the result.
+          #
+          # x86-64 only: the defect is about a compiler, not a processor, and pairs it with the
+          # documented clang so the two axes stay independent rather than multiplying.
+          - name: libagora-base x86-64 (clang 23)
+            runner: ubuntu-24.04
+            target_processor: x86_64
+            llvm_version: "23"
 
     steps:
       - name: Toolchain
