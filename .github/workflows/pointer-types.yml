@@ -30,9 +30,13 @@
 # picked. A matrix that quietly built the same architecture twice would otherwise look like
 # coverage.
 #
-# WHAT NEITHER LEG PROVES: no suite here forwards a message, so the invocation trampolines are
-# assembled and loaded but never EXERCISED. A forwarding test belongs in tests/ and would turn issue
-# 4 from "builds on ARM" into "forwards on ARM". Until then that claim is not made.
+# WHAT THE LEGS NOW PROVE, AND WHAT THEY DO NOT. `tests/forwarding.m` sends a selector no class
+# implements and -invoke's a real method, so BOTH trampolines are exercised — capture and replay — with
+# mixed integer and floating arguments and both return slots. That is what turned issue 4 from "builds on
+# ARM" into "forwards on ARM", and the aarch64 leg passing is the judgement on NSInvocation_arm64.S.
+#
+# Still unproven: anything about performance, and the wider ABI — NSInvocation refuses stack arguments and
+# structs by value, so neither the test nor the trampolines cover them, by design rather than omission.
 
 name: pointer types
 
