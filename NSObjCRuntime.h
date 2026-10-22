@@ -442,6 +442,20 @@ void * _Nullable NSReturnAddress(NSUInteger level);
  * <objc/runtime.h>, which this header includes for exactly this reason (NSObject.h already did). Apple declares
  * these in NSObjCRuntime.h too, which is why the pair lives here rather than in a class's header — a protocol is
  * not an object and no class owns these. */
+#import <objc/Protocol.h>
+
+/* A PROTOCOL OBJECT IS AN OBJECT, and Cocoa messages it. `-name` is what
+ * `NSStringFromProtocol` is built on, and `-hash`/`-isEqual:` are what let a
+ * protocol be a collection key. The runtime's `Protocol` class carries no
+ * methods of its own (it roots at the legacy `Object`), so Foundation supplies
+ * these - GNUstep Base does the same for this runtime. */
+@interface Protocol (FNProtocolObject)
+@property (readonly, copy) NSString *name;
+@property (readonly, copy) NSString *description;
+@property (readonly) NSUInteger hash;
+- (BOOL)isEqual:(nullable id)object;
+@end
+
 NSString * _Nullable NSStringFromProtocol(Protocol * _Nullable protocol);
 Protocol * _Nullable NSProtocolFromString(NSString * _Nullable name);
 

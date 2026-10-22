@@ -16,6 +16,8 @@
 #import "NSMethodSignature.h"
 #import "NSInvocation.h"
 
+#include <stdio.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -546,11 +548,14 @@ static id fn_proxy_lookup(id receiver, SEL op)
 	if (receiver == nil) {
 		return nil;
 	}
-	/* The guard is asked the ORDINARY way, through -respondsToSelector:, rather
-	 * than by comparing sel_registerName's untyped selector against the method's
-	 * typed one: a lookup that goes through the class is the one the rest of this
-	 * library trusts. */
-	if ([receiver respondsToSelector:@selector(forwardingTargetForSelector:)]) {
+	/* The guard is asked through the RUNTIME, not by messaging the receiver:
+	 * `-respondsToSelector:` is itself a message, so asking an object that has no
+	 * NSObject ancestry (a `Protocol` object roots at the runtime's `Object`)
+	 * re-enters this hook and never terminates.  `class_respondsToSelector`
+	 * walks the same method lists without a send. */
+	Class cls = object_getClass(receiver);
+	if (cls != Nil && class_respondsToSelector(cls,
+	                                           @selector(forwardingTargetForSelector:))) {
 		return [receiver forwardingTargetForSelector:op];
 	}
 	return nil;
@@ -570,6 +575,19 @@ void fn_forward_handler(void)
 	NSInvocation *invocation;
 
 	if (receiver == nil) {
+		return;
+	}
+	/* An object whose class has no NSObject ancestry cannot take part in
+	 * invocation forwarding: `-methodSignatureForSelector:` is a message, and a
+	 * miss on it comes straight back here.  A `Protocol` object is the case that
+	 * exists in this runtime.  Say so and answer nil rather than recursing. */
+	Class receiverClass = object_getClass(receiver);
+	if (receiverClass == Nil ||
+	    !class_respondsToSelector(receiverClass,
+	                              @selector(methodSignatureForSelector:))) {
+		fprintf(stderr, "%s does not respond to %s\n",
+		        receiverClass ? class_getName(receiverClass) : "<nil>",
+		        sel_getName(selector));
 		return;
 	}
 	signature = [receiver methodSignatureForSelector:selector];
