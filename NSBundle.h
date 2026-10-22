@@ -66,6 +66,7 @@ extern NSString *const NSLoadedClasses;
  * objc_getClass on NSPrincipalClass). That is the security-sensitive half of a bundle and it is why this class
  * takes the payload's own path rather than accepting a path from a caller.
  */
+NS_SWIFT_NAME(Bundle)
 @interface NSBundle : NSObject
 {
 	NSMutableDictionary *_preservation;	/* §63.212: tag -> priority, made on first use */
