@@ -70,10 +70,10 @@ NS_ASSUME_NONNULL_BEGIN
  * positions elsewhere in this library). NSEnumerationConcurrent is a HINT Apple's page says a caller
  * must not rely on and an implementation may ignore; this one ignores it, so an enumeration is always
  * serial and synchronous, which is what the docs promise for these methods anyway. */
-typedef enum {
+typedef NS_OPTIONS(NSUInteger, NSEnumerationOptions) {
 	NSEnumerationConcurrent = 1,
 	NSEnumerationReverse = 2
-} NSEnumerationOptions;
+};
 
 /* THE BUFFER FORM AND ITS IN/OUT RANGE: the buffer receives at most `maxCount` of the receiver's indexes
  * that lie in *range, the return value is how many were written, and *range is UPDATED to the indexes

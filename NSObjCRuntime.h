@@ -60,6 +60,83 @@
 #	define NS_ASSUME_NONNULL_END
 #endif
 
+/*
+ * THE MACRO SURFACE (2026-09-19). Apple's documentation declares this family and
+ * WE DID NOT, so ~80 names a Cocoa-shaped program spells were simply absent —
+ * `NS_ENUM`, `NS_OPTIONS`, `FOUNDATION_EXPORT`, the availability spellings, and
+ * the handful of real constants.
+ *
+ * WHAT APPLE PUBLISHES, MEASURED RATHER THAN ASSUMED: each page gives the
+ * macro's SIGNATURE (`#define NS_OPTIONS(_type, _name)`, `#define
+ * FOUNDATION_EXPORT`, `#define NS_AVAILABLE(_mac, _ios)`) and its description —
+ * and NOT the expansion body. So the signatures below are Apple's, transcribed,
+ * while the bodies are ours and chosen to do what the description says. By
+ * §11.5's own test that is not a difference: a body is not observable to a
+ * program that writes the macro's name.
+ *
+ * THE AVAILABILITY SPELLINGS ARE INERT HERE, which is a documented deviation
+ * (§11.6.1 D12): no compiler this system ships has a notion of macOS or iOS
+ * availability, so a body using `__attribute__((availability(...)))` would warn
+ * on every use — and the house build is warning-free. The parameter lists are
+ * Apple's; the bodies do nothing.
+ */
+
+/* Swift-side naming and behaviour attributes (Darwin's NS_SWIFT_NAME,
+ * NS_REFINED_FOR_SWIFT and NS_SWIFT_SENDABLE).  Each is a clang attribute the
+ * Swift importer reads; without them the importer's heuristics decide the Swift
+ * name, and a class that is safe to send across concurrency domains has no
+ * `Sendable` conformance at all. */
+#define NS_SWIFT_NAME(_name)		__attribute__((swift_name(#_name)))
+#define NS_REFINED_FOR_SWIFT		__attribute__((swift_private))
+#define NS_SWIFT_SENDABLE		__attribute__((swift_attr("@Sendable")))
+#define NS_SWIFT_NONISOLATED		__attribute__((swift_attr("@nonisolated")))
+#define NS_SWIFT_UI_ACTOR		__attribute__((swift_attr("@MainActor")))
+
+/* --- declaring an enum (Apple's signatures) --- */
+/* THE ATTRIBUTES ARE PART OF THE MACRO, not decoration: `enum_extensibility` and
+ * `flag_enum` are what make the Swift importer emit the constants as members of
+ * the imported type (`AlignmentOptions.minXInward`, `QualityOfService.background`)
+ * instead of leaving them as globals, and `flag_enum` is what makes an option set
+ * a Swift `OptionSet` (with `SetAlgebra`). Darwin's macros carry them. */
+#define NS_ENUM(_type, _name)		enum _name : _type _name; \
+	enum __attribute__((enum_extensibility(open))) _name : _type
+#define NS_OPTIONS(_type, _name)	enum _name : _type _name; \
+	enum __attribute__((flag_enum, enum_extensibility(open))) _name : _type
+#define NS_CLOSED_ENUM(_type, _name)	enum _name : _type _name; \
+	enum __attribute__((enum_extensibility(closed))) _name : _type
+#define NS_ERROR_ENUM(_type, _name)	enum _name : _type _name; \
+	enum __attribute__((enum_extensibility(open))) _name : _type
+/*
+ * HOW MUCH A THREAD OR OPERATION MATTERS TO THE USER (2026-09-20), and it is declared
+ * HERE because Apple declares it here - the type is not NSOperation's or NSThread's,
+ * both of which name it. The ORDER carries the meaning (Background < Utility <
+ * UserInitiated < UserInteractive) and Default is 0 because it says "unspecified"
+ * rather than "lowest".
+ *
+ * THE VALUES ARE OURS (§11.6.1 D2). Apple's happen to be 0x21/0x19/0x11/0x09/-1, and
+ * the names are the API there rather than the numbers: a program compares against the
+ * constants, not the literals. Third-party BINDING documentation publishes those
+ * numbers (Microsoft's .NET binding, the Dart objective_c package), which is how we
+ * know they exist at all - and they are still not Apple's to copy, so ours stand.
+ */
+typedef NS_ENUM(NSInteger, NSQualityOfService) {
+	NSQualityOfServiceDefault = 0,
+	NSQualityOfServiceBackground = 1,
+	NSQualityOfServiceUtility = 2,
+	NSQualityOfServiceUserInitiated = 3,
+	NSQualityOfServiceUserInteractive = 4
+} NS_SWIFT_NAME(QualityOfService);
+
+/* typed/extensible string enums.  Apple documents the bare names and their
+ * EFFECT (a `NSString *` typedef that Swift sees as a struct wrapper with a
+ * `rawValue`); the effect is carried by clang's `swift_wrapper` attribute, which
+ * is what Darwin's SDK expands these to. */
+#define NS_TYPED_ENUM			__attribute__((swift_wrapper(struct)))
+#define NS_STRING_ENUM			__attribute__((swift_wrapper(struct)))
+#define NS_EXTENSIBLE_STRING_ENUM	__attribute__((swift_wrapper(struct)))
+#define NS_TYPED_EXTENSIBLE_ENUM	__attribute__((swift_wrapper(struct)))
+
+
 #define NSIntegerMax	LONG_MAX
 #define NSIntegerMin	LONG_MIN
 #define NSUIntegerMax	ULONG_MAX
@@ -80,8 +157,7 @@
  * that moves an element only while the comparison says NSOrderedDescending, so two elements that compare
  * EQUAL keep the order they arrived in — the same property an `NSSortDescriptor` chain promises (F10). The
  * option is therefore honoured by WHAT THE SORT IS rather than by a branch, and the probe measures it. */
-typedef NSUInteger NSSortOptions;
-enum {
+typedef NS_OPTIONS(NSUInteger, NSSortOptions) {
 	NSSortConcurrent = (1UL << 0),
 	NSSortStable = (1UL << 4)
 };
@@ -107,11 +183,11 @@ static inline BOOL NSLocationInRange(NSUInteger location, NSRange range)
  * options for the binary-search family. Both are Cocoa's spellings. */
 typedef NSComparisonResult (^NSComparator)(id _Nonnull object1, id _Nonnull object2);
 
-typedef enum {
+typedef NS_OPTIONS(NSUInteger, NSBinarySearchingOptions) {
 	NSBinarySearchingFirstEqual = 1,
 	NSBinarySearchingLastEqual = 2,
 	NSBinarySearchingInsertionIndex = 4
-} NSBinarySearchingOptions;
+};
 
 /*
  * Cocoa spells this on its nil-terminated variadic methods. The attribute only
@@ -138,72 +214,7 @@ extern BOOL NSDeallocateZombies;
 extern BOOL NSKeepAllocationStatistics;
 extern double NSFoundationVersionNumber;
 
-/*
- * HOW MUCH A THREAD OR OPERATION MATTERS TO THE USER (2026-09-20), and it is declared
- * HERE because Apple declares it here - the type is not NSOperation's or NSThread's,
- * both of which name it. The ORDER carries the meaning (Background < Utility <
- * UserInitiated < UserInteractive) and Default is 0 because it says "unspecified"
- * rather than "lowest".
- *
- * THE VALUES ARE OURS (§11.6.1 D2). Apple's happen to be 0x21/0x19/0x11/0x09/-1, and
- * the names are the API there rather than the numbers: a program compares against the
- * constants, not the literals. Third-party BINDING documentation publishes those
- * numbers (Microsoft's .NET binding, the Dart objective_c package), which is how we
- * know they exist at all - and they are still not Apple's to copy, so ours stand.
- */
-typedef enum {
-	NSQualityOfServiceDefault = 0,
-	NSQualityOfServiceBackground = 1,
-	NSQualityOfServiceUtility = 2,
-	NSQualityOfServiceUserInitiated = 3,
-	NSQualityOfServiceUserInteractive = 4
-} NSQualityOfService;
 
-/*
- * THE MACRO SURFACE (2026-09-19). Apple's documentation declares this family and
- * WE DID NOT, so ~80 names a Cocoa-shaped program spells were simply absent —
- * `NS_ENUM`, `NS_OPTIONS`, `FOUNDATION_EXPORT`, the availability spellings, and
- * the handful of real constants.
- *
- * WHAT APPLE PUBLISHES, MEASURED RATHER THAN ASSUMED: each page gives the
- * macro's SIGNATURE (`#define NS_OPTIONS(_type, _name)`, `#define
- * FOUNDATION_EXPORT`, `#define NS_AVAILABLE(_mac, _ios)`) and its description —
- * and NOT the expansion body. So the signatures below are Apple's, transcribed,
- * while the bodies are ours and chosen to do what the description says. By
- * §11.5's own test that is not a difference: a body is not observable to a
- * program that writes the macro's name.
- *
- * THE AVAILABILITY SPELLINGS ARE INERT HERE, which is a documented deviation
- * (§11.6.1 D12): no compiler this system ships has a notion of macOS or iOS
- * availability, so a body using `__attribute__((availability(...)))` would warn
- * on every use — and the house build is warning-free. The parameter lists are
- * Apple's; the bodies do nothing.
- */
-
-/* --- declaring an enum (Apple's signatures) --- */
-#define NS_ENUM(_type, _name)		enum _name : _type _name; enum _name : _type
-#define NS_OPTIONS(_type, _name)	enum _name : _type _name; enum _name : _type
-#define NS_CLOSED_ENUM(_type, _name)	enum _name : _type _name; enum _name : _type
-#define NS_ERROR_ENUM(_type, _name)	enum _name : _type _name; enum _name : _type
-/* typed/extensible string enums.  Apple documents the bare names and their
- * EFFECT (a `NSString *` typedef that Swift sees as a struct wrapper with a
- * `rawValue`); the effect is carried by clang's `swift_wrapper` attribute, which
- * is what Darwin's SDK expands these to. */
-#define NS_TYPED_ENUM			__attribute__((swift_wrapper(struct)))
-#define NS_STRING_ENUM			__attribute__((swift_wrapper(struct)))
-#define NS_EXTENSIBLE_STRING_ENUM	__attribute__((swift_wrapper(struct)))
-#define NS_TYPED_EXTENSIBLE_ENUM	__attribute__((swift_wrapper(struct)))
-
-/* Swift-side naming and behaviour attributes (Darwin's NS_SWIFT_NAME,
- * NS_REFINED_FOR_SWIFT and NS_SWIFT_SENDABLE).  Each is a clang attribute the
- * Swift importer reads; without them the importer's heuristics decide the Swift
- * name, and a class that is safe to send across concurrency domains has no
- * `Sendable` conformance at all. */
-#define NS_SWIFT_NAME(_name)		__attribute__((swift_name(#_name)))
-#define NS_REFINED_FOR_SWIFT		__attribute__((swift_private))
-#define NS_SWIFT_SENDABLE		__attribute__((swift_attr("@Sendable")))
-#define NS_SWIFT_NONISOLATED		__attribute__((swift_attr("@nonisolated")))
-#define NS_SWIFT_UI_ACTOR		__attribute__((swift_attr("@MainActor")))
 
 /* --- the symbols a shared library exports --- */
 #define FOUNDATION_EXPORT		extern

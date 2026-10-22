@@ -74,37 +74,43 @@ typedef NSRect *NSRectArray;
  * (the documented usage — they are opaque flags) observes nothing different. A program that
  * hard-codes a bit position, or bit-tests with a literal, would.
  */
-typedef unsigned long NSAlignmentOptions NS_SWIFT_NAME(AlignmentOptions);
-
-#define NSAlignMinXInward	(1UL << 0)
-#define NSAlignMinYInward	(1UL << 1)
-#define NSAlignMaxXInward	(1UL << 2)
-#define NSAlignMaxYInward	(1UL << 3)
-#define NSAlignWidthInward	(1UL << 4)
-#define NSAlignHeightInward	(1UL << 5)
-#define NSAlignMinXOutward	(1UL << 8)
-#define NSAlignMinYOutward	(1UL << 9)
-#define NSAlignMaxXOutward	(1UL << 10)
-#define NSAlignMaxYOutward	(1UL << 11)
-#define NSAlignWidthOutward	(1UL << 12)
-#define NSAlignHeightOutward	(1UL << 13)
-#define NSAlignMinXNearest	(1UL << 16)
-#define NSAlignMinYNearest	(1UL << 17)
-#define NSAlignMaxXNearest	(1UL << 18)
-#define NSAlignMaxYNearest	(1UL << 19)
-#define NSAlignWidthNearest	(1UL << 20)
-#define NSAlignHeightNearest	(1UL << 21)
-
-/* "The rect is in a FLIPPED coordinate system (y grows downward)", which inverts which
- * direction is inward for the two Y sides. */
-#define NSAlignRectFlipped	(1UL << 63)
-
-#define NSAlignAllEdgesInward	(NSAlignMinXInward | NSAlignMinYInward | \
-				 NSAlignMaxXInward | NSAlignMaxYInward)
-#define NSAlignAllEdgesOutward	(NSAlignMinXOutward | NSAlignMinYOutward | \
-				 NSAlignMaxXOutward | NSAlignMaxYOutward)
-#define NSAlignAllEdgesNearest	(NSAlignMinXNearest | NSAlignMinYNearest | \
-				 NSAlignMaxXNearest | NSAlignMaxYNearest)
+/* THE DECLARATION IS SPELLED OUT RATHER THAN NS_OPTIONS(...), because it needs a
+ * third attribute the macro does not carry: the importer strips the constants'
+ * shared prefix only when the ENUM NAME starts with it, so the tag has to stay
+ * `NSAlignmentOptions` (`NSAlign…` ∩ `NSAlignmentOptions` = `NSAlign`), while
+ * Swift must see the type as `AlignmentOptions`. That is `swift_name` on the tag,
+ * and the macro's body is reproduced below so the tag can carry it. */
+typedef enum __attribute__((swift_name("AlignmentOptions"),
+			    flag_enum, enum_extensibility(open)))
+	NSAlignmentOptions : NSUInteger {
+	NSAlignMinXInward	= (1UL << 0),
+	NSAlignMinYInward	= (1UL << 1),
+	NSAlignMaxXInward	= (1UL << 2),
+	NSAlignMaxYInward	= (1UL << 3),
+	NSAlignWidthInward	= (1UL << 4),
+	NSAlignHeightInward	= (1UL << 5),
+	NSAlignMinXOutward	= (1UL << 8),
+	NSAlignMinYOutward	= (1UL << 9),
+	NSAlignMaxXOutward	= (1UL << 10),
+	NSAlignMaxYOutward	= (1UL << 11),
+	NSAlignWidthOutward	= (1UL << 12),
+	NSAlignHeightOutward	= (1UL << 13),
+	NSAlignMinXNearest	= (1UL << 16),
+	NSAlignMinYNearest	= (1UL << 17),
+	NSAlignMaxXNearest	= (1UL << 18),
+	NSAlignMaxYNearest	= (1UL << 19),
+	NSAlignWidthNearest	= (1UL << 20),
+	NSAlignHeightNearest	= (1UL << 21),
+	/* "The rect is in a FLIPPED coordinate system (y grows downward)", which
+	 * inverts which direction is inward for the two Y sides. */
+	NSAlignRectFlipped	= (1UL << 63),
+	NSAlignAllEdgesInward	= (NSAlignMinXInward | NSAlignMinYInward |
+				   NSAlignMaxXInward | NSAlignMaxYInward),
+	NSAlignAllEdgesOutward	= (NSAlignMinXOutward | NSAlignMinYOutward |
+				   NSAlignMaxXOutward | NSAlignMaxYOutward),
+	NSAlignAllEdgesNearest	= (NSAlignMinXNearest | NSAlignMinYNearest |
+				   NSAlignMaxXNearest | NSAlignMaxYNearest)
+} NSAlignmentOptions;
 
 typedef enum {
 	NSRectEdgeMinX = 0,
