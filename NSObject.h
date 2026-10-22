@@ -253,17 +253,25 @@ __attribute__((objc_root_class))
  * returns an NSZone is removed"). With it gone, NOTHING in this library names
  * `NSZone`, so the TYPE is gone from NSObjCRuntime.h as well — there is no
  * allocator to ask about and no zone to hand anyone. */
-- (NSString *)debugDescription;
 
 /*
  * Equality and hashing. The defaults are identity and the pointer, which is
  * exactly what a Dictionary key has to override.
  */
 - (BOOL)isEqual:(id)other;
-- (NSUInteger)hash;
+@property (readonly) NSUInteger hash;
 
-/* Every object describes itself: this names the class (docs, F1). */
-- (NSString *)description;
+/*
+ * Every object describes itself: `-description` names the class (docs, F1), and
+ * `-debugDescription` is the debugger's spelling. BOTH ARE PROPERTIES, as they
+ * are in the protocol above and on Darwin, and that is not cosmetic: the Swift
+ * importer takes the shape of the *class's* declaration, and a method-shaped
+ * `description` cannot satisfy `CustomStringConvertible`, which is what the
+ * overlay's conformance needs. Declaring the getters twice, once as a property
+ * and once as a method, is legal Objective-C but the method wins the import.
+ */
+@property (readonly, copy) NSString *description;
+@property (readonly, copy) NSString *debugDescription;
 
 /*
  * THE C ACCESSORS (W2a, docs/design/foundation-plan.md §12.3): the boundary between the

@@ -66,3 +66,14 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
    `CFCalendarComposeAbsoluteTime`, `CFCalendarAddComponents`, `CFDictionaryContainsKey` and the rest of
    the doors a surface survey found missing). `PROVENANCE.md` records both what is deliberately *not*
    bridged and what is bridged imperfectly.
+
+3. **The Swift-facing names and shapes are being aligned with Darwin.** The importer takes a class's
+   Swift name from `NS_SWIFT_NAME` on the `@interface`, so 28 classes that Darwin renames are
+   annotated (`NSBundle` -> `Bundle`, `NSBlockOperation` -> `BlockOperation`, `NSFileHandle` ->
+   `FileHandle`, `NSOperation` -> `Operation`, `NSUserDefaults` -> `UserDefaults`, …) and Swift reads
+   them under Cocoa's spelling. The same pass is making the *shapes* match where the importer's choice
+   is driven by this header: `NSObject`'s `description` and `debugDescription` are properties (a
+   method-shaped `description` cannot satisfy `CustomStringConvertible`), and so is `hash`. Both are
+   measured, class by class, by `swift-toolchain/scripts/verify-foundation-parity.sh`, which diffs this
+   library's Swift surface against the reference Foundation and gates the remaining work
+   (`../SWIFT-FOUNDATION-PARITY-PLAN.md`).
