@@ -39,7 +39,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /* Apple spells an exception name with its own type. Declared here because the string constants (and the
  * NSString ones) are spelled with it. */
-typedef NSString *NSExceptionName;
+typedef NSString *NSExceptionName NS_TYPED_ENUM;
 
 /* THE UNCAUGHT-EXCEPTION HANDLER. Apple's pair, and the detection belongs to the RUNTIME: -raise calls
  * objc_exception_throw, which never returns to Foundation when nothing catches it, so the only code that KNOWS

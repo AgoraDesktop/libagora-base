@@ -103,7 +103,7 @@ typedef uint64_t NSTextCheckingTypes;
  *
  * The nine address keys and the two transit keys are two families, and they are kept apart here with the
  * books Apple keeps them in. */
-typedef NSString *NSTextCheckingKey;
+typedef NSString *NSTextCheckingKey NS_TYPED_ENUM;
 
 extern NSTextCheckingKey const NSTextCheckingNameKey;
 extern NSTextCheckingKey const NSTextCheckingJobTitleKey;

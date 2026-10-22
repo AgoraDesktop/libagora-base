@@ -60,7 +60,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSDate *)addTimeInterval:(double)seconds;
 + (NSDate *)distantPast;
 + (NSDate *)distantFuture;
-+ (double)timeIntervalSinceReferenceDate;
+@property (class, readonly) NSTimeInterval timeIntervalSinceReferenceDate;
 
 - (id)initWithTimeIntervalSince1970:(double)seconds;
 - (id)initWithTimeIntervalSinceNow:(double)seconds;

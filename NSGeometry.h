@@ -45,7 +45,7 @@ typedef CGRect NSRect;
 
 /* The insets' fields are CGFloat, as Apple's are — which is the type NAME being right and
  * not only the layout. */
-typedef struct _NSEdgeInsets {
+typedef struct NS_SWIFT_NAME(NSEdgeInsets) _NSEdgeInsets {
 	CGFloat top;
 	CGFloat left;
 	CGFloat bottom;
@@ -112,16 +112,21 @@ typedef enum __attribute__((swift_name("AlignmentOptions"),
 				   NSAlignMaxXNearest | NSAlignMaxYNearest)
 } NSAlignmentOptions;
 
-typedef enum {
-	NSRectEdgeMinX = 0,
-	NSRectEdgeMinY = 1,
-	NSRectEdgeMaxX = 2,
-	NSRectEdgeMaxY = 3,
-	NSMinXEdge = NSRectEdgeMinX,
-	NSMinYEdge = NSRectEdgeMinY,
-	NSMaxXEdge = NSRectEdgeMaxX,
-	NSMaxYEdge = NSRectEdgeMaxY
-} NSRectEdge;
+/* `NSRectEdge` IS `CGRectEdge`, not a second type. Declaring a second enum here and
+ * renaming it to `CGRectEdge` for Swift made two Swift types of that name (Core
+ * Graphics imports its own), and Darwin's arrangement is that this is a deprecated
+ * alias of the Core Graphics type. The four pre-10.6 spellings stay as macros that
+ * name Core Graphics' cases, so `case NSMinXEdge:` still compiles. */
+typedef CGRectEdge NSRectEdge;
+
+#define NSRectEdgeMinX	CGRectMinXEdge
+#define NSRectEdgeMinY	CGRectMinYEdge
+#define NSRectEdgeMaxX	CGRectMaxXEdge
+#define NSRectEdgeMaxY	CGRectMaxYEdge
+#define NSMinXEdge	CGRectMinXEdge
+#define NSMinYEdge	CGRectMinYEdge
+#define NSMaxXEdge	CGRectMaxXEdge
+#define NSMaxYEdge	CGRectMaxYEdge
 
 /* THE FOUR ZERO VALUES, which are objects of the type rather than macros. */
 extern const NSPoint NSZeroPoint;
