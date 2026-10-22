@@ -2387,6 +2387,142 @@ static void arg_cf_array_doors(void)
 	      [[fixed componentsJoinedByString:@" "] UTF8String]);
 }
 
+/* ---------------------------------------------------------------------------------------------------- */
+/* AND THE TYPE ENCODINGS THE BRIDGE PUBLISHES, WHICH ARE PART OF A SELECTOR'S IDENTITY.                */
+/* ---------------------------------------------------------------------------------------------------- */
+/* THIS CASE EXISTS BECAUSE NINETEEN OF THEM WERE WRONG AND NOTHING HERE COULD SEE IT. libobjc2 keys typed
+ * dispatch on (selector, encoding), so a row that publishes one encoding where the compiler publishes
+ * another gets NO SEND at all: the message takes the superclass's implementation instead. For
+ * -[__NSCFURL isFileURL] that was NSURL's own, over an ivar a Core Foundation object never had, so an
+ * HTTP URL answered that it WAS a file URL. The rows said `c` for BOOL on every architecture and the
+ * compiler says `B` on arm64, where BOOL is _Bool -- measured there as three Foundation cases gone from
+ * 77/77 to 74/77 (CFURL, CFCharacterSet, CFRunLoopTimer). On x86_64 both answer `c`, which is why the
+ * suite ran green here while the bridge was broken there.
+ *
+ * TWO CHECKS, AND THE FIRST IS THE ONE THAT CAN FAIL ON THE MACHINE RUNNING THE SUITE: that the runtime
+ * header's OBJC_BOOL_TYPE_ENCODING agrees with the compiler's own @encode(BOOL) for this target. The
+ * second walks every class Core Foundation owns and compares the return type of each method it REGISTERS
+ * with the return type of the method it REPLACES -- the compiler's own encoding of the same selector on
+ * the Foundation class below it. A row that disagrees with the protocol it stands in for is a send that
+ * goes somewhere else, whatever the reason and whichever type is involved. */
+static void arg_bridge_encodings(void)
+{
+	int compared = 0, wrong = 0, walked = 0;
+	int seen_url = 0, seen_charset = 0, seen_timer = 0;
+	int count, i;
+	Class *classes;
+
+	/* THE OWNED CLASSES ARE REGISTERED LAZILY, on the first object of the type -- and the object has to be
+	 * CORE FOUNDATION's. A Foundation date or string does not register __NSCFDate or __NSCFString, so
+	 * g_cases is no good here: every type below is built at its own C door, which is what makes the
+	 * registration happen. */
+	{
+		const UInt8 bytes[] = { 'a', 'b', 'c' };
+		CFRunLoopTimerContext context = { 0, NULL, NULL, NULL, NULL };
+		int one = 1;
+		CFTypeRef made[] = {
+			CFStringCreateWithCString(NULL, "abc", kCFStringEncodingUTF8),
+			CFArrayCreate(NULL, NULL, 0, &kCFTypeArrayCallBacks),
+			CFDataCreate(NULL, bytes, (CFIndex)sizeof bytes),
+			CFDictionaryCreate(NULL, NULL, NULL, 0, &kCFTypeDictionaryKeyCallBacks,
+					   &kCFTypeDictionaryValueCallBacks),
+			CFSetCreate(NULL, NULL, 0, &kCFTypeSetCallBacks),
+			CFNumberCreate(NULL, kCFNumberIntType, &one),
+			CFDateCreate(NULL, 0.0),
+			CFURLCreateWithString(NULL, CFSTR("http://example.com/"), NULL),
+			CFTimeZoneCreateWithName(NULL, CFSTR("UTC"), false),
+			CFLocaleCopyCurrent(),
+			CFErrorCreate(NULL, CFSTR("d"), 1, NULL),
+			CFAttributedStringCreate(NULL, CFSTR("x"), NULL),
+			CFCharacterSetCreateWithCharactersInString(NULL, CFSTR("abc")),
+			CFReadStreamCreateWithBytesNoCopy(NULL, bytes, (CFIndex)sizeof bytes, kCFAllocatorNull),
+			CFWriteStreamCreateWithAllocatedBuffers(NULL, kCFAllocatorSystemDefault),
+			CFRunLoopTimerCreate(NULL, CFAbsoluteTimeGetCurrent() + 100.0, 5.0, 0, 0, NULL, &context),
+			CFCalendarCreateWithIdentifier(NULL, CFSTR("gregorian")),
+			/* AND THE MUTABLE HALF, which has its own classes and its own rows. */
+			CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks),
+			CFDictionaryCreateMutable(NULL, 0, &kCFTypeDictionaryKeyCallBacks,
+						  &kCFTypeDictionaryValueCallBacks),
+			CFSetCreateMutable(NULL, 0, &kCFTypeSetCallBacks),
+			CFStringCreateMutable(NULL, 0),
+			CFDataCreateMutable(NULL, 0),
+			CFCharacterSetCreateMutable(NULL),
+			CFAttributedStringCreateMutable(NULL, 0),
+		};
+
+		for (size_t m = 0; m < sizeof made / sizeof made[0]; m++) {
+			if (made[m] != NULL) {
+				CFRelease(made[m]);
+			}
+		}
+	}
+
+	/* THE HEADER AND THE COMPILER HAVE TO AGREE, on whatever this target's BOOL is. */
+	check(@encode(BOOL)[0] == OBJC_BOOL_TYPE_ENCODING[0],
+	      "OBJC_BOOL_TYPE_ENCODING is '%s' but the compiler encodes BOOL as '%s'",
+	      OBJC_BOOL_TYPE_ENCODING, @encode(BOOL));
+
+	count = objc_getClassList(NULL, 0);
+	classes = malloc(sizeof(Class) * (size_t)(count > 0 ? count : 1));
+	if (classes == NULL) {
+		check(0, "no room for the class list");
+		return;
+	}
+	count = objc_getClassList(classes, count);
+	for (i = 0; i < count; i++) {
+		const char *name = class_getName(classes[i]);
+		Method *methods;
+		unsigned int n = 0, j;
+
+		if (name == NULL || strncmp(name, "__NSCF", 6) != 0) {
+			continue;
+		}
+		walked++;
+		seen_url |= strcmp(name, "__NSCFURL") == 0;
+		seen_charset |= strcmp(name, "__NSCFCharacterSet") == 0;
+		seen_timer |= strcmp(name, "__NSCFRunLoopTimer") == 0;
+		methods = class_copyMethodList(classes[i], &n);
+		if (methods == NULL) {
+			continue;
+		}
+		for (j = 0; j < n; j++) {
+			SEL sel = method_getName(methods[j]);
+			const char *mine = method_getTypeEncoding(methods[j]);
+			Method replaced;
+			const char *theirs;
+
+			if (sel == NULL || mine == NULL || mine[0] == '\0') {
+				continue;
+			}
+			/* THE CLASS BELOW IS FOUNDATION'S, which is where the encoding the compiler would publish
+			 * for this selector lives -- including for selectors that only a superclass implements, since
+			 * class_getInstanceMethod walks upwards. */
+			replaced = class_getInstanceMethod(class_getSuperclass(classes[i]), sel);
+			if (replaced == NULL) {
+				continue;	/* a door Foundation has no counterpart for: nothing to compare with */
+			}
+			theirs = method_getTypeEncoding(replaced);
+			if (theirs == NULL || theirs[0] == '\0') {
+				continue;
+			}
+			compared++;
+			if (mine[0] != theirs[0]) {
+				wrong++;
+				fprintf(stderr, "  %s -%s publishes '%s', Foundation's method is '%s'\n",
+					name, sel_getName(sel), mine, theirs);
+			}
+		}
+		free(methods);
+	}
+	free(classes);
+	check(walked >= 15, "only %d Core Foundation-owned classes were found, want the table's worth", walked);
+	check(seen_url && seen_charset && seen_timer,
+	      "the three classes the arm64 BOOL regression hit were not all walked (url %d, charset %d, timer %d)",
+	      seen_url, seen_charset, seen_timer);
+	check(compared > 20, "only %d bridge method encodings could be compared, want the table's worth", compared);
+	check(wrong == 0, "%d bridge methods publish a return type Foundation's own method does not", wrong);
+}
+
 static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFString",  arg_cfstring },
 	{ "Foundation receives a native CFArray",   arg_cfarray },
@@ -2420,6 +2556,7 @@ static const struct { const char *name; void (*fn)(void); } g_arguments[] = {
 	{ "Foundation receives a native CFWriteStream", arg_cfwrite_stream },
 	{ "Foundation receives a native CFRunLoopTimer", arg_cftimer },
 	{ "Foundation receives a native CFCalendar", arg_cfcalendar },
+	{ "The bridge publishes the encodings its protocol does", arg_bridge_encodings },
 };
 
 static void (*g_trampoline_group)(void);
