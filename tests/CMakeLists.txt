@@ -1,3 +1,8 @@
+# Copyright © 2026 Kyle J. Cardoza.
+# SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+
 # The toll-free bridge's test suite. It belongs here rather than in libagora-core because it needs
 # BOTH sides: Core Foundation's doors and Foundation's classes, and only a consumer of Core
 # Foundation can name the second.

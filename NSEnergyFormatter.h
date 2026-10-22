@@ -1,8 +1,10 @@
 /*
  * NSEnergyFormatter.h
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSEnergyFormatter` (§62.50), the third of Apple's formatter trio. See NSLengthFormatter.h for the value scheme
  * (§11.6.1 D2) and the locale stance.

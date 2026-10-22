@@ -1,8 +1,10 @@
 /*
  * FNAuthenticationChallengeSender.m
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * The mapping from Apple's five sender actions onto the TRANSPORT'S five answers. It is a TABLE, and it is
  * worth writing out because every line of it is Apple's rather than this library's:

@@ -9,7 +9,7 @@ Fiwix tree, where it was written as a standalone Objective-C Foundation.
 | Source revision | Fiwix `df3147a451e88d8d2256537e6d6dcdf69471695f` (2026-10-10) |
 | Extraction date | 2026-10-10 |
 | Extraction | the whole `userland/Foundation` tree, verbatim — 315 files (144 `.m`, 170 `.h`) |
-| Licence | MIT, © 2026 Kyle J. Cardoza (per the per-file headers; see `LICENSE`) |
+| Licence | LGPL-3.0-or-later for the library, GPL-3.0-or-later for `tests/` (per the per-file headers; see `LICENSE`) |
 
 Fiwix had no working-tree changes under `userland/Foundation` when this was taken, so the import
 matches that revision exactly.

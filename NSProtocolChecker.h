@@ -1,8 +1,10 @@
 /*
  * NSProtocolChecker.h
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSProtocolChecker` — A PROXY THAT ANSWERS ONLY FOR ITS PROTOCOL (§62.55). Apple deprecated it with the port
  * family, and §62.24's policy put it back; it is the last self-contained class of that family.

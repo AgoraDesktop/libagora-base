@@ -1,6 +1,8 @@
 /*
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  */
 /*
  * NSInvocation_amd64.S — the two things the x86-64 SysV ABI needs and C cannot say:

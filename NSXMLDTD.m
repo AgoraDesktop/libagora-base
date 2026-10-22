@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSXMLDTD.m — THE DTD AS A DATA MODEL (XML slice XML-d): one declaration parsed out of its own text, the
  * container that holds them, and the five entities XML itself defines. See the header for the boundary: the
  * PARSER-SIDE half (firing the six DTD events while reading a document) is slice XML-e.

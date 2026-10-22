@@ -1,8 +1,10 @@
 /*
  * null_identity — CFNull and NSNull are one object as far as Core Foundation is concerned.
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * WHY THIS FILE EXISTS. `CFEqual([NSNull null], kCFNull)` is TRUE on x86-64 and FALSE on aarch64, and
  * nothing in the tree asked the question, so nothing noticed. It surfaced only when a CI runner on real

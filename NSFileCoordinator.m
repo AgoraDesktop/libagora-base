@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSFileCoordinator.m — the synchronous accessor doors (W8 slice 7b). See the header for the measured
  * semantics, for why the doors are `void` with the error going to `outError`, and for the boundary: this
  * system has no coordination service, so what is coordinated here is what happens WITHIN one process.

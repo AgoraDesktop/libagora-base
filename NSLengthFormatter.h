@@ -1,8 +1,10 @@
 /*
  * NSLengthFormatter.h
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * `NSLengthFormatter`, ITS UNITS, AND WHAT A CALLER GETS (§62.50). Apple added the formatter trio at 10.8 — one
  * class per KIND OF QUANTITY, each with an enum of the units it knows and four doors for converting, naming and

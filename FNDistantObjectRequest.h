@@ -1,6 +1,8 @@
 /*
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * FNDistantObjectRequest.h — THE SEAM BETWEEN A CONNECTION AND THE REQUESTS IT HANDS OUT (§62.91). INTERNAL.
  *

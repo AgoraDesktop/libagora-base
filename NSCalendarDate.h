@@ -1,6 +1,8 @@
 /*
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * NSCalendarDate — A DATE THAT KNOWS ITS FORMAT AND ITS ZONE (plan §62.67), and the last class row of
  * `Fundamentals / Deprecated`. APPLE-DEPRECATED AND THEREFORE IN SCOPE (§62.24): a surface built so that an

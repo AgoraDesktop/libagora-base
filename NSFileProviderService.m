@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSFileProviderService.m — the two members, and the refusal that is the whole point of declaring the class
  * (W8 slice 9). See the header for what this system has and does not have.
  */

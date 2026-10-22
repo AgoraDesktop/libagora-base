@@ -1,8 +1,10 @@
 /*
  * NSMachPort.m
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * See NSMachPort.h for the substitution, the two refusals and the ownership rule `-peerPort` follows. What is
  * here is the smallest thing that can be a port on a system with no Mach: ONE SOCKET PAIR, one end held by the

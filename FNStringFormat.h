@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * FNStringFormat.h — THE FORMAT ENGINE'S SINK, INTERNAL (§63.85).
  *
  * WHY THIS HEADER EXISTS: the format walk in NSString.m is ONE ARITHMETIC — the spec grammar, the length

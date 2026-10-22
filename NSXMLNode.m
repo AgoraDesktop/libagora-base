@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSXMLNode.m — THE TREE (XML slice XML-b): the node kinds and their factories, the accessors, the
  * navigation, the children and attributes, the namespace helpers and the XML serialization. See the header
  * for what is shipped, what is registered (XPath, XSLT, validation, HTML tidying, canonicalization) and for

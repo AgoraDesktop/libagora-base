@@ -1,8 +1,10 @@
 /*
  * NSURLError.m
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * THE SIX STRINGS THE ERROR NAMES NEED TO EXIST (the header's design and its provenance note are in
  * NSURLError.h; docs/design/foundation-plan.md §55 and §56 are the measurements behind it).

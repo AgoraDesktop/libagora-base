@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSXMLDocument.m — THE DOCUMENT AND THE PARSE BRIDGE (XML slice XML-c). See the header for what is shipped,
  * what is registered, and the two stated boundaries (the declaration is not read back; a CDATA block is not
  * marked as such).

@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * FNProtocolMethods.m — the methods a `Protocol` object answers.
  *
  * A protocol HERE IS A RUNTIME OBJECT, and Cocoa messages it: `-name` is what

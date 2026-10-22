@@ -1,6 +1,8 @@
 /*
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * NSAttributedString — W10's core (plan §61). THE STORE IS OURS (§11.6.1 D2) AND ITS CONTRACT IS WHAT IS
  * OBSERVABLE: an attributed string is an ORDERED LIST OF RUNS - an NSRange in UTF-16 units (W1's rule: an

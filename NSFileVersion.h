@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSFileVersion.h — W8 slice 8a: A FILE'S CURRENT VERSION, WHICH IS THE HALF THIS SYSTEM CAN TELL THE
  * TRUTH ABOUT. docs/design/foundation-plan.md §60.
  *

@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSFileProviderService.h — W8 slice 9: A CLASS WHOSE SUBJECT THIS SYSTEM DOES NOT HAVE, SHIPPED AS FAR
  * AS THE TRUTH GOES. docs/design/foundation-plan.md §60.
  *

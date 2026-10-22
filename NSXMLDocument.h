@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSXMLDocument.h — XML slice XML-c: THE DOCUMENT, AND THE BRIDGE FROM THE PARSER INTO THE TREE.
  * docs/design/foundation-plan.md §60.
  *

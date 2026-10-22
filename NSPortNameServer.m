@@ -1,8 +1,10 @@
 /*
  * NSPortNameServer.m
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * ONE REGISTRY, SHARED BY THE THREE SUBCLASSES, and its rules are in the header. What is here is the table, the
  * host rule, and the subclasses — which are three names for one mechanism, so their implementations are a page

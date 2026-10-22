@@ -1,8 +1,10 @@
 /*
  * NSDistantObject.m
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * See NSDistantObject.h for the boundary (objects in, objects out), the two shapes and why a proxy is not
  * archivable here. What is here is the forwarding, split once and used by the two doors that must agree about it.

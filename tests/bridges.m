@@ -1,8 +1,10 @@
 /*
  * bridges — the toll-free bridge, exhaustively.
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * WHAT THIS IS FOR. The bridge is a JOINT property of two components: Core Foundation dispatches to
  * Objective-C through `CF_IS_OBJC` (libagora-core) and libagora-base registers which class each of its

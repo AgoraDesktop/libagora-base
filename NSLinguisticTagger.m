@@ -1,8 +1,10 @@
 /*
  * NSLinguisticTagger.m
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * The design, the refusals and their grounds are in NSLinguisticTagger.h. What is here is the vocabulary, the
  * break-iterator bridge's two questions turned into answers, and the two schemes that are properties of the text.

@@ -1,8 +1,10 @@
 /*
  * FNWebSocketHandshake.m
  *
- * Copyright © 2026 Kyle J. Cardoza. MIT licensed — see LICENSE.
- * SPDX-License-Identifier: MIT
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
  *
  * THE DIGEST IS THE WHOLE POINT OF THIS FILE (§4.2.2), and it is one line of arithmetic over two constants:
  * Sec-WebSocket-Accept = base64(SHA-1(key ++ "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")). The GUID is in the RFC

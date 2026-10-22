@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSXMLParser.m — THE EVENT-DRIVEN PARSER, HAND-WRITTEN (W8 slice XML-a): this system has no libxml2, so the
  * single pass over the document's bytes, the entity decoder, the attribute reader and the namespace
  * expansion all live here. See the header for what is measured from Apple and what is ours.

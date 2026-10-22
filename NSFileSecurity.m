@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSFileSecurity.m — the stub, implemented as the stub it is. See the header for the measurement and
  * for §11.6.1 D13, the registered boundary: this tree has no CoreFoundation, so there is no
  * CFFileSecurity to be bridged to, and the facts are reachable through NSFileManager (owner, group,

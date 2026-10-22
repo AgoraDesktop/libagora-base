@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * FNObjectDeath.h — THE ONE PLACE AN OBJECT'S LIFE ENDS, AS A SEAM (§63.21).
  *
  * WHAT THIS IS FOR. Several subsystems in this library keep a table keyed by the IDENTITY of somebody

@@ -1,4 +1,11 @@
 /*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ * Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
+ */
+
+/*
  * NSXMLDTD.h — XML slice XML-d: THE DTD FAMILY, AS A DATA MODEL. docs/design/foundation-plan.md §60.
  *
  * WHAT A DTD IS HERE, SAID FIRST: XML-a's parser SKIPS a document's internal subset as a balanced bracket
