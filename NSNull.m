@@ -60,7 +60,19 @@ static NSNull *fn_shared_null = nil;
 
 - (BOOL)isEqual:(id)other
 {
-	return other == self;
+	/* ⚠⚠ NOT POINTER IDENTITY, BECAUSE THERE ARE TWO NULLS (2026-10-21, issue 6). `+null` above makes
+	 * Foundation's singleton, and Core Foundation has its own — `kCFNull`, an instance of `__NSCFNull`,
+	 * which is the subclass `cf_bridged_subclass` builds OVER THIS CLASS. They are different pointers to
+	 * the same object, which is the whole premise of toll-free bridging, so a null that refused every
+	 * other representation of itself would break the agreement the bridge exists to keep.
+	 *
+	 * MEASURED, AND IT IS WHY THIS WENT UNNOTICED: `CFEqual([NSNull null], kCFNull)` answered TRUE on
+	 * x86-64 and FALSE on aarch64. Neither answer came from here — x86-64 was reading the low byte of a
+	 * POINTER, because Core Foundation's dispatch macro typed the send as `id` and assumed an object came
+	 * back (CFRuntime.c, now cast to `id<__CFBridgedMethods>`). The bug was invisible on one platform
+	 * only because that garbage happened to be odd. With the send typed properly, this method's answer is
+	 * the answer on both — which is why the positive case has to be here and not left to luck. */
+	return other == self || [other isKindOfClass:[NSNull class]];
 }
 
 /* A CONSTANT, because there is only ever one: any two "null objects" ARE the same object, so any
