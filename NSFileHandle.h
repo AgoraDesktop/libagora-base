@@ -102,6 +102,7 @@ extern NSString *const NSFileHandleNotificationFileHandleItem;
  * contract is that the synchronous doors answer errors while these raise. */
 extern NSString *const NSFileHandleOperationException;
 
+NS_SWIFT_NAME(FileHandle)
 @interface NSFileHandle : NSObject <NSCoding, NSSecureCoding>
 {
 	int _fd;			/* -1 once closed */

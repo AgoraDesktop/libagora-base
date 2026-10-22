@@ -105,6 +105,7 @@ enum {
 	NSJSONWritingWithoutEscapingSlashes = (1UL << 3)
 };
 
+NS_SWIFT_NAME(JSONSerialization)
 @interface NSJSONSerialization : NSObject
 
 + (nullable id)JSONObjectWithData:(NSData *)data

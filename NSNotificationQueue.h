@@ -39,6 +39,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /* "A queue for notification centers", with the two features a bare center does not have: ASYNCHRONOUS posting and
  * COALESCING. Every thread has a default queue bound to the default center, and a caller may make its own. */
+NS_SWIFT_NAME(NotificationQueue)
 @interface NSNotificationQueue : NSObject
 {
 @protected

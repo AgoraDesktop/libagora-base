@@ -45,6 +45,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class NSArray, NSString;
 
+NS_SWIFT_NAME(Host)
 @interface NSHost : NSObject
 {
 @protected

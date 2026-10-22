@@ -36,6 +36,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(Formatter)
 @interface NSFormatter : NSObject <NSCopying, NSCoding>
 
 /* THE DOORS. `-stringForObjectValue:` and `-getObjectValue:forString:errorDescription:` RAISE in the

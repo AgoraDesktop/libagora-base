@@ -154,6 +154,7 @@ extern NSString *const NSUbiquitousUserDefaultsDidChangeAccountsNotification;
 extern NSString *const NSUbiquitousUserDefaultsNoCloudAccountNotification;
 
 
+NS_SWIFT_NAME(UserDefaults)
 @interface NSUserDefaults : NSObject
 {
 	NSString *_userName;			/* §63.200: set by -initWithUser:, else the current user */

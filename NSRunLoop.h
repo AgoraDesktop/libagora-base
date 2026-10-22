@@ -56,6 +56,7 @@ typedef NSString * NSRunLoopMode;
 @class NSMutableArray;
 @class NSPort;
 
+NS_SWIFT_NAME(RunLoop)
 @interface NSRunLoop : NSObject
 {
 	NSMutableArray *_timers;	/* NSTimer, in no particular order; the loop sorts at each wait */

@@ -41,6 +41,7 @@ typedef enum {
 	NSLengthFormatterUnitMile		= 8
 } NSLengthFormatterUnit;
 
+NS_SWIFT_NAME(LengthFormatter)
 @interface NSLengthFormatter : NSFormatter
 {
 	NSNumberFormatter *_numberFormatter;

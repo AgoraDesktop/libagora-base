@@ -33,6 +33,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(OperationQueue)
 @interface NSOperationQueue : NSObject
 {
 	NSMutableArray *_operations;

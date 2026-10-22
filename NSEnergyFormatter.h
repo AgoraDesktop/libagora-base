@@ -28,6 +28,7 @@ typedef enum {
 	NSEnergyFormatterUnitKilocalorie	= 4
 } NSEnergyFormatterUnit;
 
+NS_SWIFT_NAME(EnergyFormatter)
 @interface NSEnergyFormatter : NSFormatter
 {
 	NSNumberFormatter *_numberFormatter;

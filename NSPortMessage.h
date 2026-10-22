@@ -25,6 +25,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(PortMessage)
 @interface NSPortMessage : NSObject
 {
 	NSPort *_sendPort;

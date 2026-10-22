@@ -136,6 +136,7 @@ extern NSErrorDomain const NSStreamSOCKSErrorDomain;
 @class NSOutputStream;
 @class NSHost;
 
+NS_SWIFT_NAME(Stream)
 @interface NSStream : NSObject
 {
 	NSStreamStatus _status;

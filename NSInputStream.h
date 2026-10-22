@@ -40,6 +40,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(InputStream)
 @interface NSInputStream : NSStream
 {
 	NSData *_data;			/* the memory source, or nil for a descriptor */

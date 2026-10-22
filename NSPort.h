@@ -84,6 +84,7 @@ extern NSString *const NSPortDidBecomeInvalidNotification;
 - (void)handlePortMessage:(NSPortMessage *)message;
 @end
 
+NS_SWIFT_NAME(Port)
 @interface NSPort : NSObject <NSCoding>
 {
 	BOOL _valid;

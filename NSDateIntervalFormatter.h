@@ -57,6 +57,7 @@ typedef enum {
 	NSDateIntervalFormatterFullStyle = 4
 } NSDateIntervalFormatterStyle;
 
+NS_SWIFT_NAME(DateIntervalFormatter)
 @interface NSDateIntervalFormatter : NSFormatter
 {
 	NSDateIntervalFormatterStyle _dateStyle;

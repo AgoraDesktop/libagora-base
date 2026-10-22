@@ -55,6 +55,7 @@
 #define NSOperationQualityOfServiceBackground		NSQualityOfServiceBackground
 
 NS_ASSUME_NONNULL_BEGIN
+NS_SWIFT_NAME(Operation)
 @interface NSOperation : NSObject
 {
 	NSMutableArray *_dependencies;

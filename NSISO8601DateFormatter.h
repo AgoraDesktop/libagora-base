@@ -68,6 +68,7 @@ typedef unsigned long NSISO8601DateFormatOptions;
 #define NSISO8601DateFormatWithInternetDateTime		\
 	(NSISO8601DateFormatWithFullDate | NSISO8601DateFormatWithFullTime)
 
+NS_SWIFT_NAME(ISO8601DateFormatter)
 @interface NSISO8601DateFormatter : NSFormatter <NSSecureCoding>
 {
 	NSISO8601DateFormatOptions _formatOptions;

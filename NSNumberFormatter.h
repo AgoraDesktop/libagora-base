@@ -105,6 +105,7 @@ typedef enum {
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(NumberFormatter)
 @interface NSNumberFormatter : NSFormatter
 {
 	void *_formatter;		/* a UNumberFormat *; opaque so this header needs no ICU */

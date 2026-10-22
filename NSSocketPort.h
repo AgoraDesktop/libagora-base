@@ -62,6 +62,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(SocketPort)
 @interface NSSocketPort : NSPort
 {
 	NSSocketNativeHandle _socket;	/* the descriptor, or -1 */

@@ -28,6 +28,7 @@ typedef enum {
 	NSMassFormatterUnitStone	= 5
 } NSMassFormatterUnit;
 
+NS_SWIFT_NAME(MassFormatter)
 @interface NSMassFormatter : NSFormatter
 {
 	NSNumberFormatter *_numberFormatter;

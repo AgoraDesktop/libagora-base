@@ -38,6 +38,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(Thread)
 @interface NSThread : NSObject
 {
 	id _threadDictionary;	/* the per-thread store, made on first ask */

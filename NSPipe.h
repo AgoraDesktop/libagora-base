@@ -24,6 +24,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(Pipe)
 @interface NSPipe : NSObject
 {
 	NSFileHandle *_fileHandleForReading;	/* owns the read end */

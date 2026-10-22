@@ -70,6 +70,7 @@ typedef NSUInteger NSPropertyListWriteOptions;
 @class NSInputStream;	/* §63.198: named by the stream doors; the concrete headers carry -read:maxLength: */
 @class NSOutputStream;
 
+NS_SWIFT_NAME(PropertyListSerialization)
 @interface NSPropertyListSerialization : NSObject
 
 /*

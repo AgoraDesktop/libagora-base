@@ -39,6 +39,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(BlockOperation)
 @interface NSBlockOperation : NSOperation
 {
 	NSMutableArray *_blocks;

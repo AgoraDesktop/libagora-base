@@ -86,6 +86,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(Scanner)
 @interface NSScanner : NSObject <NSCopying>
 {
 	NSString *_string;

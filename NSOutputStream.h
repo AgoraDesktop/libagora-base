@@ -37,6 +37,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_SWIFT_NAME(OutputStream)
 @interface NSOutputStream : NSStream
 {
 	NSMutableData *_memory;		/* the growing memory stream, or nil */
