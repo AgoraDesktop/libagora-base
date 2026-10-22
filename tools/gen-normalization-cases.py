@@ -1,9 +1,9 @@
+#!/usr/bin/env python3
 # Copyright © 2026 Kyle J. Cardoza.
 # SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Portions of this file may derive from GNUstep; see THIRD-PARTY.md.
 
-#!/usr/bin/env python3
 """Emit the C case table for Unicode's normalization test suite, one case per construct.
 
 `NormalizationTest.txt` states, for 19,074 cases, five columns — source, NFC, NFD, NFKC, NFKD — and six
