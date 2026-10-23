@@ -135,7 +135,14 @@ static void *fn_thread_entry(void *context)
 
 - (void)setName:(nullable NSString *)name
 {
-	_name = name;
+	/* COPIED, which is what Cocoa's `name` property is (a mutable string handed in
+	 * must not be able to change the thread's name behind its back).  The old value
+	 * is released and the new one is owned here, so -dealloc below is the pair that
+	 * closes it: this ivar used to be borrowed, which dangled as soon as the
+	 * caller's string went away. */
+	NSString *copied = [name copy];
+	[_name release];
+	_name = copied;
 }
 
 - (BOOL)isCancelled
@@ -213,7 +220,9 @@ static void *fn_thread_entry(void *context)
 
 - (void)dealloc
 {
-	/* ONLY WHAT THIS CLASS OWNS: nothing else in this file retains an ivar. */
+	/* ONLY WHAT THIS CLASS OWNS: nothing else in this file retains an ivar - and
+	 * the name does now, since -setName: copies it. */
+	[_name release];
 	Block_release(_block);
 	[super dealloc];
 }

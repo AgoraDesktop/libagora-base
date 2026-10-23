@@ -435,9 +435,26 @@ const NSInteger NSOperationQueueDefaultMaxConcurrentOperationCount = -1;
 
 - (void)setName:(nullable NSString *)name
 {
-	_name = name;
+	/* COPIED, for the reason NSThread's is (Cocoa's `name` property is a copy):
+	 * the queue owns the string it reports, and -dealloc below releases it. */
+	NSString *copied = [name copy];
+	[_name release];
+	_name = copied;
 }
 
+
+- (void)dealloc
+{
+	/* THE QUEUE OWNS WHAT -init AND -setName: GAVE IT, and until now it released
+	 * none of it: three objects per queue leaked, plus the name this setter copies.
+	 * (The singleton from +mainQueue is never released, so its dealloc does not run;
+	 * every other queue's does.) */
+	[_name release];
+	[_operations release];
+	[_pending release];
+	[_condition release];
+	[super dealloc];
+}
 
 - (void)addOperationWithBlock:(void (^)(void))block
 {
