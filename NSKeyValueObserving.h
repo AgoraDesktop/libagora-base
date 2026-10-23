@@ -12,21 +12,36 @@
  * service, not a rule." That reasoning was never a boundary in §10's sense and is now a gap being
  * filled: a registry is storage, and storage is the easy half.
  *
- * WHAT IS FAITHFUL IN v1, and it is the part the API is actually used through:
+ * WHAT IS FAITHFUL, and it is the part the API is actually used through:
  *   * the three option bits that matter — New, Old and Initial — plus Prior;
  *   * the CONTEXT pointer, which comes back to the observer untouched (that is how a real observer
  *     tells its own registrations apart);
  *   * the manual `-willChangeValueForKey:`/-didChangeValueForKey:` PAIR, which is the documented way
  *     to notify for a setter the runtime cannot see;
- *   * AUTOMATIC notification for writes made through `-setValue:forKey:`/`-setValue:forKeyPath:`,
- *     which is where this library's writers go.
+ *   * AUTOMATIC notification for writes made through `-setValue:forKey:`/`-setValue:forKeyPath:`;
+ *   * **AND AUTOMATIC NOTIFICATION FOR A SETTER CALLED DIRECTLY** (`[object setFoo:]`, the form
+ *     application code writes). The first observation of a simple key moves the object to a DYNAMIC
+ *     SUBCLASS that overrides the key's setter, brackets the original IMP with the will/did pair, and
+ *     overrides `-class` to keep answering the declared class. The subclass is created once per
+ *     original class (`NSKVONotifying_<Class>`), reused by every observed instance, and the setter
+ *     is wrapped once per class and key. Argument types that are wrapped: objects and classes,
+ *     `char`/`BOOL`, `short`, `int`, `long`, `long long`, `float` and `double`. KVC's own
+ *     `-setValue:forKey:` asks whether the setter will announce (an internal seam) so a write is
+ *     reported EXACTLY ONCE, whichever door it came through.
  *
- * WHAT IS NOT, named: a setter called DIRECTLY (`[object setFoo:]`) does not notify, because that
- * needs per-class interception (isa-swizzling) that v1 does not do — the manual pair is the answer
- * for those. A DOTTED key path is registered as the literal string it was given rather than
- * decomposed into its segments. And nothing is retained: neither the observed object nor the
- * observer, which is Cocoa's own rule and means the caller must remove observations before either
- * one dies.
+ * WHAT IS NOT, named: a setter whose argument is a STRUCT, a POINTER, a C STRING or a SELECTOR is not
+ * wrapped — the wrapper would have to know that type's ABI — and a key with NO setter (the KVC ivar
+ * path) has nothing to wrap; BOTH fall back to the manual pair, and KVC's writer still announces its
+ * own `-setValue:forKey:` write once. A DOTTED key path is registered as the literal string it was
+ * given rather than decomposed into its segments, and it is NOT auto-wrapped. **DEPENDENT KEYS**
+ * (`+keyPathsForValuesAffectingValueForKey:`) are not computed yet. And nothing is retained: neither
+ * the observed object nor the observer, which is Cocoa's own rule and means the caller must remove
+ * observations before either one dies.
+ *
+ * THE DYNAMIC SUBCLASS IS NOT RESTORED. Once an object has been observed it keeps answering the
+ * notifying class for the rest of its life; its setters then announce to a registry that may have no
+ * registrations left, which is a lookup and no notification rather than a crash. `-class` is the one
+ * lie, and it is Cocoa's own.
  */
 
 #ifndef FOUNDATION_NSKEYVALUEOBSERVING_H

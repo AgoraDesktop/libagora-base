@@ -77,3 +77,18 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
    measured, class by class, by `swift-toolchain/scripts/verify-foundation-parity.sh`, which diffs this
    library's Swift surface against the reference Foundation and gates the remaining work
    (`../SWIFT-FOUNDATION-PARITY-PLAN.md`).
+
+4. **KVO has its automatic half.** `-addObserver:forKeyPath:options:context:` observes a simple key by moving the
+   object to a dynamic subclass (`NSKVONotifying_<Class>`) whose setter brackets the original IMP with
+   `-willChangeValueForKey:`/`-didChangeValueForKey:`, so `[model setName:x]` — a setter called directly, which is
+   what application code writes — notifies with the kind, the old and new values, the options and the context.
+   `-class` keeps answering the declared class and `-isKindOfClass:` is true; the subclass is created once per
+   class and reused by every observed instance. `-setValue:forKey:` asks an internal seam whether the setter will
+   announce, so a KVC write is reported EXACTLY ONCE, whichever door it came through. Object/class,
+   `char`/`BOOL`, `short`, `int`, `long`, `long long`, `float` and `double` setter arguments are wrapped; **STRUCT,
+   pointer, C-string and selector arguments, a key with no setter, and a dotted key path fall back to the manual
+   pair**, and the header names each. The dynamic subclass is not restored when the last observer leaves: the
+   wrappers then announce to an empty registry, which is a lookup rather than a crash. Measured by
+   `tests/kvo_automatic.m` (**34 cases**): the class lie, every wrapped type, Prior and Initial, the
+   one-announcement rule, the unwrapped struct's manual fallback, both removal spellings, and the silent-but-usable
+   state after the last observer is gone.

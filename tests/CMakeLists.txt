@@ -55,3 +55,14 @@ add_executable(string_split string_split.m)
 target_link_libraries(string_split PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
 add_test(NAME string_split COMMAND string_split)
+
+# **KVO'S AUTOMATIC HALF: A SETTER CALLED DIRECTLY ANNOUNCES ITS CHANGE.** The v1 registry announced KVC's own writes;
+# this probe calls the setters, which is what application code does, and measures the change dictionary the wrapper
+# produces. It also pins the class lie (`-class` vs `object_getClass`), the one-announcement rule for a KVC write (the
+# setter wrapper and KVC's wrapper must not both speak), the named unwrapped types (a struct falls back to the manual
+# pair) and the two removal spellings. It imports <objc/runtime.h> for `object_getClass`, which is the only way to see
+# the dynamic subclass.
+add_executable(kvo_automatic kvo_automatic.m)
+target_link_libraries(kvo_automatic PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME kvo_automatic COMMAND kvo_automatic)

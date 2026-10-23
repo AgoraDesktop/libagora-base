@@ -42,6 +42,7 @@
 #import <Foundation/NSError.h>
 #import <Foundation/NSMethodSignature.h>
 #import <objc/runtime.h>
+#import "NSKeyValueObserving_internal.h"
 #include <string.h>
 
 /* The operator arm is implemented with the fold, BELOW the class that calls it,
@@ -341,9 +342,19 @@ static BOOL fn_call_setter(id receiver, SEL sel, id value)
  * this library's writers. */
 - (void)setValue:(nullable id)value forKey:(NSString *)key
 {
-	[self willChangeValueForKey:key];
+	/* **ONE ANNOUNCEMENT PER WRITE, WHICHEVER DOOR IT CAME THROUGH.** When the object's class carries KVO's automatic
+	 * setter for this key, THAT wrapper is the announcer and this one must stay quiet; when it does not — an unwrapped
+	 * scalar/struct, an ivar write with no setter, or a dotted key — this is the only announcement there is. The seam
+	 * asks the class, not this call, which is what keeps the two doors from disagreeing. */
+	BOOL autoNotifies = fn_kvo_auto_notifies(self, key);
+
+	if (!autoNotifies) {
+		[self willChangeValueForKey:key];
+	}
 	[self fnSetValue:value forKey:key];
-	[self didChangeValueForKey:key];
+	if (!autoNotifies) {
+		[self didChangeValueForKey:key];
+	}
 }
 
 - (void)fnSetValue:(nullable id)value forKey:(NSString *)key

@@ -122,3 +122,33 @@ and `[kCFBooleanTrue isEqual:@YES]` as cases.
   `libagora-core/internalInclude/CFBridgedMethods.h`). Whether libobjc2 installs a trampoline for a
   pointer-only difference is **not measured**.
 - **The calendar doors carry five recorded deviations**, each written at the code that deviates.
+
+### KVO's automatic half
+
+**The v1 registry announced KVC's writes and not a setter called directly.** `-setValue:forKey:` wrapped its own
+write in the will/did pair, so a model was observable only when it was written THROUGH KVC; application code writes
+`[model setName:x]`, and that was invisible. This slice is Cocoa's answer to the same problem: the first observation
+of a simple key moves the object to a dynamic subclass, `NSKVONotifying_<Class>`, allocated with
+`objc_allocateClassPair` and given an override of the key's setter. The override announces the change, calls the
+original IMP through a function pointer typed for the argument, and announces the end. `-class` is overridden to keep
+answering the declared class, which is the one lie Cocoa's KVO tells and the reason a caller cannot see the move.
+
+**THE WRAPPER EXISTS ONCE PER (CLASS, KEY), AND THE TYPED FUNCTIONS ARE THE ABI.** A wrapper cannot be a variadic
+trampoline, so there is one C function per argument type this tier can carry — object/class, `char`/`BOOL`, `short`,
+`int`, `long`, `long long`, `float`, `double` — chosen from the setter's argument encoding. A STRUCT, a pointer, a
+C string or a selector is deliberately NOT wrapped (that would mean an ABI for every type), and a key with no setter
+has nothing to wrap; both fall back to the manual pair, and KVC's writer still announces its own write once. Dotted
+key paths are not decomposed for automatic notification, and dependent keys
+(`+keyPathsForValuesAffectingValueForKey:`) are not computed yet; both are named in the header.
+
+**AND THE TWO ANNOUNCERS ASK EACH OTHER RATHER THAN BOTH SPEAKING.** KVC's `-setValue:forKey:` now asks an internal
+C seam, `fn_kvo_auto_notifies`, whether the object's class carries the automatic setter for that key. When it does,
+the setter announces and KVC stays quiet; when it does not, KVC wraps the write itself. That is what keeps one write
+to one notification regardless of the door it came through — the defect the probe's "a KVC write announces exactly
+once after observation" case exists to catch.
+
+`tests/kvo_automatic.m` is the instrument: **34 cases**, the class lie, an object setter and every scalar wrapper, the
+old/new/context dictionary, Prior's two-sided pair, Initial, the one-announcement rule for KVC, the ivar-only key,
+the unwrapped struct with the manual fallback, two observers with both removal spellings, the exception for removing
+what was never registered, an unobserved instance of the same class, and the silent-but-usable state after the last
+observer is removed.

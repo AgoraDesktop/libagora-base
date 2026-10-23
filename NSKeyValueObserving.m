@@ -30,7 +30,59 @@
 #import <Foundation/NSValue.h>
 #import <Foundation/NSNull.h>
 #import <Foundation/NSException.h>
+#import <Foundation/NSMethodSignature.h>
 #import "FNObjectDeath.h"	/* §63.21: told when an object's address is going away */
+#import "NSKeyValueObserving_internal.h"
+
+#include <objc/runtime.h>	/* the automatic half: pairs, classes and IMPs */
+
+/* ============================================================================================
+ * AUTOMATIC NOTIFICATION: THE SETTER'S WRAPPER AND THE CLASS THAT CARRIES IT.
+ * ============================================================================================ */
+/* **A SETTER CALLED DIRECTLY IS THE CASE v1 COULD NOT SEE, AND THE ONE EVERY BINDING NEEDS.** `-setValue:forKey:`
+ * announced its own writes, so a model written through KVC was observable; a model written as `[model setName:x]` —
+ * which is what application code does — was not. The fix is Cocoa's own: when a key is first observed, the object is
+ * moved to a DYNAMIC SUBCLASS that overrides the key's setter, and the override brackets the original IMP with
+ * `-willChangeValueForKey:`/`-didChangeValueForKey:`. This file's slice does that without isa-swizzling's private
+ * machinery: the subclass is created with `objc_allocateClassPair`, the original IMP is called through a typed
+ * function pointer, and `-class` is overridden to keep answering the class the caller declared.
+ *
+ * **WHAT CANNOT BE INTERCEPTED IS NAMED, NOT FAKED.** A setter whose argument is a struct, a pointer, a C string or
+ * a selector is not wrapped — the wrapper would have to know the ABI of every type — and a key with NO setter (the
+ * KVC ivar path) has nothing to wrap. Both fall back to the documented manual pair, and `fn_kvo_auto_notifies` answers
+ * NO so KVC's own wrapper still announces a `-setValue:forKey:` write exactly once. */
+@interface FNAutoSetter : NSObject
+{
+@public
+	Class _notifying;	/* the dynamic subclass (not retained: classes are permanent) */
+	SEL _setter;		/* the wrapped selector */
+	NSString *_key;		/* the key its wrapper announces */
+	IMP _original;		/* the IMP the wrapper calls (not retained: code is permanent) */
+}
+@end
+
+@implementation FNAutoSetter
+- (void)dealloc
+{
+	[_key release];
+	[super dealloc];
+}
+@end
+
+/* ONE original-class -> notifying-class pair, so a second observation reuses the subclass. */
+@interface FNKVONotifyingPair : NSObject
+{
+@public
+	Class _original;
+	Class _notifying;
+}
+@end
+
+@implementation FNKVONotifyingPair
+@end
+
+static NSMutableArray *fn_autos = nil;
+static NSMutableArray *fn_notify_pairs = nil;
 
 NSString *const NSKeyValueChangeKindKey = @"NSKeyValueChangeKindKey";
 NSString *const NSKeyValueChangeNewKey = @"NSKeyValueChangeNewKey";
@@ -134,10 +186,342 @@ static void fn_kvo_init(void)
 		fn_registrations = [[NSMutableArray alloc] init];
 		fn_pendings = [[NSMutableArray alloc] init];
 		fn_infos = [[NSMutableArray alloc] init];
+		fn_autos = [[NSMutableArray alloc] init];
+		fn_notify_pairs = [[NSMutableArray alloc] init];
 		/* INSTALLED HERE, NOT AT `+load` TIME: the tables exist from this moment, so the hook is needed
 		 * from this moment — and a program that never calls KVO never installs one. */
 		fn_object_death_hook = fn_object_died;
 	}
+}
+
+/* ============================================================================================
+ * THE AUTOMATIC HALF, IN THE ORDER IT IS USED: a key's setter name, the notifying class, the
+ * wrapper, and the registry of wrappers.
+ * ============================================================================================ */
+
+/* "foo" -> "setFoo:". The empty key has no setter, and "URL" stays "URL" because only the FIRST character is
+ * raised — the same rule KVC's capitalisation uses, read backwards. */
+static SEL fn_setter_selector(NSString *key)
+{
+	NSString *name;
+	NSString *first;
+	NSString *rest;
+
+	if (key == nil || [key length] == 0) {
+		return NULL;
+	}
+	first = [[key substringToIndex:1] uppercaseString];
+	rest = [key substringFromIndex:1];
+	name = [NSString stringWithFormat:@"set%@%@:", first, rest];
+	return NSSelectorFromString(name);
+}
+
+static Class fn_original_of_notifying(Class cls)
+{
+	NSUInteger i;
+
+	if (cls == Nil || fn_notify_pairs == nil) {
+		return Nil;
+	}
+	for (i = 0; i < [fn_notify_pairs count]; i++) {
+		FNKVONotifyingPair *pair = [fn_notify_pairs objectAtIndex:i];
+
+		if (pair->_notifying == cls) {
+			return pair->_original;
+		}
+	}
+	return Nil;
+}
+
+/* THE `-class` LIE COCOA DOCUMENTS: the object is a member of a dynamic subclass, and it answers the class the caller
+ * declared. `-isKindOfClass:` needs no override — the dynamic class IS a subclass, so the chain answers truly. */
+static Class fn_notifying_class_imp(id self, SEL _cmd)
+{
+	(void)_cmd;
+	return class_getSuperclass(object_getClass(self));
+}
+
+/* THE SUBCLASS IS CREATED ONCE PER ORIGINAL CLASS AND REUSED.** A second observation of a different key on the same
+ * object adds another setter override to it; a second object of the same class is moved to the same subclass. */
+static Class fn_notifying_class_for(Class original)
+{
+	NSUInteger i;
+	char name[512];
+	Class existing;
+	Class notifying;
+	FNKVONotifyingPair *pair;
+
+	if (original == Nil) {
+		return Nil;
+	}
+	for (i = 0; i < [fn_notify_pairs count]; i++) {
+		FNKVONotifyingPair *held = [fn_notify_pairs objectAtIndex:i];
+
+		if (held->_original == original) {
+			return held->_notifying;
+		}
+	}
+	snprintf(name, sizeof name, "NSKVONotifying_%s", class_getName(original));
+	existing = objc_getClass(name);
+	if (existing != Nil) {
+		/* ALREADY ALLOCATED BY AN EARLIER OBSERVATION whose pair was lost is not a state this file can be in;
+		 * a class of that name from somewhere else is not ours to subclass. Either way the honest answer is to use
+		 * it only if it is a subclass of the original. */
+		if (class_getSuperclass(existing) == original) {
+			notifying = existing;
+		} else {
+			return Nil;
+		}
+	} else {
+		notifying = objc_allocateClassPair(original, name, 0);
+		if (notifying == Nil) {
+			return Nil;
+		}
+		class_addMethod(notifying, @selector(class), (IMP)fn_notifying_class_imp, "#@:");
+		objc_registerClassPair(notifying);
+	}
+	pair = [[FNKVONotifyingPair alloc] init];
+	pair->_original = original;
+	pair->_notifying = notifying;
+	[fn_notify_pairs addObject:pair];
+	[pair release];
+	return notifying;
+}
+
+static FNAutoSetter *fn_auto_record_for(Class notifying, SEL setter)
+{
+	NSUInteger i;
+
+	if (fn_autos == nil) {
+		return nil;
+	}
+	for (i = 0; i < [fn_autos count]; i++) {
+		FNAutoSetter *held = [fn_autos objectAtIndex:i];
+
+		if (held->_notifying == notifying && sel_isEqual(held->_setter, setter)) {
+			return held;
+		}
+	}
+	return nil;
+}
+
+/* ---- THE WRAPPERS: ONE PER ARGUMENT TYPE THIS TIER CAN INTERCEPT -------------------------------------------------
+ *
+ * EACH IS THE SAME THREE STEPS — announce, call the original IMP with the argument unchanged, announce the end — and
+ * they are separate FUNCTIONS rather than one variadic trampoline because the call has to carry the argument in its
+ * own C type. The original IMP is looked up in the wrapper registry by (the object's dynamic class, the selector), not
+ * by parsing the encoding again. */
+static FNAutoSetter *fn_auto_will(id self, SEL _cmd)
+{
+	FNAutoSetter *record = fn_auto_record_for(object_getClass(self), _cmd);
+
+	if (record != nil) {
+		[self willChangeValueForKey:record->_key];
+	}
+	return record;
+}
+
+static void fn_auto_did(id self, FNAutoSetter *record)
+{
+	if (record != nil) {
+		[self didChangeValueForKey:record->_key];
+	}
+}
+
+static void fn_set_id(id self, SEL _cmd, id value)
+{
+	FNAutoSetter *record = fn_auto_will(self, _cmd);
+
+	((void (*)(id, SEL, id))record->_original)(self, _cmd, value);
+	fn_auto_did(self, record);
+}
+
+static void fn_set_char(id self, SEL _cmd, char value)
+{
+	FNAutoSetter *record = fn_auto_will(self, _cmd);
+
+	((void (*)(id, SEL, char))record->_original)(self, _cmd, value);
+	fn_auto_did(self, record);
+}
+
+static void fn_set_short(id self, SEL _cmd, short value)
+{
+	FNAutoSetter *record = fn_auto_will(self, _cmd);
+
+	((void (*)(id, SEL, short))record->_original)(self, _cmd, value);
+	fn_auto_did(self, record);
+}
+
+static void fn_set_int(id self, SEL _cmd, int value)
+{
+	FNAutoSetter *record = fn_auto_will(self, _cmd);
+
+	((void (*)(id, SEL, int))record->_original)(self, _cmd, value);
+	fn_auto_did(self, record);
+}
+
+static void fn_set_long(id self, SEL _cmd, long value)
+{
+	FNAutoSetter *record = fn_auto_will(self, _cmd);
+
+	((void (*)(id, SEL, long))record->_original)(self, _cmd, value);
+	fn_auto_did(self, record);
+}
+
+static void fn_set_longlong(id self, SEL _cmd, long long value)
+{
+	FNAutoSetter *record = fn_auto_will(self, _cmd);
+
+	((void (*)(id, SEL, long long))record->_original)(self, _cmd, value);
+	fn_auto_did(self, record);
+}
+
+static void fn_set_float(id self, SEL _cmd, float value)
+{
+	FNAutoSetter *record = fn_auto_will(self, _cmd);
+
+	((void (*)(id, SEL, float))record->_original)(self, _cmd, value);
+	fn_auto_did(self, record);
+}
+
+static void fn_set_double(id self, SEL _cmd, double value)
+{
+	FNAutoSetter *record = fn_auto_will(self, _cmd);
+
+	((void (*)(id, SEL, double))record->_original)(self, _cmd, value);
+	fn_auto_did(self, record);
+}
+
+/* THE CHOICE OF WRAPPER IS THE ARGUMENT'S ENCODING.** `@`/`#` are pointers; `c`/`C`/`B` one byte; and the integer
+ * widths are kept apart rather than collapsed, because the wrapper's function type is the ABI. Anything else — a
+ * struct, a pointer, a C string, a selector — is left UNWRAPPED on purpose and the header names the fallback. */
+static IMP fn_wrapper_for_argument(const char *type)
+{
+	if (type == NULL) {
+		return NULL;
+	}
+	switch (type[0]) {
+	case '@':
+	case '#':
+		return (IMP)fn_set_id;
+	case 'c':
+	case 'C':
+	case 'B':
+		return (IMP)fn_set_char;
+	case 's':
+	case 'S':
+		return (IMP)fn_set_short;
+	case 'i':
+	case 'I':
+		return (IMP)fn_set_int;
+	case 'l':
+	case 'L':
+		return (IMP)fn_set_long;
+	case 'q':
+	case 'Q':
+		return (IMP)fn_set_longlong;
+	case 'f':
+		return (IMP)fn_set_float;
+	case 'd':
+		return (IMP)fn_set_double;
+	default:
+		return NULL;
+	}
+}
+
+/* INSTALL, ONCE PER (CLASS, KEY).** A dotted key path is not decomposed here — that is a separate row — and a key with
+ * no setter has nothing to wrap, so both leave the object's class alone and let KVC's own wrapper do the announcing. */
+static void fn_install_auto_kvo(id object, NSString *keyPath)
+{
+	Class current;
+	Class original;
+	Class notifying;
+	SEL setter;
+	Method method;
+	NSMethodSignature *signature;
+	IMP wrapper;
+	FNAutoSetter *record;
+
+	if (object == nil || keyPath == nil || [keyPath length] == 0) {
+		return;
+	}
+	if ([keyPath rangeOfString:@"."].location != NSNotFound) {
+		return;
+	}
+	fn_kvo_init();
+	current = object_getClass(object);
+	original = fn_original_of_notifying(current);
+	if (original == Nil) {
+		original = current;
+	}
+	notifying = fn_notifying_class_for(original);
+	if (notifying == Nil) {
+		return;
+	}
+	setter = fn_setter_selector(keyPath);
+	if (setter == NULL) {
+		return;
+	}
+	if (fn_auto_record_for(notifying, setter) != nil) {
+		if (current != notifying) {
+			object_setClass(object, notifying);
+		}
+		return;
+	}
+	method = class_getInstanceMethod(original, setter);
+	if (method == NULL) {
+		return;		/* no setter: KVC's ivar path and the manual pair are the only writers */
+	}
+	signature = [NSMethodSignature signatureWithObjCTypes:method_getTypeEncoding(method)];
+	if (signature == nil || [signature numberOfArguments] < 3) {
+		return;
+	}
+	wrapper = fn_wrapper_for_argument([signature getArgumentTypeAtIndex:2]);
+	if (wrapper == NULL) {
+		return;		/* a struct, pointer, C string or selector: named as unwrapped */
+	}
+	class_addMethod(notifying, setter, wrapper, method_getTypeEncoding(method));
+	record = [[FNAutoSetter alloc] init];
+	record->_notifying = notifying;
+	record->_setter = setter;
+	record->_key = [keyPath copy];
+	record->_original = method_getImplementation(method);
+	[fn_autos addObject:record];
+	[record release];
+	if (current != notifying) {
+		object_setClass(object, notifying);
+	}
+}
+
+/* THE INTERNAL DOOR KVC ASKS: does this object's class already announce this key's setter? */
+BOOL fn_kvo_auto_notifies(id object, NSString *key)
+{
+	Class current;
+	Class original;
+	SEL setter;
+	Method wrapper;
+	Method base;
+
+	if (object == nil || key == nil || [key length] == 0) {
+		return NO;
+	}
+	if ([key rangeOfString:@"."].location != NSNotFound) {
+		return NO;
+	}
+	fn_kvo_init();
+	current = object_getClass(object);
+	original = fn_original_of_notifying(current);
+	if (original == Nil) {
+		return NO;
+	}
+	setter = fn_setter_selector(key);
+	if (setter == NULL) {
+		return NO;
+	}
+	wrapper = class_getInstanceMethod(current, setter);
+	base = class_getInstanceMethod(original, setter);
+	return (wrapper != NULL && base != NULL
+		&& method_getImplementation(wrapper) != method_getImplementation(base));
 }
 
 /* IDENTITY, NOT EQUALITY: two distinct but equal objects are two different things to observe. */
@@ -208,6 +592,9 @@ static FNKVOPending *fn_pending_for(NSObject *observed, NSString *key)
 	registration->_options = options;
 	registration->_context = context;
 	[fn_registrations addObject:registration];
+	/* **THE OBJECT IS MOVED TO ITS NOTIFYING CLASS BEFORE THE INITIAL NOTIFICATION**, so the first observation and every
+	 * later direct setter see the same world. The move is a no-op when the key has no wrappable setter. */
+	fn_install_auto_kvo(self, keyPath);
 
 	if ((options & NSKeyValueObservingOptionInitial) != 0) {
 		/* THE INITIAL NOTIFICATION carries the value as it stands, and arrives BEFORE this call
