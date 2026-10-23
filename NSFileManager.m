@@ -2006,16 +2006,14 @@ static NSString *fn_link_target(NSString *path, int *outErrno)
 	}
 }
 
-/* ---- LOCATING SYSTEM DIRECTORIES (the coverage slice) -------------------------------------------
+/* ---- LOCATING SYSTEM DIRECTORIES ---------------------------------------------------------------
  *
  * ONE SOURCE OF TRUTH: this is the URL spelling of NSSearchPathForDirectoriesInDomains(), whose own
- * function below the class already states the boundary - this system's directories are NAMED, not
- * searched, so that function refuses (on the log) and answers an EMPTY array. -URLsForDirectory:
- * therefore wraps that empty list - an empty list of URLs, and no lie: there is no (directory-type,
- * domain) search on this system to name a directory for. -URLForDirectory: asks the SAME question for
- * ONE directory (via the method above, so the two cannot disagree) and is nil with an error, because a
- * directory the search cannot locate is one that is not there - and `create:` cannot help, since a
- * directory cannot be created at a location the search has no answer for.
+ * function below the class holds the table. -URLsForDirectory: wraps every path that function answers,
+ * in domain order, and -URLForDirectory: asks the SAME question for ONE directory (via the method
+ * above, so the two cannot disagree) - and, unlike before, `create:` is the operation it names: the
+ * directory is made with its intermediates when it is not there, which is what a fresh account needs
+ * for `~/Library/Colors` and what the installation already made true for the system tree.
  */
 - (NSArray *)URLsForDirectory:(NSSearchPathDirectory)directory
 		    inDomains:(NSSearchPathDomainMask)domainMask
@@ -2040,14 +2038,25 @@ static NSString *fn_link_target(NSString *path, int *outErrno)
 			      error:(NSError ** _Nullable)error
 {
 	NSArray *urls = [self URLsForDirectory:directory inDomains:domain];
+	NSURL *answer;
+	NSString *path;
 
-	(void)url;		/* a hint for the search, and there is no search here for it to guide */
-	(void)shouldCreate;	/* a directory with no located location cannot be created at one either */
-	if ([urls count] > 0) {
-		return [urls objectAtIndex:0];
+	(void)url;		/* a hint for a search this system does not perform */
+	if ([urls count] == 0) {
+		fn_failed(error, ENOENT);
+		return nil;
 	}
-	fn_failed(error, ENOENT);
-	return nil;
+	answer = [urls objectAtIndex:0];
+	path = [answer path];
+	if (shouldCreate && ![self fileExistsAtPath:path]) {
+		if (![self createDirectoryAtPath:path
+			 withIntermediateDirectories:YES
+					  attributes:nil
+					       error:error]) {
+			return nil;
+		}
+	}
+	return answer;
 }
 
 /* ---- THE TRASH AND VOLUME DOORS (the coverage slice) --------------------------------------------
@@ -2216,27 +2225,157 @@ NSString *NSHFSTypeOfFile(NSString *fullFilePath)
 }
 
 /*
- * THE LEGACY SEARCH IS A NAMED REFUSAL, NOT AN EMPTY ANSWER. Apple's
- * NSSearchPathForDirectoriesInDomains() answers a LIST OF PATHS for a domain, and this system's file-system
- * hierarchy does not have that shape: its directories are reached BY NAME (System/Libraries, System/Temporary
- * Files, ...) and there is no domain-mask search behind them. Returning an empty array silently would look like
- * "no such directory exists", which is a different statement from "this system does not answer that question",
- * so the refusal is written on the log where it can be seen.
+ * THE INSTALLATION'S DIRECTORIES, NAMED ONCE. A complete Agora installation carries the Mac OS X
+ * directory set (README, "The installation"), so the (directory, domain) pairs this function answers are
+ * facts about the image rather than a search over it: the same reason NSTemporaryDirectory() answers a
+ * constant. NULL in a column is a domain the directory does not belong to - a Documents folder is the
+ * user's, CoreServices is the system's - and answering a path there would be a lie a caller could write
+ * into. NSItemReplacementDirectory is the one type NOT here: Apple answers a NEW temporary directory per
+ * call, which is an allocation rather than a location, so it is left unanswered instead of answered wrong.
+ *
+ * NSAllApplicationsDirectory and NSAllLibrariesDirectory are the two UNION types and are composed below
+ * from the same directories this table names. The NETWORK domain has no tree on this system (there is no
+ * /Network), so every type answers nothing for it, and an answer is never repeated: with no disk arbitration
+ * the local and system domains name the same /Applications, and a caller iterating a list does not want it
+ * twice.
  */
+typedef struct {
+	NSSearchPathDirectory directory;
+	const char *user;	/* relative to NSHomeDirectory() */
+	const char *local;	/* absolute */
+	const char *system;	/* absolute */
+} fn_search_path_entry;
+
+static const fn_search_path_entry fn_search_path_entries[] = {
+	{ NSApplicationDirectory,		"Applications",			"/Applications",			"/Applications" },
+	{ NSLibraryDirectory,			"Library",				"/Library",				"/System/Library" },
+	{ NSUserDirectory,			"",					"/Users",				"/Users" },
+	{ NSDocumentationDirectory,		"Library/Documentation",			"/Library/Documentation",		"/System/Library/Documentation" },
+	{ NSDocumentDirectory,			"Documents",				NULL,					NULL },
+	{ NSCoreServiceDirectory,		NULL,					NULL,					"/System/Library/CoreServices" },
+	{ NSAutosavedInformationDirectory,	"Library/Autosave",			NULL,					NULL },
+	{ NSDesktopDirectory,			"Desktop",				NULL,					NULL },
+	{ NSCachesDirectory,			"Library/Caches",			"/Library/Caches",			"/System/Library/Caches" },
+	{ NSApplicationSupportDirectory,		"Library/Application Support",		"/Library/Application Support",	"/System/Library/Application Support" },
+	{ NSDownloadsDirectory,			"Downloads",				NULL,					NULL },
+	{ NSInputMethodsDirectory,		"Library/Input Methods",			"/Library/Input Methods",		"/System/Library/Input Methods" },
+	{ NSMoviesDirectory,			"Movies",				NULL,					NULL },
+	{ NSMusicDirectory,			"Music",				NULL,					NULL },
+	{ NSPicturesDirectory,			"Pictures",				NULL,					NULL },
+	{ NSPrinterDescriptionDirectory,		"Library/Printers/PPDs",			"/Library/Printers/PPDs",		"/System/Library/Printers/PPDs" },
+	{ NSSharedPublicDirectory,		"Public",				NULL,					NULL },
+	{ NSPreferencePanesDirectory,		"Library/PreferencePanes",		"/Library/PreferencePanes",		"/System/Library/PreferencePanes" },
+	{ NSApplicationScriptsDirectory,		"Library/Application Scripts",		NULL,					NULL },
+	/* THE USER'S TRASH IS A DIRECTORY EVEN WHERE MOVING TO IT IS NOT IMPLEMENTED: the Dock draws `~/.Trash`
+	 * as the can, so the location exists while -trashItemAtURL: still answers ENOTSUP (see its own note). */
+	{ NSTrashDirectory,			".Trash",				NULL,					NULL },
+};
+
+static NSString *fn_search_path_in_home(const char *relative)
+{
+	NSString *home = NSHomeDirectory();
+
+	if (relative == NULL || home == nil) {
+		return nil;
+	}
+	if (relative[0] == '\0') {
+		return home;	/* NSUserDirectory: the home directory IS the answer */
+	}
+	return [NSString stringWithFormat:@"%@/%s", home, relative];
+}
+
+/* `expandTilde` is Apple's spelling rule for the USER domain only: the SAME directory, written `~/Library`
+ * instead of `/Users/<name>/Library`. A path outside the home directory cannot be shortened and is unchanged. */
+static NSString *fn_search_path_spelling(NSString *path, BOOL expandTilde)
+{
+	NSString *home = NSHomeDirectory();
+	NSUInteger length;
+
+	if (!expandTilde || path == nil || home == nil) {
+		return path;
+	}
+	length = [home length];
+	if ([path isEqualToString:home]) {
+		return @"~";
+	}
+	if ([path length] > length && [path hasPrefix:home] && [path characterAtIndex:length] == '/') {
+		return [@"~" stringByAppendingString:[path substringFromIndex:length]];
+	}
+	return path;
+}
+
+static void fn_search_path_add(NSMutableArray *paths, NSString *path, BOOL expandTilde)
+{
+	NSString *spelling = fn_search_path_spelling(path, expandTilde);
+
+	if (spelling != nil && ![paths containsObject:spelling]) {
+		[paths addObject:spelling];
+	}
+}
+
 NSArray *NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory directory,
 							 NSSearchPathDomainMask domainMask, BOOL expandTilde)
 {
-	char line[256];
-	int n = snprintf(line, sizeof line,
-			 "Foundation: NSSearchPathForDirectoriesInDomains refused (directory %ld, mask %lu): this "
-			 "system's directories are named, not searched\n",
-			 (long)directory, (unsigned long)domainMask);
+	NSMutableArray *paths = [NSMutableArray array];
+	static const NSSearchPathDomainMask order[4] = {
+		NSUserDomainMask, NSLocalDomainMask, NSNetworkDomainMask, NSSystemDomainMask
+	};
+	NSUInteger i, j;
 
-	(void)expandTilde;
-	if (n > 0) {
-		(void)write(2, line, (size_t)n);
+	/* THE DOMAIN ORDER IS APPLE'S: the user's directory first, then the machine's, then the network's,
+	 * then the system's - so a caller taking the first answer takes the most specific one. */
+	for (i = 0; i < 4; i++) {
+		NSSearchPathDomainMask domain = order[i];
+		const char *relative;
+
+		if ((domainMask & domain) == 0) {
+			continue;
+		}
+		if (directory == NSAllApplicationsDirectory) {
+			if (domain == NSUserDomainMask) {
+				fn_search_path_add(paths, fn_search_path_in_home("Applications"), expandTilde);
+			} else if (domain == NSLocalDomainMask || domain == NSSystemDomainMask) {
+				fn_search_path_add(paths, @"/Applications", expandTilde);
+				fn_search_path_add(paths, @"/Applications/Utilities", expandTilde);
+			}
+			continue;
+		}
+		if (directory == NSAllLibrariesDirectory) {
+			if (domain == NSUserDomainMask) {
+				fn_search_path_add(paths, fn_search_path_in_home("Library"), expandTilde);
+			} else if (domain == NSLocalDomainMask) {
+				fn_search_path_add(paths, @"/Library", expandTilde);
+			} else if (domain == NSSystemDomainMask) {
+				fn_search_path_add(paths, @"/System/Library", expandTilde);
+			}
+			continue;
+		}
+		for (j = 0; j < sizeof fn_search_path_entries / sizeof fn_search_path_entries[0]; j++) {
+			if (fn_search_path_entries[j].directory != directory) {
+				continue;
+			}
+			switch (domain) {
+			case NSUserDomainMask:
+				relative = fn_search_path_entries[j].user;
+				fn_search_path_add(paths, fn_search_path_in_home(relative), expandTilde);
+				break;
+			case NSLocalDomainMask:
+				relative = fn_search_path_entries[j].local;
+				fn_search_path_add(paths, (relative != NULL) ? [NSString stringWithUTF8String:relative] : nil,
+						   expandTilde);
+				break;
+			case NSSystemDomainMask:
+				relative = fn_search_path_entries[j].system;
+				fn_search_path_add(paths, (relative != NULL) ? [NSString stringWithUTF8String:relative] : nil,
+						   expandTilde);
+				break;
+			default:
+				break;	/* the network domain has no tree here */
+			}
+			break;
+		}
 	}
-	return @[];
+	return paths;
 }
 
 NSString *const NSFileManagerUnmountDissentingProcessIdentifierErrorKey =

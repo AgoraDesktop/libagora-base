@@ -76,3 +76,13 @@ add_executable(kvo_tomany kvo_tomany.m)
 target_link_libraries(kvo_tomany PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
 add_test(NAME kvo_tomany COMMAND kvo_tomany)
+
+# **THE INSTALLATION'S DIRECTORY SET, ASKED THE WAY AN APPLICATION ASKS FOR IT.** The search-path function used to be
+# a named refusal, so AppKit built `~/Library` by hand and the autosave probe found `NSTemporaryDirectory()` naming a
+# directory nothing created. A complete installation now carries the Mac OS X directory set, and the answer is a table;
+# this suite pins the table's per-domain answers, the two spellings of a user path, the refusals (a domain that does not
+# carry the directory, the network, NSItemReplacementDirectory), the two unions, the URL doors and `create:`.
+add_executable(search_paths search_paths.m)
+target_link_libraries(search_paths PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME search_paths COMMAND search_paths)

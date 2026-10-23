@@ -19,8 +19,8 @@
  *      it is the reason the directory walk exists in this file at all.
  *
  * PATHS ARE POSIX PATHS, as they are throughout this library (NSURL's file forms are F8's business),
- * and this system's paths are FSH paths — /System/Applications, /System/Temporary Files — with the
- * spaces and capitals they are spelled with. Nothing here translates them.
+ * and this system's paths are FSH paths — /Applications, /System/Temporary Files — with the spaces and
+ * capitals they are spelled with. Nothing here translates them.
  *
  * WHAT IS NOT HERE, named: NSURL-taking forms (they promise URL RESOURCE VALUES, which the ledger
  * still owes as a family of their own - §60 says why they wait), extended attributes, and mounting.
@@ -326,17 +326,16 @@ NS_SWIFT_NAME(FileManager)
 - (nullable id <NSFileManagerDelegate>)delegate;
 - (void)setDelegate:(nullable id <NSFileManagerDelegate>)delegate;
 
-/* ---- LOCATING SYSTEM DIRECTORIES (the coverage slice) -------------------------------------------
+/* ---- LOCATING SYSTEM DIRECTORIES ---------------------------------------------------------------
  *
  * THE URL SPELLING OF THE SEARCH-PATH QUESTION, and BOTH ARE THIN OVER THE ONE FUNCTION THAT ALREADY
- * ANSWERS IT: NSSearchPathForDirectoriesInDomains() is this system's NAMED REFUSAL (see its own note
- * below the interface) - the FSH's directories are reached BY NAME (System/Libraries, System/Temporary
- * Files, ...) and there is no (directory-type, domain-mask) search behind them. So -URLsForDirectory:
- * inDomains: wraps each path that function answers in a file URL (which is the EMPTY array here), and
- * -URLForDirectory:inDomain:appropriateForURL:create:error: asks the same question for ONE directory
- * and is therefore nil with an error - there is no such directory in an empty search space, and a
- * `create:` cannot create a directory the search cannot locate. One source of truth, so the two cannot
- * disagree with the function that already states the boundary.
+ * ANSWERS IT. NSSearchPathForDirectoriesInDomains() holds the table of the installation's directories
+ * (see its own note below the interface): a complete image carries the Mac OS X directory set, so a
+ * (directory-type, domain) pair has ONE answer here rather than a scan. -URLsForDirectory:inDomains:
+ * wraps every path that function answers in a file URL, in domain order, and
+ * -URLForDirectory:inDomain:appropriateForURL:create:error: asks the same question for ONE directory.
+ * `create:` is honored: the directory is made with its intermediates when it is missing, so a fresh
+ * account (whose `~/Library` the installation does not reach) gets the directory it asked for.
  */
 - (nullable NSURL *)URLForDirectory:(NSSearchPathDirectory)directory
 			   inDomain:(NSSearchPathDomainMask)domain
@@ -348,11 +347,11 @@ NS_SWIFT_NAME(FileManager)
 
 /* ---- THE TRASH AND VOLUME DOORS (the coverage slice) --------------------------------------------
  *
- * -trashItemAtURL: ANSWERS THE POSTCONDITION THIS SYSTEM'S HIERARCHY IMPLIES: THERE IS NO TRASH here -
- * the FSH has no wastebasket directory (docs/reference/fsh-notes.txt: the root holds /Applications,
- * /System, /Users, /Volumes and nothing the system file manager would call a Trash), so the door answers NO with
- * ENOTSUP and a nil resulting URL, the same ground the iCloud block stands on. Nothing is a promise
- * the substrate cannot keep.
+ * -trashItemAtURL: ANSWERS THE POSTCONDITION THIS SYSTEM'S HIERARCHY IMPLIES FOR A MOVE: THE MOVE IS NOT
+ * IMPLEMENTED - so the door answers NO with ENOTSUP and a nil resulting URL, the same ground the iCloud
+ * block stands on. The user's `~/.Trash` DOES EXIST as a directory (NSSearchPathForDirectoriesInDomains()
+ * answers NSTrashDirectory, and the Dock draws it), but a directory is not the operation: nothing here
+ * moves an item into it, and the FSH has no per-volume Trashes.
  *
  * -unmountVolumeAtURL: IS BACKED BY THIS KERNEL'S OWN umount2 (syscall 166, kernel/syscalls/umount2.c),
  * so the URL is reduced to the FSH path of the mount point and umount2(2) IS the operation. The
@@ -770,9 +769,11 @@ typedef enum {
 
 /* WHERE TEMPORARY FILES GO, as a FUNCTION rather than a method because that is how Apple declares it (the
  * ledger files it under NSFileManager's "Accessing user directories"). The trailing separator is Apple's
- * spelling, and the path is the FSH's own: `/System/Temporary Files`, the directory init recreates at mount
- * if a kill-replay left it anything but a directory. A class that wants somewhere to put a file asks HERE
- * rather than naming a policy of its own - which is the whole reason this ships before the download task.
+ * spelling, and the path is the FSH's own: `/System/Temporary Files`, which a complete Agora installation
+ * CREATES (README, "The installation") - a path this function answers has to be one an application can
+ * write into, which is what the handoff's autosave failure measured when it was not. The directory is not
+ * recreated at mount the way the FNX kernel's init does for its own tree: on a hosted install the
+ * installer owns it.
  *
  * NSHomeDirectory() AND NSHomeDirectoryForUser() ARE STILL ABSENT, named: both need the account database,
  * which this tree reads through the passwd domain, and mapping a uid to a home directory is its own row
@@ -800,6 +801,23 @@ extern NSString * NSOpenStepRootDirectory(void);
 extern NSString * _Nullable NSFileTypeForHFSTypeCode(unsigned int hfsTypeCode);
 extern unsigned int NSHFSTypeCodeFromFileType(NSString * _Nullable fileType);
 extern NSString * _Nullable NSHFSTypeOfFile(NSString * _Nullable fullFilePath);
+
+/* ---- THE SEARCH PATH, FOR THE DIRECTORIES THE INSTALLATION CARRIES ----------------------------
+ *
+ * ONE TABLE, ANSWERED BY DOMAIN. Apple's function is a SEARCH (locale directories, the user's chosen
+ * folders, network mounts); this system's directories are NAMED by the image instead - the root holds
+ * /Applications, /Library, /System, /Users and /Volumes, and a home holds ~/Applications, ~/Desktop,
+ * ~/Library and the rest - so the answer for a (directory, domain) pair is a fact rather than a scan.
+ * Which directories exist and who creates them is README, "The installation"; the table here is the
+ * same one, in the form a program asks for it.
+ *
+ * A DOMAIN THE DIRECTORY DOES NOT BELONG TO ANSWERS NOTHING (a Documents folder is the user's, a
+ * CoreServices directory is the system's), the network domain has no tree on this system, and an answer
+ * is never repeated. Two types are unions rather than locations: NSAllApplicationsDirectory and
+ * NSAllLibrariesDirectory. NSItemReplacementDirectory is NOT answered, because Apple's answer is a NEW
+ * temporary directory per call - an allocation, not a location. `expandTilde` only changes the SPELLING
+ * of a user-domain path (`~/Library` rather than `/Users/<name>/Library`).
+ */
 extern NSArray *NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory directory,
 							   NSSearchPathDomainMask domainMask,
 							   BOOL expandTilde);
