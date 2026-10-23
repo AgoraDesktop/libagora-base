@@ -216,8 +216,25 @@ static BOOL fn_call_setter(id receiver, SEL sel, id value)
 	const char *type = signature != nil && [signature numberOfArguments] == 3
 		? [signature getArgumentTypeAtIndex:2] : NULL;
 
-	if (type == NULL || value == nil) {
+	if (type == NULL) {
 		return NO;
+	}
+	/* **NIL IS LEGAL FOR AN OBJECT SETTER AND ILLEGAL FOR A SCALAR ONE, AND THE TYPE HAS TO BE ASKED FIRST.** This
+	 * used to refuse every nil before looking at the argument, so `-setValue:nil forKey:` raised "cannot set nil for the
+	 * scalar key" for an `id` property whose setter takes nil perfectly well — the binding layer's null placeholder is
+	 * the caller that measured it. A pointer, a Class or a block takes nil too; a scalar still goes to
+	 * `-setNilValueForKey:`. */
+	if (value == nil) {
+		switch (type[0]) {
+		case '@': case '#': case '^': case '?': {
+			typedef void (*fn_object_nil)(id, SEL, id);
+
+			((fn_object_nil)[receiver methodForSelector:sel])(receiver, sel, nil);
+			return YES;
+		}
+		default:
+			return NO;
+		}
 	}
 	switch (type[0]) {
 	case '@': case '#': case '^': case '?': {

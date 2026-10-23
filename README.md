@@ -105,3 +105,6 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
    removed instead of only whole-array replacement.** Measured by `tests/kvo_tomany.m` (**37 cases**): the four
    array mutations with their index sets and old/new objects, Prior, the immutable and nil-property arms, the set
    mutations with NSSet values, the dotted path, and an unobserved proxy still mutating.
+   **And `-setValue:nil forKey:` now reaches an `id` setter with nil** — the argument TYPE is asked before nil is
+   refused, which the binding layer's NSNull placeholder needs; a scalar setter still raises through
+   `-setNilValueForKey:`. `tests/kvo_automatic.m` holds the case.

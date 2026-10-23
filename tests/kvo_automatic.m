@@ -328,6 +328,11 @@ int main(void)
 		[model setCount:99];
 		check([observer->keys count] == 0, "a setter with no observers left announces nothing");
 
+		/* AND A NIL THROUGH AN OBJECT SETTER IS LEGAL KVC (the binding layer's null placeholder needs it). */
+		[observer reset];
+		[model setValue:nil forKey:@"name"];
+		check([model name] == nil, "`-setValue:nil forKey:` reaches an id setter with nil");
+
 		/* 11. THE OBSERVATION INFO IS THE CALLER'S OWN SLOT. */
 		check([model observationInfo] == NULL, "no observation info by default");
 		[model setObservationInfo:(void *)0xbeef];

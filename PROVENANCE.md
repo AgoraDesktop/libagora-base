@@ -175,3 +175,9 @@ intersect are removals, set is a replacement. The ordered-set proxy is the remai
 `tests/kvo_tomany.m` is the instrument: **37 cases**, the four array mutations with their index sets and OLD/NEW
 objects, Prior's before-notification, the immutable and nil-property arms, the set's union/removal with NSSet values,
 a dotted key path whose notification belongs to the head object, and an unobserved proxy that still mutates.
+
+**AND THE PROXY'S NIL WRITE FOUND A KVC DEFECT.** `-setValue:nil forKey:` refused every nil BEFORE it asked the
+setter's argument type, so an `id` property with a perfectly good `-setFoo:` raised "cannot set nil for the scalar
+key" — the message naming a scalar the property was not. The type is now asked first: an object/Class/pointer/block
+setter receives nil, a scalar still goes to `-setNilValueForKey:`. The binding layer's `NSNullPlaceholderBindingOption`
+is the caller that measured it, and `tests/kvo_automatic.m` keeps the case.
