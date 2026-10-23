@@ -101,13 +101,18 @@
 #import <Foundation/NSURL.h>
 #import <Foundation/NSKeyValueCoding.h>
 #import <Foundation/NSSortDescriptor.h>
-/* ⚠⚠ AND THE PREDICATE FAMILY IS NOT IN THE UMBRELLA ANY MORE (§63.161): NSPredicate,
- * NSExpression, NSCompoundPredicate, NSComparisonPredicate and the format grammar are ALL macOS 10.4 —
- * later than the 10.2 baseline §11.0 targets — and §63.135 had ALREADY removed their ledger rows with
- * the recorded reason "REMOVED rather than struck ... the headers lose these names in the same campaign".
- * THIS IS THAT CAMPAIGN. What the family took with it is the predicate-taking API on the collection
- * classes, which is 10.4 too: `-filteredArrayUsingPredicate:`, `-filterUsingPredicate:` and their
- * siblings left NSArray, NSSet and NSOrderedSet in the same pass. */
+/* THE PREDICATE FAMILY IS BACK (§63.161 REVERSED, COREDATA-PLAN.md §4.1), and the paragraph that used to sit
+ * here is kept in one line because its reasoning is worth remembering: the family is macOS 10.4, it was removed
+ * against a 10.2 baseline, and §63.135 had already removed its ledger rows in the same campaign. The tree's
+ * REFERENCE is 10.6 — `tests/api-10.6-census.txt` says so in its own preamble — so 10.4 is inside the reference
+ * and the removal was measuring yesterday's target. Two further facts settled it: `api/10.6/appkit-manifest.txt`
+ * carries 29 rows naming a predicate (`-fetchPredicate`, `-filterPredicate`, `NSPredicateEditorRowTemplate`), and
+ * Core Data's `NSFetchRequest` is a fetcher OF predicates. The collection doors went with the family and come back
+ * with it: `-filteredArrayUsingPredicate:`, `-filterUsingPredicate:`, `-filteredSetUsingPredicate:`. */
+#import <Foundation/NSExpression.h>
+#import <Foundation/NSPredicate.h>
+#import <Foundation/NSComparisonPredicate.h>
+#import <Foundation/NSCompoundPredicate.h>
 #import <Foundation/NSFormatter.h>
 #import <Foundation/NSLengthFormatter.h>
 #import <Foundation/NSMassFormatter.h>

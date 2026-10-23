@@ -86,3 +86,11 @@ add_executable(search_paths search_paths.m)
 target_link_libraries(search_paths PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
 add_test(NAME search_paths COMMAND search_paths)
+
+# The predicate family COREDATA-PLAN.md §4.1 restores. Every door has a caller: evaluation over real objects,
+# the collection filters, substitution variables, and the `-predicateFormat` round trip — because Core Data
+# loads predicates from strings and a predicate that cannot render itself cannot be saved.
+add_executable(predicate predicate.m)
+target_link_libraries(predicate PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME predicate COMMAND predicate)
