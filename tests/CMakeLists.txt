@@ -46,3 +46,12 @@ add_executable(forwarding forwarding.m)
 target_link_libraries(forwarding PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
 add_test(NAME forwarding COMMAND forwarding)
+
+# **THE SPLIT THAT HAD NO CALLER AND TWO BUGS.** `-componentsSeparatedByCharactersInSet:` hung on its first caller
+# (AppKit's token field) because its end case re-entered the loop without advancing, and it mixed byte offsets with
+# UTF-16 ranges. A door nothing calls is a door nobody measures, so this suite is the caller it did not have: the runs,
+# the ends, the empty receiver and a non-ASCII string whose pieces would be sliced wrongly by byte arithmetic.
+add_executable(string_split string_split.m)
+target_link_libraries(string_split PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME string_split COMMAND string_split)

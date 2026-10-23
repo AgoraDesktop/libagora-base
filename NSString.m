@@ -2321,42 +2321,44 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 {
 	/* A RUN of separators is ONE break, and empty components are not produced —
 	 * Cocoa's rule, and the difference from -componentsSeparatedByString: with an
-	 * empty separator, which this class rejects. */
+	 * empty separator, which this class rejects.
+	 *
+	 * **THE FIRST VERSION OF THIS METHOD HUNG ON ITS FIRST CALLER, AND IT HAD TWO BUGS RATHER THAN ONE.** It walked
+	 * BYTES while asking `-characterAtIndex:` with a CHARACTER index, then used the byte offsets in an
+	 * `NSMakeRange` — which `-substringWithRange:` reads as UTF-16 code units. And its end test set `breaking`
+	 * at `offset == size` without advancing anything, so the last iteration re-entered the loop forever. Neither
+	 * showed up before because NOTHING IN THE TREE CALLED THIS DOOR: the AppKit token field is its first caller,
+	 * and the hang was the measurement. The loop is now over UTF-16 units, which is the space both
+	 * `-characterAtIndex:` and `-substringWithRange:` use, and the end is a `break` rather than another
+	 * separator run. */
 	NSMutableArray *parts = [[NSMutableArray alloc] init];
-	size_t offset = 0;
-	size_t character = 0;
-	size_t start = 0;
-	size_t size = [self lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+	NSUInteger length = [self length];
+	NSUInteger start = 0;
+	NSUInteger i = 0;
 
-	while (offset <= size) {
-		int breaking = 0;
-
-		if (offset < size) {
-			if ([set characterIsMember:[self characterAtIndex:character]]) {
-				breaking = 1;
+	if (length == 0) {
+		/* ONE COMPONENT, AND IT IS EMPTY: the receiver is not nothing, it is a string with no characters to split. */
+		[parts addObject:@""];
+		return [parts autorelease];
+	}
+	while (i < length) {
+		if ([set characterIsMember:[self characterAtIndex:i]]) {
+			if (i > start) {
+				[parts addObject:[self substringWithRange:NSMakeRange(start, i - start)]];
 			}
+			/* skip the whole run of separators */
+			while (i < length && [set characterIsMember:[self characterAtIndex:i]]) {
+				i++;
+			}
+			start = i;
 		} else {
-			breaking = 1;		/* the end closes the last component */
-		}
-		if (breaking) {
-			if (offset > start) {
-				[parts addObject:[self substringWithRange:NSMakeRange(start, offset - start)]];
-			}
-			{			/* skip the whole run of separators */
-				while (offset < size &&
-				       [set characterIsMember:[self characterAtIndex:character]]) {
-					offset += utf8_seq_length([self byteAtIndex:offset]);
-					character++;
-				}
-			}
-			start = offset;
-		}
-		if (offset < size) {
-			offset += utf8_seq_length([self byteAtIndex:offset]);
-			character++;
+			i++;
 		}
 	}
-	return parts;
+	if (length > start) {
+		[parts addObject:[self substringWithRange:NSMakeRange(start, length - start)]];
+	}
+	return [parts autorelease];
 }
 
 - (NSString *)stringByTrimmingCharactersInSet:(NSCharacterSet *)set
