@@ -28,6 +28,15 @@ cmake_minimum_required(VERSION 3.24)
 
 project(AgoraBase LANGUAGES C OBJC ASM)
 
+# **EVERY LIBRARY FINDS ITS NEIGHBOURS, AND THE INSTALLED BUNDLE NEEDS NO ENVIRONMENT.** A `DT_RUNPATH` is NOT
+# inherited by a dependency's own dependencies: whatever a program puts on its search path covers the libraries IT
+# names and nothing below them. So an application whose runpath is the prefix still fails to resolve
+# `libagora-base.so`'s `libagora-core.so`, because that lookup asks the LIBRARY for its path and it had none —
+# MEASURED as an installed bundle that only started with `LD_LIBRARY_PATH` set to the directory its libraries were
+# already in. `$ORIGIN` says "the directory I am in", which is where this tree installs every one of them, so the
+# chain resolves on its own and a relocatable install is genuinely relocatable.
+set(CMAKE_INSTALL_RPATH "\$ORIGIN")
+
 # The toll-free bridge is a JOINT property of this component and libagora-core, and the only
 # thing that can see the pairing is a consumer of both -- see tests/bridges.m.
 enable_testing()
