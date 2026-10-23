@@ -253,6 +253,39 @@ enum {
 
 @end
 
+/* A READ-ONLY VIEW OVER MEMORY SOMEBODY ELSE OWNS — the Objective-C half of the
+ * `Data` <-> `NSData` bridge (Swift-port handoff §2.38).
+ *
+ * Darwin's bridge hands back an `NSData` that answers `-bytes` out of the Swift
+ * value's own storage, so nothing is copied until somebody mutates a copy. Agora
+ * cannot do that from the Swift side: a Swift subclass of `NSData` registers its
+ * overrides with the *Swift* type encodings (`length` as `q`, not `Q`), and a
+ * Clang-compiled caller's typed send for `Q16@0:8` then misses them — the trap
+ * §2.25 fixed for `BOOL` and §2.21 for `count`. So the view is a class here,
+ * where the header gives the encodings, and the Swift bridge only constructs it.
+ *
+ * The `owner` is whatever keeps `bytes` alive — in the bridge, the boxed Swift
+ * `Data` value, whose storage is the buffer. The view retains it and never
+ * mutates, so the pointer stays valid for the view's lifetime. */
+@interface FNDataView : NSData
+{
+	const void *_viewBytes;
+	NSUInteger _viewLength;
+	NSUInteger _viewOffset;	/* where this view starts inside the owner's bytes */
+	id _owner;
+}
+
+- (instancetype)initWithBytes:(const void *)bytes length:(NSUInteger)length owner:(id)owner;
+- (instancetype)initWithBytes:(const void *)bytes length:(NSUInteger)length owner:(id)owner offset:(NSUInteger)offset;
+
+/* What the inverse bridge adopts: the value whose storage this is, and where this
+ * view sits inside it (a subrange view reports its parent's owner and its own
+ * offset, so the Swift side can slice the value without copying). */
+@property (nonatomic, readonly, strong) id owner;
+@property (nonatomic, readonly) NSUInteger offset;
+@end
+
+
 @interface NSMutableData : NSData <NSMutableCopying>
 {
 	size_t _capacity;
