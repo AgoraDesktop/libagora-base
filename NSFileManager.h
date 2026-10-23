@@ -328,11 +328,12 @@ NS_SWIFT_NAME(FileManager)
 
 /* ---- LOCATING SYSTEM DIRECTORIES ---------------------------------------------------------------
  *
- * THE URL SPELLING OF THE SEARCH-PATH QUESTION, and BOTH ARE THIN OVER THE ONE FUNCTION THAT ALREADY
- * ANSWERS IT. NSSearchPathForDirectoriesInDomains() holds the table of the installation's directories
- * (see its own note below the interface): a complete image carries the Mac OS X directory set, so a
- * (directory-type, domain) pair has ONE answer here rather than a scan. -URLsForDirectory:inDomains:
- * wraps every path that function answers in a file URL, in domain order, and
+ * THE URL SPELLING OF THE SEARCH-PATH QUESTION, and BOTH ARE THIN OVER THE ONE TABLE THAT ALREADY
+ * ANSWERS IT. NSSearchPathForDirectoriesInDomains() maps onto Core Foundation's
+ * CFCopySearchPathForDirectoriesInDomains(), which holds the installation's directories (see the note below
+ * the interface): a complete image carries the Mac OS X directory set, so a (directory-type, domain) pair
+ * has ONE answer here rather than a scan. -URLsForDirectory:inDomains: asks for the EXPANDED spelling
+ * (a URL cannot begin with a tilde) and wraps every path that function answers in a file URL, in domain order, and
  * -URLForDirectory:inDomain:appropriateForURL:create:error: asks the same question for ONE directory.
  * `create:` is honored: the directory is made with its intermediates when it is missing, so a fresh
  * account (whose `~/Library` the installation does not reach) gets the directory it asked for.
@@ -804,19 +805,22 @@ extern NSString * _Nullable NSHFSTypeOfFile(NSString * _Nullable fullFilePath);
 
 /* ---- THE SEARCH PATH, FOR THE DIRECTORIES THE INSTALLATION CARRIES ----------------------------
  *
- * ONE TABLE, ANSWERED BY DOMAIN. Apple's function is a SEARCH (locale directories, the user's chosen
- * folders, network mounts); this system's directories are NAMED by the image instead - the root holds
- * /Applications, /Library, /System, /Users and /Volumes, and a home holds ~/Applications, ~/Desktop,
- * ~/Library and the rest - so the answer for a (directory, domain) pair is a fact rather than a scan.
- * Which directories exist and who creates them is README, "The installation"; the table here is the
- * same one, in the form a program asks for it.
+ * ONE TABLE, ANSWERED BY DOMAIN, AND IT LIVES IN CORE FOUNDATION (CFSystemDirectories.c). Apple's function
+ * is a SEARCH (locale directories, the user's chosen folders, network mounts); this system's directories are
+ * NAMED by the image instead - the root holds /Applications, /Library, /System, /Users and /Volumes, and a
+ * home holds ~/Applications, ~/Desktop, ~/Library and the rest - so the answer for a (directory, domain)
+ * pair is a fact rather than a scan. Which directories exist and who creates them is README, "The
+ * installation"; this function is that table in the form an Objective-C program asks for it, and
+ * CFCopySearchPathForDirectoriesInDomains() is the same table in the form a C program does.
  *
  * A DOMAIN THE DIRECTORY DOES NOT BELONG TO ANSWERS NOTHING (a Documents folder is the user's, a
  * CoreServices directory is the system's), the network domain has no tree on this system, and an answer
  * is never repeated. Two types are unions rather than locations: NSAllApplicationsDirectory and
  * NSAllLibrariesDirectory. NSItemReplacementDirectory is NOT answered, because Apple's answer is a NEW
- * temporary directory per call - an allocation, not a location. `expandTilde` only changes the SPELLING
- * of a user-domain path (`~/Library` rather than `/Users/<name>/Library`).
+ * temporary directory per call - an allocation, not a location.
+ *
+ * `expandTilde` READS AS IT IS NAMED: YES answers the user-domain directory EXPANDED
+ * (`/Users/<name>/Library`), NO answers it as `~/Library`. Both name the same directory.
  */
 extern NSArray *NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory directory,
 							   NSSearchPathDomainMask domainMask,

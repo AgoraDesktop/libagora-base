@@ -21,7 +21,9 @@
  *   5. The URL doors are the same answer in URL spelling, and `create:` really makes the directory.
  *
  * THE ANSWER IS A PATH, NOT AN EXISTENCE CHECK. `/Library` is answered on a machine that has none, which
- * is Apple's behavior and the reason case 2 asks for the spelling rather than `fileExistsAtPath:`.
+ * is Apple's behavior and the reason case 2 asks for the spelling rather than `fileExistsAtPath:`. AND THE
+ * TABLE IS CORE FOUNDATION'S: this suite exercises the mapping from `NSSearchPathDirectory` onto
+ * `CFSearchPathDirectory`, which is why it is the place the two enums' agreement is measured.
  */
 #import <Foundation/Foundation.h>
 
@@ -67,19 +69,20 @@ int main(void)
 		NSString *home = NSHomeDirectory();
 		NSArray *paths;
 
-		/* 1. The user domain, and the two spellings of one directory. */
-		paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, NO);
-		check(array_is(paths, [home stringByAppendingPathComponent:@"Library"], nil),
-		      "NSLibraryDirectory in the user domain is ~/Library");
-
+		/* 1. The user domain, and the two spellings of one directory. `expandTilde` reads as it is
+		 *    named: YES expands, NO keeps the tilde. */
 		paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES);
-		check(array_is(paths, @"~/Library", nil),
-		      "expandTilde spells the same directory ~/Library");
+		check(array_is(paths, [home stringByAppendingPathComponent:@"Library"], nil),
+		      "NSLibraryDirectory in the user domain is ~/Library, expanded");
 
-		paths = NSSearchPathForDirectoriesInDomains(NSUserDirectory, NSUserDomainMask, NO);
-		check(array_is(paths, home, nil), "NSUserDirectory in the user domain is the home directory itself");
+		paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, NO);
+		check(array_is(paths, @"~/Library", nil),
+		      "expandTilde:NO keeps the same directory spelled ~/Library");
 
 		paths = NSSearchPathForDirectoriesInDomains(NSUserDirectory, NSUserDomainMask, YES);
+		check(array_is(paths, home, nil), "NSUserDirectory in the user domain is the home directory itself");
+
+		paths = NSSearchPathForDirectoriesInDomains(NSUserDirectory, NSUserDomainMask, NO);
 		check(array_is(paths, @"~", nil), "the home directory itself spells ~");
 
 		/* 2. Local and system are the machine's trees. */
@@ -95,7 +98,7 @@ int main(void)
 		paths = NSSearchPathForDirectoriesInDomains(NSApplicationDirectory, NSSystemDomainMask, NO);
 		check(array_is(paths, @"/Applications", nil), "the system application folder is the same one");
 
-		paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, NO);
+		paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
 		check(array_is(paths, [home stringByAppendingPathComponent:@"Library/Application Support"], nil),
 		      "a directory name with a space survives the join");
 
@@ -114,12 +117,12 @@ int main(void)
 		check([paths count] == 0, "NSItemReplacementDirectory is an allocation, not a location");
 
 		/* 4. The unions, in domain order and without repeats. */
-		paths = NSSearchPathForDirectoriesInDomains(NSAllLibrariesDirectory, NSAllDomainsMask, NO);
+		paths = NSSearchPathForDirectoriesInDomains(NSAllLibrariesDirectory, NSAllDomainsMask, YES);
 		check(array_is(paths, [home stringByAppendingPathComponent:@"Library"], @"/Library",
 			       @"/System/Library", nil),
 		      "NSAllLibrariesDirectory is user, local, system");
 
-		paths = NSSearchPathForDirectoriesInDomains(NSAllApplicationsDirectory, NSAllDomainsMask, NO);
+		paths = NSSearchPathForDirectoriesInDomains(NSAllApplicationsDirectory, NSAllDomainsMask, YES);
 		check(array_is(paths, [home stringByAppendingPathComponent:@"Applications"], @"/Applications",
 			       @"/Applications/Utilities", nil),
 		      "NSAllApplicationsDirectory is user then local/system, without repeats");
@@ -135,10 +138,11 @@ int main(void)
 			check([urls count] == 1 && [[[urls objectAtIndex:0] path] isEqual:@"/Applications"],
 			      "-URLsForDirectory: wraps the same path, and a repeated answer stays one URL");
 
+			/* A FILE URL CANNOT BEGIN WITH A TILDE, so the URL door asks for the expanded spelling. */
 			url = [manager URLForDirectory:NSLibraryDirectory inDomain:NSUserDomainMask
 				      appropriateForURL:nil create:NO error:&error];
 			check(url != nil && [[url path] isEqual:[home stringByAppendingPathComponent:@"Library"]],
-			      "-URLForDirectory: answers ~/Library without creating it");
+			      "-URLForDirectory: answers ~/Library expanded, without creating it");
 
 			error = nil;
 			url = [manager URLForDirectory:NSDocumentDirectory inDomain:NSLocalDomainMask

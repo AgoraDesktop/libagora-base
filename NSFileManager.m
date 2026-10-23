@@ -28,6 +28,10 @@
 #import <Foundation/NSError.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSNumber.h>
+#include <CoreFoundation/CFArray.h>
+#include <CoreFoundation/CFPriv.h>	/* CFSearchPathDirectory: the enum the search-path table is keyed by */
+#include <CoreFoundation/CFString.h>
+#include <CoreFoundation/CFURL.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/mount.h>		/* umount2(2): the volume door at the end of this file */
@@ -2018,7 +2022,10 @@ static NSString *fn_link_target(NSString *path, int *outErrno)
 - (NSArray *)URLsForDirectory:(NSSearchPathDirectory)directory
 		    inDomains:(NSSearchPathDomainMask)domainMask
 {
-	NSArray *paths = NSSearchPathForDirectoriesInDomains(directory, domainMask, NO);
+	/* **THE EXPANDED SPELLING, BECAUSE A URL THAT BEGINS WITH A TILDE NAMES NOTHING.** The string door's
+	 * `expandTilde:NO` answers `~/Library`, which is a spelling for a shell; a file URL needs the path it
+	 * stands for (`/Users/x/Library`), so this door asks for the same directory expanded. */
+	NSArray *paths = NSSearchPathForDirectoriesInDomains(directory, domainMask, YES);
 	NSMutableArray *urls = [NSMutableArray array];
 
 	if (paths != nil) {
@@ -2225,91 +2232,39 @@ NSString *NSHFSTypeOfFile(NSString *fullFilePath)
 }
 
 /*
- * THE INSTALLATION'S DIRECTORIES, NAMED ONCE. A complete Agora installation carries the Mac OS X
- * directory set (README, "The installation"), so the (directory, domain) pairs this function answers are
- * facts about the image rather than a search over it: the same reason NSTemporaryDirectory() answers a
- * constant. NULL in a column is a domain the directory does not belong to - a Documents folder is the
- * user's, CoreServices is the system's - and answering a path there would be a lie a caller could write
- * into. NSItemReplacementDirectory is the one type NOT here: Apple answers a NEW temporary directory per
- * call, which is an allocation rather than a location, so it is left unanswered instead of answered wrong.
+ * ONE SOURCE OF TRUTH: THE TABLE IS IN CORE FOUNDATION (CFSystemDirectories.c), because a C caller of
+ * CFCopySearchPathForDirectoriesInDomains() and an Objective-C caller of this function must not be able to
+ * see different directories. What lives here is the MAPPING between the two enums and the conversion from
+ * the CFURLs that function answers back to the paths an NSString caller expects.
  *
- * NSAllApplicationsDirectory and NSAllLibrariesDirectory are the two UNION types and are composed below
- * from the same directories this table names. The NETWORK domain has no tree on this system (there is no
- * /Network), so every type answers nothing for it, and an answer is never repeated: with no disk arbitration
- * the local and system domains name the same /Applications, and a caller iterating a list does not want it
- * twice.
+ * THE MAPPING IS ARITHMETIC FOR THE FIRST TWENTY-TWO CASES AND A SWITCH AFTER THAT. Core Foundation's
+ * CFSearchPathDirectory starts at 1 (kCFApplicationDirectory) where NSSearchPathDirectory starts at 0, and
+ * both run in the same order down to kCFPreferencePanesDirectory (22) / NSPreferencePanesDirectory (21).
+ * Past that the enums diverge: Foundation's NSApplicationScriptsDirectory and NSTrashDirectory are the two
+ * this tree added to Core Foundation's enum (kCFApplicationScriptsDirectory, kCFTrashDirectory), and the two
+ * union types have values of their own (100/101).
+ *
+ * WHAT IS NOT ANSWERED IS NAMED. NSItemReplacementDirectory maps to nothing: Apple answers a NEW temporary
+ * directory per call, which is an allocation rather than a location. A domain that does not carry the
+ * directory answers nothing (the table's NULL column), the network domain has no tree on this system, and
+ * an answer is never repeated.
  */
-typedef struct {
-	NSSearchPathDirectory directory;
-	const char *user;	/* relative to NSHomeDirectory() */
-	const char *local;	/* absolute */
-	const char *system;	/* absolute */
-} fn_search_path_entry;
-
-static const fn_search_path_entry fn_search_path_entries[] = {
-	{ NSApplicationDirectory,		"Applications",			"/Applications",			"/Applications" },
-	{ NSLibraryDirectory,			"Library",				"/Library",				"/System/Library" },
-	{ NSUserDirectory,			"",					"/Users",				"/Users" },
-	{ NSDocumentationDirectory,		"Library/Documentation",			"/Library/Documentation",		"/System/Library/Documentation" },
-	{ NSDocumentDirectory,			"Documents",				NULL,					NULL },
-	{ NSCoreServiceDirectory,		NULL,					NULL,					"/System/Library/CoreServices" },
-	{ NSAutosavedInformationDirectory,	"Library/Autosave",			NULL,					NULL },
-	{ NSDesktopDirectory,			"Desktop",				NULL,					NULL },
-	{ NSCachesDirectory,			"Library/Caches",			"/Library/Caches",			"/System/Library/Caches" },
-	{ NSApplicationSupportDirectory,		"Library/Application Support",		"/Library/Application Support",	"/System/Library/Application Support" },
-	{ NSDownloadsDirectory,			"Downloads",				NULL,					NULL },
-	{ NSInputMethodsDirectory,		"Library/Input Methods",			"/Library/Input Methods",		"/System/Library/Input Methods" },
-	{ NSMoviesDirectory,			"Movies",				NULL,					NULL },
-	{ NSMusicDirectory,			"Music",				NULL,					NULL },
-	{ NSPicturesDirectory,			"Pictures",				NULL,					NULL },
-	{ NSPrinterDescriptionDirectory,		"Library/Printers/PPDs",			"/Library/Printers/PPDs",		"/System/Library/Printers/PPDs" },
-	{ NSSharedPublicDirectory,		"Public",				NULL,					NULL },
-	{ NSPreferencePanesDirectory,		"Library/PreferencePanes",		"/Library/PreferencePanes",		"/System/Library/PreferencePanes" },
-	{ NSApplicationScriptsDirectory,		"Library/Application Scripts",		NULL,					NULL },
-	/* THE USER'S TRASH IS A DIRECTORY EVEN WHERE MOVING TO IT IS NOT IMPLEMENTED: the Dock draws `~/.Trash`
-	 * as the can, so the location exists while -trashItemAtURL: still answers ENOTSUP (see its own note). */
-	{ NSTrashDirectory,			".Trash",				NULL,					NULL },
-};
-
-static NSString *fn_search_path_in_home(const char *relative)
+static CFSearchPathDirectory fn_cf_search_path_directory(NSSearchPathDirectory directory)
 {
-	NSString *home = NSHomeDirectory();
-
-	if (relative == NULL || home == nil) {
-		return nil;
+	if (directory >= NSApplicationDirectory && directory <= NSPreferencePanesDirectory) {
+		return (CFSearchPathDirectory)((CFIndex)directory + 1);
 	}
-	if (relative[0] == '\0') {
-		return home;	/* NSUserDirectory: the home directory IS the answer */
-	}
-	return [NSString stringWithFormat:@"%@/%s", home, relative];
-}
-
-/* `expandTilde` is Apple's spelling rule for the USER domain only: the SAME directory, written `~/Library`
- * instead of `/Users/<name>/Library`. A path outside the home directory cannot be shortened and is unchanged. */
-static NSString *fn_search_path_spelling(NSString *path, BOOL expandTilde)
-{
-	NSString *home = NSHomeDirectory();
-	NSUInteger length;
-
-	if (!expandTilde || path == nil || home == nil) {
-		return path;
-	}
-	length = [home length];
-	if ([path isEqualToString:home]) {
-		return @"~";
-	}
-	if ([path length] > length && [path hasPrefix:home] && [path characterAtIndex:length] == '/') {
-		return [@"~" stringByAppendingString:[path substringFromIndex:length]];
-	}
-	return path;
-}
-
-static void fn_search_path_add(NSMutableArray *paths, NSString *path, BOOL expandTilde)
-{
-	NSString *spelling = fn_search_path_spelling(path, expandTilde);
-
-	if (spelling != nil && ![paths containsObject:spelling]) {
-		[paths addObject:spelling];
+	switch (directory) {
+	case NSApplicationScriptsDirectory:
+		return kCFApplicationScriptsDirectory;
+	case NSAllApplicationsDirectory:
+		return kCFAllApplicationsDirectory;
+	case NSAllLibrariesDirectory:
+		return kCFAllLibrariesDirectory;
+	case NSTrashDirectory:
+		return kCFTrashDirectory;
+	default:
+		return (CFSearchPathDirectory)0;	/* NSItemReplacementDirectory: not a location */
 	}
 }
 
@@ -2317,64 +2272,28 @@ NSArray *NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory directory,
 							 NSSearchPathDomainMask domainMask, BOOL expandTilde)
 {
 	NSMutableArray *paths = [NSMutableArray array];
-	static const NSSearchPathDomainMask order[4] = {
-		NSUserDomainMask, NSLocalDomainMask, NSNetworkDomainMask, NSSystemDomainMask
-	};
-	NSUInteger i, j;
+	CFSearchPathDirectory cfDirectory = fn_cf_search_path_directory(directory);
+	CFArrayRef urls;
+	CFIndex i;
 
-	/* THE DOMAIN ORDER IS APPLE'S: the user's directory first, then the machine's, then the network's,
-	 * then the system's - so a caller taking the first answer takes the most specific one. */
-	for (i = 0; i < 4; i++) {
-		NSSearchPathDomainMask domain = order[i];
-		const char *relative;
+	if (cfDirectory == 0) {
+		return paths;
+	}
+	urls = CFCopySearchPathForDirectoriesInDomains(cfDirectory, (CFSearchPathDomainMask)domainMask,
+						      expandTilde ? true : false);
+	if (urls == NULL) {
+		return paths;
+	}
+	for (i = 0; i < CFArrayGetCount(urls); i++) {
+		CFStringRef path = CFURLCopyFileSystemPath((CFURLRef)CFArrayGetValueAtIndex(urls, i),
+							   kCFURLPOSIXPathStyle);
 
-		if ((domainMask & domain) == 0) {
-			continue;
-		}
-		if (directory == NSAllApplicationsDirectory) {
-			if (domain == NSUserDomainMask) {
-				fn_search_path_add(paths, fn_search_path_in_home("Applications"), expandTilde);
-			} else if (domain == NSLocalDomainMask || domain == NSSystemDomainMask) {
-				fn_search_path_add(paths, @"/Applications", expandTilde);
-				fn_search_path_add(paths, @"/Applications/Utilities", expandTilde);
-			}
-			continue;
-		}
-		if (directory == NSAllLibrariesDirectory) {
-			if (domain == NSUserDomainMask) {
-				fn_search_path_add(paths, fn_search_path_in_home("Library"), expandTilde);
-			} else if (domain == NSLocalDomainMask) {
-				fn_search_path_add(paths, @"/Library", expandTilde);
-			} else if (domain == NSSystemDomainMask) {
-				fn_search_path_add(paths, @"/System/Library", expandTilde);
-			}
-			continue;
-		}
-		for (j = 0; j < sizeof fn_search_path_entries / sizeof fn_search_path_entries[0]; j++) {
-			if (fn_search_path_entries[j].directory != directory) {
-				continue;
-			}
-			switch (domain) {
-			case NSUserDomainMask:
-				relative = fn_search_path_entries[j].user;
-				fn_search_path_add(paths, fn_search_path_in_home(relative), expandTilde);
-				break;
-			case NSLocalDomainMask:
-				relative = fn_search_path_entries[j].local;
-				fn_search_path_add(paths, (relative != NULL) ? [NSString stringWithUTF8String:relative] : nil,
-						   expandTilde);
-				break;
-			case NSSystemDomainMask:
-				relative = fn_search_path_entries[j].system;
-				fn_search_path_add(paths, (relative != NULL) ? [NSString stringWithUTF8String:relative] : nil,
-						   expandTilde);
-				break;
-			default:
-				break;	/* the network domain has no tree here */
-			}
-			break;
+		if (path != NULL) {
+			[paths addObject:(NSString *)path];	/* the bridge retains it; this releases the copy */
+			CFRelease(path);
 		}
 	}
+	CFRelease(urls);
 	return paths;
 }
 
