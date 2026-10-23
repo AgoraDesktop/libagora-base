@@ -29,14 +29,23 @@
  *     `-setValue:forKey:` asks whether the setter will announce (an internal seam) so a write is
  *     reported EXACTLY ONCE, whichever door it came through.
  *
+ * **AND THE TO-MANY PAIR IS HERE TOO**, which is the half a binding controller lives on:
+ * `-willChange:valuesAtIndexes:forKey:`/`-didChange:valuesAtIndexes:forKey:` announce an
+ * insertion, a removal or a replacement with the affected INDEXES and the affected objects, and
+ * `-willChangeValueForKey:withSetMutation:usingObjects:`/`-didChangeValueForKey:…` do the same for
+ * a set (union is an insertion, minus and intersect are removals, set is a replacement). KVC's
+ * `-mutableArrayValueForKey:`/`-mutableSetValueForKey:` return live proxies that call those pairs
+ * in place, or write a mutable copy back through KVC when the property's value is immutable.
+ *
  * WHAT IS NOT, named: a setter whose argument is a STRUCT, a POINTER, a C STRING or a SELECTOR is not
  * wrapped — the wrapper would have to know that type's ABI — and a key with NO setter (the KVC ivar
  * path) has nothing to wrap; BOTH fall back to the manual pair, and KVC's writer still announces its
  * own `-setValue:forKey:` write once. A DOTTED key path is registered as the literal string it was
  * given rather than decomposed into its segments, and it is NOT auto-wrapped. **DEPENDENT KEYS**
- * (`+keyPathsForValuesAffectingValueForKey:`) are not computed yet. And nothing is retained: neither
- * the observed object nor the observer, which is Cocoa's own rule and means the caller must remove
- * observations before either one dies.
+ * (`+keyPathsForValuesAffectingValueForKey:`) are not computed yet. The ORDERED-SET collection proxy
+ * is a later row (the array and set ones are here). And nothing is retained: neither the observed
+ * object nor the observer, which is Cocoa's own rule and means the caller must remove observations
+ * before either one dies.
  *
  * THE DYNAMIC SUBCLASS IS NOT RESTORED. Once an object has been observed it keeps answering the
  * notifying class for the rest of its life; its setters then announce to a registry that may have no
@@ -54,6 +63,8 @@
  * `NSKeyValueObserving.h` carries `NSArray(NSKeyValueObserverRegistration)`), so the class it extends has to be
  * in scope, and the import is cycle-free: `NSArray.h` never imports this header. */
 #import <Foundation/NSArray.h>
+#import <Foundation/NSSet.h>
+#import <Foundation/NSIndexSet.h>
 
 @class NSDictionary;
 @class NSString;
@@ -113,6 +124,25 @@ typedef NSUInteger NSKeyValueSetMutationKind;
 /* The manual pair. Between them, the change is reported exactly once. */
 - (void)willChangeValueForKey:(NSString *)key;
 - (void)didChangeValueForKey:(NSString *)key;
+
+/* **THE TO-MANY PAIRS, WHICH ARE HOW A COLLECTION PROXY ANNOUNCES AN INSERTION, A REMOVAL OR A REPLACEMENT.** The
+ * change dictionary they produce carries `NSKeyValueChangeKindKey` as Insertion/Removal/Replacement,
+ * `NSKeyValueChangeIndexesKey` as the affected indexes (array forms), and `NSKeyValueChangeNewKey`/
+ * `NSKeyValueChangeOldKey` as an ARRAY of the affected objects (the set forms use an NSSet). The `usingObjects:`
+ * form maps its mutation to a kind — union is an insertion, minus and intersect are removals, set is a replacement
+ * — and carries the objects involved, which is what lets the receiver work out the NEW and OLD sets. */
+- (void)willChange:(NSKeyValueChange)changeKind
+   valuesAtIndexes:(NSIndexSet *)indexes
+	    forKey:(NSString *)key;
+- (void)didChange:(NSKeyValueChange)changeKind
+  valuesAtIndexes:(NSIndexSet *)indexes
+	   forKey:(NSString *)key;
+- (void)willChangeValueForKey:(NSString *)key
+	      withSetMutation:(NSKeyValueSetMutationKind)mutationKind
+		 usingObjects:(NSSet *)objects;
+- (void)didChangeValueForKey:(NSString *)key
+	     withSetMutation:(NSKeyValueSetMutationKind)mutationKind
+		usingObjects:(NSSet *)objects;
 
 /* Cocoa's own doors for hanging an observer's OWN bookkeeping off an object. This library keeps the
  * registry in a table rather than in the object, so these are a faithful place for a caller to keep

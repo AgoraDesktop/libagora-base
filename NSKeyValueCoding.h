@@ -30,9 +30,9 @@
  *     -willChangeValueForKey:, -didChangeValueForKey:, -observeValueForKeyPath:... —
  *     KVO is a REGISTRY of observers with a dependency graph. It is a service, not
  *     a naming rule, and the two are different sizes of thing;
- *   - the MUTABLE PROXIES: -mutableArrayValueForKey:, -mutableSetValueForKey:,
- *     -mutableOrderedSetValueForKey: and their ...KeyPath: forms return a live proxy
- *     CLASS, which is its own family;
+ *   - the ORDERED-SET PROXY: -mutableOrderedSetValueForKey: and its ...KeyPath: form
+ *     return a live proxy over NSMutableOrderedSet, which is a later row. The ARRAY and
+ *     SET proxies ARE implemented (see the protocol's note);
  *   - the SET-returning operators: @unionOfArrays, @unionOfSets,
  *     @distinctUnionOfArrays, @distinctUnionOfSets — no NSSet ships;
  *   - the legacy dictionary-era API -takeValue:forKey: / -takeValuesFromDictionary:,
@@ -53,6 +53,7 @@
 #import <Foundation/NSString.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSDictionary.h>
+#import <Foundation/NSSet.h>
 
 @class NSError;
 
@@ -68,6 +69,16 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setValue:(nullable id)value forKey:(NSString *)key;
 - (nullable id)valueForKeyPath:(NSString *)keyPath;
 - (void)setValue:(nullable id)value forKeyPath:(NSString *)keyPath;
+
+/* **THE LIVE COLLECTION PROXIES.** A mutation through one of these is a mutation of the receiver's property: the
+ * proxy reads and writes through `-valueForKey:`/`-setValue:forKey:` and announces a to-many change (insertion,
+ * removal or replacement with the affected indexes) when the property's collection is mutable, or a whole-value
+ * change when it is not. The proxy is an `NSMutableArray`/`NSMutableSet`, so it can be held wherever one is
+ * expected; its target is NOT retained, exactly as a KVO registration does not retain its observed object. */
+- (NSMutableArray *)mutableArrayValueForKey:(NSString *)key;
+- (NSMutableArray *)mutableArrayValueForKeyPath:(NSString *)keyPath;
+- (NSMutableSet *)mutableSetValueForKey:(NSString *)key;
+- (NSMutableSet *)mutableSetValueForKeyPath:(NSString *)keyPath;
 
 /* The hooks. The -ForUndefinedKey: pair and -setNilValueForKey: RAISE as
  * implemented; -validateValue:forKey:error: answers YES unless the class has a
@@ -94,6 +105,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setValue:(nullable id)value forKey:(NSString *)key;
 - (nullable id)valueForKeyPath:(NSString *)keyPath;
 - (void)setValue:(nullable id)value forKeyPath:(NSString *)keyPath;
+
+/* THE LIVE COLLECTION PROXIES, on the same category Apple puts them on. See the protocol's note above. */
+- (NSMutableArray *)mutableArrayValueForKey:(NSString *)key;
+- (NSMutableArray *)mutableArrayValueForKeyPath:(NSString *)keyPath;
+- (NSMutableSet *)mutableSetValueForKey:(NSString *)key;
+- (NSMutableSet *)mutableSetValueForKeyPath:(NSString *)keyPath;
 
 - (nullable id)valueForUndefinedKey:(NSString *)key;
 - (void)setValue:(nullable id)value forUndefinedKey:(NSString *)key;

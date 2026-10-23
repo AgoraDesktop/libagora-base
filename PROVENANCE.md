@@ -152,3 +152,26 @@ old/new/context dictionary, Prior's two-sided pair, Initial, the one-announcemen
 the unwrapped struct with the manual fallback, two observers with both removal spellings, the exception for removing
 what was never registered, an unobserved instance of the same class, and the silent-but-usable state after the last
 observer is removed.
+
+### KVC's live collection proxies and KVO's to-many pair
+
+**A binding controller has to see items arrive and leave, and KVO's setting half cannot see that.** The array proxy
+is built on the seven storage primitives `NSMutableArray` documents (count, objectAtIndex, insert, remove,
+removeAll, replace, and the fast-enumeration word); the set proxy on the set's single `-fnReplaceMembers:` primitive,
+whose new member list is diffed to recover what was added and removed. Both read and write through
+`-valueForKey:`/`-setValue:forKey:`, so the proxy is a view of the property rather than a snapshot of it.
+
+**THE ARM THAT RUNS DEPENDS ON THE BACKING VALUE, AND BOTH ARE HONEST.** A property already holding an
+`NSMutableArray`/`NSMutableSet` is mutated in place, wrapped in the to-many pair; a property whose value is immutable
+is replaced by a mutable copy through KVC, which is a setting change. A nil property is created by the first
+insertion the same way and is in place from the second. The change dictionary carries the kind
+(Insertion/Removal/Replacement), the indexes (array forms) and the affected objects — **retained by the pending
+record, because a removal frees the objects it took out before the `did` half runs** — with NSNull for the side that
+does not exist (an insertion's OLD, a removal's NEW).
+
+**THE SET FORM CARRIES NSSETS, NOT ARRAYS**, and maps its mutation to a kind: union is an insertion, minus and
+intersect are removals, set is a replacement. The ordered-set proxy is the remaining row and is named in both headers.
+
+`tests/kvo_tomany.m` is the instrument: **37 cases**, the four array mutations with their index sets and OLD/NEW
+objects, Prior's before-notification, the immutable and nil-property arms, the set's union/removal with NSSet values,
+a dotted key path whose notification belongs to the head object, and an unobserved proxy that still mutates.

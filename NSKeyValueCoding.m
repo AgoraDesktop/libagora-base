@@ -277,6 +277,275 @@ static BOOL fn_call_setter(id receiver, SEL sel, id value)
 	}
 }
 
+/* ============================================================================================
+ * THE MUTABLE COLLECTION PROXIES.
+ * ============================================================================================ */
+/* **A PROXY HOLDS AN OBJECT AND A KEY, AND EVERY PRIMITIVE GOES THROUGH THEM.** Both collection families are built
+ * over a small primitive set — seven for the array, one for the set — so a subclass that overrides those primitives
+ * and keeps its elements elsewhere is a live view rather than a copy. The array's seven include the fast-enumeration
+ * word, which is why each proxy carries one of its own.
+ *
+ * **THE MUTATION IS ANNOUNCED EITHER AS A TO-MANY CHANGE OR AS A WHOLE-VALUE ONE, AND WHICH IS A FACT ABOUT THE
+ * BACKING STORE.** A property that already holds an `NSMutableArray`/`NSMutableSet` is mutated IN PLACE, wrapped in
+ * the to-many pair, so an observer gets the indexes and the affected objects; a property whose value is immutable (a
+ * computed collection, a copy returned by its getter) is replaced by a mutable copy through `-setValue:forKey:`, so
+ * the observer gets the ordinary setting change. That is the honest split, and a caller can tell which happened from
+ * `NSKeyValueChangeKindKey`. */
+@interface NSMutableSet (AGKVCMutableStorage)
+- (void)fnReplaceMembers:(NSArray *)members;
+- (unsigned long *)fnMutationWord;
+@end
+
+@interface NSArray (AGKVCMutableStorage)
+- (unsigned long *)fnMutationWord;
+@end
+
+@interface FNKVMutableArray : NSMutableArray
+{
+	__unsafe_unretained id _target;	/* NOT retained: the proxy is a view of the caller's object */
+	NSString *_key;			/* RETAINED (a copy) */
+	unsigned long _mutationWord;
+}
+- (id)initWithTarget:(id)target key:(NSString *)key;
+@end
+
+@interface FNKVMutableSet : NSMutableSet
+{
+	__unsafe_unretained id _target;	/* NOT retained */
+	NSString *_key;			/* RETAINED (a copy) */
+	unsigned long _mutationWord;
+}
+- (id)initWithTarget:(id)target key:(NSString *)key;
+@end
+
+@implementation FNKVMutableArray
+
+- (id)initWithTarget:(id)target key:(NSString *)key
+{
+	self = [super init];
+	if (self != nil) {
+		_target = target;
+		_key = [key copy];
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[_key release];
+	[super dealloc];
+}
+
+- (NSMutableArray *)fn_collection
+{
+	id value = [_target valueForKey:_key];
+
+	return [value isKindOfClass:[NSMutableArray class]] ? (NSMutableArray *)value : nil;
+}
+
+- (NSArray *)fn_view
+{
+	id value = [_target valueForKey:_key];
+
+	return [value isKindOfClass:[NSArray class]] ? (NSArray *)value : [NSArray array];
+}
+
+/* THE PRIMITIVES: TWO READS, FOUR MUTATIONS, AND THE WORD. */
+- (NSUInteger)count
+{
+	return [[self fn_view] count];
+}
+
+- (id)objectAtIndex:(NSUInteger)index
+{
+	return [[self fn_view] objectAtIndex:index];
+}
+
+- (unsigned long *)fnMutationWord
+{
+	return &_mutationWord;
+}
+
+- (NSEnumerator *)objectEnumerator
+{
+	return [[self fn_view] objectEnumerator];
+}
+
+/* **THE IN-PLACE ARM IS THE ONE THAT NEEDS THE TO-MANY PAIR; THE COPY ARM DOES NOT.** Mutating the caller's mutable
+ * array changes no property, so nothing else would announce it; replacing an immutable value through KVC announces
+ * itself. A copy is built only when the value is not a mutable array — which includes a nil value, where the copy
+ * starts empty and the property is created by the first insertion. */
+- (void)fn_mutateInPlace:(NSKeyValueChange)kind
+		 indexes:(NSIndexSet *)indexes
+		mutation:(void (^)(NSMutableArray *array))mutation
+{
+	NSMutableArray *collection = [self fn_collection];
+
+	if (collection != nil) {
+		[_target willChange:kind valuesAtIndexes:indexes forKey:_key];
+		mutation(collection);
+		[_target didChange:kind valuesAtIndexes:indexes forKey:_key];
+	} else {
+		NSArray *current = [self fn_view];
+		NSMutableArray *copy = [[NSMutableArray alloc] initWithArray:current];
+
+		mutation(copy);
+		[_target setValue:copy forKey:_key];
+		[copy release];
+	}
+	_mutationWord++;
+}
+
+- (void)insertObject:(id)object atIndex:(NSUInteger)index
+{
+	if (object == nil) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"-insertObject:atIndex: needs an object"];
+	}
+	[self fn_mutateInPlace:NSKeyValueChangeInsertion
+		       indexes:[NSIndexSet indexSetWithIndex:index]
+		      mutation:^(NSMutableArray *array) {
+		[array insertObject:object atIndex:index];
+	}];
+}
+
+- (void)removeObjectAtIndex:(NSUInteger)index
+{
+	if (index >= [self count]) {
+		[NSException raise:NSRangeException
+			    format:@"-removeObjectAtIndex: %lu is outside 0..%lu",
+				(unsigned long)index, (unsigned long)[self count]];
+	}
+	[self fn_mutateInPlace:NSKeyValueChangeRemoval
+		       indexes:[NSIndexSet indexSetWithIndex:index]
+		      mutation:^(NSMutableArray *array) {
+		[array removeObjectAtIndex:index];
+	}];
+}
+
+- (void)replaceObjectAtIndex:(NSUInteger)index withObject:(id)object
+{
+	if (index >= [self count]) {
+		[NSException raise:NSRangeException
+			    format:@"-replaceObjectAtIndex: %lu is outside 0..%lu",
+				(unsigned long)index, (unsigned long)[self count]];
+	}
+	if (object == nil) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"-replaceObjectAtIndex:withObject: needs an object"];
+	}
+	[self fn_mutateInPlace:NSKeyValueChangeReplacement
+		       indexes:[NSIndexSet indexSetWithIndex:index]
+		      mutation:^(NSMutableArray *array) {
+		[array replaceObjectAtIndex:index withObject:object];
+	}];
+}
+
+- (void)removeAllObjects
+{
+	NSUInteger count = [self count];
+
+	if (count == 0) {
+		return;
+	}
+	[self fn_mutateInPlace:NSKeyValueChangeRemoval
+		       indexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(0, count)]
+		      mutation:^(NSMutableArray *array) {
+		[array removeAllObjects];
+	}];
+}
+
+@end
+
+@implementation FNKVMutableSet
+
+- (id)initWithTarget:(id)target key:(NSString *)key
+{
+	self = [super init];
+	if (self != nil) {
+		_target = target;
+		_key = [key copy];
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[_key release];
+	[super dealloc];
+}
+
+- (NSSet *)fn_view
+{
+	id value = [_target valueForKey:_key];
+
+	return [value isKindOfClass:[NSSet class]] ? (NSSet *)value : [NSSet set];
+}
+
+- (NSUInteger)count
+{
+	return [[self fn_view] count];
+}
+
+- (id)member:(id)object
+{
+	return [[self fn_view] member:object];
+}
+
+- (NSEnumerator *)objectEnumerator
+{
+	return [[self fn_view] objectEnumerator];
+}
+
+- (unsigned long *)fnMutationWord
+{
+	return &_mutationWord;
+}
+
+/* **THE SET'S ONE STORAGE PRIMITIVE IS `-fnReplaceMembers:`, SO THE DIFF IS COMPUTED HERE.** The base class's
+ * `-addObject:`, `-removeObject:`, `-unionSet:`, `-minusSet:`, `-intersectSet:`, `-setSet:` and `-removeAllObjects` all
+ * funnel through it with the new member list, which is what lets one override announce every one of them: the members
+ * gained and lost are the difference between the current set and the new list, and their sizes choose the mutation
+ * kind the KVO pair carries. */
+- (void)fnReplaceMembers:(NSArray *)members
+{
+	NSSet *current = [self fn_view];
+	NSSet *next = [NSSet setWithArray:members];
+	NSMutableSet *added = [NSMutableSet setWithSet:next];
+	NSMutableSet *removed = [NSMutableSet setWithSet:current];
+
+	[added minusSet:current];
+	[removed minusSet:next];
+	if ([current isKindOfClass:[NSMutableSet class]]) {
+		if ([added count] > 0 && [removed count] == 0) {
+			[_target willChangeValueForKey:_key withSetMutation:NSKeyValueUnionSetMutation
+					  usingObjects:added];
+			[(NSMutableSet *)current unionSet:added];
+			[_target didChangeValueForKey:_key withSetMutation:NSKeyValueUnionSetMutation
+					 usingObjects:added];
+		} else if ([removed count] > 0 && [added count] == 0) {
+			[_target willChangeValueForKey:_key withSetMutation:NSKeyValueMinusSetMutation
+					  usingObjects:removed];
+			[(NSMutableSet *)current minusSet:removed];
+			[_target didChangeValueForKey:_key withSetMutation:NSKeyValueMinusSetMutation
+					 usingObjects:removed];
+		} else if ([added count] > 0 || [removed count] > 0) {
+			[_target willChangeValueForKey:_key withSetMutation:NSKeyValueSetSetMutation
+					  usingObjects:next];
+			[(NSMutableSet *)current setSet:next];
+			[_target didChangeValueForKey:_key withSetMutation:NSKeyValueSetSetMutation
+					 usingObjects:next];
+		}
+	} else if ([added count] > 0 || [removed count] > 0) {
+		/* THE COPY ARM WRITES A MUTABLE SET, so the NEXT mutation is an in-place one; an immutable copy would make
+		 * every later change a setting change and keep the proxy from ever reaching the to-many path. */
+		[_target setValue:[NSMutableSet setWithSet:next] forKey:_key];
+	}
+	_mutationWord++;
+}
+
+@end
+
 /* ------------------------------------------------------------------ NSObject */
 
 @implementation NSObject (NSKeyValueCoding)
@@ -484,6 +753,71 @@ static BOOL fn_call_setter(id receiver, SEL sel, id value)
 		}
 		[step setValue:value forKeyPath:rest];
 	}
+}
+
+/* ------------------------------------------------ the mutable collection proxies */
+
+/* **THE PROXY IS ALWAYS ANSWERED; THE COLLECTION IT VIEWS MAY BE EMPTY.** A key with no value yet is a proxy whose
+ * reads are empty and whose first insertion creates the property through `-setValue:forKey:` — which is exactly what a
+ * binding on a not-yet-populated content array needs. */
+- (NSMutableArray *)mutableArrayValueForKey:(NSString *)key
+{
+	if (key == nil) {
+		[NSException raise:NSInvalidArgumentException format:@"-mutableArrayValueForKey: needs a key"];
+	}
+	return [[[FNKVMutableArray alloc] initWithTarget:self key:key] autorelease];
+}
+
+- (NSMutableArray *)mutableArrayValueForKeyPath:(NSString *)keyPath
+{
+	NSRange dot;
+	id head;
+
+	if (keyPath == nil) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"-mutableArrayValueForKeyPath: needs a key path"];
+	}
+	dot = [keyPath rangeOfString:@"."];
+	if (dot.location == NSNotFound) {
+		return [self mutableArrayValueForKey:keyPath];
+	}
+	head = [self valueForKey:[keyPath substringToIndex:dot.location]];
+	if (head == nil) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"-mutableArrayValueForKeyPath: cannot walk through a nil at %@",
+				   [keyPath substringToIndex:dot.location]];
+	}
+	return [head mutableArrayValueForKey:[keyPath substringFromIndex:dot.location + 1]];
+}
+
+- (NSMutableSet *)mutableSetValueForKey:(NSString *)key
+{
+	if (key == nil) {
+		[NSException raise:NSInvalidArgumentException format:@"-mutableSetValueForKey: needs a key"];
+	}
+	return [[[FNKVMutableSet alloc] initWithTarget:self key:key] autorelease];
+}
+
+- (NSMutableSet *)mutableSetValueForKeyPath:(NSString *)keyPath
+{
+	NSRange dot;
+	id head;
+
+	if (keyPath == nil) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"-mutableSetValueForKeyPath: needs a key path"];
+	}
+	dot = [keyPath rangeOfString:@"."];
+	if (dot.location == NSNotFound) {
+		return [self mutableSetValueForKey:keyPath];
+	}
+	head = [self valueForKey:[keyPath substringToIndex:dot.location]];
+	if (head == nil) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"-mutableSetValueForKeyPath: cannot walk through a nil at %@",
+				   [keyPath substringToIndex:dot.location]];
+	}
+	return [head mutableSetValueForKey:[keyPath substringFromIndex:dot.location + 1]];
 }
 
 /* ------------------------------------------------ the hooks, and their defaults */

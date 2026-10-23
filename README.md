@@ -92,3 +92,16 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
    `tests/kvo_automatic.m` (**34 cases**): the class lie, every wrapped type, Prior and Initial, the
    one-announcement rule, the unwrapped struct's manual fallback, both removal spellings, and the silent-but-usable
    state after the last observer is gone.
+
+5. **KVC's live collection proxies and KVO's to-many pair.** `-mutableArrayValueForKey:` and
+   `-mutableSetValueForKey:` answer live views over a property's collection (and `…KeyPath:` walks to the
+   object at the head of the path). A mutation through a proxy whose property already holds an `NSMutableArray`
+   or `NSMutableSet` changes it IN PLACE and announces `-willChange:valuesAtIndexes:forKey:` /
+   `-didChange:…` — kind, indexes, and the OLD/NEW objects (retained past a removal that frees them) — or, for a
+   SET, `-willChangeValueForKey:withSetMutation:usingObjects:`, where union is an insertion, minus/intersect a
+   removal and set a replacement. A property whose value is immutable (a computed collection, or one a getter
+   copies) takes the other arm: the proxy builds a mutable copy and writes it back through KVC, so the observer
+   sees the ordinary SETTING change. **The live pair is what a binding controller needs to notice items added and
+   removed instead of only whole-array replacement.** Measured by `tests/kvo_tomany.m` (**37 cases**): the four
+   array mutations with their index sets and old/new objects, Prior, the immutable and nil-property arms, the set
+   mutations with NSSet values, the dotted path, and an unobserved proxy still mutating.

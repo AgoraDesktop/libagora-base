@@ -105,7 +105,8 @@ NSString *const NSKeyValueChangeNotificationIsPriorKey = @"NSKeyValueChangeNotif
 @implementation FNKVORegistration
 @end
 
-/* ONE CHANGE between will and did. */
+/* ONE CHANGE between will and did, WHETHER IT IS A SETTING OR A TO-MANY MUTATION. The fields the to-many half
+ * adds are nil/0 for a setting change, which is what keeps the two paths in one record and one registry. */
 @interface FNKVOPending : NSObject
 {
 @public
@@ -113,10 +114,25 @@ NSString *const NSKeyValueChangeNotificationIsPriorKey = @"NSKeyValueChangeNotif
 	NSString *_key;
 	__unsafe_unretained id _oldValue;
 	BOOL _hasOld;
+	/* THE TO-MANY HALF. `_changeKind` is 0 for a setting change and Insertion/Removal/Replacement otherwise;
+	 * `_indexes` is the array form's affected indexes; `_oldObjects` is RETAINED because the mutation may free the
+	 * objects before the `did` half reads them (a removal releases what it took out). */
+	NSKeyValueChange _changeKind;
+	NSIndexSet *_indexes;		/* RETAINED, array forms */
+	id _oldObjects;			/* RETAINED, NSArray or NSSet */
+	BOOL _setMutation;
+	NSKeyValueSetMutationKind _mutationKind;
 }
 @end
 
 @implementation FNKVOPending
+- (void)dealloc
+{
+	[_key release];
+	[_indexes release];
+	[_oldObjects release];
+	[super dealloc];
+}
 @end
 
 /* ONE `-observationInfo`. */
@@ -570,6 +586,39 @@ static FNKVOPending *fn_pending_for(NSObject *observed, NSString *key)
 	return nil;
 }
 
+/* THE TO-MANY PENDING IS A DIFFERENT RECORD FROM THE SETTING ONE, and the two lookups say so: an array proxy's
+ * mutation must not be consumed by a plain setter's `did`, and a setting change must not be consumed by a proxy's. */
+static FNKVOPending *fn_tomany_pending_for(NSObject *observed, NSString *key)
+{
+	NSUInteger i;
+
+	fn_kvo_init();
+	for (i = 0; i < [fn_pendings count]; i++) {
+		FNKVOPending *held = [fn_pendings objectAtIndex:i];
+
+		if (held->_observed == observed && held->_changeKind != 0 && [held->_key isEqualToString:key]) {
+			return held;
+		}
+	}
+	return nil;
+}
+
+static NSArray *fn_objects_at_indexes(NSArray *collection, NSIndexSet *indexes)
+{
+	NSMutableArray *objects = [NSMutableArray array];
+	NSUInteger index;
+
+	if (collection == nil || indexes == nil) {
+		return objects;
+	}
+	for (index = [indexes firstIndex]; index != NSNotFound; index = [indexes indexGreaterThanIndex:index]) {
+		if (index < [collection count]) {
+			[objects addObject:[collection objectAtIndex:index]];
+		}
+	}
+	return objects;
+}
+
 @implementation NSObject (NSKeyValueObserving)
 
 - (void)addObserver:(NSObject *)observer
@@ -760,6 +809,313 @@ static FNKVOPending *fn_pending_for(NSObject *observed, NSString *key)
 		if ((held->_options & NSKeyValueObservingOptionOld) != 0 && pending->_hasOld) {
 			[change setObject:(pending->_oldValue != nil ? pending->_oldValue
 								     : (id)[NSNull null])
+				   forKey:NSKeyValueChangeOldKey];
+		}
+		[held->_observer observeValueForKeyPath:key
+					       ofObject:self
+						 change:change
+						context:held->_context];
+	}
+	[fn_pendings removeObjectIdenticalTo:pending];
+}
+
+/* ============================================================================================
+ * THE TO-MANY PAIR: A COLLECTION MUTATION, ANNOUNCED WITH ITS INDEXES AND THE OBJECTS IT TOUCHED.
+ * ============================================================================================ */
+/* **THE OLD OBJECTS ARE CAPTURED BEFORE THE MUTATION AND RETAINED, BECAUSE THE MUTATION MAY FREE THEM.** A removal
+ * takes the objects out of the collection and releases them; the `did` half and the prior notification still have to
+ * name them, so the pending record owns an array of them rather than borrowing the collection's.
+ *
+ * **THE PRIOR PASS IS BUILT FROM THE SAME CAPTURE.** For an insertion the old value is NSNull (nothing was there);
+ * for a removal or a replacement it is the affected objects. The ordinary pass adds the NEW side, which is read after
+ * the mutation. */
+- (void)willChange:(NSKeyValueChange)changeKind
+   valuesAtIndexes:(NSIndexSet *)indexes
+	    forKey:(NSString *)key
+{
+	FNKVOPending *pending;
+	NSArray *current = nil;
+	NSArray *oldObjects = nil;
+	BOOL wantsOld = NO;
+	BOOL wantsPrior = NO;
+	NSUInteger i;
+
+	if (key == nil || indexes == nil) {
+		return;
+	}
+	fn_kvo_init();
+	if (fn_registration_count(self, key) == 0) {
+		return;
+	}
+	for (i = 0; i < [fn_registrations count]; i++) {
+		FNKVORegistration *held = [fn_registrations objectAtIndex:i];
+
+		if (held->_observed != self || ![held->_keyPath isEqualToString:key]) {
+			continue;
+		}
+		if ((held->_options & NSKeyValueObservingOptionOld) != 0) {
+			wantsOld = YES;
+		}
+		if ((held->_options & NSKeyValueObservingOptionPrior) != 0) {
+			wantsPrior = YES;
+		}
+	}
+	if (wantsOld || wantsPrior) {
+		id collection = [self valueForKey:key];
+
+		if ([collection isKindOfClass:[NSArray class]]) {
+			current = (NSArray *)collection;
+		}
+	}
+	if (changeKind == NSKeyValueChangeRemoval || changeKind == NSKeyValueChangeReplacement) {
+		oldObjects = fn_objects_at_indexes(current, indexes);
+	}
+	pending = [[FNKVOPending alloc] init];
+	pending->_observed = self;
+	pending->_key = [key copy];
+	pending->_changeKind = changeKind;
+	pending->_indexes = [indexes copy];
+	pending->_oldObjects = [oldObjects copy];
+	pending->_hasOld = (oldObjects != nil);
+	[fn_pendings addObject:pending];
+	[pending release];
+
+	if (wantsPrior) {
+		for (i = 0; i < [fn_registrations count]; i++) {
+			FNKVORegistration *held = [fn_registrations objectAtIndex:i];
+			NSMutableDictionary *change;
+
+			if (held->_observed != self || ![held->_keyPath isEqualToString:key] ||
+			    (held->_options & NSKeyValueObservingOptionPrior) == 0) {
+				continue;
+			}
+			change = [NSMutableDictionary dictionaryWithCapacity:4];
+			[change setObject:[NSNumber numberWithUnsignedInteger:changeKind]
+				   forKey:NSKeyValueChangeKindKey];
+			[change setObject:indexes forKey:NSKeyValueChangeIndexesKey];
+			[change setObject:[NSNumber numberWithBool:YES]
+				   forKey:NSKeyValueChangeNotificationIsPriorKey];
+			if ((held->_options & NSKeyValueObservingOptionOld) != 0) {
+				[change setObject:(oldObjects != nil ? (id)oldObjects : (id)[NSNull null])
+					   forKey:NSKeyValueChangeOldKey];
+			}
+			[held->_observer observeValueForKeyPath:key
+						       ofObject:self
+							 change:change
+							context:held->_context];
+		}
+	}
+}
+
+- (void)didChange:(NSKeyValueChange)changeKind
+  valuesAtIndexes:(NSIndexSet *)indexes
+	   forKey:(NSString *)key
+{
+	FNKVOPending *pending;
+	NSArray *current = nil;
+	NSArray *newObjects = nil;
+	NSUInteger i;
+
+	if (key == nil || indexes == nil) {
+		return;
+	}
+	fn_kvo_init();
+	pending = fn_tomany_pending_for(self, key);
+	if (pending == nil || pending->_changeKind != changeKind || pending->_setMutation ||
+	    ![pending->_indexes isEqual:indexes]) {
+		return;
+	}
+	if (changeKind == NSKeyValueChangeInsertion || changeKind == NSKeyValueChangeReplacement) {
+		id collection = [self valueForKey:key];
+
+		if ([collection isKindOfClass:[NSArray class]]) {
+			current = (NSArray *)collection;
+		}
+		newObjects = fn_objects_at_indexes(current, indexes);
+	}
+	for (i = 0; i < [fn_registrations count]; i++) {
+		FNKVORegistration *held = [fn_registrations objectAtIndex:i];
+		NSMutableDictionary *change;
+
+		if (held->_observed != self || ![held->_keyPath isEqualToString:key]) {
+			continue;
+		}
+		change = [NSMutableDictionary dictionaryWithCapacity:4];
+		[change setObject:[NSNumber numberWithUnsignedInteger:changeKind]
+			   forKey:NSKeyValueChangeKindKey];
+		[change setObject:indexes forKey:NSKeyValueChangeIndexesKey];
+		if ((held->_options & NSKeyValueObservingOptionNew) != 0) {
+			[change setObject:(newObjects != nil ? (id)newObjects : (id)[NSNull null])
+				   forKey:NSKeyValueChangeNewKey];
+		}
+		/* **AN OLD SIDE THAT DOES NOT EXIST IS STILL REPORTED, AS NSNull.** An insertion has no old objects; an
+		 * observer that asked for Old gets NSNull rather than an absent key, which is Apple's contract and the
+		 * difference between "nothing was there" and "nobody asked". */
+		if ((held->_options & NSKeyValueObservingOptionOld) != 0) {
+			[change setObject:(pending->_oldObjects != nil ? pending->_oldObjects : (id)[NSNull null])
+				   forKey:NSKeyValueChangeOldKey];
+		}
+		[held->_observer observeValueForKeyPath:key
+					       ofObject:self
+						 change:change
+						context:held->_context];
+	}
+	[fn_pendings removeObjectIdenticalTo:pending];
+}
+
+/* **THE SET MUTATION IS THE SAME IDEA WITH SETS INSTEAD OF INDEXES.** The mutation kind names the operation; the
+ * receiver turns it into the change kind a binding reads (union is an insertion, minus and intersect are removals,
+ * set is a replacement), and the OLD and NEW objects are the members the operation touched. **THE VALUES ARE NSSets**,
+ * which is the set form's contract and the reason a caller reads `NSKeyValueChangeNewKey` with `-member:`. */
+- (void)willChangeValueForKey:(NSString *)key
+	      withSetMutation:(NSKeyValueSetMutationKind)mutationKind
+		 usingObjects:(NSSet *)objects
+{
+	FNKVOPending *pending;
+	NSSet *current = nil;
+	NSMutableSet *oldObjects = nil;
+	NSKeyValueChange changeKind;
+	BOOL wantsOld = NO;
+	BOOL wantsPrior = NO;
+	NSUInteger i;
+
+	if (key == nil) {
+		return;
+	}
+	fn_kvo_init();
+	if (fn_registration_count(self, key) == 0) {
+		return;
+	}
+	for (i = 0; i < [fn_registrations count]; i++) {
+		FNKVORegistration *held = [fn_registrations objectAtIndex:i];
+
+		if (held->_observed != self || ![held->_keyPath isEqualToString:key]) {
+			continue;
+		}
+		if ((held->_options & NSKeyValueObservingOptionOld) != 0) {
+			wantsOld = YES;
+		}
+		if ((held->_options & NSKeyValueObservingOptionPrior) != 0) {
+			wantsPrior = YES;
+		}
+	}
+	if (wantsOld || wantsPrior) {
+		id collection = [self valueForKey:key];
+
+		if ([collection isKindOfClass:[NSSet class]]) {
+			current = (NSSet *)collection;
+		}
+	}
+	switch (mutationKind) {
+	case NSKeyValueUnionSetMutation:
+		changeKind = NSKeyValueChangeInsertion;
+		oldObjects = nil;
+		break;
+	case NSKeyValueMinusSetMutation:
+	case NSKeyValueIntersectSetMutation:
+		changeKind = NSKeyValueChangeRemoval;
+		oldObjects = [NSMutableSet setWithSet:(current != nil ? current : [NSSet set])];
+		[oldObjects intersectSet:objects];
+		break;
+	case NSKeyValueSetSetMutation:
+	default:
+		changeKind = NSKeyValueChangeReplacement;
+		oldObjects = [NSMutableSet setWithSet:(current != nil ? current : [NSSet set])];
+		break;
+	}
+	pending = [[FNKVOPending alloc] init];
+	pending->_observed = self;
+	pending->_key = [key copy];
+	pending->_changeKind = changeKind;
+	pending->_oldObjects = [oldObjects copy];
+	pending->_hasOld = (oldObjects != nil);
+	pending->_setMutation = YES;
+	pending->_mutationKind = mutationKind;
+	[fn_pendings addObject:pending];
+	[pending release];
+
+	if (wantsPrior) {
+		for (i = 0; i < [fn_registrations count]; i++) {
+			FNKVORegistration *held = [fn_registrations objectAtIndex:i];
+			NSMutableDictionary *change;
+
+			if (held->_observed != self || ![held->_keyPath isEqualToString:key] ||
+			    (held->_options & NSKeyValueObservingOptionPrior) == 0) {
+				continue;
+			}
+			change = [NSMutableDictionary dictionaryWithCapacity:3];
+			[change setObject:[NSNumber numberWithUnsignedInteger:changeKind]
+				   forKey:NSKeyValueChangeKindKey];
+			[change setObject:[NSNumber numberWithBool:YES]
+				   forKey:NSKeyValueChangeNotificationIsPriorKey];
+			if ((held->_options & NSKeyValueObservingOptionOld) != 0) {
+				[change setObject:(oldObjects != nil ? (id)oldObjects : (id)[NSNull null])
+					   forKey:NSKeyValueChangeOldKey];
+			}
+			[held->_observer observeValueForKeyPath:key
+						       ofObject:self
+							 change:change
+							context:held->_context];
+		}
+	}
+}
+
+- (void)didChangeValueForKey:(NSString *)key
+	     withSetMutation:(NSKeyValueSetMutationKind)mutationKind
+		usingObjects:(NSSet *)objects
+{
+	FNKVOPending *pending;
+	NSSet *current = nil;
+	NSMutableSet *newObjects = nil;
+	NSKeyValueChange changeKind;
+	NSUInteger i;
+
+	if (key == nil) {
+		return;
+	}
+	fn_kvo_init();
+	pending = fn_tomany_pending_for(self, key);
+	if (pending == nil || !pending->_setMutation || pending->_mutationKind != mutationKind) {
+		return;
+	}
+	changeKind = pending->_changeKind;
+	if (changeKind == NSKeyValueChangeInsertion || changeKind == NSKeyValueChangeReplacement) {
+		id collection = [self valueForKey:key];
+
+		if ([collection isKindOfClass:[NSSet class]]) {
+			current = (NSSet *)collection;
+		}
+	}
+	switch (mutationKind) {
+	case NSKeyValueUnionSetMutation:
+		newObjects = [NSMutableSet setWithSet:(current != nil ? current : [NSSet set])];
+		[newObjects intersectSet:objects];
+		break;
+	case NSKeyValueSetSetMutation:
+		newObjects = [NSMutableSet setWithSet:(current != nil ? current : [NSSet set])];
+		break;
+	case NSKeyValueMinusSetMutation:
+	case NSKeyValueIntersectSetMutation:
+	default:
+		newObjects = nil;
+		break;
+	}
+	for (i = 0; i < [fn_registrations count]; i++) {
+		FNKVORegistration *held = [fn_registrations objectAtIndex:i];
+		NSMutableDictionary *change;
+
+		if (held->_observed != self || ![held->_keyPath isEqualToString:key]) {
+			continue;
+		}
+		change = [NSMutableDictionary dictionaryWithCapacity:3];
+		[change setObject:[NSNumber numberWithUnsignedInteger:changeKind]
+			   forKey:NSKeyValueChangeKindKey];
+		if ((held->_options & NSKeyValueObservingOptionNew) != 0) {
+			[change setObject:(newObjects != nil ? (id)newObjects : (id)[NSNull null])
+				   forKey:NSKeyValueChangeNewKey];
+		}
+		if ((held->_options & NSKeyValueObservingOptionOld) != 0) {
+			[change setObject:(pending->_oldObjects != nil ? pending->_oldObjects : (id)[NSNull null])
 				   forKey:NSKeyValueChangeOldKey];
 		}
 		[held->_observer observeValueForKeyPath:key

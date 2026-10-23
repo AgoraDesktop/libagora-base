@@ -66,3 +66,13 @@ add_executable(kvo_automatic kvo_automatic.m)
 target_link_libraries(kvo_automatic PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
 add_test(NAME kvo_automatic COMMAND kvo_automatic)
+
+# **THE TO-MANY HALF: LIVE COLLECTION PROXIES AND THE CHANGE DICTIONARIES THEY PRODUCE.** The probe mutates through
+# `-mutableArrayValueForKey:`/`-mutableSetValueForKey:` and measures the announcement: kind, index set, and the OLD/NEW
+# objects (retained past the mutation that freed them). It checks both arms — an already-mutable property is changed in
+# place and reports a to-many change; an immutable one is replaced and reports a setting change — plus Prior, the
+# nil-property creation, the dotted path (whose notification belongs to the head object) and the unobserved proxy.
+add_executable(kvo_tomany kvo_tomany.m)
+target_link_libraries(kvo_tomany PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME kvo_tomany COMMAND kvo_tomany)
