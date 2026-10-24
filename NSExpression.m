@@ -38,6 +38,7 @@
 #import <Foundation/NSCoder.h>
 #include <math.h>
 #include <stdlib.h>
+#include <Block.h>
 
 @implementation NSExpression
 
@@ -136,7 +137,8 @@
 	 * it may be stack-allocated where it was written and outlive that frame — the same rule `NSPredicate`'s
 	 * `+predicateWithBlock:` follows, and the reason both use `Block_copy`'s Foundation spelling. */
 	NSExpression *e = [[self alloc] initWithExpressionType:NSBlockExpressionType];
-	e->_constantValue = [block copy];
+	/* Block_copy, NOT -copy: see the note in NSPredicate.m's FNBlockPredicate. */
+	e->_constantValue = Block_copy(block);
 	e->_arguments = [arguments retain];
 	return [e autorelease];
 }
@@ -152,7 +154,12 @@
 
 - (void)dealloc
 {
-	[_constantValue release];
+	/* A BLOCK PAYLOAD IS RELEASED WITH Block_release, not -release. */
+	if (_type == NSBlockExpressionType && _constantValue != NULL) {
+		Block_release(_constantValue);
+	} else {
+		[_constantValue release];
+	}
 	[_keyPath release];
 	[_variable release];
 	[_function release];

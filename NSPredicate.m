@@ -23,6 +23,7 @@
 #import <Foundation/NSEnumerator.h>
 #import <Foundation/NSCoder.h>
 #import <Foundation/NSException.h>
+#include <Block.h>	/* Block_copy/Block_release: the house rule (NSOperationQueue.h says why) */
 #import <Foundation/NSNull.h>
 #include <stdlib.h>
 
@@ -74,11 +75,21 @@
 - (id)initWithBlock:(BOOL (^)(id, NSDictionary *))block
 {
 	self = [super init];
-	if (self != nil) { _block = [block copy]; }
+	if (self != nil) {
+		/* ⚠ `-copy` ON A BLOCK IS NOT `Block_copy`, AND SENDING IT SEGFAULTS. This first used `[block copy]` —
+		 * which is what a block "looks like" it wants — and the first caller (`predicateWithBlock:` in a 5,000-row
+		 * suite) died inside objc_msgSend. The house rule is stated in NSOperationQueue.h and the rest of the tree
+		 * follows it; this file did not (§0.15). */
+		_block = Block_copy(block);
+	}
 	return self;
 }
 
-- (void)dealloc { [_block release]; [super dealloc]; }
+- (void)dealloc
+{
+	if (_block != NULL) { Block_release(_block); }
+	[super dealloc];
+}
 
 - (BOOL)evaluateWithObject:(id)object { return _block(object, nil); }
 - (BOOL)evaluateWithObject:(id)object substitutionVariables:(NSDictionary *)bindings
