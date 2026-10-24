@@ -7,7 +7,7 @@
  *
  * The credential store: which credentials exist for which realm, and which one is the default.
  *
- * IT IS KEYED BY PROTECTION SPACE, which is why that class implements -copy, -isEqual: and -hash: a store
+ * IT IS KEYED BY PROTECTION SPACE, which is why that class implements -copyWithZone:, -isEqual: and -hash: a store
  * that filed under this class without those three would lose every entry a caller looked up through a
  * protection space it rebuilt, which is the only way a caller ever has one.
  *

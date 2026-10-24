@@ -45,9 +45,10 @@
 /* A COPY IS ITS OWN OBJECT - not `[self retain]`: the type's facts are SETTABLE through the bridge
  * Apple documents, so two references to one object would stop being independent the moment that bridge
  * exists. Nothing is carried over because nothing is carried. */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	return [[NSFileSecurity alloc] init];
+	(void)zone;
+	return [[NSFileSecurity allocWithZone:zone] init];
 }
 
 @end

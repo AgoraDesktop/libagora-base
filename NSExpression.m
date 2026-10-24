@@ -177,9 +177,10 @@
 - (NSExpression *)leftExpression { return _left; }
 - (NSExpression *)rightExpression { return _right; }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSExpression *e = [[NSExpression alloc] initWithExpressionType:_type];
+	(void)zone;
+	NSExpression *e = [[NSExpression allocWithZone:zone] initWithExpressionType:_type];
 	e->_constantValue = [_constantValue retain];
 	e->_keyPath = [_keyPath retain];
 	e->_variable = [_variable retain];

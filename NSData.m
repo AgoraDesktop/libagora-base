@@ -47,12 +47,12 @@
 @implementation NSData
 
 /* THE DOOR (§C.3 item 1), routed exactly once at the front. */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSData class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGDataItems alloc];
+	return [AGDataItems allocWithZone:zone];
 }
 
 /* §C.3 item 4: an archiver asks for THIS, never for -class. NSMutableData answers ITSELF below, being a
@@ -626,20 +626,21 @@ static int base64Value(unsigned char c)
 	return h;
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable */
 }
 
 /*
- * The zone forms (the public-API audit, B4). Declared ONCE, on the base class:
- * each delegates to -copy / -mutableCopy, and DYNAMIC DISPATCH picks the right
- * one for a mutable subclass (whose -copy is the snapshot).
+ * The immutable front's copy is itself; a mutable subclass overrides it with a snapshot. The zone is the
+ * caller's and is where a newly allocated copy goes.
  */
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	NSMutableData *copy = [[NSMutableData alloc] initWithCapacity:[self length]];
+	(void)zone;
+	NSMutableData *copy = [[NSMutableData allocWithZone:zone] initWithCapacity:[self length]];
 
 	[copy appendBytes:[self bytes] length:[self length]];
 	return copy;
@@ -785,12 +786,12 @@ static NSString *fn_path_for_url(NSURL *url, NSError **errorPtr)
 
 @implementation NSMutableData
 
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSMutableData class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGDataMutable alloc];
+	return [AGDataMutable allocWithZone:zone];
 }
 
 - (Class)classForCoder
@@ -1007,10 +1008,11 @@ static NSString *fn_path_for_url(NSURL *url, NSError **errorPtr)
 	}
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	/* A snapshot, like every other mutable type here. */
-	return [[NSData alloc] initWithBytes:[self bytes] length:[self length]];
+	return [[NSData allocWithZone:zone] initWithBytes:[self bytes] length:[self length]];
 }
 
 
@@ -1142,14 +1144,16 @@ static NSString *fn_path_for_url(NSURL *url, NSError **errorPtr)
 					  offset:_viewOffset + start] autorelease];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* immutable: `copy` is an OWNED family, and this one is itself */
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableData alloc] initWithBytes:_viewBytes length:_viewLength];
+	(void)zone;
+	return [[NSMutableData allocWithZone:zone] initWithBytes:_viewBytes length:_viewLength];
 }
 
 @end

@@ -39,12 +39,12 @@
 @implementation NSIndexSet
 
 /* THE DOOR (§C.3 item 1), routed exactly once at the front. */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSIndexSet class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGIndexSetItems alloc];
+	return [AGIndexSetItems allocWithZone:zone];
 }
 
 /* §C.3 item 4: an archiver asks for THIS, never for -class. NSMutableIndexSet answers ITSELF below, being a
@@ -512,14 +512,16 @@ static void fn_append(NSIndexSet *set, unsigned long location, unsigned long len
 					  [self count], ranges];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable */
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	NSMutableIndexSet *copy = [[NSMutableIndexSet alloc] init];
+	(void)zone;
+	NSMutableIndexSet *copy = [[NSMutableIndexSet allocWithZone:zone] init];
 
 	[self enumerateRangesUsingBlock:^(NSRange mine, BOOL *stop) {
 		[copy addIndexesInRange:mine];
@@ -680,12 +682,12 @@ static void fn_append(NSIndexSet *set, unsigned long location, unsigned long len
 
 @implementation NSMutableIndexSet
 
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSMutableIndexSet class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGIndexSetMutable alloc];
+	return [AGIndexSetMutable allocWithZone:zone];
 }
 
 - (Class)classForCoder

@@ -112,10 +112,8 @@ NS_ASSUME_NONNULL_END
  * what backs them. The implementation is a private subclass that carries the call-backs and hands itself to every
  * one of them; see NSMapTable.h's note for the full argument.
  *
- * TWO OF THE TWENTY-EIGHT NAMES ARE NOT HERE, AND THE GROUND IS THE LIBRARY'S OWN: `NSCreateHashTableWithZone` and
- * `NSCopyHashTableWithZone` take an `NSZone`, and `NSObjCRuntime.h` records the user-driven sequence that removed
- * every zone-taking method, then every zone-returning one, and finally the type itself. A header cannot spell a
- * type this library removed on purpose, so those two rows stay owed; the other twenty-six land.
+ * THE ZONE-TAKING PAIR IS HERE TOO. `NSCreateHashTableWithZone` and `NSCopyHashTableWithZone` take the allocator
+ * the table (or its copy) should live in; a NULL zone means the default zone, exactly as it does elsewhere.
  *
  * FIELD ORDER AND THE SENTINEL ARE OURS UNDER §11.6.1 D2.
  * =================================================================================================== */
@@ -159,6 +157,8 @@ extern const NSHashTableCallBacks NSPointerToStructHashCallBacks;
 extern const NSUInteger NSHashTableZeroingWeakMemory;
 
 NSHashTable *NSCreateHashTable(NSHashTableCallBacks callBacks, NSUInteger capacity);
+NSHashTable *NSCreateHashTableWithZone(NSHashTableCallBacks callBacks, NSUInteger capacity, NSZone * _Nullable zone);
+NSHashTable *NSCopyHashTableWithZone(NSHashTable *table, NSZone * _Nullable zone);
 void NSFreeHashTable(NSHashTable *table);
 void NSResetHashTable(NSHashTable *table);
 BOOL NSCompareHashTables(NSHashTable *table1, NSHashTable *table2);

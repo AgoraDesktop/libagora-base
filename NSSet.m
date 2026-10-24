@@ -79,30 +79,20 @@
 	return (found != nil);
 }
 
-/* AND THIS TREE HAS NO NSZone -- NSNumberFormatter.m records that decision -- so the parameter is typed
- * as the pointer Core Foundation actually sends (a NULL zone), which keeps the selector's encoding
- * consistent with the rest of this library instead of inventing a type it does not have. Cocoa's -copy
- * already returns +1, which is what a copy door owes. */
-- (id)copyWithZone:(void *)zone
-{
-	(void)zone;
-	return [self copy];
-}
-
 - (unsigned long *)fnMutationWord
 {
 	return &_mutations;
 }
 
-/* THE DOOR IS `+alloc` (§C.3 item 1): a concrete class INHERITS this, and `[super alloc]` starts the
- * lookup at NSSet's superclass with the receiver still being the class that was asked, so the routing
- * happens exactly ONCE, at the front. */
-+ (id)alloc
+/* THE DOOR IS `+allocWithZone:` (§C.3 item 1): a concrete class INHERITS this, and
+ * `[super allocWithZone:zone]` starts the lookup at NSSet's superclass with the receiver still being the
+ * class that was asked, so the routing happens exactly ONCE, at the front. */
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSSet class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGSetItems alloc];
+	return [AGSetItems allocWithZone:zone];
 }
 
 
@@ -231,21 +221,41 @@
 		return nil;
 	}
 	members = [NSMutableArray array];
-	for (i = 0; i < [array count]; i++) {
-		id object = [array objectAtIndex:i];
-		NSUInteger j;
-		BOOL seen = NO;
+	/* ⚠ **THE DEDUPLICATION WAS A NESTED LOOP AND IS NOT ANY MORE (2026-10-23).** For each element it scanned
+	 * everything already accepted, so building a set from n objects cost O(n^2) `-isEqual:` calls: MEASURED at
+	 * 0.16 s for 4,000 and 0.73 s for 8,000, which is what made a 10^5-row Core Data save take **626 seconds**
+	 * (COREDATA-PLAN.md §0.12). The bucket table below is keyed by `-hash`, so membership is a bucket scan and the
+	 * construction is O(n) amortised. The rules are unchanged: `nil` is skipped, the FIRST occurrence wins, and the
+	 * class is still chosen by the data. */
+	{
+		NSMutableDictionary *buckets = [NSMutableDictionary dictionary];
 
-		if (object == nil) {
-			continue;
-		}
-		for (j = 0; j < [members count]; j++) {
-			if ([[members objectAtIndex:j] isEqual:object]) {
-				seen = YES;
-				break;
+		for (i = 0; i < [array count]; i++) {
+			id object = [array objectAtIndex:i];
+			NSNumber *key;
+			NSMutableArray *bucket;
+			NSUInteger j;
+			BOOL seen = NO;
+
+			if (object == nil) {
+				continue;
 			}
-		}
-		if (!seen) {
+			key = [NSNumber numberWithUnsignedLong:(unsigned long)[object hash]];
+			bucket = [buckets objectForKey:key];
+			for (j = 0; j < [bucket count]; j++) {
+				if ([[bucket objectAtIndex:j] isEqual:object]) {
+					seen = YES;
+					break;
+				}
+			}
+			if (seen) {
+				continue;
+			}
+			if (bucket == nil) {
+				bucket = [NSMutableArray array];
+				[buckets setObject:bucket forKey:key];
+			}
+			[bucket addObject:object];
 			[members addObject:object];
 		}
 	}
@@ -346,6 +356,21 @@
 	NSUInteger i;
 
 	if (object == nil) {
+		return nil;
+	}
+	/* A MUTABLE SET'S INDEX ANSWERS IN BUCKET TIME. The linear scan below is right for an immutable set, which has
+	 * no index and never will: building one costs more than the scan it saves, and an immutable set never grows. */
+	if (_index != nil) {
+		NSArray *bucket = [_index objectForKey:
+		                   [NSNumber numberWithUnsignedLong:(unsigned long)[object hash]]];
+
+		for (i = 0; i < [bucket count]; i++) {
+			id candidate = [bucket objectAtIndex:i];
+
+			if ([candidate isEqual:object]) {
+				return candidate;
+			}
+		}
 		return nil;
 	}
 	for (i = 0; i < [_members count]; i++) {
@@ -494,7 +519,7 @@
 		return NO;
 	}
 	for (i = 0; i < [self count]; i++) {
-		if (![other containsObject:[[self allObjects] objectAtIndex:i]]) {
+		if (![other containsObject:[_members objectAtIndex:i]]) {
 			return NO;
 		}
 	}
@@ -509,7 +534,7 @@
 		return NO;
 	}
 	for (i = 0; i < [self count]; i++) {
-		if (![other containsObject:[[self allObjects] objectAtIndex:i]]) {
+		if (![other containsObject:[_members objectAtIndex:i]]) {
 			return NO;
 		}
 	}
@@ -524,7 +549,7 @@
 		return NO;
 	}
 	for (i = 0; i < [self count]; i++) {
-		if ([other containsObject:[[self allObjects] objectAtIndex:i]]) {
+		if ([other containsObject:[_members objectAtIndex:i]]) {
 			return YES;
 		}
 	}
@@ -636,14 +661,16 @@ static void fnAppendSetMember(NSMutableString *out, id member, id locale, NSUInt
 	return [NSSet class];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) */
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableSet alloc] initWithSet:self];
+	(void)zone;
+	return [[NSMutableSet allocWithZone:zone] initWithSet:self];
 }
 
 - (unsigned long)countByEnumeratingWithState:(NSFastEnumerationState *)state
@@ -681,12 +708,12 @@ static void fnAppendSetMember(NSMutableString *out, id member, id locale, NSUInt
 
 /* THE SAME DOOR (§C.3 item 1), and the mutable front answers ITSELF to an archiver (§C.3 item 4) - the
  * bullet that keeps the private concrete names out of every archive (§C.4). */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSMutableSet class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGSetMutable alloc];
+	return [AGSetMutable allocWithZone:zone];
 }
 
 - (Class)classForCoder
@@ -721,10 +748,68 @@ static void fnAppendSetMember(NSMutableString *out, id member, id locale, NSUInt
  * and never by accident. */
 - (void)fnReplaceMembers:(NSArray *)members
 {
+	NSArray *previous = _members;
+
+	/* THE ARRAY IT REPLACES IS RELEASED, which it was not: every replacement leaked the old member array, and at
+	 * 10^5 adds that is 10^5 leaked arrays (COREDATA-PLAN.md §0.12). And the index describes the OLD members, so it
+	 * goes with them. */
 	_members = [members copy];
+	[previous release];
+	[_index release];
+	_index = nil;
 	_mutations++;
 }
 
+/* THE MUTABLE SET OWNS ITS ARRAY, so a mutation appends to it instead of replacing it. */
+- (NSMutableArray *)fnOwnedMembers
+{
+	if (![_members isKindOfClass:[NSMutableArray class]]) {
+		NSArray *previous = _members;
+
+		_members = [[NSMutableArray alloc] initWithArray:previous];
+		[previous release];
+		_mutations++;
+	}
+	return (NSMutableArray *)_members;
+}
+
+- (void)fnIndexAdd:(id)object
+{
+	NSNumber *key = [NSNumber numberWithUnsignedLong:(unsigned long)[object hash]];
+	NSMutableArray *bucket;
+	NSUInteger i;
+
+	if (_index == nil) {
+		_index = [[NSMutableDictionary alloc] init];
+		/* THE-INDEX-BUILD IS THE FIRST MUTATION'S COST, once: what is already there is indexed before the new
+		 * member is. */
+		for (i = 0; i < [_members count]; i++) {
+			id existing = [_members objectAtIndex:i];
+			NSNumber *k = [NSNumber numberWithUnsignedLong:(unsigned long)[existing hash]];
+			NSMutableArray *b = [_index objectForKey:k];
+
+			if (b == nil) {
+				b = [NSMutableArray array];
+				[_index setObject:b forKey:k];
+			}
+			[b addObject:existing];
+		}
+	}
+	bucket = [_index objectForKey:key];
+	if (bucket == nil) {
+		bucket = [NSMutableArray array];
+		[_index setObject:bucket forKey:key];
+	}
+	[bucket addObject:object];
+}
+
+/* ⚠ **THIS ONE FUNNELS ON PURPOSE, AND THE FAST PATH IS ON `AGSetMutable` INSTEAD.** `FNKVMutableSet` — KVC's
+ * to-many proxy — SUBCLASSES this class and computes its KVO diff by overriding `-fnReplaceMembers:`, so this
+ * implementation must keep routing every mutation through that one primitive. Putting the O(1) append here broke
+ * five `kvo_tomany` cases the moment it was tried, which is the suite doing its job.
+ *
+ * The class a caller actually gets from `[NSMutableSet set]` is `AGSetMutable` (see `+allocWithZone:`), and THAT one
+ * appends in place — so ordinary sets are O(1) per add and the proxy keeps its contract. */
 - (void)addObject:(id)object
 {
 	NSMutableArray *members;
@@ -809,17 +894,19 @@ static void fnAppendSetMember(NSMutableString *out, id member, id locale, NSUInt
 
 /* A MUTABLE SET COPIES BY VALUE — the members, not a shared reference — and a copy of one is the
  * immutable snapshot the house's rule asks for. */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	NSSet *snapshot;
 
-	snapshot = [[NSSet alloc] initWithArray:[self allObjects]];
+	snapshot = [[NSSet allocWithZone:zone] initWithArray:[self allObjects]];
 	return snapshot;
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableSet alloc] initWithArray:[self allObjects]];
+	(void)zone;
+	return [[NSMutableSet allocWithZone:zone] initWithArray:[self allObjects]];
 }
 
 @end
@@ -881,7 +968,64 @@ static void fnAppendSetMember(NSMutableString *out, id member, id locale, NSUInt
 
 @implementation AGSetMutable
 
-/* NOTHING TO IMPLEMENT: NSMutableSet's implementation IS the mutable storage implementation, and what a
- * caller gains is the NAME that -class answers. */
+/* **THE O(1) PATH IS HERE, ON THE CLASS CALLERS ACTUALLY GET.** `[NSMutableSet set]` allocates this class
+ * (`+allocWithZone:`), so an ordinary set appends in place and keeps a `-hash` bucket index, while `NSMutableSet`'s
+ * own implementation keeps funnelling through `-fnReplaceMembers:` for the subclasses that override it — KVC's
+ * to-many proxy above all.
+ *
+ * MEASURED, and this is why the split is worth the extra class: `-addObject:` cost 0.6 s for 2,000 members,
+ * 10.4 s for 8,000, and made a 10^5-row Core Data workload a twenty-minute timeout. With the index it is 0.019 s
+ * for 8,000 and 0.263 s for 100,000 (COREDATA-PLAN.md §0.12). */
+- (void)addObject:(id)object
+{
+	NSMutableArray *members;
+
+	if (object == nil || [self member:object] != nil) {
+		return;			/* a set has no duplicates, and nil is not a member */
+	}
+	/* INDEX FIRST, THEN APPEND: the index's first build walks `_members`, so appending before it would put the
+	 * new object in the index twice — once from the walk and once from the explicit add that follows. */
+	members = [self fnOwnedMembers];
+	[self fnIndexAdd:object];
+	[members addObject:object];
+	_mutations++;
+}
+
+- (void)removeObject:(id)object
+{
+	NSMutableArray *members;
+	NSNumber *key;
+	NSMutableArray *bucket;
+	NSUInteger i;
+
+	if (object == nil) {
+		return;
+	}
+	if (_index == nil) {
+		/* NO INDEX YET MEANS THE FUNNELLING PATH IS CORRECT AND CHEAPER, and it keeps this class's removal
+		 * behaviour identical to the base class for a set nobody has appended to. */
+		[super removeObject:object];
+		return;
+	}
+	key = [NSNumber numberWithUnsignedLong:(unsigned long)[object hash]];
+	bucket = [_index objectForKey:key];
+	for (i = 0; i < [bucket count]; i++) {
+		if ([[bucket objectAtIndex:i] isEqual:object]) {
+			[bucket removeObjectAtIndex:i];
+			break;
+		}
+	}
+	if ([bucket count] == 0) {
+		[_index removeObjectForKey:key];
+	}
+	members = [self fnOwnedMembers];
+	for (i = 0; i < [members count]; i++) {
+		if ([[members objectAtIndex:i] isEqual:object]) {
+			[members removeObjectAtIndex:i];
+			_mutations++;
+			return;
+		}
+	}
+}
 
 @end

@@ -57,9 +57,10 @@
 - (NSString *)predicateFormat { return _value ? @"TRUEPREDICATE" : @"FALSEPREDICATE"; }
 - (NSPredicate *)predicateWithSubstitutionVariables:(NSDictionary *)v { (void)v; return self; }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	return [[FNValuePredicate alloc] initWithValue:_value];
+	(void)zone;
+	return [[FNValuePredicate allocWithZone:zone] initWithValue:_value];
 }
 
 - (void)encodeWithCoder:(NSCoder *)coder { [coder encodeBool:_value forKey:@"NSValue"]; }
@@ -88,9 +89,10 @@
 - (NSString *)predicateFormat { return @"BLOCKPREDICATE"; }
 - (NSPredicate *)predicateWithSubstitutionVariables:(NSDictionary *)v { (void)v; return self; }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	return [[FNBlockPredicate alloc] initWithBlock:_block];
+	(void)zone;
+	return [[FNBlockPredicate allocWithZone:zone] initWithBlock:_block];
 }
 
 @end
@@ -180,7 +182,7 @@
 	return NO;
 }
 
-- (id)copy { return [self retain]; }
+- (id)copyWithZone:(NSZone *)zone { (void)zone; return [self retain]; }
 - (void)encodeWithCoder:(NSCoder *)coder { (void)coder; }
 - (id)initWithCoder:(NSCoder *)coder { (void)coder; return self; }
 

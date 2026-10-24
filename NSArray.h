@@ -110,9 +110,8 @@ __attribute__((swift_bridge("Swift.Array")))
 - (id)initWithObject:(id)object;
 - (id)initWithObjects:(const ObjectType _Nonnull * _Nullable)objects count:(NSUInteger)count;
 - (id)initWithArray:(NSArray<ObjectType> *)other;
-/* `copyItems` COPIES each member (`-copy` — this tree's NSCopying member, the zone API having been
- * removed; see NSObject.h), so the new array does not share them with `array`; NO means the members are
- * RETAINED like any other element. */
+/* `copyItems` COPIES each member with `-copy` (which reaches `-copyWithZone:` with a NULL zone), so the
+ * new array does not share them with `array`; NO means the members are RETAINED like any other element. */
 - (instancetype)initWithArray:(NSArray<ObjectType> *)array copyItems:(BOOL)flag;
 - (id)initWithObjects:(ObjectType)firstObject, ... NS_REQUIRES_NIL_TERMINATION;
 

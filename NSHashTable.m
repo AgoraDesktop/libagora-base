@@ -251,10 +251,11 @@
 
 /* ---- the enumerator's half ---- */
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSHashTable *copy = [[[self class] alloc] initWithPointerFunctions:[self pointerFunctions]
-								  capacity:[self count]];
+	(void)zone;
+	NSHashTable *copy = [[[self class] allocWithZone:zone] initWithPointerFunctions:[self pointerFunctions]
+									    capacity:[self count]];
 	NSUInteger i;
 	NSUInteger slots = [_table slotCount];
 
@@ -529,10 +530,11 @@
 	return [self count] == [other count] && [self isSubsetOfHashTable:other];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	FNLegacyHashTable *copy = [[FNLegacyHashTable alloc] fnInitWithCallBacks:_callBacks
-								       capacity:[self count]];
+	(void)zone;
+	FNLegacyHashTable *copy = [[FNLegacyHashTable allocWithZone:zone] fnInitWithCallBacks:_callBacks
+									  capacity:[self count]];
 	NSUInteger i;
 
 	for (i = 0; i < _memberCount; i++) {
@@ -664,9 +666,17 @@ const NSUInteger NSHashTableZeroingWeakMemory = 1;
 
 NSHashTable *NSCreateHashTable(NSHashTableCallBacks callBacks, NSUInteger capacity)
 {
-	/* NO ZONE FORM, AND THE HEADER SAYS WHY: this library has no `NSZone` type, so this is a legacy table's only
-	 * creation door. */
-	return [[FNLegacyHashTable alloc] fnInitWithCallBacks:callBacks capacity:capacity];
+	return NSCreateHashTableWithZone(callBacks, capacity, NULL);
+}
+
+NSHashTable *NSCreateHashTableWithZone(NSHashTableCallBacks callBacks, NSUInteger capacity, NSZone *zone)
+{
+	return [[FNLegacyHashTable allocWithZone:zone] fnInitWithCallBacks:callBacks capacity:capacity];
+}
+
+NSHashTable *NSCopyHashTableWithZone(NSHashTable *table, NSZone *zone)
+{
+	return [table copyWithZone:zone];
 }
 
 void NSFreeHashTable(NSHashTable *table) { [table release]; }

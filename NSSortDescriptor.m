@@ -211,8 +211,9 @@ static NSString *const kDescriptorSelectorKey = @"NS.selector";
 	return order;
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable */
 }
 

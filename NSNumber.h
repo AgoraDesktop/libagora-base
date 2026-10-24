@@ -139,10 +139,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSComparisonResult)compare:(NSNumber *)other;
 
 /* Immutable, so every one of these returns self — Cocoa's behaviour. */
-- (id)copy;
-- (id)mutableCopy;
-- (id)copy;
-- (id)mutableCopy;
+- (id)copyWithZone:(nullable NSZone *)zone;
+- (id)mutableCopyWithZone:(nullable NSZone *)zone;
 
 NS_ASSUME_NONNULL_END
 

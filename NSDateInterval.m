@@ -159,8 +159,9 @@ static NSString *const kEndDateKey = @"NS.endDate";
 	[super dealloc];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable: the copy IS the receiver */
 }
 

@@ -94,3 +94,12 @@ add_executable(predicate predicate.m)
 target_link_libraries(predicate PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
 add_test(NAME predicate COMMAND predicate)
+
+# **ZONES AND THE COPYING PROTOCOL, MEASURED TOGETHER.** The zone API was removed once and
+# `-copyWithZone:` went with it; this suite pins the restored contract: zone names and identity,
+# zone memory from every allocator, an object reporting the zone it was allocated in, the raw-copy
+# primitive, and Cocoa's `-copy` -> `-copyWithZone:` delegation.
+add_executable(zones zones.m)
+target_link_libraries(zones PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME zones COMMAND zones)

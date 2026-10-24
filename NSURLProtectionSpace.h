@@ -52,8 +52,8 @@ extern NSString * const NSURLAuthenticationMethodServerTrust;
 
 /* NSCopying IS NOT DECORATION: a protection space is the KEY a credential store files under, and a
  * collection COPIES its keys - so a class that is a key without a copy implementation aborts the moment it
- * is used as one, which is exactly how this was found (a SIGABRT, not a subtle failure). The member is
- * `-copy` rather than Cocoa's `-copyWithZone:`, per this library's own copying deviation in NSObject.h. */
+ * is used as one, which is exactly how this was found (a SIGABRT, not a subtle failure). The copy is a value
+ * copy, so two protection spaces with the same description are interchangeable keys. */
 @interface NSURLProtectionSpace : NSObject <NSCopying>
 {
 	NSString *_host;

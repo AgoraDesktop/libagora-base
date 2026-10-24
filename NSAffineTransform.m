@@ -239,9 +239,10 @@ static NSAffineTransformStruct fn_concat(NSAffineTransformStruct left, NSAffineT
 	_matrix = transformStruct;
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSAffineTransform *copy = [[[self class] alloc] init];
+	(void)zone;
+	NSAffineTransform *copy = [[[self class] allocWithZone:zone] init];
 
 	[copy setTransformStruct:_matrix];
 	return copy;	/* MUTABLE, so the copy is a new object and the snapshot is real */

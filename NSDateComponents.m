@@ -284,11 +284,12 @@
 	    (long)(_second == NSDateComponentUndefined ? 0 : _second)];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	NSDateComponents *copy;
 
-	copy = [[NSDateComponents alloc] init];
+	copy = [[NSDateComponents allocWithZone:zone] init];
 	[copy setEra:_era];
 	[copy setYear:_year];
 	[copy setQuarter:_quarter];

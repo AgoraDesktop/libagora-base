@@ -150,16 +150,6 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 	return (found != nil);
 }
 
-/* AND THIS TREE HAS NO NSZone -- NSNumberFormatter.m records that decision -- so the parameter is typed
- * as the pointer Core Foundation actually sends (a NULL zone), which keeps the selector's encoding
- * consistent with the rest of this library instead of inventing a type it does not have. Cocoa's -copy
- * already returns +1, which is what a copy door owes. */
-- (id)copyWithZone:(void *)zone
-{
-	(void)zone;
-	return [self copy];
-}
-
 /* AND THE PRIVATE DOOR CORE FOUNDATION ASKS A DICTIONARY FOR. MEASURED, AND IT COST AN ABORT: setting
  * attributes on a Core Foundation attributed string calls CFAttributedStringSetAttributes, which
  * dispatches to the dictionary it was handed and sends -_cfMutableCopy -- so a Foundation dictionary
@@ -181,16 +171,16 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 	return &_mutations;
 }
 
-/* THE DOOR IS `+alloc` (§C.3 item 1), AND THERE IS NO `+allocWithZone:` IN THIS LIBRARY. A concrete class
- * INHERITS this method, and `[super alloc]` in a class method starts the lookup at NSDictionary's
- * superclass with the receiver still being the class that was asked - so the routing happens exactly ONCE,
- * at the front, and a concrete class asking for an instance gets one. */
-+ (id)alloc
+/* THE DOOR IS `+allocWithZone:` (§C.3 item 1). A concrete class INHERITS this method, and
+ * `[super allocWithZone:zone]` in a class method starts the lookup at the public class's superclass with the
+ * receiver still being the class that was asked - so the routing happens exactly ONCE, at the front, and a
+ * concrete class asking for an instance gets one in the zone it asked for. */
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSDictionary class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGDictionaryItems alloc];
+	return [AGDictionaryItems allocWithZone:zone];
 }
 
 + (NSDictionary *)dictionary
@@ -846,14 +836,16 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 	return [NSDictionary class];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable */
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableDictionary alloc] initAsCopyOf:self];
+	(void)zone;
+	return [[NSMutableDictionary allocWithZone:zone] initAsCopyOf:self];
 }
 
 - (id __unsafe_unretained *)keySnapshot
@@ -1217,12 +1209,12 @@ static void fn_append_strings_escaped(NSMutableString *out, NSString *s)
 /* THE SAME DOOR (§C.3 item 1) - it is what makes a mutable constructor answer a mutable concrete class -
  * and the mutable front answers ITSELF to an archiver, which is the bullet that keeps the private names
  * out of every archive (§C.4). */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSMutableDictionary class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGDictionaryMutable alloc];
+	return [AGDictionaryMutable allocWithZone:zone];
 }
 
 - (Class)classForCoder
@@ -1329,11 +1321,12 @@ static void fn_append_strings_escaped(NSMutableString *out, NSString *s)
 	}
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	/* A snapshot, and an IMMUTABLE one: the point of copying a mutable
 	 * dictionary is to stop it changing. */
-	return [[NSDictionary alloc] initAsCopyOf:self];
+	return [[NSDictionary allocWithZone:zone] initAsCopyOf:self];
 }
 
 @end

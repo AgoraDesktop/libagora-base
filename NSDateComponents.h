@@ -166,7 +166,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)description;
 
 /* A mutable bag copies by value — the fields, not a shared reference. */
-- (id)copy;
+- (id)copyWithZone:(nullable NSZone *)zone;
 
 @end
 

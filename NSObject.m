@@ -26,6 +26,8 @@
 #import <Foundation/NSInvocation.h>	/* stage F: what forwarding is handed */
 #include <objc/objc-arc.h>
 #import "FNObjectDeath.h"	/* §63.21: the identity-table cleanup seam */
+#import <Foundation/NSZone.h>	/* the allocator handle and its C family */
+#include "FNZone.h"		/* the object/zone association */
 
 /*
  * The runtime's ownership entry points. The reference count is kept in a word
@@ -45,13 +47,9 @@ FNObjectDeathHook fn_object_death_hook = NULL;
 
 + (id)alloc
 {
-	/* THE PRIMITIVE, AND THE SINGLETON DOOR (2026-09-18). Cocoa makes +allocWithZone: the override
-	 * point and +alloc its caller; +allocWithZone: takes an `NSZone` and zones are 32-bit API this
-	 * system has none of, so THE DOOR MOVED TO +alloc — override THIS to answer a shared instance.
-	 * Measured both ways, which is why the direction matters: when +alloc merely called an override
-	 * that no longer exists, a singleton answered a freshly allocated object instead of itself
-	 * ([[NSNull alloc] init] was not +null). */
-	return class_createInstance(self, 0);
+	/* THE CONVENIENCE, AND THE DEFAULT ZONE. Cocoa's override point is +allocWithZone:, and this
+	 * method exists so `[[Foo alloc] init]` keeps working for every class that does not override it. */
+	return [self allocWithZone:NSDefaultMallocZone()];
 }
 
 + (id)new
@@ -59,17 +57,13 @@ FNObjectDeathHook fn_object_death_hook = NULL;
 	return [[self alloc] init];
 }
 
-+ (id)allocWithZone:(struct _NSZone *)zone
++ (id)allocWithZone:(NSZone *)zone
 {
-	/* THE COMPATIBILITY DOOR (2026-10-17, user decision). Zones do not exist on this runtime, but
-	 * `+allocWithZone:` is the selector the Objective-C *allocator* sends: libobjc2's
-	 * objc_allocWithZone() reaches it, and Swift's `__allocating_init` (every `T()` on an imported
-	 * class) goes through that. Without it, `NSObject()` raises NSInvalidArgumentException.
-	 * Routing it through +alloc leaves the singleton door exactly where it is: a subclass that
-	 * overrides +alloc still answers its shared instance (NSNull does). Same shape as NSProxy's
-	 * deprecated door.  The parameter type matches the runtime's selector encoding. */
-	(void)zone;
-	return [self alloc];
+	/* THE PRIMITIVE EVERY ALLOCATION REACHES. The runtime owns one heap, so the memory comes from
+	 * class_createInstance; NSAllocateObject records the zone against the object, which is what makes
+	 * -zone and NSZoneFromPointer answer honestly for a custom zone. A singleton or a class cluster
+	 * overrides THIS method, exactly as it does on Cocoa. */
+	return NSAllocateObject(self, 0, zone);
 }
 
 - (id)init
@@ -145,6 +139,7 @@ FNObjectDeathHook fn_object_death_hook = NULL;
 	if (fn_object_death_hook != NULL) {
 		fn_object_death_hook(self);
 	}
+	fn_zone_forget_pointer(self);
 	object_dispose(self);
 }
 
@@ -238,14 +233,9 @@ FNObjectDeathHook fn_object_death_hook = NULL;
 
 
 /*
- * THE COPYING FAMILY (the public-API audit, A) — AND THE OVERRIDE POINT MOVED
- * HERE (2026-09-18). `-copy` and `-mutableCopy` used to delegate to the ZONE
- * methods, in Cocoa's shape. Those took an `NSZone`, and zones are 32-bit API
- * that this 64-bit system has none of, so the zone-taking methods are gone:
- * **the ENTRY POINT is now the OVERRIDE POINT** — a class that can be copied
- * implements `-copy` (and `-mutableCopy`), and the default here is a LOUD
- * failure. The cost is a deliberate deviation from Cocoa's NSCopying, recorded
- * in docs/design/foundation-plan.md.
+ * THE COPYING FAMILY, IN COCOA'S SHAPE. `-copy` is the convenience and
+ * `-copyWithZone:` is the override point; a class that can be copied implements the
+ * zone door, and the default on the root class is a LOUD failure.
  *
  * The loudness is the fix, not the boilerplate: before this existed, sending
  * -copy to a class that did not implement it was answered NIL by the runtime's
@@ -256,14 +246,43 @@ FNObjectDeathHook fn_object_death_hook = NULL;
  */
 - (id)copy
 {
+	return [self copyWithZone:NULL];
+}
+
+- (id)copyWithZone:(NSZone *)zone
+{
+	(void)zone;
 	[self doesNotRecognizeSelector:_cmd];
 	return nil;		/* unreachable: doesNotRecognizeSelector does not return */
 }
 
 - (id)mutableCopy
 {
+	return [self mutableCopyWithZone:NULL];
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone
+{
+	(void)zone;
 	[self doesNotRecognizeSelector:_cmd];
 	return nil;
+}
+
+/*
+ * THE ZONE DOORS. An object's zone is its allocation identity, not its address: the runtime has one heap,
+ * and NSAllocateObject records a custom zone against the pointer. An unrecorded object is in the default
+ * zone, which is the answer for every object the runtime allocated normally.
+ */
+- (NSZone *)zone
+{
+	NSZone *zone = NSZoneFromPointer(self);
+
+	return (zone != NULL) ? zone : NSDefaultMallocZone();
+}
+
+- (void)setZone:(NSZone *)zone
+{
+	fn_zone_assign_pointer(self, zone);
 }
 
 - (void)doesNotRecognizeSelector:(SEL)aSelector
@@ -409,10 +428,9 @@ static NSMethodSignature *fn_signature_for(id receiver, SEL aSelector)
  * THE REST OF THE PUBLIC ROOT-CLASS API (the hard rule: a class passes only when
  * its public API is complete).
  *
- *   (no zone API)             NO ZONES AT ALL (2026-09-18). Everything that TOOK an
- *                             `NSZone` is removed, `-zone` (which RETURNED one) is
- *                             removed, and `NSZone` itself is no longer declared:
- *                             zones are 32-bit API and this system is 64-bit only.
+ *   -zone / -setZone:         the object's allocation identity. The default zone is
+ *                             the answer for ordinary allocations; NSAllocateObject
+ *                             records a custom one.
  *   -isProxy                  the root class is not a proxy.
  *   -debugDescription         the same text as -description.
  *   -methodForSelector:       the runtime's own answer.
@@ -968,6 +986,46 @@ NSRange NSRangeFromString(NSString *aString)
 		return NSMakeRange((NSUInteger)location, (NSUInteger)length);
 	}
 	return NSMakeRange(0, 0);
+}
+
+/* THE OBJECT-ALLOCATION FAMILY. NSAllocateObject is the primitive +allocWithZone: sends; the runtime creates
+ * the instance (so its retain count and C++ construction are the runtime's), and the zone is recorded against
+ * the resulting pointer. NSCopyObject is the raw byte copy: instance variables only, a fresh retain count of
+ * one, and the extra bytes zeroed by the allocator. It deliberately does not copy the isa or the count word. */
+id NSAllocateObject(Class aClass, NSUInteger extraBytes, NSZone *zone)
+{
+	id object = class_createInstance(aClass, (size_t)extraBytes);
+
+	if (object != nil && zone != NULL) {
+		fn_zone_assign_pointer(object, zone);
+	}
+	return object;
+}
+
+void NSDeallocateObject(id object)
+{
+	if (object == nil) {
+		return;
+	}
+	fn_zone_forget_pointer(object);
+	object_dispose(object);
+}
+
+id NSCopyObject(id object, NSUInteger extraBytes, NSZone *zone)
+{
+	Class cls = object_getClass(object);
+	NSUInteger size = class_getInstanceSize(cls);
+	id copy = NSAllocateObject(cls, extraBytes, zone);
+
+	if (copy != nil) {
+		memcpy((char *)copy + sizeof(Class), (char *)object + sizeof(Class), size - sizeof(Class));
+	}
+	return copy;
+}
+
+BOOL NSShouldRetainWithZone(id anObject, NSZone *requestedZone)
+{
+	return (requestedZone == NULL) || ([anObject zone] != requestedZone);
 }
 
 /* THE EXTRA RETAIN COUNT, IN TERMS OF THE ONE COUNT THIS RUNTIME HAS. Apple's runtime keeps a count BESIDE the

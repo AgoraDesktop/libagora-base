@@ -42,6 +42,7 @@
 #define FOUNDATION_FOUNDATION_H
 
 #import <Foundation/NSObjCRuntime.h>
+#import <Foundation/NSZone.h>
 #import <Foundation/NSBundle.h>
 #import <Foundation/NSByteOrder.h>
 #import <Foundation/NSUUID.h>

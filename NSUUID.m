@@ -142,8 +142,9 @@
 	return (NSUInteger)hash;
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — an immutable value: the copy IS the receiver, as Cocoa's own rule has it */
 }
 

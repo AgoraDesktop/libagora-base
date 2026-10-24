@@ -393,14 +393,16 @@ static NSString *const kRangesKey = @"NS.ranges";
 					 (unsigned long)fn_ranges_from_bitmap([self bitmapRepresentation], NULL)];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable */
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	NSMutableCharacterSet *copy = [[NSMutableCharacterSet alloc] init];
+	(void)zone;
+	NSMutableCharacterSet *copy = [[NSMutableCharacterSet allocWithZone:zone] init];
 	unsigned long i;
 
 	for (i = 0; i < _rangeCount; i++) {

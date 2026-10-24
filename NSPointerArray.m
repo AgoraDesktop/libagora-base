@@ -267,10 +267,11 @@
 	return produced;
 }
 
-/* `-copy`, not `-copyWithZone:`: see NSPointerFunctions.m and NSObject.h. */
-- (id)copy
+/* COCOA'S COPY DOOR: the copy is allocated in the caller's zone and keeps the pointer functions. */
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSPointerArray *copy = [[[self class] alloc] initWithPointerFunctions:_functions];
+	(void)zone;
+	NSPointerArray *copy = [[[self class] allocWithZone:zone] initWithPointerFunctions:_functions];
 	NSUInteger i;
 
 	[copy setCount:_count];

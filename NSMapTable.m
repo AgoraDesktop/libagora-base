@@ -213,9 +213,10 @@
 	return values;
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSMapTable *copy = [[[self class] alloc]
+	(void)zone;
+	NSMapTable *copy = [[[self class] allocWithZone:zone]
 		initWithKeyPointerFunctions:[_table keyFunctions]
 		     valuePointerFunctions:[_table valueFunctions]
 				  capacity:[_table count]];
@@ -499,11 +500,12 @@
 
 /* A COPY CARRIES THE CALL-BACKS AND ITS OWN PAIRS, which is what `NSCopyMapTableWithZone` needs and what a copy of
  * a legacy table has to be: a different table with the same ownership rules. */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	FNLegacyMapTable *copy = [[FNLegacyMapTable alloc] fnInitWithKeyCallBacks:_keyCallBacks
-								  valueCallBacks:_valueCallBacks
-								       capacity:_legacyCount];
+	(void)zone;
+	FNLegacyMapTable *copy = [[FNLegacyMapTable allocWithZone:zone] fnInitWithKeyCallBacks:_keyCallBacks
+									     valueCallBacks:_valueCallBacks
+										  capacity:_legacyCount];
 	NSUInteger i;
 
 	for (i = 0; i < _legacyCount; i++) {
@@ -664,11 +666,22 @@ NSMapTable *NSCreateMapTable(NSMapTableKeyCallBacks keyCallBacks,
 			     NSMapTableValueCallBacks valueCallBacks,
 			     NSUInteger capacity)
 {
-	/* NO ZONE FORM, AND THE HEADER SAYS WHY: this library has no `NSZone` type, so the zone-taking variant is not
-	 * declared and this is a legacy table's only creation door. */
-	return [[FNLegacyMapTable alloc] fnInitWithKeyCallBacks:keyCallBacks
-						valueCallBacks:valueCallBacks
-						     capacity:capacity];
+	return NSCreateMapTableWithZone(keyCallBacks, valueCallBacks, capacity, NULL);
+}
+
+NSMapTable *NSCreateMapTableWithZone(NSMapTableKeyCallBacks keyCallBacks,
+				     NSMapTableValueCallBacks valueCallBacks,
+				     NSUInteger capacity,
+				     NSZone *zone)
+{
+	return [[FNLegacyMapTable allocWithZone:zone] fnInitWithKeyCallBacks:keyCallBacks
+						     valueCallBacks:valueCallBacks
+							  capacity:capacity];
+}
+
+NSMapTable *NSCopyMapTableWithZone(NSMapTable *table, NSZone *zone)
+{
+	return [table copyWithZone:zone];
 }
 
 void NSFreeMapTable(NSMapTable *table) { [table release]; }

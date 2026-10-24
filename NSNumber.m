@@ -237,12 +237,12 @@ static void __attribute__((constructor)) agora_register_cf_boolean(void)
  * NSNumber's superclass with the receiver still being the class that was asked - so the routing happens
  * exactly ONCE, at the front, and every constructor above re-routes from AGNumberItems to the class its
  * TYPE needs. */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSNumber class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGNumberItems alloc];
+	return [AGNumberItems allocWithZone:zone];
 }
 
 /*
@@ -524,13 +524,15 @@ FN_NUMBER_GET(double, double)
  * table copies its keys. Without it the runtime answered nil for the
  * unimplemented -copy and the table filed a phantom entry (the audit's fix A).
  */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) */
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) */
 }
 

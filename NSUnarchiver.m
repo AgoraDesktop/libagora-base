@@ -271,7 +271,7 @@
 			[NSException raise:NSInconsistentArchiveException
 				    format:@"%@ is in the archive but does not conform to NSCoding", name];
 		}
-		object = [cls alloc];
+		object = [cls allocWithZone:[self objectZone]];
 		index = [_objects count];
 		[_objects addObject:object];	/* registered BEFORE the reader: a self-reference resolves to it */
 		decoded = [object initWithCoder:self];
@@ -450,6 +450,7 @@
 		_objects = [[NSMutableArray alloc] init];
 		_replaced = [[NSMutableArray alloc] init];
 		_targets = [[NSMutableArray alloc] init];
+		_objectZone = NSDefaultMallocZone();
 		_pos = 0;
 		/* AN ARCHIVE THAT IS NOT OURS IS A nil, NOT AN EXCEPTION: "this is not one of my archives" is a
 		 * fact a caller can act on, and it is also how a KEYED archive is refused (Apple's own rule). */
@@ -471,6 +472,16 @@
 	[_replaced release];
 	[_targets release];
 	[super dealloc];
+}
+
+- (NSZone *)objectZone
+{
+	return (_objectZone != NULL) ? _objectZone : NSDefaultMallocZone();
+}
+
+- (void)setObjectZone:(NSZone *)zone
+{
+	_objectZone = (zone != NULL) ? zone : NSDefaultMallocZone();
 }
 
 - (BOOL)isAtEnd { return _pos >= [_data length]; }

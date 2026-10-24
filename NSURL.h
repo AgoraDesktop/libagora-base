@@ -212,7 +212,7 @@ typedef NSString *NSURLFileResourceType;
 - (NSString *)description;
 
 /* Immutable, so copying returns self. */
-- (id)copy;
+- (id)copyWithZone:(nullable NSZone *)zone;
 
 /* ---- ACCESSING RESOURCE VALUES (W8 slice 6a) ----------------------------------------------------
  *

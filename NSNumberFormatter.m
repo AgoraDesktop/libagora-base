@@ -1173,14 +1173,12 @@ static NSString *fn_nf_utf8_string(const UChar *text, int32_t length)
 
 /* --- identity ------------------------------------------------------------- */
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	/* `alloc` rather than `allocWithZone:`: this library has ONE allocator, and the zone-taking
-	 * door is the stub NSObject documents ("a zone is accepted, ignored and documented"). Measured
-	 * — with `allocWithZone:NULL` the copy came back with NO underlying formatter, which the probe
-	 * caught, so the copy goes through the door that is actually implemented, and the zone
-	 * argument is ignored exactly as the class's own documentation says it is. */
-	NSNumberFormatter *copy = [[[self class] alloc] init];
+	(void)zone;
+	/* The copy is allocated in the caller's zone; the formatter's own settings are copied below through
+	 * the accessors, so a setting added later cannot be left behind silently. */
+	NSNumberFormatter *copy = [[[self class] allocWithZone:zone] init];
 
 	if (copy == nil) {
 		return nil;
@@ -1338,13 +1336,10 @@ static int32_t fn_icu_rounding_for_ns_rounding(NSRoundingMode mode)
 {
 	[_roundingBehavior release];
 	/* ⚠ `-retain` AND NOT `-copy`, WITH THE REASON MEASURED (§63.80): Apple declares this property `copy`, and
-	 * NSDecimalNumberHandler conforms to `NSDecimalNumberBehaviors` and `NSCoding` — **NOT `NSCopying`** — so
-	 * `[handler copy]` found no `-copyWithZone:` and raised `doesNotRecognizeSelector:`, a SIGABRT the probe's
-	 * per-step markers put exactly here. AND THE HANDLER IS IMMUTABLE (its mode, scale and four raise flags are
-	 * set once at construction and have no setters), **SO A COPY OF IT IS ITSELF AND `-retain` IS THE SAME
-	 * CONTRACT**. Implementing `-copyWithZone:` here instead would mean spelling `NSZone`, a type THIS TREE
-	 * ABOLISHED BY RECORDED DECISION (NSObjCRuntime.h: "NO ZONES AT ALL"), which is a larger thing to undo than
-	 * the one word it would buy. */
+	 * NSDecimalNumberHandler conforms to `NSDecimalNumberBehaviors` and `NSCoding` — NOT `NSCopying` — so
+	 * `[handler copy]` finds no `-copyWithZone:` and raises `doesNotRecognizeSelector:`. The handler is
+	 * immutable (its mode, scale and four raise flags are set once at construction and have no setters), so a
+	 * copy of it is itself and `-retain` is the same contract. */
 	_roundingBehavior = [handler retain];
 	if (handler != nil && _formatter != NULL) {
 		unum_setAttribute((UNumberFormat *)_formatter, UNUM_ROUNDING_MODE,

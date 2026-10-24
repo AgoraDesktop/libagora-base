@@ -117,9 +117,10 @@
 	_phoneticRepresentation = copy;
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSPersonNameComponents *copy = [[NSPersonNameComponents alloc] init];
+	(void)zone;
+	NSPersonNameComponents *copy = [[NSPersonNameComponents allocWithZone:zone] init];
 
 	/* Through the setters, so the copy is deep in exactly the way the setters are: the six strings
 	 * and the nested representation are all copied rather than shared. */

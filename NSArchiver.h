@@ -19,9 +19,6 @@
  * internal and documented, because a format nobody can read is a format nobody can test.
  *
  * WHAT IS ABSENT, NAMED AND WITH ITS GROUND:
- *   * `-objectZone`/`-setObjectZone:` — NOT DECLARED, because THIS LIBRARY HAS NO `NSZone` AT ALL
- *     (NSObjCRuntime.h records the user-driven removal of 2026-09-18: zones are 32-bit-era API). A door
- *     cannot be declared over a type the library does not have, so the absence is the honest form.
  *   * class-name translation (`-encodeClassName:intoClassName:` and its three siblings) — NOT DECLARED,
  *     which is the SAME REFUSAL `NSKeyedArchiver.h` already records for its own equivalent
  *     (`-setClassName:forClass:`). Two archivers in one library that both say no to one feature is a
@@ -50,6 +47,7 @@ NS_ASSUME_NONNULL_BEGIN
 	id _replaced;		/* sources, in the order they were registered */
 	id _targets;		/* their replacements, index for index */
 	BOOL _rootEncoded;
+	NSZone *_objectZone;	/* the zone substituted objects are allocated in; default when unset */
 }
 
 /* ONE ROOT, AND THE DATA COMES BACK. Both write a header before any value, so a reader can tell this
@@ -73,6 +71,11 @@ NS_ASSUME_NONNULL_BEGIN
  * means the object is written as nil, which is a value here. */
 - (void)replaceObject:(nullable id)object withObject:(nullable id)newObject;
 
+/* THE ZONE OBJECTS ARE DECODED INTO. Apple's classic archiver pair carries it; a NULL answer means the
+ * default zone, and setting NULL restores that. */
+- (NSZone *)objectZone;
+- (void)setObjectZone:(nullable NSZone *)zone;
+
 @end
 
 @interface NSUnarchiver : NSCoder
@@ -83,6 +86,7 @@ NS_ASSUME_NONNULL_BEGIN
 	id _objects;		/* the object table, built as values are decoded */
 	id _replaced;		/* substitution sources */
 	id _targets;		/* their replacements */
+	NSZone *_objectZone;	/* the zone decoded objects are allocated in; default when unset */
 }
 
 /* AN INVALID ARCHIVE ANSWERS nil RATHER THAN RAISING, because "this is not an archive of mine" is a value
@@ -100,6 +104,9 @@ NS_ASSUME_NONNULL_BEGIN
  * SIDE** — inherent rather than chosen: outbound the caller holds the instance it substitutes, inbound the
  * object does not exist until it has been decoded, so a caller can only name what it is equal to. */
 - (void)replaceObject:(nullable id)object withObject:(nullable id)newObject;
+
+- (NSZone *)objectZone;
+- (void)setObjectZone:(nullable NSZone *)zone;
 
 @end
 

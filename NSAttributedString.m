@@ -1284,16 +1284,18 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 
 /* ---- COPYING ---------------------------------------------------------------------------------------- */
 
-/* THE ZONE API IS REMOVED IN THIS TREE BY DECISION (NSObject.h states it: NSCopying's members here are
- * -copy and -mutableCopy), so these are the two doors a caller uses rather than the zone-taking forms. */
-- (id)copy
+/* COCOA'S COPY DOORS: the copy is allocated in the caller's zone, so an attributed string can be copied into
+ * the zone the caller is building. */
+- (id)copyWithZone:(NSZone *)zone
 {
-	return [[NSAttributedString alloc] initWithAttributedString:self];
+	(void)zone;
+	return [[NSAttributedString allocWithZone:zone] initWithAttributedString:self];
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableAttributedString alloc] initWithAttributedString:self];
+	(void)zone;
+	return [[NSMutableAttributedString allocWithZone:zone] initWithAttributedString:self];
 }
 
 /* ---- CODING (W10 slice 3) ---------------------------------------------------------------------------

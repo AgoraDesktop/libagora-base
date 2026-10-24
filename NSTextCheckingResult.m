@@ -422,8 +422,9 @@ static BOOL fn_equal(id a, id b)
  * keeps (§62) requires: `[self retain]` and self. The FIRST version of this class answered a NEW ranges-only
  * object, which was invisible while ranges were all it had and would have dropped every payload the moment
  * this file grew them. */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];
 }
 

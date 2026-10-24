@@ -78,8 +78,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable NSPersonNameComponents *)phoneticRepresentation;
 - (void)setPhoneticRepresentation:(nullable NSPersonNameComponents *)value;
 
-/* `-copy` (not `-copyWithZone:`): §11.6.1 D1, the copying model this library ships. */
-- (id)copy;
+/* Cocoa's copy door: the copy is allocated in the caller's zone. */
+- (id)copyWithZone:(nullable NSZone *)zone;
 
 @end
 

@@ -336,6 +336,7 @@ static NSUInteger fn_index_of(NSArray *table, id object)
 		_objects = [[NSMutableArray alloc] init];
 		_replaced = [[NSMutableArray alloc] init];
 		_targets = [[NSMutableArray alloc] init];
+		_objectZone = NSDefaultMallocZone();
 		memcpy(header, fn_archive_magic, 4);
 		header[4] = FNAR_VERSION;
 		[_data appendBytes:header length:5];
@@ -350,6 +351,16 @@ static NSUInteger fn_index_of(NSArray *table, id object)
 	[_replaced release];
 	[_targets release];
 	[super dealloc];
+}
+
+- (NSZone *)objectZone
+{
+	return (_objectZone != NULL) ? _objectZone : NSDefaultMallocZone();
+}
+
+- (void)setObjectZone:(NSZone *)zone
+{
+	_objectZone = (zone != NULL) ? zone : NSDefaultMallocZone();
 }
 
 - (void)encodeRootObject:(id)rootObject

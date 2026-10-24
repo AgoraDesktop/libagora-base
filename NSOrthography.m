@@ -226,8 +226,9 @@ static NSString *fn_script_for_language(NSString *language)
 	return [NSString stringWithFormat:@"<NSOrthography %@ %@>", _dominantScript, _languageMap];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1 and self: an orthography has no mutable state (§62's rule) */
 }
 

@@ -151,10 +151,11 @@ NSString * const NSURLAuthenticationMethodServerTrust = @"NSURLAuthenticationMet
 }
 
 /* THE COPY IS A VALUE COPY, which is what makes a protection space usable as a dictionary key: the copy
- * carries the same description and therefore the same -isEqual: and -hash. The signature is `-copy` because
- * that is this library's copy entry point (NSObject.h removed the zone-taking methods deliberately). */
-- (id)copy
+ * carries the same description and therefore the same -isEqual: and -hash. A protection space is immutable,
+ * so the copy is itself. */
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];
 }
 

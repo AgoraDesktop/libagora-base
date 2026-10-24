@@ -60,7 +60,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /* Immutable to the outside (nothing here can change it) but COPIED rather than shared: the type's facts
  * are SETTABLE through the bridge Apple documents, so a copy must be its own object. */
-- (id)copy;
+- (id)copyWithZone:(nullable NSZone *)zone;
 
 @end
 

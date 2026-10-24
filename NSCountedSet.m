@@ -34,12 +34,12 @@
 
 /* THE DOOR (§C.3 item 1), routed exactly once, and the counted class answers ITSELF to an archiver
  * (§C.3 item 4). */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSCountedSet class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGCountedSet alloc];
+	return [AGCountedSet allocWithZone:zone];
 }
 
 - (Class)classForCoder

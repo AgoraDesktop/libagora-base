@@ -18,10 +18,10 @@
  * `-methodSignatureForSelector:` answers with an exception rather than a guess.
  *
  * THE TWO DEPRECATED DOORS SHIP (§63.205, user decision `dec-1a00739ebd0bdc05` — a deprecated API is OWED
- * work, not a strike, so §11.5 governs the CG/AppKit duplication only). `+allocWithZone:` takes a zone this
- * runtime has none of (there is no NSZone here), so it is `+alloc` with the reading stated; `-finalize`
- * belongs to the collector, which does not exist here either, so it is defined for compatibility — source
- * implementing it compiles and links — and is never called.
+ * work, not a strike, so §11.5 governs the CG/AppKit duplication only). `+allocWithZone:` is a real root-class
+ * allocation and records the requested zone on the instance; `-finalize` belongs to the collector, which does
+ * not exist here, so it is defined for compatibility — source implementing it compiles and links — and is
+ * never called.
  *
  * WHAT IS NOT, named: `-allowsWeakReference`/`-retainWeakReference` (marked UNAVAILABLE in the modern SDK).
  * Unavailable is not deprecated: Apple removed those two doors with the collector, so they are a §11-style
@@ -55,7 +55,9 @@ __attribute__((objc_root_class))
 @property (readonly, copy) NSString *debugDescription;
 
 
-+ (instancetype)allocWithZone:(nullable void *)zone;
++ (instancetype)allocWithZone:(nullable NSZone *)zone;
+- (NSZone *)zone;
+- (void)setZone:(nullable NSZone *)zone;
 - (void)finalize;
 @end
 

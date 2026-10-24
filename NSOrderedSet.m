@@ -48,12 +48,12 @@
 @implementation NSOrderedSet
 
 /* THE DOOR (§C.3 item 1), routed exactly once at the front. */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSOrderedSet class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGOrderedSetItems alloc];
+	return [AGOrderedSetItems allocWithZone:zone];
 }
 
 /* §C.3 item 4: the private classes name the PUBLIC class. NSMutableOrderedSet answers ITSELF below, being a
@@ -741,14 +741,16 @@ static NSArray *fn_from_varargs(id firstObject, va_list args)
 	return out;
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) */
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableOrderedSet alloc] initWithOrderedSet:self];
+	(void)zone;
+	return [[NSMutableOrderedSet allocWithZone:zone] initWithOrderedSet:self];
 }
 
 - (unsigned long)countByEnumeratingWithState:(NSFastEnumerationState *)state
@@ -781,12 +783,12 @@ static NSArray *fn_from_varargs(id firstObject, va_list args)
 
 @implementation NSMutableOrderedSet
 
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSMutableOrderedSet class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGOrderedSetMutable alloc];
+	return [AGOrderedSetMutable allocWithZone:zone];
 }
 
 - (Class)classForCoder
@@ -1322,14 +1324,16 @@ static NSArray *fn_from_varargs(id firstObject, va_list args)
 
 /* A MUTABLE ORDERED SET COPIES BY VALUE, and a copy of one is the immutable snapshot the house's
  * rule asks for. */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	return [[NSOrderedSet alloc] initWithArray:[self array]];
+	(void)zone;
+	return [[NSOrderedSet allocWithZone:zone] initWithArray:[self array]];
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableOrderedSet alloc] initWithArray:[self array]];
+	(void)zone;
+	return [[NSMutableOrderedSet allocWithZone:zone] initWithArray:[self array]];
 }
 
 @end

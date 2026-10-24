@@ -321,15 +321,17 @@ static BOOL fn_object_equal(NSObject *a, NSObject *b)
 	[super dealloc];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	/* IMMUTABLE, so the copy IS the receiver (plan §15.2: `copy` is an OWNED family). */
 	return [self retain];
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableURLRequest alloc] fnInitWithRequest:self];
+	(void)zone;
+	return [[NSMutableURLRequest allocWithZone:zone] fnInitWithRequest:self];
 }
 
 
@@ -494,11 +496,12 @@ static BOOL fn_object_equal(NSObject *a, NSObject *b)
 	}
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	/* AN IMMUTABLE SNAPSHOT, which is Cocoa's rule: the thing a transport is handed cannot be mutated by
 	 * the caller that handed it over. */
-	return [[NSURLRequest alloc] fnInitWithRequest:self];
+	return [[NSURLRequest allocWithZone:zone] fnInitWithRequest:self];
 }
 
 @end

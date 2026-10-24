@@ -315,9 +315,10 @@ static int32_t fn_iso_zone(NSTimeZone *zone, UChar *dest, int32_t cap)
 	return [formatter stringFromDate:date];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSISO8601DateFormatter *copy = [[[self class] alloc] init];
+	(void)zone;
+	NSISO8601DateFormatter *copy = [[[self class] allocWithZone:zone] init];
 
 	[copy setFormatOptions:_formatOptions];
 	[copy setTimeZone:_timeZone];

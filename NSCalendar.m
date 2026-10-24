@@ -839,11 +839,12 @@ NSCalendarIdentifier const NSCalendarIdentifierVikram = @"vikram";
 }
 
 /* Mutable (its time zone, locale and week rules), so a copy is a real one. */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	NSCalendar *copy;
 
-	copy = [[NSCalendar alloc] initWithCalendarIdentifier:[self calendarIdentifier]];
+	copy = [[NSCalendar allocWithZone:zone] initWithCalendarIdentifier:[self calendarIdentifier]];
 	[copy setTimeZone:[self timeZone]];
 	if ([self locale] != nil) {
 		[copy setLocale:[self locale]];

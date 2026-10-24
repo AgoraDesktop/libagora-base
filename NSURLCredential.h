@@ -39,8 +39,7 @@ typedef NS_ENUM(NSUInteger, NSURLCredentialPersistence) {
 	NSURLCredentialPersistencePermanent = 2
 };
 
-/* NSCopying, because a credential is handed around and stored; the member is -copy per this library's own
- * copying convention (NSObject.h), not Cocoa's zone-taking form. */
+/* NSCopying, because a credential is handed around and stored; Cocoa's copy door is implemented. */
 @interface NSURLCredential : NSObject <NSCopying>
 {
 	NSString *_user;

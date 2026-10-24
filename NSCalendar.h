@@ -406,7 +406,7 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 
 /* A calendar is MUTABLE (its time zone and week rules), so a copy is a real one
  * rather than `self`. */
-- (id)copy;
+- (id)copyWithZone:(nullable NSZone *)zone;
 
 
 /* §63.207: THE NEXT-DATE FAMILY. One algorithm serves all four: build a candidate whose DATE parts come from the

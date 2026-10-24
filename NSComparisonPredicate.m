@@ -172,9 +172,10 @@ static BOOL FNMatchesRegularExpression(NSString *subject, NSString *pattern, BOO
 - (SEL)customSelector { return _customSelector; }
 - (NSUInteger)options { return _options; }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSComparisonPredicate *p = [[NSComparisonPredicate alloc]
+	(void)zone;
+	NSComparisonPredicate *p = [[NSComparisonPredicate allocWithZone:zone]
 	                            initWithLeftExpression:_lhs rightExpression:_rhs
 	                                          modifier:_modifier type:_operatorType options:_options];
 	p->_customSelector = _customSelector;

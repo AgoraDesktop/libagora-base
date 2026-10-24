@@ -101,19 +101,19 @@ static id *array_grow(id *items, unsigned long *capacity, unsigned long needed)
 
 @implementation NSArray
 
-/* THE DOOR IS `+alloc` (§C.3 item 1), AND THAT IS NOT A CHOICE HERE: this library has no `+allocWithZone:`
- * (NSObject.h says so and says why), so `+alloc` is the one place a cluster can substitute a class.
+/* THE DOOR IS `+allocWithZone:` (§C.3 item 1), Cocoa's allocation point, so a cluster can substitute a
+ * class and keep the caller's zone.
  *
  * THE `self != [NSArray class]` TEST IS NOT A SMUGGLE. A concrete class INHERITS this method, and
- * `[super alloc]` in a class method starts the lookup at NSArray's superclass with the receiver still
- * being the class that was asked - so the routing happens exactly ONCE, at the front, and a concrete
+ * `[super allocWithZone:zone]` in a class method starts the lookup at NSArray's superclass with the receiver
+ * still being the class that was asked - so the routing happens exactly ONCE, at the front, and a concrete
  * class asking for an instance gets one. */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSArray class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGArrayItems alloc];
+	return [AGArrayItems allocWithZone:zone];
 }
 
 + (NSArray *)array
@@ -386,10 +386,9 @@ static NSArray *array_from_varargs(Class cls, id firstObject, va_list args)
 		id element = [array objectAtIndex:i];
 
 		if (flag) {
-			/* REASONED (not measured): Apple's page says copyItems:YES sends -copyWithZone:. This
-			 * tree REMOVED the zone API and its NSCopying member is -copy, whose entry point IS the
-			 * override point (NSObject.h), so -copy is the faithful equivalent here. An element that
-			 * cannot be copied hits NSObject's loud-failure default rather than answering nil. */
+			/* Apple's page says copyItems:YES sends -copyWithZone:; the public door has no zone, so
+			 * -copy supplies the NULL zone Cocoa documents. An element that cannot be copied hits
+			 * NSObject's loud-failure default rather than answering nil. */
 			id copied = [element copy];
 
 			[copy addObject:copied];
@@ -861,18 +860,19 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 	return [NSArray class];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable */
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableArray alloc] initWithArray:self];
+	(void)zone;
+	return [[NSMutableArray allocWithZone:zone] initWithArray:self];
 }
 
-/* NSCopying keeps Cocoa's SHAPE with the zone accepted and ignored (the plan's
- * §7 decision): there are no zones, but the selector stays for compatibility. */
+/* NSCopying keeps Cocoa's shape: the mutable copy is allocated in the caller's zone. */
 
 - (unsigned long)countByEnumeratingWithState:(NSFastEnumerationState *)state
                                      objects:(id __unsafe_unretained *)buffer
@@ -1321,12 +1321,12 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 /* THE SAME DOOR AS THE IMMUTABLE FRONT (§C.3 item 1), and it is what makes a mutable constructor answer a
  * mutable concrete class: NSMutableArray's own implementation stays where it is and AGArrayMutable is the
  * name a caller sees. */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSMutableArray class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [AGArrayMutable alloc];
+	return [AGArrayMutable allocWithZone:zone];
 }
 
 /* AND THE MUTABLE FRONT ANSWERS ITSELF TO AN ARCHIVER, for the same reason as NSArray's. */
@@ -1541,10 +1541,11 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 	[self replaceObjectAtIndex:index withObject:object];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	/* A snapshot, like every other mutable type here. */
-	return [[NSArray alloc] initWithArray:self];
+	return [[NSArray allocWithZone:zone] initWithArray:self];
 }
 
 - (void)addObjectsFromArray:(NSArray *)other

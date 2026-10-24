@@ -892,8 +892,9 @@ static void fn_scan_dates(NSString *text, NSRange limit, NSCalendar *calendar, N
 /* A DETECTOR IS IMMUTABLE, so a copy is the receiver (the rule this library keeps for every immutable class,
  * §62.18) - and the parent's `-copy` would be wrong here twice over: it recompiles from `_pattern`, which a
  * detector does not have. */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];
 }
 

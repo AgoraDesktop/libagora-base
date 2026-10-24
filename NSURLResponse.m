@@ -116,8 +116,9 @@ static BOOL fn_response_object_equal(NSObject *a, NSObject *b)
 	[super dealloc];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* immutable: the copy IS the receiver (plan §15.2) */
 }
 

@@ -214,8 +214,9 @@ static void fn_hold(NSIndexPath *path, const NSUInteger *indexes, NSUInteger len
 					  (unsigned long)_length, shown];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable */
 }
 

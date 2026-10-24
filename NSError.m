@@ -337,8 +337,9 @@ NSInteger const NSValidationErrorMinimum = 10064;
 					 ([self userInfo] != nil) ? [[self userInfo] description] : @"(null)"];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable */
 }
 

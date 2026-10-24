@@ -532,11 +532,12 @@ NSURL * _Nullable FNURLResolveRelative(NSString *reference, NSString * _Nullable
 	return [self string];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	FNURLComponents *copy;
 
-	copy = [[FNURLComponents alloc] init];
+	copy = [[FNURLComponents allocWithZone:zone] init];
 	copy->_scheme = _scheme;
 	copy->_user = _user;
 	copy->_password = _password;

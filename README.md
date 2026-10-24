@@ -18,6 +18,15 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
 
 **Imported, building, running, and toll-free bridged to `libagora-core`.**
 
+**Zones are implemented.** `NSZone` is an opaque allocator handle (`NSZone.h`), with
+`NSCreateZone`, `NSZoneMalloc`/`Calloc`/`Realloc`/`Free`, `NSZoneName` and
+`NSZoneFromPointer`; `NSAllocateObject` records the zone an object was allocated in, and
+`-zone`/`-setZone:` report it. Apple ignores zones for object allocation on 64-bit runtimes,
+and so does the runtime here (it has one heap); the C allocator and the identity are real.
+Cocoa's copying protocol is restored in its published shape: `-copyWithZone:` and
+`-mutableCopyWithZone:` are the override points, and `-copy`/`-mutableCopy` delegate to them
+with a NULL zone. `tests/zones.m` measures the whole contract.
+
 1. **The build is wired and verified.** Every `.m` in the directory is compiled (a directory glob, as
    Fiwix's own build generates its rules) with clang, plus `plist.c` — the property-list core that
    lives beside the Foundation in the Fiwix tree (`../Fiwix/userland/plist.c`, header

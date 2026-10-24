@@ -10,6 +10,8 @@
 #import <Foundation/NSProxy.h>
 #import <Foundation/NSString.h>	/* -description builds one */
 #import <Foundation/NSException.h>
+#import <Foundation/NSZone.h>
+#include "FNZone.h"
 #import <Foundation/NSMethodSignature.h>
 #import <Foundation/NSInvocation.h>
 #import <objc/runtime.h>
@@ -23,10 +25,10 @@ static id fn_perform_selector(id proxy, SEL aSelector, id *arguments, NSUInteger
 @implementation NSProxy
 
 /* A ROOT CLASS ALLOCATES ITSELF: there is no superclass to ask, which is the whole reason this is
- * written here rather than inherited. */
+ * written here rather than inherited. The zone door is the primitive; +alloc supplies the default. */
 + (instancetype)alloc
 {
-	return class_createInstance(self, 0);
+	return [self allocWithZone:NSDefaultMallocZone()];
 }
 
 + (Class)class
@@ -218,6 +220,7 @@ static id fn_perform_selector(id proxy, SEL aSelector, id *arguments, NSUInteger
 - (void)dealloc
 {
 	/* THE INSTANCE IS THE ROOT CLASS'S OWN TO FREE: nothing above this will do it. */
+	fn_zone_forget_pointer((id)self);
 	object_dispose((id)self);
 }
 
@@ -232,12 +235,22 @@ static id fn_perform_selector(id proxy, SEL aSelector, id *arguments, NSUInteger
 }
 
 
-+ (instancetype)allocWithZone:(void *)zone
++ (instancetype)allocWithZone:(NSZone *)zone
 {
-	/* NO ZONES EXIST ON THIS RUNTIME: Apple's door is kept so source that calls it links, and it answers the
-	 * same object +alloc would. */
-	(void)zone;
-	return [self alloc];
+	/* A ROOT CLASS ALLOCATES ITSELF HERE TOO, and the zone is recorded against the instance. */
+	return NSAllocateObject(self, 0, zone ?: NSDefaultMallocZone());
+}
+
+- (NSZone *)zone
+{
+	NSZone *zone = NSZoneFromPointer(self);
+
+	return (zone != NULL) ? zone : NSDefaultMallocZone();
+}
+
+- (void)setZone:(NSZone *)zone
+{
+	fn_zone_assign_pointer(self, zone);
 }
 
 - (void)finalize

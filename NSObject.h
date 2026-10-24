@@ -24,6 +24,7 @@
 #include <objc/runtime.h>
 #include <stdint.h>
 #include <Foundation/NSObjCRuntime.h>
+#import <Foundation/NSZone.h>
 
 @class NSString;
 @class NSMethodSignature;
@@ -34,28 +35,25 @@
  * by default, and the handful of declarations that can legitimately answer nil say
  * so — a class with no superclass, a selector the runtime cannot find, a
  * -performSelector: whose method answers nil, and a -forwardingTargetForSelector:
- * meaning "no fast forwarding". (The list used to include -zone, which answered
- * NULL; it is removed with the rest of the zone API.)
+ * meaning "no fast forwarding". `-zone` is NONNULL: an object always belongs to a
+ * zone, and the default zone is the answer for memory allocated outside a custom one.
  */
 NS_ASSUME_NONNULL_BEGIN
 
 /*
- * The copying protocols — AND THIS IS A DELIBERATE DEVIATION FROM COCOA
- * (2026-09-18). Cocoa's members are `-copyWithZone:` / `-mutableCopyWithZone:`,
- * whose argument is an `NSZone`; Apple states on the `NSZone` page that "Zones
- * are ignored on iOS and 64-bit runtime in macOS. You should not use zones in
- * current development", and this system is 64-bit only, so every method that
- * TAKES an NSZone has been REMOVED — the protocols' members are `-copy` and
- * `-mutableCopy`, and the override point is the entry point. The consequence,
- * stated where the change is: a Cocoa class that implements `-copyWithZone:`
- * will not conform to these protocols, and `[obj copyWithZone:nil]` will not
- * compile. docs/design/foundation-plan.md carries the decision and its cost. */
+ * The copying protocols, in COCOA'S SHAPE. `-copyWithZone:` is the member and the
+ * override point, exactly as it is on macOS; `-copy` on NSObject is the convenience
+ * that calls it with a NULL zone. A class that implements `-copy` instead is still
+ * callable through `-copy`, but it is not conforming: the protocol promises the zone
+ * door, and duplicating the copy point is what made Core Foundation's
+ * `copyWithZone:NULL` dispatch miss Foundation classes in the first place.
+ */
 @protocol NSCopying
-- (id)copy;
+- (id)copyWithZone:(nullable NSZone *)zone;
 @end
 
 @protocol NSMutableCopying
-- (id)mutableCopy;
+- (id)mutableCopyWithZone:(nullable NSZone *)zone;
 @end
 
 /*
@@ -82,12 +80,10 @@ NS_ASSUME_NONNULL_BEGIN
  * performSelector: forms. `-methodForSelector:` and `-doesNotRecognizeSelector:` are NOT in it -
  * they belong to the NSObject CLASS - which is a distinction the documentation settled.
  *
- * ONE MEMBER IS DELIBERATELY ABSENT, and it is the only one: `-zone`. Apple's protocol declares it;
- * this library REMOVED the entire zone API as 32-bit-only (§11.5), and a protocol cannot promise
- * what the system does not have. That is ground (i) of §11.6.1's necessity test, and it is
- * registered there rather than left for a reader to notice. The parameter nullability follows THIS library's
- * class declaration rather than Apple's published spelling, so the header does not argue with itself; where the
- * class and the protocol could differ, the class is the one the compiler has to accept.
+ * `-zone` IS PRESENT, as Apple's protocol has it. Zones are real again: the type is declared in
+ * NSObjCRuntime.h and the allocator in NSZone.h, so a protocol that promises a zone can keep the
+ * promise. The class below repeats the declaration because a protocol member is not an
+ * implementation and a caller importing only the header must see the return type.
  */
 @protocol NSObject
 
@@ -108,6 +104,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (oneway void)release;
 - (instancetype)autorelease;
 - (NSUInteger)retainCount;
+- (NSZone *)zone;
 - (nullable id)performSelector:(SEL)aSelector;
 - (nullable id)performSelector:(SEL)aSelector withObject:(id)object;
 - (nullable id)performSelector:(SEL)aSelector withObject:(id)object1 withObject:(id)object2;
@@ -135,15 +132,13 @@ __attribute__((objc_root_class))
  * +0), so they keep those names whatever the class is called.
  */
 + (id)alloc;
-/* THE COMPATIBILITY DOOR (2026-10-17, user decision). Zones do not exist on
- * this runtime, but `+allocWithZone:` is the door the Objective-C *allocator*
- * uses: libobjc2's objc_allocWithZone() sends it, and Swift's
- * `__allocating_init` — which every `T()` on an imported class goes through —
- * reaches the runtime that way. Without this selector `NSObject()` raises
- * `NSInvalidArgumentException`. It is `+alloc` with the reading stated, so a
- * subclass that overrides `+alloc` still answers its shared instance (NSNull
- * does). Same shape as NSProxy's deprecated door (§63.205). */
-+ (id)allocWithZone:(nullable struct _NSZone *)zone;
+/* THE ALLOCATION DOOR COCOA USES. `+alloc` calls this with the default zone, and the
+ * Objective-C allocator (`objc_allocWithZone`) reaches it directly, as Swift's
+ * `__allocating_init` does for every `T()`. A class cluster or singleton overrides
+ * THIS method to substitute a class or answer a shared instance. The zone is recorded
+ * against the object; the runtime itself has one heap, so the memory is the runtime's
+ * and the zone is the identity the object reports. */
++ (id)allocWithZone:(nullable NSZone *)zone;
 + (id)new;
 - (id)init;
 
@@ -200,22 +195,28 @@ __attribute__((objc_root_class))
 - (id)self;
 
 /*
- * THE COPYING FAMILY, declared here because every object can be sent it (Cocoa
- * declares them on NSObject too) — and THE ENTRY POINT IS THE OVERRIDE POINT
- * (2026-09-18): a class that can be copied implements `-copy` (and
- * `-mutableCopy`), and the default on NSObject is A LOUD FAILURE. In Cocoa the
- * default lives on `-copyWithZone:` instead and `-copy` merely calls it; that
- * method took an `NSZone` and is removed with the rest of the zone API.
+ * THE COPYING FAMILY, in Cocoa's shape. `-copy` and `-mutableCopy` are the
+ * conveniences; they call the zone doors with a NULL zone, and the zone doors are
+ * where a class overrides. The root class's defaults are A LOUD FAILURE.
  *
- * The loudness is the whole point of the audit's fix A: before it existed,
- * sending `-copy` to a class that did not implement it did not raise, it
- * returned NIL (the runtime's forwarding path), so a dictionary handed an
- * NSNumber key filed a phantom entry under a nil key and the value became
- * unreachable — silently, with a count that said otherwise.
+ * The loudness is the whole point of the audit's fix A: before it existed, sending
+ * `-copy` to a class that did not implement it did not raise, it returned NIL (the
+ * runtime's forwarding path), so a dictionary handed an NSNumber key filed a phantom
+ * entry under a nil key and the value became unreachable — silently, with a count
+ * that said otherwise.
  */
-- (id)copy;		/* default: doesNotRecognizeSelector: */
-- (id)mutableCopy;	/* default: doesNotRecognizeSelector: */
+- (id)copy;		/* calls -copyWithZone: with a NULL zone */
+- (id)copyWithZone:(nullable NSZone *)zone;	/* default: doesNotRecognizeSelector: */
+- (id)mutableCopy;	/* calls -mutableCopyWithZone: with a NULL zone */
+- (id)mutableCopyWithZone:(nullable NSZone *)zone;	/* default: doesNotRecognizeSelector: */
 - (void)doesNotRecognizeSelector:(SEL)aSelector;
+
+/* WHICH ZONE THIS OBJECT BELONGS TO. The default zone is the answer for an object the
+ * runtime allocated normally; NSAllocateObject records a custom zone against the object.
+ * `-setZone:` is declared for OpenStep-era source; on this runtime it changes the
+ * recorded identity, not the address, because the runtime owns one heap. */
+- (NSZone *)zone;
+- (void)setZone:(nullable NSZone *)zone;
 
 /* Messaging, which is how Cocoa code calls a selector it only knows by name. */
 - (nullable id)performSelector:(SEL)aSelector;
@@ -236,24 +237,9 @@ __attribute__((objc_root_class))
 + (BOOL)instancesRespondToSelector:(SEL)aSelector;
 + (void)load;			/* the runtime calls these; declared so overrides match */
 + (void)initialize;
-/* THE COMPATIBILITY DOOR (2026-10-17, user decision). The zone-taking API is
- * gone and no `NSZone` type exists, but the *selector* is not optional: the
- * Objective-C allocator sends it. libobjc2's objc_allocWithZone() reaches it,
- * and Swift's `__allocating_init` — every `T()` on an imported class — goes
- * through that. Without it, `NSObject()` raises NSInvalidArgumentException.
- * It takes a `void *` it ignores and forwards to `+alloc`, so THE SINGLETON
- * DOOR STAYS +alloc: a subclass that overrides +alloc still answers its shared
- * instance (NSNull does). Same shape as NSProxy's deprecated door (§63.205).
- * The parameter is spelled `struct _NSZone *` only so its type encoding
- * matches the one the runtime's own allocator declaration registers
- * (libagora-objc/fast_paths.m); the struct is opaque, never dereferenced, and
- * no `NSZone` type is added to the SDK. */
-
 - (BOOL)isProxy;
-/* NO -zone EITHER (2026-09-18, the user closing the last gap: "any method which
- * returns an NSZone is removed"). With it gone, NOTHING in this library names
- * `NSZone`, so the TYPE is gone from NSObjCRuntime.h as well — there is no
- * allocator to ask about and no zone to hand anyone. */
+/* THE ZONE IS THE OBJECT'S ALLOCATION IDENTITY, declared here through the NSObject protocol and
+ * implemented on the class above. A root class that conforms to the protocol supplies it. */
 
 /*
  * Equality and hashing. The defaults are identity and the pointer, which is
@@ -306,6 +292,19 @@ NSString *NSStringFromRange(NSRange range);
 void * _Nullable NSAllocateMemoryPages(NSUInteger numberOfBytes);
 void NSCopyMemoryPages(const void *source, void *dest, NSUInteger numberOfBytes);
 void NSDeallocateMemoryPages(void *ptr, NSUInteger numberOfBytes);
+
+/* THE OBJECT-ALLOCATION FAMILY. `NSAllocateObject` is the primitive `+allocWithZone:` uses: it
+ * creates the instance through the runtime (so the retain count and C++ construction are the
+ * runtime's) and records the zone. `NSCopyObject` is the raw byte copy — instance variables only,
+ * a fresh count of one, extra bytes zeroed — and is the primitive a class's `-copyWithZone:` can
+ * use when every ivar is a value. A class with owned object pointers must implement its own copy
+ * instead; the primitive cannot know which pointers need retaining. */
+FOUNDATION_EXPORT id NSAllocateObject(Class aClass, NSUInteger extraBytes, NSZone * _Nullable zone);
+FOUNDATION_EXPORT void NSDeallocateObject(id object);
+FOUNDATION_EXPORT id NSCopyObject(id object, NSUInteger extraBytes, NSZone * _Nullable zone);
+/* YES when a copy into `requestedZone` must retain the object: that is, when the zones differ (or
+ * no zone was requested). A copy within the same zone may share the reference. */
+FOUNDATION_EXPORT BOOL NSShouldRetainWithZone(id anObject, NSZone * _Nullable requestedZone);
 
 NS_ASSUME_NONNULL_END
 

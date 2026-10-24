@@ -589,11 +589,12 @@ static NSString *fn_translate_named_groups(NSString *pattern, NSDictionary **out
 				  (unsigned long)_captures];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	NSRegularExpression *copy;
 
-	copy = [[NSRegularExpression alloc] initWithPattern:_pattern options:_options error:NULL];
+	copy = [[NSRegularExpression allocWithZone:zone] initWithPattern:_pattern options:_options error:NULL];
 	return copy != nil ? copy : self;
 }
 

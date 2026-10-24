@@ -260,11 +260,12 @@ static NSString *fn_describe_integer(const void *item)
 	[super dealloc];
 }
 
-/* THE LIBRARY'S COPYING PROTOCOL IS `-copy`, NOT COCOA'S `-copyWithZone:` — NSObject.h records the
- * deviation (no NSZone on a 64-bit-only system), and this is a class that has to conform to IT. */
-- (id)copy
+/* COCOA'S COPY DOOR: the copy is allocated in the caller's zone, and the hand-installed callouts are carried
+ * over because the options word alone cannot reconstruct them. */
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSPointerFunctions *copy = [[[self class] alloc] initWithOptions:_options];
+	(void)zone;
+	NSPointerFunctions *copy = [[[self class] allocWithZone:zone] initWithOptions:_options];
 
 	/* A REPLACED CALLOUT SURVIVES THE COPY: the options word alone cannot reconstruct a function somebody
 	 * installed by hand, so the copy carries every callout over rather than re-deriving them. */

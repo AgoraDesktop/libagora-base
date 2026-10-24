@@ -95,7 +95,7 @@ NS_SWIFT_NAME(ISO8601DateFormatter)
 			     timeZone:(nullable NSTimeZone *)timeZone
 			formatOptions:(NSISO8601DateFormatOptions)formatOptions;
 
-- (id)copy;
+- (id)copyWithZone:(nullable NSZone *)zone;
 
 @end
 

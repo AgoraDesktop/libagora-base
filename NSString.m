@@ -1316,12 +1316,12 @@ static NSString *fn_string_from_bytes(const void *bytes, size_t n, NSStringEncod
  *   * `-classForCoder` - so a LITERAL records as NSString. Without it the archiver asked the default
  *     (`[self class]`) and wrote "NSConstantString" into every archive that contained a string.
  * =================================================================================================== */
-+ (id)alloc
++ (id)allocWithZone:(NSZone *)zone
 {
 	if (self != [NSString class]) {
-		return [super alloc];
+		return [super allocWithZone:zone];
 	}
-	return [NSOwnedString alloc];
+	return [NSOwnedString allocWithZone:zone];
 }
 
 - (Class)classForCoder
@@ -1426,20 +1426,21 @@ NSStringEncodingDetectionOptionsKey const NSStringEncodingDetectionUseOnlySugges
 	return h;
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];	/* +1: `copy` is an OWNED family (plan §15.2) — immutable */
 }
 
-- (id)mutableCopy
+- (id)mutableCopyWithZone:(NSZone *)zone
 {
-	return [[NSMutableString alloc] initWithUTF8String:[self UTF8String]];
+	(void)zone;
+	return [[NSMutableString allocWithZone:zone] initWithUTF8String:[self UTF8String]];
 }
 
 /*
- * The zone forms (the public-API audit, B4). Declared ONCE, on the base class:
- * each delegates to -copy / -mutableCopy, and DYNAMIC DISPATCH picks the right
- * one for a mutable subclass (whose -copy is the snapshot).
+ * The immutable front's copy is itself; a mutable subclass overrides it with a snapshot. The zone is the
+ * caller's and is where a newly allocated copy goes.
  */
 
 - (NSString *)description
@@ -5134,11 +5135,12 @@ static NSComparisonResult fn_compare_turkic(NSString *a, NSString *b, NSStringCo
 	[self appendUTF8String:[other UTF8String]];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	/* A copy of a MUTABLE string is immutable, and is a SNAPSHOT: mutating the
 	 * original afterwards must not change it. */
-	return [[NSOwnedString alloc] initWithUTF8String:[self UTF8String]];
+	return [[NSOwnedString allocWithZone:zone] initWithUTF8String:[self UTF8String]];
 }
 
 + (id)string

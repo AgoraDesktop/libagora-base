@@ -124,8 +124,9 @@ static NSString *const kUserInfoKey = @"NS.userInfo";
 
 /* IMMUTABLE, SO +1 AND THE SAME OBJECT: the copy of a value that cannot change IS the value, and the
  * caller owns what it is handed (§15.2's rule for the copy family). */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];
 }
 

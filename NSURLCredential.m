@@ -48,7 +48,7 @@
  * right question. */
 - (BOOL)hasPassword { return (_password != nil) ? YES : NO; }
 
-- (id)copy { return [self retain]; }
+- (id)copyWithZone:(NSZone *)zone { (void)zone; return [self retain]; }
 
 /* THE PASSWORD IS NEVER PRINTED, and that is a rule rather than a preference: a credential's description
  * turns up in logs, in a debugger, and in an exception message, and a secret that reaches any of those has

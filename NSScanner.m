@@ -557,9 +557,10 @@ static BOOL fn_decimal_parts(NSString *text, NSUInteger from, NSUInteger end, NS
 /* A SCANNER IS MUTABLE — `-scanLocation` moves — SO `-copy` IS A REAL COPY AND NOT `[self retain]`. This is the
  * one class in the library where the immutability rule does not apply, and the copy is INDEPENDENT: moving one
  * scanner's position leaves the other's alone while both scan the same string. */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSScanner *copy = [[NSScanner alloc] initWithString:_string];
+	(void)zone;
+	NSScanner *copy = [[NSScanner allocWithZone:zone] initWithString:_string];
 
 	if (copy == nil) {
 		return nil;

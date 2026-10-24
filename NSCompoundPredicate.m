@@ -62,9 +62,10 @@
 	return [result autorelease];
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	return [[NSCompoundPredicate alloc] initWithType:_type subpredicates:_subpredicates];
+	(void)zone;
+	return [[NSCompoundPredicate allocWithZone:zone] initWithType:_type subpredicates:_subpredicates];
 }
 
 - (void)encodeWithCoder:(NSCoder *)coder

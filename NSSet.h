@@ -20,13 +20,27 @@
  *
  * TWO DESIGN FACTS WORTH STATING RATHER THAN DISCOVERING:
  *   * THE MEMBERS ARE RETAINED, NOT COPIED — Cocoa's rule. That is also why the storage is NOT a
- *     dictionary, tempting as that looks: NSDictionary COPIES its keys (F3's audited rule), so a
- *     set built on one would copy its members and would refuse a member that cannot be copied. The
- *     members live in an array and lookup is LINEAR, which is honest at this scale and leaves a
- *     real hash table as a later optimisation rather than a quiet change of contract;
- *   * EVERY MUTATION REPLACES the member array rather than editing it, so a loop that is running
- *     over a set cannot be handed storage a later mutation frees. The same rule NSDictionary's
- *     fast enumeration follows, for the same reason.
+ *     dictionary keyed by the members: NSDictionary COPIES its keys (F3's audited rule), so a set built
+ *     on one would copy its members and would refuse a member that cannot be copied. **THE INDEX ADDED
+ *     BELOW IS KEYED BY `-hash`, NOT BY THE MEMBER**, which is how a set keeps this rule and still stops
+ *     being linear;
+ *   * AN IMMUTABLE SET'S MUTATION REPLACES the member array rather than editing it, so a loop running
+ *     over it cannot be handed storage a later mutation frees. A MUTABLE set owns its array and appends
+ *     in place — the guarantee there is the mutation token, which `-countByEnumeratingWithState:objects:
+ *     count:` checks, not the replacement.
+ *
+ * ⚠ **LOOKUP AND APPEND WERE LINEAR AND ARE NOT ANY MORE (2026-10-23).** This header used to say that
+ * "lookup is LINEAR, which is honest at this scale and leaves a real hash table as a later optimisation".
+ * The scale arrived: a 10^5-row Core Data workload is built out of sets, and `-addObject:` was O(n) per
+ * member — copy the whole array, scan it for the duplicate — so adding n members was O(n^2). MEASURED:
+ * 0.6 s for 2,000, 2.7 s for 4,000, **10.4 s for 8,000**, which made the 10^5 case a twenty-minute
+ * timeout rather than a test. A mutable set now owns a mutable array and keeps `_index`: `-hash` bucket
+ * → members with that hash, built on the first mutation and consulted by `-member:`. `-hash` and
+ * `-isEqual:` still decide membership, so a member that changes its hash while in a set is still a
+ * caller's error — the same rule Cocoa states.
+ *
+ * It also had NO `-dealloc`, so every set leaked its member array, and `-fnReplaceMembers:` leaked the
+ * array it replaced. Both are fixed; neither was found by reading.
  *
  * WHAT IS NOT HERE, named: NSCountedSet (its counts are its own structure), and NSOrderedSet (a
  * different collection with its own ordering rules) — each its own step.
@@ -37,6 +51,8 @@
 
 #import <Foundation/NSObject.h>
 #import <Foundation/NSFastEnumeration.h>
+
+@class NSMutableDictionary;
 /* FOR `NSCoding` AND THE `NSCoder` ITS TWO DOORS TAKE (§63.11): these collections conform on Apple's platform,
  * so a class that declares the protocol here is one whose `-conformsToProtocol:` answers the same. */
 #import <Foundation/NSCoding.h>
@@ -57,8 +73,11 @@ NS_ASSUME_NONNULL_BEGIN
 __attribute__((swift_bridge("Swift.Set")))
 @interface NSSet<__covariant ObjectType> : NSObject <NSCopying, NSMutableCopying, NSFastEnumeration, NSCoding>
 {
-	NSArray *_members;		/* the members, once each; REPLACED by every mutation */
+	NSArray *_members;		/* the members, once each; REPLACED by an immutable set's mutation, APPENDED IN
+	                                 * PLACE by a mutable one's */
 	unsigned long _mutations;	/* the for-in consistency token */
+	NSMutableDictionary *_index;	/* MUTABLE SETS ONLY: -hash bucket -> members with that hash. nil on any set
+	                                 * that has never been mutated, and rebuilt on the first mutation. */
 }
 
 /* THE NSCoding DOORS (§63.11), the same pair the ordered sets took in §63.10 and for the same reasons: the

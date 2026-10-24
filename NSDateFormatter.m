@@ -489,9 +489,10 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	}
 }
 
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
-	NSDateFormatter *copy = [[[self class] alloc] init];
+	(void)zone;
+	NSDateFormatter *copy = [[[self class] allocWithZone:zone] init];
 
 	if (copy == nil) {
 		return nil;

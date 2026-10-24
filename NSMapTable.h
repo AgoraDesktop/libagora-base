@@ -114,11 +114,8 @@ NS_ASSUME_NONNULL_BEGIN
  * (Apple's contract, satisfied), and leaves the modern object API untouched: the table a legacy caller gets is an
  * `NSMapTable` that answers the object API too, which is what Apple's own does.
  *
- * TWO OF THE THIRTY-EIGHT NAMES ARE NOT HERE, AND THE REASON IS A DECISION RATHER THAN A GAP:
- * `NSCreateMapTableWithZone` and `NSCopyMapTableWithZone` take an `NSZone`, and THIS LIBRARY HAS NO ZONE TYPE —
- * `NSObjCRuntime.h` records the user's own sequence that removed every zone-taking method, then every
- * zone-returning one, and finally the type itself (zones are 32-bit API). A header cannot spell a type the library
- * removed on purpose, so those two ledger rows stay OWED with that ground, and the other thirty-six land here.
+ * THE ZONE-TAKING PAIR IS HERE TOO. `NSCreateMapTableWithZone` and `NSCopyMapTableWithZone` take the allocator the
+ * table (or its copy) should live in; a NULL zone means the default zone.
  *
  * FIELD ORDER AND THE THREE SENTINELS ARE OURS UNDER §11.6.1 D2: Apple publishes the field NAMES and what a
  * sentinel is FOR, and the probe pins what this header defines.
@@ -164,6 +161,11 @@ extern const NSMapTableValueCallBacks NSOwnedPointerMapValueCallBacks;
 NSMapTable *NSCreateMapTable(NSMapTableKeyCallBacks keyCallBacks,
 			     NSMapTableValueCallBacks valueCallBacks,
 			     NSUInteger capacity);
+NSMapTable *NSCreateMapTableWithZone(NSMapTableKeyCallBacks keyCallBacks,
+				    NSMapTableValueCallBacks valueCallBacks,
+				    NSUInteger capacity,
+				    NSZone * _Nullable zone);
+NSMapTable *NSCopyMapTableWithZone(NSMapTable *table, NSZone * _Nullable zone);
 void NSFreeMapTable(NSMapTable *table);
 void NSResetMapTable(NSMapTable *table);
 BOOL NSCompareMapTables(NSMapTable *table1, NSMapTable *table2);

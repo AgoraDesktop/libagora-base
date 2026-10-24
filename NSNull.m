@@ -13,6 +13,7 @@
  */
 
 #import <Foundation/NSNull.h>
+#include "FNZone.h"
 #import <Foundation/NSString.h>
 
 static NSNull *fn_shared_null = nil;
@@ -27,16 +28,16 @@ static NSNull *fn_shared_null = nil;
 	 * something that is not an NSNull at all. Measured the hard way: the wrong spelling made +null
 	 * hand back a plain NSObject, which then aborted on -copy. */
 	if (fn_shared_null == nil) {
-		fn_shared_null = [super alloc];
+		fn_shared_null = [super allocWithZone:NSDefaultMallocZone()];
 	}
 	return fn_shared_null;
 }
 
-/* THE SINGLETON DOOR IS +alloc (2026-09-18). It used to be +allocWithZone:, which took an
- * `NSZone`; that method is removed with the rest of the zone API, so the door moved to the method
- * that remains. `isEqual:`'s signature still matches NSObject's own, because a re-declaration may
- * not disagree with what it overrides. */
-+ (instancetype)alloc
+/* THE SINGLETON DOOR IS +allocWithZone:, COCOA'S ALLOCATION POINT. It answers the shared instance and
+ * records the requested zone on it, so a caller that asks for the singleton in a zone gets the singleton
+ * that reports that zone. `isEqual:`'s signature still matches NSObject's own, because a re-declaration
+ * may not disagree with what it overrides. */
++ (instancetype)allocWithZone:(NSZone *)zone
 {
 	/* THIS ANSWERS +1, AND THAT IS THE WHOLE CONTRACT OF AN `alloc`-FAMILY METHOD (fixed
 	 * 2026-09-20, and the bug it fixes had been invisible since the class landed). Returning the
@@ -56,7 +57,12 @@ static NSNull *fn_shared_null = nil;
 	 *
 	 * THE RETAIN BELOW IS WHAT BALANCES IT, and it is permanent by design: the object is a
 	 * singleton, so its count is a formality and the instance is never meant to die. */
-	return [[self null] retain];
+	NSNull *shared = [[self null] retain];
+
+	if (zone != NULL) {
+		fn_zone_assign_pointer(shared, zone);
+	}
+	return shared;
 }
 
 - (BOOL)isEqual:(id)other
@@ -98,8 +104,9 @@ static NSNull *fn_shared_null = nil;
  * the singleton once more than it had been retained — the identical over-release, reached through
  * the other door a program uses. The class stays immutable (the copy IS the receiver); only the
  * ownership answer changes. */
-- (id)copy
+- (id)copyWithZone:(NSZone *)zone
 {
+	(void)zone;
 	return [self retain];
 }
 

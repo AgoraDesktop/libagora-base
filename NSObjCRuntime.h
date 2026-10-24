@@ -14,15 +14,17 @@
  * `NSComparisonResult`, `NSRange` or `NSNotFound`. Where Cocoa has a type, the
  * type is Cocoa's — there is nothing to gain by inventing one.
  *
- * NO ZONES AT ALL (2026-09-18). `NSZone` IS NO LONGER DECLARED HERE, and that is
- * the end of a sequence the user drove: first every method that TOOK an `NSZone`
- * was removed, then every method that RETURNED one (`-zone`), and with nothing
- * left able to name it the TYPE went too. Zones are 32-bit API and this system is
- * 64-bit only; Apple's own words, on the `NSZone` page: "Zones are ignored on iOS
- * and 64-bit runtime in macOS. You should not use zones in current development."
- * (It was declared here, incomplete, from F0 until 2026-09-18 so that Cocoa's
- * `-copyWithZone:` / `-mutableCopyWithZone:` SHAPE could be reproduced — the
- * plan's §7 decision, and the audit's B4.)
+ * ZONES ARE DECLARED HERE, AND THE TYPE IS THE ONE EVERY HEADER SPELLS. `NSZone`
+ * is an opaque allocator handle: `NSZone.h` owns the functions that create and use
+ * one, while this header owns the typedef so NSObject, NSCopying and every class
+ * header can name it without importing the allocator.
+ *
+ * APPLE IGNORES ZONES ON 64-BIT RUNTIMES, and so does this library's object
+ * allocator: `+allocWithZone:` accepts the argument and allocates through the
+ * runtime, which has one heap. The C allocation functions in `NSZone.h` are real
+ * allocators, and a custom zone is recorded against the memory and objects
+ * allocated through it so `-zone`, `NSZoneFromPointer` and `NSZoneName` answer
+ * honestly. That is the documented 64-bit contract rather than a second heap.
  */
 
 #ifndef FOUNDATION_NSOBJCRUNTIME_H
@@ -45,6 +47,10 @@
 #include <limits.h>
 #include <objc/objc.h>	/* BOOL, YES, NO */
 #include <objc/runtime.h>	/* Protocol, for the two runtime utilities below */
+
+/* THE ALLOCATOR HANDLE. `struct _NSZone` is defined only in NSZone.m; every caller
+ * sees a pointer, which is all Apple's API exposes either. */
+typedef struct _NSZone NSZone;
 
 /*
  * NULLABILITY (F6). These are the STANDARD spellings, and they are defined here
@@ -402,10 +408,9 @@ extern double NSFoundationVersionNumber;
  * Apple's `NSObjCRuntime.h` declares a handful of C functions beside the classes, and these are the ones this
  * library did not have. Each carries its own rule where the rule is a choice rather than a fact.
  *
- * TWO SIGNATURES ARE NOT APPLE'S, AND THE REASON IS A TYPE THIS LIBRARY DOES NOT HAVE RATHER THAN A PREFERENCE:
- * there is no `NSZone`, so `NSCopyObject`'s third argument is ACCEPTED AND IGNORED (a caller who passes the zone
- * Apple's header asks for still compiles, and there is nothing for the value to mean); and there is no
- * `CFTypeRef`, so `NSMakeCollectable` takes an object of this library's own.
+ * ONE SIGNATURE IS NOT APPLE'S, AND THE REASON IS A TYPE THIS LIBRARY DOES NOT HAVE: there is no `CFTypeRef` on
+ * this side of the bridge, so `NSMakeCollectable` takes an object of this library's own. `NSZone` now exists, and
+ * `NSCopyObject` is declared in NSObject.h beside the object-allocation family.
  * =================================================================================================== */
 /* THESE CARRY NO NULLABILITY SPECIFIERS, WHICH IS A DELIBERATE CHOICE ABOUT SCOPE. A file with ONE specifier is
  * checked THROUGHOUT by clang, and this header has unannotated pointers in its older declarations — so annotating
@@ -434,10 +439,9 @@ NSUInteger NSRealMemoryAvailable(void);
  * a stated answer rather than a refusal because a string that does not describe a range describes no range. */
 NSRange NSRangeFromString(NSString * _Nonnull aString);
 
-/* `NSCopyObject` IS NOT HERE, AND THE REASON IS MEASURABLE RATHER THAN A JUDGEMENT: a faithful raw byte copy must
- * give the copy a RETAIN COUNT OF ONE, and this library's runtime publishes no way to SET a count — only to read
- * one and to retain and release. A copy carrying the original's count would be a wrong count in an object nobody
- * would suspect, so the door is absent and `-copy` is the one that honours a class's own rules. */
+/* `NSCopyObject` LIVES IN NSObject.h, beside the object-allocation family. It is implemented with
+ * `class_createInstance`, so the copy gets a fresh retain count of one and the runtime owns its lifetime; the
+ * old note that this could not be done was true only of a raw malloc-based copy. */
 
 /* THE EXTRA RETAIN COUNT. Apple's runtime keeps a count beyond the basic one and these are its doors. THIS
  * LIBRARY'S RUNTIME HAS NO SEPARATE COUNTER, so the equivalence is stated where they are defined: the extra count
