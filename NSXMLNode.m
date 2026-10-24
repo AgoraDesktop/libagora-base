@@ -926,6 +926,35 @@ static NSString *fn_canonical_escape_attribute(NSString *text)
 
 @implementation NSXMLElement
 
+/* **AN ELEMENT'S STRING VALUE IS ITS TEXT, INCLUDING ITS DESCENDANTS'. ** Apple: "the string value of an element
+ * is the concatenation of all its children's string values". The base class answers its own stored value, which is
+ * nil for an element built by the parser, so `<child>hello</child>` answered nil instead of "hello". Comments,
+ * processing instructions and namespace declarations are not text and are skipped. */
+- (nullable NSString *)stringValue
+{
+	NSArray *kids = [self children];
+	NSMutableString *text;
+	NSUInteger i;
+
+	if ([kids count] == 0) {
+		return [super stringValue];
+	}
+	text = [NSMutableString string];
+	for (i = 0; i < [kids count]; i++) {
+		id child = [kids objectAtIndex:i];
+		NSUInteger kind = [child kind];
+
+		if (kind == NSXMLTextKind || kind == NSXMLElementKind) {
+			NSString *value = [child stringValue];
+
+			if (value != nil) {
+				[text appendString:value];
+			}
+		}
+	}
+	return [text length] > 0 ? text : [super stringValue];
+}
+
 - (instancetype)initWithKind:(NSXMLNodeKind)kind
 {
 	/* §63.196: an element's own ivars are made by -initWithName:, so the KIND door — declared on this class too

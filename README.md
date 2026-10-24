@@ -148,12 +148,15 @@ and `tests/api-10.6-census.txt` pins what this tree answers.
 metric that moves, a metric that appears, or a metric that disappears. Inline doors are exempt from being symbols,
 and `NSMakeRange`/`NSMaxRange` are found where they are declared (`libagora-core`).
 
-**A complete surface is not a behavioural claim.** Every name has a body; what the bodies DO is measured by callers.
-`tests/object_surface.m` covers the F1 slice (the runtime hooks, the delayed and threaded perform family, KVC/KVO,
-the comparison protocol, the stack doors, the formatter and collection additions), and `tests/scripting_surface.m`
-covers the last five waves: object specifiers and whose-tests, the standard commands, class and command descriptions,
-the AppleEvent descriptor as data, AppleScript's refusal, a real metadata query over a temporary directory, and the
-TXT-record codec plus the net-service refusal.
+**A complete surface is not a behavioural claim.** Every name has a body; what the bodies DO is measured by callers,
+in four probes and the suites beside them: `object_surface` (the F1 slice), `scripting_surface` (the last five waves),
+`core_values` (strings, collections, numbers, data, dates, index sets, JSON, property lists, archivers and URLs) and
+`foundation_behaviour` plus `foundation_behaviour_2` (predicates and KVC operators, sort descriptors, notifications,
+operations, the file manager, streams, undo, regular expressions, calendars and DST, formatters, defaults domains, XML,
+transformers, cookies, locales and time zones). Running them found and fixed eleven defects, each recorded in its
+commit: clamped range doors that should raise, a NUL answer for an out-of-range character, double-precision number
+comparison, NaN equality, ignored search options, numeric comparison, a cancelled operation that never finished, a
+lenient-by-default date parser, and an element string value that ignored its text.
 
 Five waves closed the surface, and three of them are **refusals by name rather than imitations**:
 

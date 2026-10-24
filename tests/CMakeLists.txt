@@ -191,3 +191,9 @@ add_executable(foundation_behaviour foundation_behaviour.m)
 target_link_libraries(foundation_behaviour PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 add_test(NAME foundation_behaviour COMMAND foundation_behaviour)
 
+
+# THE BEHAVIOURAL PASS, THIRD WAVE: calendar arithmetic (leap day, DST), formatters, the defaults store's domains,
+# XML parsing and serialisation, value transformers, HTTP cookies, locales and time-zone transitions.
+add_executable(foundation_behaviour_2 foundation_behaviour_2.m)
+target_link_libraries(foundation_behaviour_2 PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+add_test(NAME foundation_behaviour_2 COMMAND foundation_behaviour_2)
