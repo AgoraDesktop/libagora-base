@@ -183,3 +183,11 @@ add_executable(core_values core_values.m)
 target_link_libraries(core_values PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 add_test(NAME core_values COMMAND core_values)
 
+
+# THE BEHAVIOURAL PASS, SECOND WAVE: predicates and KVC operators, sort descriptors, notifications (selector, block,
+# queue, removal during a post), operations and dependencies, the file manager including atomic replacement, file
+# streams, undo, regular expressions, the scanner, date formatting, timers, character sets and the geometry values.
+add_executable(foundation_behaviour foundation_behaviour.m)
+target_link_libraries(foundation_behaviour PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+add_test(NAME foundation_behaviour COMMAND foundation_behaviour)
+

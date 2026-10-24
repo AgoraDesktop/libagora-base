@@ -108,7 +108,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setTimeZone:(nullable NSTimeZone *)timeZone;
 
 /* LENIENCY IS ABOUT PARSING: a lenient parse accepts text whose fields overrun and guesses at the
- * reading; a strict one (the default is LENIENT, as in Cocoa) refuses it. */
+ * reading; a strict one (the DEFAULT, as in Cocoa) refuses it. */
 - (BOOL)isLenient;
 - (void)setLenient:(BOOL)flag;
 

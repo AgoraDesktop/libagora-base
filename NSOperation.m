@@ -373,8 +373,15 @@ const NSInteger NSOperationQueueDefaultMaxConcurrentOperationCount = -1;
 				if ([_pending indexOfObjectIdenticalTo:candidate] != NSNotFound) {
 					continue;
 				}
-				/* REMOVED RATHER THAN STARTED, so that a queue waiting for everything to finish
-				 * is not waiting on work that will never run. */
+				/* **A CANCELLED OPERATION IS STARTED, NOT DROPPED.** `-start` on a cancelled operation is
+				 * the door that marks it FINISHED and runs its completion block; removing it from the queue
+				 * instead left `isFinished` NO forever, so `-waitUntilFinished` blocked on work that would
+				 * never run and no completion block ever ran. Dispatching it to a worker keeps both effects
+				 * and keeps the completion off this lock. */
+				if (![candidate isExecuting] && ![candidate isFinished]) {
+					next = candidate;
+					break;
+				}
 				[_operations removeObjectAtIndex:i];
 				[_condition broadcast];
 				i--;

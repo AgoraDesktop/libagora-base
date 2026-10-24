@@ -147,7 +147,7 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	if (self != nil) {
 		_dateStyle = NSDateFormatterNoStyle;
 		_timeStyle = NSDateFormatterNoStyle;
-		_lenient = YES;		/* Cocoa's default */
+		_lenient = NO;		/* Cocoa's default: parsing is STRICT unless a caller asks for leniency */
 		_pattern = nil;
 		_locale = nil;
 		_timeZone = nil;
