@@ -31,6 +31,16 @@
  * authenticates, because a connection is a socket pair the process already holds.
  */
 
+/*
+ * ⚠ **CROSS-PROCESS CONNECTIONS ARE NOT IMPLEMENTED, AND THE REASON IS THE NAME SERVER.** A reply is addressed by
+ * NAME (`-fnReplyToName:`), and the only name server this library ships is the IN-PROCESS registry in
+ * NSPortNameServer.m: it has no wire protocol, so a service in one process and a client in another cannot see each
+ * other's names. The transport pieces exist — NSSocketPort really connects and carries framed messages, and
+ * `-runInNewThread` really serves an accepted port — but a service and its client must share a process until a
+ * network name server (or a reply-port-in-the-message protocol) is designed. The in-process round trip is measured
+ * by tests/scripting_surface.m and tests/foundation_behaviour_4.m; the cross-process case is recorded here rather
+ * than left to fail "the service did not answer" after a timeout.
+ */
 #ifndef FOUNDATION_NSCONNECTION_H
 #define FOUNDATION_NSCONNECTION_H
 

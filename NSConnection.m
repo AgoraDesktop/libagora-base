@@ -739,6 +739,12 @@ static NSConnection *fn_default_connection = nil;
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
 	[[[NSThread currentThread] threadDictionary] setObject:self forKey:@"NSConnectionConversation"];
+	/* **THE PORT IS SCHEDULED IN THIS THREAD'S LOOP, IN THE MODE THAT LOOP RUNS.** The first version ran the
+	 * loop without adding the receive port to it, so a connection served with `-runInNewThread` never read
+	 * anything: a client sent its request and timed out ("the service did not answer"). `-serviceConnectionWithName:`
+	 * schedules in the CALLER's loop and in `NSConnectionReplyMode`, because an in-process client waits in that
+	 * mode; a DEDICATED thread runs the DEFAULT mode, so that is the mode its port must be watched in. */
+	[[self receivePort] scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 	[[NSRunLoop currentRunLoop] run];
 	[pool drain];
 }

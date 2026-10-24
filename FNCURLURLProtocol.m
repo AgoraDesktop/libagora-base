@@ -13,6 +13,8 @@
 #import <Foundation/FNAuthenticationChallengeSender.h>
 #import <Foundation/NSURLAuthenticationChallenge.h>
 #import <Foundation/NSURLCache.h>
+#import <Foundation/NSHTTPCookie.h>	/* the Cookie header and Set-Cookie parsing */
+#import <Foundation/NSHTTPCookieStorage.h>
 /* ⚠⚠ THE METRICS RECORD IS NOT IMPORTED HERE ANY MORE (§63.159): the family that declared it left the surface,
  * and with it the first-party door that carried it. THE TRANSPORT STILL MEASURES — `fn_curl_progress` and the
  * durations curl reports are what the upload-progress door is built from — it simply has nowhere to send a
@@ -269,6 +271,19 @@ static size_t fn_curl_header(char *ptr, size_t size, size_t nmemb, void *userdat
 		NSDictionary *fields = fn_curl_header_fields(transfer->headerBytes);
 		NSString *location = [fields objectForKey:@"Location"];
 
+		/* AND THE RESPONSE'S COOKIES ARE KEPT, redirect responses included: a Set-Cookie on a 302 is how a
+		 * login hand-off works, and dropping it would make the followed request anonymous. */
+		if ([[transfer->protocol request] HTTPShouldHandleCookies]) {
+			NSArray *cookies = [NSHTTPCookie cookiesWithResponseHeaderFields:fields
+									       forURL:[[transfer->protocol request] URL]];
+			NSUInteger cookieIndex;
+
+			for (cookieIndex = 0; cookieIndex < [cookies count]; cookieIndex++) {
+				[[NSHTTPCookieStorage sharedHTTPCookieStorage]
+				 setCookie:[cookies objectAtIndex:cookieIndex]];
+			}
+		}
+
 		/* A REDIRECT IS REPORTED RATHER THAN FOLLOWED (decision 2 in the header): a 3xx that NAMES a
 		 * destination is the seam's redirect callback, and the transfer stops there. */
 		if (location != nil &&
@@ -488,6 +503,7 @@ static size_t fn_curl_header_discard(char *ptr, size_t size, size_t nmemb, void 
 		NSDictionary *fields = [request allHTTPHeaderFields];
 		NSArray *names;
 		NSUInteger i;
+		BOOL callerSuppliedCookie = NO;
 
 		if (method != nil && ![method isEqualToString:@"GET"]) {
 			curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, [method UTF8String]);
@@ -498,7 +514,28 @@ static size_t fn_curl_header_discard(char *ptr, size_t size, size_t nmemb, void 
 				NSString *name = [names objectAtIndex:i];
 				NSString *line = [NSString stringWithFormat:@"%@: %@",
 						  name, [fields objectForKey:name]];
+
+				if ([name caseInsensitiveCompare:@"Cookie"] == NSOrderedSame) {
+					callerSuppliedCookie = YES;
+				}
 				headerList = curl_slist_append(headerList, [line UTF8String]);
+			}
+		}
+		/* **`-HTTPShouldHandleCookies` NOW MEANS WHAT IT SAYS.** The request carried the flag and the storage
+		 * existed, but nothing joined them: a stored cookie was never sent and a Set-Cookie was never kept. The
+		 * caller's own Cookie header wins, which is Apple's rule (an explicit header is the caller's decision). */
+		if ([request HTTPShouldHandleCookies] && !callerSuppliedCookie) {
+			NSArray *stored = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:[request URL]];
+
+			if ([stored count] > 0) {
+				NSString *value = [[NSHTTPCookie requestHeaderFieldsWithCookies:stored]
+						   objectForKey:@"Cookie"];
+
+				if (value != nil) {
+					NSString *line = [NSString stringWithFormat:@"Cookie: %@", value];
+
+					headerList = curl_slist_append(headerList, [line UTF8String]);
+				}
 			}
 		}
 		if (headerList != NULL) {
@@ -737,7 +774,10 @@ retry_transfer:
 	if (_client == nil) {
 		return;
 	}
-	target = [NSURL URLWithString:location];
+	/* **A Location IS RESOLVED AGAINST THE REQUEST'S URL.** RFC 9110 allows a relative reference ("/final",
+	 * "next"), and it is the COMMON form; the first version parsed it as a standalone URL, so a relative redirect
+	 * produced a URL with no scheme, no transfer could claim it, and the synchronous door waited forever. */
+	target = [[NSURL URLWithString:location relativeToURL:[[self request] URL]] absoluteURL];
 	if (target == nil) {
 		return;
 	}

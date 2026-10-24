@@ -204,3 +204,10 @@ add_test(NAME foundation_behaviour_2 COMMAND foundation_behaviour_2)
 add_executable(foundation_behaviour_3 foundation_behaviour_3.m)
 target_link_libraries(foundation_behaviour_3 PRIVATE Foundation CoreFoundation::CoreFoundation objc pthread)
 add_test(NAME foundation_behaviour_3 COMMAND foundation_behaviour_3)
+
+# THE BEHAVIOURAL PASS, FIFTH WAVE: a redirect followed with its Set-Cookie kept and sent, a POST body and a caller's
+# header, NSTask's pipes and environment, an NSConnection between two PROCESSES over a TCP socket port, and a
+# repeated observe/notify/archive soak.
+add_executable(foundation_behaviour_4 foundation_behaviour_4.m)
+target_link_libraries(foundation_behaviour_4 PRIVATE Foundation CoreFoundation::CoreFoundation objc pthread)
+add_test(NAME foundation_behaviour_4 COMMAND foundation_behaviour_4)

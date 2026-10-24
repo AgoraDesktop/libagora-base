@@ -149,18 +149,21 @@ metric that moves, a metric that appears, or a metric that disappears. Inline do
 and `NSMakeRange`/`NSMaxRange` are found where they are declared (`libagora-core`).
 
 **A complete surface is not a behavioural claim.** Every name has a body; what the bodies DO is measured by callers,
-in six probes: `object_surface` (the F1 slice), `scripting_surface` (the last five waves), `core_values` (strings,
+in seven probes: `object_surface` (the F1 slice), `scripting_surface` (the last five waves), `core_values` (strings,
 collections, numbers, data, dates, index sets, JSON, property lists, archivers and URLs), `foundation_behaviour`
 (predicates and KVC operators, sort descriptors, notifications, operations, the file manager, streams, undo, regular
 expressions, date formatting, timers, character sets), `foundation_behaviour_2` (calendar arithmetic and DST,
-formatters, defaults domains, XML, transformers, cookies, locales and zones) and `foundation_behaviour_3` (secure
-coding with allow-lists, defaults written by another process, an HTTP request against a loopback server, socket
-streams, an NSConnection round-trip, file handles, and a coarse performance smoke test). They found and fixed thirteen
-defects, each recorded in its commit: clamped range doors that should raise, a NUL answer for an out-of-range
-character, double-precision number comparison, NaN equality, ignored search options, numeric comparison, a cancelled
-operation that never finished, a lenient-by-default date parser, an element string value that ignored its text, a
-path-less input stream that could not open (which made every socket stream unreadable), and a selector-based sort that
-was still quadratic (50,000 numbers: 84 seconds before, 0.05 after).
+formatters, defaults domains, XML, transformers, cookies, locales and zones), `foundation_behaviour_3` (secure coding
+with allow-lists, defaults written by another process, an HTTP request against a loopback server, socket streams, an
+NSConnection round-trip, file handles, and a coarse performance smoke test) and `foundation_behaviour_4` (a redirect
+with its cookie, a POST body and header, NSTask's pipes and environment, NSConnection on its own thread, and a
+lifecycle soak). They found and fixed sixteen defects, each recorded in its commit: clamped range doors that should
+raise, a NUL answer for an out-of-range character, double-precision number comparison, NaN equality, ignored search
+options, numeric comparison, a cancelled operation that never finished, a lenient-by-default date parser, an element
+string value that ignored its text, a path-less input stream that could not open (which made every socket stream
+unreadable), a selector-based sort that was still quadratic (50,000 numbers: 84 seconds before, 0.05 after), a
+relative redirect that left the synchronous door waiting forever, an `HTTPShouldHandleCookies` that nothing honoured,
+and a serving thread that watched nothing (so `-runInNewThread` never answered).
 
 Five waves closed the surface, and three of them are **refusals by name rather than imitations**:
 
