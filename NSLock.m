@@ -260,7 +260,7 @@ static void fn_nap(void)
  * its body - musl pthreads - stays here for its three consumers (NSOperation.m twíce, NSTask.m once), which
  * reach it through an ivar. ITS `name`/`setName:`/`description` DOORS REMAIN IMPLEMENTED AND UNDECLARED: no
  * consumer sends them, and deleting a working body was not worth a mis-edit. */
-@implementation FNCondition
+@implementation NSCondition
 
 - (instancetype)init
 {
@@ -358,6 +358,12 @@ static void fn_nap(void)
 }
 
 @end
+
+/* THE OLD NAME, AS AN EMPTY SUBCLASS. The body above is NSCondition's now; this keeps every existing ivar and call
+ * site spelled the same and cannot drift from the class it inherits. */
+@implementation FNCondition
+@end
+
 
 @implementation NSConditionLock
 

@@ -972,6 +972,25 @@ __attribute__((swift_bridge("Swift.String")))
  * Instances are marked permanent by the runtime (class_table.c special-cases
  * this name), so they take no part in reference counting.
  */
+/*
+ * THE C-STRING-BACKED CONCRETE CLASS (10.0), Apple's `NSSimpleCString`. It is the cheapest possible NSString: a byte
+ * buffer that was copied once, answering the three primitives everything else in this class is built from. Apple
+ * ALSO makes NSConstantString a subclass of it; this tree's NSConstantString is the compiler's literal class with its
+ * own layout, so the inheritance is deliberately NOT reproduced — the class exists with the same primitives and
+ * nothing depends on the relationship.
+ */
+@interface NSSimpleCString : NSString
+{
+@package
+	char *_bytes;
+	int _numBytes;
+}
+/* OUR CONSTRUCTION DOOR, because Apple's class is made by the class cluster rather than by a public initialiser:
+ * copies the bytes (the name says "simple", and sharing a caller's buffer would not be). */
+- (nullable instancetype)initWithBytes:(const char *)bytes length:(NSUInteger)length;
++ (nullable instancetype)stringWithBytes:(const char *)bytes length:(NSUInteger)length;
+@end
+
 @interface NSConstantString : NSString
 {
 	unsigned int _rflags;

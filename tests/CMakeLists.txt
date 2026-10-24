@@ -168,3 +168,10 @@ endif()
 add_executable(object_surface object_surface.m)
 target_link_libraries(object_surface PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 add_test(NAME object_surface COMMAND object_surface)
+
+# THE F3/F5/F6/F10/F11 SUBSYSTEMS, MEASURED BY A CALLER: the specifier walk, a whose-test, the standard commands, a
+# suite declaration, the AppleEvent descriptor, the AppleScript refusal, a metadata query over a temporary directory,
+# and the TXT-record codec plus the net-service refusal.
+add_executable(scripting_surface scripting_surface.m)
+target_link_libraries(scripting_surface PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+add_test(NAME scripting_surface COMMAND scripting_surface)

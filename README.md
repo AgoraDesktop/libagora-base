@@ -138,27 +138,43 @@ with a NULL zone. `tests/zones.m` measures the whole contract.
 
 ## The 10.6 surface, measured
 
-`Foundation.h` names macOS 10.6 as this library's reference, and the reference is now a number rather than a
-sentence. `api/10.6/foundation-manifest.txt` holds the committed facts of Apple's 10.6 Foundation — 173 classes, 23
-protocols, 183 C functions and 2,840 declared selectors, names and relationships only, because the SDK is not
-redistributable — and `tests/api-10.6-census.txt` pins what this tree answers.
+`Foundation.h` names macOS 10.6 as this library's reference, and the reference is a number rather than a sentence.
+`api/10.6/foundation-manifest.txt` holds the committed facts of Apple's 10.6 Foundation — 173 classes, 23 protocols,
+183 C functions and 2,840 declared selectors, names and relationships only, because the SDK is not redistributable —
+and `tests/api-10.6-census.txt` pins what this tree answers.
 
-**130 of 173 classes, 2,275 of 2,514 selectors (90.5%), 20 of 23 protocols, 179 of 180 functions.** The gate is
+**173 of 173 classes, 2,840 of 2,840 selectors, 23 of 23 protocols, 180 of 180 functions.** The gate is
 `foundation-api-census` in `tests/`, which runs `../libagora-app/tools/api-ledger` and fails in both directions: a
 metric that moves, a metric that appears, or a metric that disappears. Inline doors are exempt from being symbols,
-and `NSMakeRange`/`NSMaxRange` are found where they are declared (`libagora-core`), so the one absent function is
-`NSCountFrames`.
+and `NSMakeRange`/`NSMaxRange` are found where they are declared (`libagora-core`).
 
-The gap is not diffuse. The **43 absent classes** partition exactly onto `COCOA-10.11-SURFACE-PLAN.md` §6.1 once
-the members that are 10.7 or later are removed — scripting and AppleEvents (F10) 34, metadata (F3) 4, net services
-(F6) 2, `NSCondition` (F5) 1, and `NSSimpleCString`/`NSGarbageCollector` (F11) 2 — and the **239 absent selectors**
-sit on 39 classes, `NSObject` alone accounting for 133. About 35 of those are declaration-only: the URL-loading and
-file-manager informal delegate callbacks, which this tree declares as formal protocols and already dispatches.
+**A complete surface is not a behavioural claim.** Every name has a body; what the bodies DO is measured by callers.
+`tests/object_surface.m` covers the F1 slice (the runtime hooks, the delayed and threaded perform family, KVC/KVO,
+the comparison protocol, the stack doors, the formatter and collection additions), and `tests/scripting_surface.m`
+covers the last five waves: object specifiers and whose-tests, the standard commands, class and command descriptions,
+the AppleEvent descriptor as data, AppleScript's refusal, a real metadata query over a temporary directory, and the
+TXT-record codec plus the net-service refusal.
 
-**A refusal in prose is not a door.** `methods-declared-not-implemented` is pinned at 5 — the three `NSAffineTransform`
-AppKit additions and two missing defaults — because a header that says it does not implement something is a note, and
-the plan's declaration tier asks for a body that refuses by name. Those five fall when the bodies land.
+Five waves closed the surface, and three of them are **refusals by name rather than imitations**:
 
-The census measures 10.6 because that is the reference. `Foundation.h` also records a 10.2 **baseline** used to
-decide removals (§11.0); 81 of the 239 selectors are 10.3–10.6 additions that baseline excluded. Which of them a
-slice schedules is a separate decision — the census keeps them visible either way.
+- **F1** — the root-class and value doors, including the informal delegate protocols (declared and marked
+  `FN_INFORMAL`, counted in `methods-informal`).
+- **F5/F11** — `NSCondition` restored on the pthread body that had been re-homed as `FNCondition`;
+  `NSSimpleCString` as a real C-string-backed concrete string; `NSGarbageCollector` with the documented
+  no-collector answers.
+- **F10** — a working scripting model: eight specifier kinds, whose/logical tests, the nine standard commands,
+  descriptions and the suite registry, and the NSObject scripting category. The AppleEvent descriptor is a data type
+  (bytes, lists, keyword records, coercion); `NSAppleScript` and `NSAppleEventManager` execution **raise or return an
+  error naming the absent OSA component and AppleEvents transport**.
+- **F3** — `NSMetadataQuery` over a provider this library owns: a synchronous walk of the search scopes building
+  `kMDItem` attributes, with the predicate, sorting, grouping and value lists applied. There are no live updates, and
+  the header says so.
+- **F6** — `NSNetService`/`NSNetServiceBrowser` store their identity and TXT records (the TXT codec is a real wire
+  format), but publishing, resolving and browsing **report `NSNetServicesInvalidError` to the delegate**, because this
+  system has no DNS-SD responder.
+
+`methods-declared-not-implemented` is pinned at 3 — the three `NSAffineTransform` AppKit additions whose header refuses
+them in prose — because a note is not a door and the plan's declaration tier asks for a body that refuses by name.
+The census measures 10.6 because that is the reference; `Foundation.h`'s 10.2 baseline (§11.0) governs what may be
+removed, and the difference between a door the baseline cut and a door nobody finished is exactly what this pin made
+visible.

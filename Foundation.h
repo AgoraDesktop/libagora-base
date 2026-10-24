@@ -43,6 +43,7 @@
 
 #import <Foundation/NSObjCRuntime.h>
 #import <Foundation/NSDebug.h>
+#import <Foundation/NSGarbageCollector.h>
 #import <Foundation/NSZone.h>
 #import <Foundation/NSBundle.h>
 #import <Foundation/NSByteOrder.h>
@@ -119,7 +120,17 @@
 #import <Foundation/NSExpression.h>
 #import <Foundation/NSPredicate.h>
 #import <Foundation/NSComparisonPredicate.h>
+#import <Foundation/NSClassDescription.h>
+#import <Foundation/NSScriptClassDescription.h>
+#import <Foundation/NSScriptObjectSpecifiers.h>
+#import <Foundation/NSObjectScripting.h>
 #import <Foundation/NSScriptWhoseTests.h>
+#import <Foundation/NSScriptCommand.h>
+#import <Foundation/NSAppleEventDescriptor.h>
+#import <Foundation/NSAppleEventManager.h>
+#import <Foundation/NSAppleScript.h>
+#import <Foundation/NSMetadata.h>
+#import <Foundation/NSNetServices.h>
 #import <Foundation/NSCompoundPredicate.h>
 #import <Foundation/NSFormatter.h>
 #import <Foundation/NSLengthFormatter.h>
@@ -167,6 +178,7 @@
 #import <Foundation/NSRegularExpression.h>
 #import <Foundation/NSDataDetector.h>
 #import <Foundation/NSLock.h>
+#import <Foundation/NSCondition.h>
 #import <Foundation/NSThread.h>
 #import <Foundation/NSTimer.h>
 #import <Foundation/NSRunLoop.h>

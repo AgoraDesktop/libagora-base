@@ -5575,6 +5575,96 @@ static void fn_utf16_to_utf8(const unsigned char *data, size_t units, char *out)
 	out[n] = '\0';
 }
 
+@implementation NSSimpleCString
+
+- (instancetype)initWithBytes:(const char *)bytes length:(NSUInteger)length
+{
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	_bytes = malloc(length > 0 ? length : 1);
+	if (_bytes == NULL) {
+		[self release];
+		return nil;
+	}
+	if (length > 0) {
+		memcpy(_bytes, bytes, length);
+	}
+	_numBytes = (int)length;
+	return self;
+}
+
++ (instancetype)stringWithBytes:(const char *)bytes length:(NSUInteger)length
+{
+	return [[[self alloc] initWithBytes:bytes length:length] autorelease];
+}
+
+- (void)dealloc
+{
+	free(_bytes);
+	[super dealloc];
+}
+
+/* THE THREE PRIMITIVES. Every other NSString door is written over these, which is what makes the class a real
+ * concrete string rather than a name: the bytes are UTF-8, so `-length` counts CHARACTERS (one per lead byte) and
+ * `-characterAtIndex:` decodes the run starting at the index it is given. */
+- (NSUInteger)length
+{
+	NSUInteger characters = 0;
+	int i;
+
+	for (i = 0; i < _numBytes; i++) {
+		if (((unsigned char)_bytes[i] & 0xC0) != 0x80) {
+			characters++;
+		}
+	}
+	return characters;
+}
+
+- (unichar)characterAtIndex:(NSUInteger)index
+{
+	NSUInteger characters = 0;
+	int i;
+
+	for (i = 0; i < _numBytes; i++) {
+		unsigned char byte = (unsigned char)_bytes[i];
+
+		if ((byte & 0xC0) == 0x80) {
+			continue;
+		}
+		if (characters == index) {
+			NSUInteger length = (byte >= 0xF0) ? 4 : (byte >= 0xE0) ? 3 : (byte >= 0xC0) ? 2 : 1;
+			unichar decoded = 0;
+			NSUInteger j;
+
+			if (length == 1) {
+				return byte;
+			}
+			decoded = (unichar)(byte & (0xFF >> (length + 1)));
+			for (j = 1; j < length && i + (int)j < _numBytes; j++) {
+				decoded = (unichar)((decoded << 6) | ((unsigned char)_bytes[i + j] & 0x3F));
+			}
+			return decoded;
+		}
+		characters++;
+	}
+	[NSException raise:NSRangeException format:@"NSSimpleCString: index %lu beyond length",
+						   (unsigned long)index];
+	return 0;
+}
+
+- (void)getCharacters:(unichar *)buffer range:(NSRange)range
+{
+	NSUInteger i;
+
+	for (i = 0; i < range.length; i++) {
+		buffer[i] = [self characterAtIndex:range.location + i];
+	}
+}
+
+@end
+
 @implementation NSConstantString
 
 /* The runtime's layout, read through its own fields. */

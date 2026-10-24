@@ -24,6 +24,8 @@
 #import <Foundation/NSObject.h>
 
 @class NSString;
+@class NSArray;
+@class NSDictionary;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -53,6 +55,50 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)scriptingEndsWith:(NSString *)object;
 - (BOOL)scriptingContains:(NSString *)object;
 
+@end
+
+/* ---- THE WHOSE-TEST TREE -------------------------------------------------------------------------------------- */
+
+typedef NS_ENUM(NSUInteger, NSTestComparisonOperation) {
+	NSEqualToComparison = 0,
+	NSLessThanOrEqualToComparison = 1,
+	NSLessThanComparison = 2,
+	NSGreaterThanOrEqualToComparison = 3,
+	NSGreaterThanComparison = 4,
+	NSBeginsWithComparison = 5,
+	NSEndsWithComparison = 6,
+	NSContainsComparison = 7
+};
+
+@class NSScriptObjectSpecifier;
+
+/* A QUESTION ABOUT A VALUE. `-isTrue` evaluates it; the base class answers NO, which is the only answer that cannot
+ * turn a missing test into a match. */
+@interface NSScriptWhoseTest : NSObject
+- (BOOL)isTrue;
+@end
+
+@interface NSSpecifierTest : NSScriptWhoseTest
+{
+@private
+	NSScriptObjectSpecifier *_objectSpecifier;
+	NSTestComparisonOperation _comparisonOperator;
+	id _testObject;
+}
+- (instancetype)initWithObjectSpecifier:(nullable NSScriptObjectSpecifier *)objectSpecifier
+		     comparisonOperator:(NSTestComparisonOperation)comparisonOperator
+			     testObject:(nullable id)testObject;
+@end
+
+@interface NSLogicalTest : NSScriptWhoseTest
+{
+@private
+	NSInteger _logicalType;		/* 0 = and, 1 = or, 2 = not */
+	NSArray *_subtests;
+}
+- (instancetype)initAndTestWithTests:(NSArray *)subtests;
+- (instancetype)initOrTestWithTests:(NSArray *)subtests;
+- (instancetype)initNotTestWithTest:(NSScriptWhoseTest *)subtest;
 @end
 
 NS_ASSUME_NONNULL_END
