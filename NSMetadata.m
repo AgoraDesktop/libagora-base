@@ -13,6 +13,11 @@
 #import <Foundation/NSPredicate.h>
 #import <Foundation/NSFileManager.h>
 #import <Foundation/NSSortDescriptor.h>
+#import <Foundation/NSNotification.h>
+#import <Foundation/NSNotificationCenter.h>
+#import <Foundation/NSSet.h>
+#import <Foundation/NSRunLoop.h>
+#import <Foundation/NSTimer.h>
 #include <dirent.h>
 #include <sys/stat.h>
 
@@ -150,6 +155,8 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 	[_results release];
 	[_groupedResults release];
 	[_valueLists release];
+	[_updateTimer invalidate];
+	[_updateTimer release];
 	[super dealloc];
 }
 
@@ -213,9 +220,6 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 	return [[self resultAtIndex:index] valueForAttribute:attribute];
 }
 
-- (void)disableUpdates { _updatesDisabled = YES; }
-- (void)enableUpdates { _updatesDisabled = NO; }
-
 /* THE WALK. `-fnGatherAtPath:` recurses; a file becomes an item with the attributes this library can observe. A
  * directory is walked but is not itself a result, which matches what a content query returns for a file system. */
 - (void)fnGatherAtPath:(NSString *)path into:(NSMutableArray *)items
@@ -271,14 +275,14 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 	return [scope isKindOfClass:[NSString class]] ? scope : nil;
 }
 
-- (void)startQuery
+/* THE GATHERING, ONCE. The walk, the predicate and the sort are one function so that the first gather and every poll
+ * cannot disagree about what a result is. */
+- (NSArray *)fnGatherNow
 {
 	NSMutableArray *items = [NSMutableArray array];
 	NSArray *scopes = _searchScopes;
 	NSUInteger i;
 
-	_started = YES;
-	_gathering = YES;
 	if (scopes == nil || [scopes count] == 0) {
 		scopes = [NSArray arrayWithObject:NSHomeDirectory()];
 	}
@@ -304,8 +308,15 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 	if (_sortDescriptors != nil && [_sortDescriptors count] > 0) {
 		[items sortUsingDescriptors:_sortDescriptors];
 	}
-	[_results release];
-	_results = [items copy];
+	return items;
+}
+
+/* THE DERIVED ANSWERS: grouping and value lists. Rebuilt whenever the result set changes, and nil when the query asked
+ * for neither. */
+- (void)fnRebuildDerivedFrom:(NSArray *)items
+{
+	NSUInteger i;
+
 	[_groupedResults release];
 	_groupedResults = nil;
 	[_valueLists release];
@@ -373,7 +384,75 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 		}
 		_valueLists = [lists copy];
 	}
+}
+
+/* THE IDENTITY OF A RESULT SET, FOR THE POLL: the paths, which are stable across two walks where NSMetadataItem
+ * pointers are not. */
+- (NSSet *)fnPathsForResults:(NSArray *)items
+{
+	NSMutableSet *paths = [NSMutableSet setWithCapacity:[items count]];
+	NSUInteger i;
+
+	for (i = 0; i < [items count]; i++) {
+		id path = [[items objectAtIndex:i] valueForAttribute:@"kMDItemPath"];
+
+		if (path != nil) {
+			[paths addObject:path];
+		}
+	}
+	return paths;
+}
+
+/* THE POLL IS THE ONLY LIVE-UPDATE MECHANISM THIS PROVIDER HAS, and the header says so. A change is a different PATH
+ * SET; when it changes, the results are replaced and `NSMetadataQueryDidUpdateNotification` is posted. The interval is
+ * `-notificationBatchingInterval` when a caller set one, and half a second otherwise. */
+- (void)fnPollForChanges
+{
+	NSArray *fresh;
+	NSArray *oldResults = _results;
+
+	if (!_started || _updatesDisabled) {
+		return;
+	}
+	fresh = [self fnGatherNow];
+	if (![[self fnPathsForResults:fresh] isEqual:[self fnPathsForResults:oldResults]]) {
+		_results = [fresh copy];
+		[oldResults release];
+		[self fnRebuildDerivedFrom:_results];
+		[[NSNotificationCenter defaultCenter] postNotificationName:NSMetadataQueryDidUpdateNotification
+								    object:self];
+	}
+}
+
+- (void)fnScheduleUpdates
+{
+	NSTimeInterval interval;
+
+	if (_updateTimer != nil || _updatesDisabled || !_started) {
+		return;
+	}
+	interval = _notificationBatchingInterval > 0 ? _notificationBatchingInterval : 0.5;
+	_updateTimer = [[NSTimer scheduledTimerWithTimeInterval:interval
+							 target:self
+						       selector:@selector(fnPollForChanges)
+						       userInfo:nil
+							repeats:YES] retain];
+}
+
+- (void)startQuery
+{
+	if (_started) {
+		return;
+	}
+	_started = YES;
+	_gathering = YES;
+	[[NSNotificationCenter defaultCenter] postNotificationName:NSMetadataQueryDidStartGatheringNotification
+							    object:self];
+	_results = [[self fnGatherNow] copy];
+	[self fnRebuildDerivedFrom:_results];
 	_gathering = NO;
+	[[NSNotificationCenter defaultCenter] postNotificationName:NSMetadataQueryDidFinishGatheringNotification
+							    object:self];
 	if ([_delegate respondsToSelector:@selector(metadataQueryDidFinishGathering:)]) {
 		typedef void (*fn_delegate)(id, SEL, id);
 		fn_delegate call = (fn_delegate)[(id)_delegate methodForSelector:
@@ -381,12 +460,34 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 
 		call(_delegate, @selector(metadataQueryDidFinishGathering:), self);
 	}
+	[self fnScheduleUpdates];
 }
 
 - (void)stopQuery
 {
 	_started = NO;
 	_gathering = NO;
+	[_updateTimer invalidate];
+	[_updateTimer release];
+	_updateTimer = nil;
+}
+
+- (void)disableUpdates
+{
+	_updatesDisabled = YES;
+	[_updateTimer invalidate];
+	[_updateTimer release];
+	_updateTimer = nil;
+}
+
+- (void)enableUpdates
+{
+	if (!_updatesDisabled) {
+		return;
+	}
+	_updatesDisabled = NO;
+	[self fnPollForChanges];
+	[self fnScheduleUpdates];
 }
 
 @end

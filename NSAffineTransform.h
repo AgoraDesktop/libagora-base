@@ -76,9 +76,9 @@ typedef struct {
  * which this library has not, so the implementation lives in userland/AppKit/NSAffineTransformAdditions.m.
  *   -set REPLACES the current context's CTM with the receiver; -concat COMPOSES the receiver onto it;
  *   -transformBezierPath: returns a transformed COPY, leaving its argument alone. */
-- (void)set;
-- (void)concat;
-- (NSBezierPath *)transformBezierPath:(NSBezierPath *)path;
+- (void)set FN_COMPANION;
+- (void)concat FN_COMPANION;
+- (NSBezierPath *)transformBezierPath:(NSBezierPath *)path FN_COMPANION;
 @end
 
 NS_ASSUME_NONNULL_END

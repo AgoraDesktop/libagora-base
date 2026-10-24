@@ -20,11 +20,18 @@
 #import <Foundation/NSDate.h>	/* NSTimeInterval */
 
 @class NSArray;
+@class NSTimer;
 @class NSDictionary;
 @class NSPredicate;
 @class NSURL;
 @class NSMetadataQuery;
 @class NSMetadataItem;
+
+/* THE FOUR NOTIFICATIONS (10.4). Names are Apple's; the update one is posted by this provider's poll. */
+extern NSString *const NSMetadataQueryDidStartGatheringNotification;
+extern NSString *const NSMetadataQueryGatheringProgressNotification;
+extern NSString *const NSMetadataQueryDidFinishGatheringNotification;
+extern NSString *const NSMetadataQueryDidUpdateNotification;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -92,6 +99,7 @@ NS_ASSUME_NONNULL_BEGIN
 	BOOL _started;
 	BOOL _gathering;
 	BOOL _updatesDisabled;
+	NSTimer *_updateTimer;		/* the provider's poll, when updates are enabled */
 }
 
 - (instancetype)init;

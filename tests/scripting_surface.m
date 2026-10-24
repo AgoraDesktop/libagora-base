@@ -62,6 +62,7 @@ check(int condition, const char *what)
 @public
 	int didNotPublish;
 	int didNotSearch;
+	int metadataUpdated;
 }
 @end
 
@@ -75,6 +76,11 @@ check(int condition, const char *what)
 {
 	(void)browser; (void)errorDict;
 	didNotSearch++;
+}
+- (void)metadataUpdated:(NSNotification *)notification
+{
+	(void)notification;
+	metadataUpdated++;
 }
 @end
 
@@ -257,6 +263,7 @@ main(void)
 		[query setPredicate:predicate];
 		[query setGroupingAttributes:[NSArray arrayWithObject:@"kMDItemContentType"]];
 		[query setValueListAttributes:[NSArray arrayWithObject:@"kMDItemContentType"]];
+		[query setNotificationBatchingInterval:0.05];
 		[query startQuery];
 		check([query resultCount] == 2, "the metadata query finds the two files");
 		check([[query results] count] == 2 &&
@@ -265,10 +272,44 @@ main(void)
 		check([[query groupedResults] count] > 0, "grouping produces groups");
 		check([[query valueLists] count] == 1, "a value-list attribute produces tuples");
 		check(![query isGathering] && [query isStarted], "the query is gathered and started");
+
+		/* A LIVE UPDATE: a file added while the query runs is seen by the provider's poll and announced. */
+		{
+			NetProbe *observer = [[NetProbe alloc] init];
+			FILE *third;
+			int spins = 0;
+
+			[[NSNotificationCenter defaultCenter] addObserver:observer
+								 selector:@selector(metadataUpdated:)
+								     name:NSMetadataQueryDidUpdateNotification
+								   object:query];
+			third = fopen([[[NSString stringWithUTF8String:directory]
+					stringByAppendingPathComponent:@"three.txt"] UTF8String], "w");
+			if (third != NULL) {
+				fputs("three", third);
+				fclose(third);
+			}
+			while (observer->metadataUpdated == 0 && spins++ < 40) {
+				[[NSRunLoop currentRunLoop] runUntilDate:
+					[NSDate dateWithTimeIntervalSinceNow:0.05]];
+			}
+			check(observer->metadataUpdated > 0, "an added file produces an update notification");
+			check([query resultCount] == 3, "the update brought the new file into the results");
+			[[NSNotificationCenter defaultCenter] removeObserver:observer
+									name:NSMetadataQueryDidUpdateNotification
+								      object:query];
+			[observer release];
+		}
 		[query stopQuery];
 		check([query isStopped], "stopQuery marks the query stopped");
 		[query release];
 
+		{
+			char third[512];
+
+			snprintf(third, sizeof third, "%s/three.txt", directory);
+			unlink(third);
+		}
 		unlink(first);
 		unlink(second);
 		rmdir(directory);

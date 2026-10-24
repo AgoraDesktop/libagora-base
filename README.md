@@ -166,15 +166,17 @@ Five waves closed the surface, and three of them are **refusals by name rather t
   descriptions and the suite registry, and the NSObject scripting category. The AppleEvent descriptor is a data type
   (bytes, lists, keyword records, coercion); `NSAppleScript` and `NSAppleEventManager` execution **raise or return an
   error naming the absent OSA component and AppleEvents transport**.
-- **F3** — `NSMetadataQuery` over a provider this library owns: a synchronous walk of the search scopes building
-  `kMDItem` attributes, with the predicate, sorting, grouping and value lists applied. There are no live updates, and
-  the header says so.
+- **F3** — `NSMetadataQuery` over a provider this library owns: a walk of the search scopes building `kMDItem`
+  attributes, with the predicate, sorting, grouping and value lists applied. The first gathering is synchronous; live
+  updates are a run-loop poll of the same walk (half a second, or `-notificationBatchingInterval`), diffed by path and
+  announced with `NSMetadataQueryDidUpdateNotification`, which `-disableUpdates`/`-enableUpdates` start and stop.
 - **F6** — `NSNetService`/`NSNetServiceBrowser` store their identity and TXT records (the TXT codec is a real wire
   format), but publishing, resolving and browsing **report `NSNetServicesInvalidError` to the delegate**, because this
   system has no DNS-SD responder.
 
-`methods-declared-not-implemented` is pinned at 3 — the three `NSAffineTransform` AppKit additions whose header refuses
-them in prose — because a note is not a door and the plan's declaration tier asks for a body that refuses by name.
+`methods-declared-not-implemented` is pinned at **0**. The last three were `NSAffineTransform`'s `-set`, `-concat` and
+`-transformBezierPath:`, which this framework declares and AppKit implements; they are marked `FN_COMPANION`, counted in
+`methods-external`, and implemented in `libagora-app`. No declaration in this tree is left without a body somewhere.
 The census measures 10.6 because that is the reference; `Foundation.h`'s 10.2 baseline (§11.0) governs what may be
 removed, and the difference between a door the baseline cut and a door nobody finished is exactly what this pin made
 visible.

@@ -109,6 +109,15 @@ typedef struct _NSZone NSZone;
  * about THIS TREE's promises — and counts them in `methods-informal` so the exemption is visible. */
 #define FN_INFORMAL			/* implemented by the delegate, not by NSObject */
 
+/* FN_COMPANION MARKS A DECLARATION THE OTHER FRAMEWORK IN THE PAIR IMPLEMENTS.
+ *
+ * Apple declares NSAffineTransform's -set, -concat and -transformBezierPath: in Foundation and implements them in
+ * AppKit, because they act on a graphics context and on an NSBezierPath. This tree keeps the same split
+ * (libagora-app/NSAffineTransformAdditions.m), and Foundation must not import the drawing API to duplicate it. The
+ * marker says so at the declaration; `tools/api-ledger` exempts it from `methods-declared-not-implemented` and counts
+ * it in `methods-external`, so the split is visible instead of looking like an unfinished door. */
+#define FN_COMPANION			/* implemented by this tree's AppKit tier */
+
 /* --- declaring an enum (Apple's signatures) --- */
 /* THE ATTRIBUTES ARE PART OF THE MACRO, not decoration: `enum_extensibility` and
  * `flag_enum` are what make the Swift importer emit the constants as members of
