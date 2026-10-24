@@ -373,6 +373,40 @@ static id FNAggregate(NSString *function, NSArray *values)
 	}
 
 	case NSFunctionExpressionType: {
+		/* THE SELECTOR FORM: `FUNCTION(receiver, "selector", args…)`, which has an OPERAND and invokes a method on
+		 * it rather than looking the name up in the table below. Zero, one and two arguments are supported, which is
+		 * what `-performSelector:` declares; more is refused by name. */
+		if (_operand != nil) {
+			id target = [_operand expressionValueWithObject:object context:context];
+			SEL selector = NSSelectorFromString(_function);
+			NSUInteger n = [_arguments count];
+
+			if (selector == NULL) {
+				[NSException raise:NSInvalidArgumentException
+				            format:@"NSExpression: FUNCTION names the selector `%@`, which does not exist", _function];
+			}
+			if (target == nil) {
+				return nil;
+			}
+			if (n == 0) {
+				return [target performSelector:selector];
+			}
+			if (n == 1) {
+				return [target performSelector:selector
+				                    withObject:[[_arguments objectAtIndex:0] expressionValueWithObject:object
+				                                                                                context:context]];
+			}
+			if (n == 2) {
+				return [target performSelector:selector
+				                    withObject:[[_arguments objectAtIndex:0] expressionValueWithObject:object
+				                                                                                context:context]
+				                    withObject:[[_arguments objectAtIndex:1] expressionValueWithObject:object
+				                                                                                context:context]];
+			}
+			[NSException raise:NSInvalidArgumentException
+			            format:@"NSExpression: FUNCTION(_, \"%@\") with %lu arguments; -performSelector: takes at most "
+			                   @"two", _function, (unsigned long)n];
+		}
 		if ([_function isEqualToString:@"now"]) {
 			return [NSDate date];
 		}

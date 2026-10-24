@@ -309,6 +309,31 @@ static NSExpression *FNParsePrimary(FNP *p)
 				}
 			}
 			if (!FNEat(p, ')')) { [args release]; FNFail(p, @"expected `)` closing a function"); }
+			/* ⚠ **`FUNCTION(receiver, "selector")` IS A SELECTOR FORM, NOT A FUNCTION CALLED `FUNCTION`.** The
+			 * parser used to read it as a function named `FUNCTION:` and evaluation refused it by that name, which
+			 * is how this gap was found (§0.15). Apple's grammar puts the receiver first and the selector as a
+			 * STRING second, with any arguments after it. */
+			if ([name caseInsensitiveCompare:@"FUNCTION"] == NSOrderedSame && [args count] >= 2) {
+				id receiver = [args objectAtIndex:0];
+				/* THE SELECTOR ARRIVES AS A CONSTANT EXPRESSION, not as a string: every argument is parsed as an
+				 * expression, and a quoted string parses to `expressionForConstantValue:`. */
+				id selector = [[args objectAtIndex:1] constantValue];
+				NSMutableArray *rest = [[NSMutableArray alloc] init];
+				NSUInteger k;
+
+				if (![selector isKindOfClass:[NSString class]]) {
+					[rest release];
+					[args release];
+					FNFail(p, @"FUNCTION's second argument must be a selector NAME in quotes");
+				}
+				for (k = 2; k < [args count]; k++) {
+					[rest addObject:[args objectAtIndex:k]];
+				}
+				e = [NSExpression expressionForFunction:receiver selectorName:selector arguments:rest];
+				[rest release];
+				[args release];
+				return e;
+			}
 			e = [NSExpression expressionForFunction:[name stringByAppendingString:@":"]
 			                             arguments:args];
 			[args release];
@@ -573,6 +598,16 @@ NSPredicate *FNParsePredicateFormat(NSString *format, NSArray *arguments)
 		NSArray *items = [self arguments];
 		NSMutableString *out = [[NSMutableString alloc] init];
 		NSUInteger i, n = [items count];
+
+		if ([self operand] != nil) {
+			/* FUNCTION(receiver, "selector" [, args…]) — the form the parser reads back. */
+			[out appendFormat:@"FUNCTION(%@, \"%@\"", [[self operand] fn_expressionFormat], [self function]];
+			for (i = 0; i < n; i++) {
+				[out appendFormat:@", %@", [[items objectAtIndex:i] fn_expressionFormat]];
+			}
+			[out appendString:@")"];
+			return [out autorelease];
+		}
 		[out appendString:[self function]];
 		[out appendString:@"("];
 		for (i = 0; i < n; i++) {

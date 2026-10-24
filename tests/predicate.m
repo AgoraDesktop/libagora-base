@@ -164,6 +164,31 @@ int main(void)
 	CHECK([[NSPredicate predicateWithFormat:@"TRUEPREDICATE"] evaluateWithObject:nil] == YES,
 	      "TRUEPREDICATE parses");
 
+	/* 9b. `FUNCTION(receiver, "selector")`, which the parser used to read as a function named `FUNCTION:` —
+	 * the gap a 5,000-row Core Data suite found by tripping over it (§0.15). */
+	p = [NSPredicate predicateWithFormat:@"FUNCTION(name, \"uppercaseString\") == \"ALICE\""];
+	CHECK([p evaluateWithObject:[people objectAtIndex:0]] == YES, "FUNCTION(_, \"uppercaseString\") upper-cases");
+	CHECK([p evaluateWithObject:[people objectAtIndex:1]] == NO, "and is false for bob");
+	{
+		NSString *text = [p predicateFormat];
+		NSPredicate *again = [NSPredicate predicateWithFormat:text];
+
+		CHECK([text rangeOfString:@"FUNCTION("].location != NSNotFound, "and renders back as FUNCTION(...)");
+		CHECK([again evaluateWithObject:[people objectAtIndex:0]] ==
+		      [p evaluateWithObject:[people objectAtIndex:0]], "which parses to the same answer");
+	}
+	{
+		BOOL raised = NO;
+
+		@try {
+			(void)[[NSPredicate predicateWithFormat:@"FUNCTION(name, \"noSuchSelector\") == \"x\""]
+			       evaluateWithObject:[people objectAtIndex:0]];
+		} @catch (NSException *e) {
+			raised = YES;
+		}
+		CHECK(raised == YES, "an unknown selector refuses by name rather than crashing");
+	}
+
 	/* 10. text this tree cannot honour REFUSES, and says where — the plan's §4.3 rule at the format door */
 	{
 		BOOL raised = NO;
