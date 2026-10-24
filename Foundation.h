@@ -109,7 +109,12 @@
  * and the removal was measuring yesterday's target. Two further facts settled it: `api/10.6/appkit-manifest.txt`
  * carries 29 rows naming a predicate (`-fetchPredicate`, `-filterPredicate`, `NSPredicateEditorRowTemplate`), and
  * Core Data's `NSFetchRequest` is a fetcher OF predicates. The collection doors went with the family and come back
- * with it: `-filteredArrayUsingPredicate:`, `-filterUsingPredicate:`, `-filteredSetUsingPredicate:`. */
+ * with it: `-filteredArrayUsingPredicate:`, `-filterUsingPredicate:`, `-filteredSetUsingPredicate:`.
+ *
+ * ⚠ AND THE CENSUS THAT PREAMBLE NAMED NOW EXISTS FOR THIS LIBRARY TOO: `api/10.6/foundation-manifest.txt` is the
+ * facts and `../tests/api-10.6-census.txt` is the pin, so "inside the reference" is answered by a metric rather
+ * than by this comment. It measures the whole 10.6 surface, including the 10.3–10.6 doors the baseline rule had
+ * excluded; scheduling those is the plan's decision, not the census's. */
 #import <Foundation/NSExpression.h>
 #import <Foundation/NSPredicate.h>
 #import <Foundation/NSComparisonPredicate.h>
@@ -206,7 +211,12 @@
  * Apple's LATER than the 10.2 baseline this library targets (§11.0), and all of them REMOVED here together. The
  * selector ledger had already filtered their owners out (§63.135); this is the code catching up with that
  * statement. WHAT REPLACED THEM IS THE 10.2 SHAPE THE SEAM ALWAYS HAD: a connection and a download drive
- * `NSURLProtocol` themselves (§63.153, §63.157), so no class in this library owns a session. */
+ * `NSURLProtocol` themselves (§63.153, §63.157), so no class in this library owns a session.
+ *
+ * THE BASELINE AND THE CENSUS ARE DIFFERENT QUESTIONS, WHICH IS WHY REMOVING THEM DID NOT MOVE THE PIN: §11.0 is
+ * about what this library MAY LOSE, while `../tests/api-10.6-census.txt` measures the 10.6 surface a caller can
+ * reach. NSURLSession is 10.9, so it is outside that denominator; `NSCondition` is 10.5 and is inside it, which is
+ * why the census still lists it among the 43 absent classes. */
 #import <Foundation/NSHTTPURLResponse.h>
 #import <Foundation/NSHTTPCookie.h>
 #import <Foundation/NSURLProtectionSpace.h>

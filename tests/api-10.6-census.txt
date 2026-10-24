@@ -1,0 +1,592 @@
+# THE 10.6 API CENSUS — how much of the Mac OS X 10.6 Foundation this tree answers, pinned.
+#
+# Copyright © 2026 Kyle J. Cardoza.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#
+# The Foundation half of libagora-app's census, on the same terms and with the same instrument (`tools/api-ledger`,
+# which lives in that component and is pointed at from here). It exists because "Foundation 10.6 parity" had never
+# been a number: `Foundation.h` has named a 10.6 reference and this file for several slices, and this is that file.
+# The AppKit tier showed why the number must be recomputable — three hand counts of its gap gave 4%, 44% and 54%,
+# each measuring a different thing — and the same would have happened here.
+#
+# THE REFERENCE IS 10.6, AND THE SDK IS NOT IN THIS REPOSITORY. What is committed is the RECIPE
+# (`api/10.6/README.md`) and the generated NAME MANIFEST (`api/10.6/foundation-manifest.txt`: 173 classes, 23
+# protocols, 183 functions, 2,840 declared selectors). No declaration, comment, annotation or line of Apple's
+# expression is copied; names and relationships are the same kind of fact as a symbol table.
+#
+# THE MEASURED POSITION WHEN THIS FILE WAS PINNED — 130 of 173 classes, 2,275 of 2,514 selectors, 20 of 23 protocols,
+# 179 of 180 functions:
+#
+#   * THE 43 ABSENT CLASSES PARTITION EXACTLY ONTO THE PLAN'S WAVES (COCOA-10.11-SURFACE-PLAN.md §6.1) once the
+#     members that are 10.7 or later are removed: F10 scripting and AppleEvents 34, F3 metadata 4, F6 net services 2,
+#     F5 NSCondition 1, F11 NSSimpleCString + NSGarbageCollector 2. The three absent protocols are the delegates the
+#     metadata and net-service waves need.
+#   * THE 239 SELECTORS ARE CONCENTRATED: 39 classes, and NSObject alone accounts for 133. About 35 of the NSObject
+#     rows are DECLARATION-ONLY — 11 NSURLConnection, 14 NSURLDownload, 2 NSURLHandle and 8 NSFileManager informal
+#     delegate callbacks that this tree declares as formal protocols and dispatches already. The real rows are 7
+#     delayed/threaded performSelector: doors plus 2 cancel doors, 12 legacy KVC, 3 KVO customization, 6 runtime and
+#     reflection doors, ~30 scripting rows and the coder hooks. NSDateFormatter's 22 are its symbol SETTERS, whose
+#     getters already ship.
+#   * THE ONE ABSENT FUNCTION IS `NSCountFrames`. `NSMakeRange` and `NSMaxRange` are inline doors that live in
+#     `libagora-core/include/CFBridgingTypes.h` and are reached through `NSObjCRuntime.h`; the gate passes that
+#     directory as `--include`, so they are counted as inline rather than as missing symbols.
+#   * `methods-declared-not-implemented` IS 5, AND EVERY ONE IS NAMED: `-concat`, `-set` and
+#     `-transformBezierPath:` on NSAffineTransform (the three AppKit additions its header refuses in prose),
+#     `-observeValueForKeyPath:ofObject:change:context:` and NSXMLNode's `-initWithXMLString:`. A PINNED 5 RATHER THAN
+#     A PINNED 0 is deliberate: a prose refusal is not a door, and the plan's M1 tier asks for a body that refuses by
+#     name. When those bodies land this number falls, in the commit that names them.
+#
+# THREE INSTRUMENT FAULTS WERE FOUND BY POINTING THIS LEDGER AT FOUNDATION, AND EACH PRODUCED A PLAUSIBLE WRONG
+# ANSWER. They are recorded because they are the reason the numbers above are trusted:
+#
+#   1. LIGHTWEIGHT GENERICS DISABLED INHERITANCE. `@interface NSMutableArray<ObjectType> : NSArray<ObjectType>` put a
+#      parameter clause before the colon, so the superclass was read as None and the class stopped inheriting NSArray's
+#      BODIES — 8 implemented doors were counted as phantom. The superclass reader now skips the depth-counted clause.
+#   2. C FUNCTIONS DECLARED INSIDE `@interface` WERE INVISIBLE. The scan blanked every `@interface … @end`, and this
+#      library declares `NSStringFromClass`, `NSClassFromString`, the allocation family and the zone/page primitives
+#      there. They were reported as symbols with no declaration — a fault the gate fails on. The blanking is gone; the
+#      line anchor is what excludes methods, which begin with `-`, `+` or `@`.
+#   3. TOKEN-PASTED MACROS HID 44 DOORS. `FN_NUMBER_GET(Int, int)` generates `-intValue` through `NAME##Value`, and
+#      the accessor reader substituted the parameter for the whole name. Substitution is now per `##` piece, and the
+#      shapes are read from the file while the call sites are read from the block, because the `#define` sits above
+#      the `@implementation`.
+#
+# ERA: this file measures against 10.6 because that is the tree's own reference. `Foundation.h` also records a 10.2
+# BASELINE used to decide removals (§11.0); that rule and this denominator are different questions, and 81 of the 239
+# selectors are 10.3–10.6 additions that the baseline rule had excluded. Which of them a slice SCHEDULES is the
+# plan's decision; none of them is invisible here.
+#
+# TWO DIRECTIONS, AS IN THE APPKIT CENSUS: a metric that moves fails with a diagnostic, and the only way to change
+# the pin is to edit this file in the same commit that says what landed. The gate is `tests/api_census.cmake`; the
+# parser is `../libagora-app/tools/api-ledger`; the built library is an input, because a declaration is not a door.
+#
+classes-missing 43
+classes-offered 173
+classes-present 130
+fn:NSAllHashTableObjects 1
+fn:NSAllMapTableKeys 1
+fn:NSAllMapTableValues 1
+fn:NSAllocateCollectable 1
+fn:NSAllocateMemoryPages 1
+fn:NSAllocateObject 1
+fn:NSClassFromString 1
+fn:NSCompareHashTables 1
+fn:NSCompareMapTables 1
+fn:NSContainsRect 1
+fn:NSConvertHostDoubleToSwapped 1
+fn:NSConvertHostFloatToSwapped 1
+fn:NSConvertSwappedDoubleToHost 1
+fn:NSConvertSwappedFloatToHost 1
+fn:NSCopyHashTableWithZone 1
+fn:NSCopyMapTableWithZone 1
+fn:NSCopyMemoryPages 1
+fn:NSCopyObject 1
+fn:NSCountFrames 0
+fn:NSCountHashTable 1
+fn:NSCountMapTable 1
+fn:NSCreateHashTable 1
+fn:NSCreateHashTableWithZone 1
+fn:NSCreateMapTable 1
+fn:NSCreateMapTableWithZone 1
+fn:NSCreateZone 1
+fn:NSDeallocateMemoryPages 1
+fn:NSDeallocateObject 1
+fn:NSDecimalAdd 1
+fn:NSDecimalCompact 1
+fn:NSDecimalCompare 1
+fn:NSDecimalCopy 1
+fn:NSDecimalDivide 1
+fn:NSDecimalIsNotANumber 1
+fn:NSDecimalMultiply 1
+fn:NSDecimalMultiplyByPowerOf10 1
+fn:NSDecimalNormalize 1
+fn:NSDecimalPower 1
+fn:NSDecimalRound 1
+fn:NSDecimalString 1
+fn:NSDecimalSubtract 1
+fn:NSDecrementExtraRefCountWasZero 1
+fn:NSDefaultMallocZone 1
+fn:NSDivideRect 1
+fn:NSEndHashTableEnumeration 1
+fn:NSEndMapTableEnumeration 1
+fn:NSEnumerateHashTable 1
+fn:NSEnumerateMapTable 1
+fn:NSEqualPoints 1
+fn:NSEqualRanges 1
+fn:NSEqualRects 1
+fn:NSEqualSizes 1
+fn:NSExtraRefCount 1
+fn:NSFileTypeForHFSTypeCode 1
+fn:NSFrameAddress 1
+fn:NSFreeHashTable 1
+fn:NSFreeMapTable 1
+fn:NSFullUserName 1
+fn:NSGetSizeAndAlignment 1
+fn:NSGetUncaughtExceptionHandler 1
+fn:NSHFSTypeCodeFromFileType 1
+fn:NSHFSTypeOfFile 1
+fn:NSHashGet 1
+fn:NSHashInsert 1
+fn:NSHashInsertIfAbsent 1
+fn:NSHashInsertKnownAbsent 1
+fn:NSHashRemove 1
+fn:NSHeight 1
+fn:NSHomeDirectory 1
+fn:NSHomeDirectoryForUser 1
+fn:NSHostByteOrder 1
+fn:NSIncrementExtraRefCount 1
+fn:NSInsetRect 1
+fn:NSIntegralRect 1
+fn:NSIntersectionRange 1
+fn:NSIntersectionRect 1
+fn:NSIntersectsRect 1
+fn:NSIsEmptyRect 1
+fn:NSIsFreedObject 1
+fn:NSLog 1
+fn:NSLogPageSize 1
+fn:NSLogv 1
+fn:NSMakeCollectable 1
+fn:NSMakePoint 1
+fn:NSMakeRect 1
+fn:NSMakeSize 1
+fn:NSMapGet 1
+fn:NSMapInsert 1
+fn:NSMapInsertIfAbsent 1
+fn:NSMapInsertKnownAbsent 1
+fn:NSMapMember 1
+fn:NSMapRemove 1
+fn:NSMaxX 1
+fn:NSMaxY 1
+fn:NSMidX 1
+fn:NSMidY 1
+fn:NSMinX 1
+fn:NSMinY 1
+fn:NSMouseInRect 1
+fn:NSNextHashEnumeratorItem 1
+fn:NSNextMapEnumeratorPair 1
+fn:NSOffsetRect 1
+fn:NSOpenStepRootDirectory 1
+fn:NSPageSize 1
+fn:NSPointFromCGPoint 1
+fn:NSPointFromString 1
+fn:NSPointInRect 1
+fn:NSPointToCGPoint 1
+fn:NSProtocolFromString 1
+fn:NSRangeFromString 1
+fn:NSRealMemoryAvailable 1
+fn:NSReallocateCollectable 1
+fn:NSRecordAllocationEvent 1
+fn:NSRectFromCGRect 1
+fn:NSRectFromString 1
+fn:NSRectToCGRect 1
+fn:NSRecycleZone 1
+fn:NSResetHashTable 1
+fn:NSResetMapTable 1
+fn:NSReturnAddress 1
+fn:NSRoundDownToMultipleOfPageSize 1
+fn:NSRoundUpToMultipleOfPageSize 1
+fn:NSSearchPathForDirectoriesInDomains 1
+fn:NSSelectorFromString 1
+fn:NSSetUncaughtExceptionHandler 1
+fn:NSSetZoneName 1
+fn:NSShouldRetainWithZone 1
+fn:NSSizeFromCGSize 1
+fn:NSSizeFromString 1
+fn:NSSizeToCGSize 1
+fn:NSStringFromClass 1
+fn:NSStringFromHashTable 1
+fn:NSStringFromMapTable 1
+fn:NSStringFromPoint 1
+fn:NSStringFromProtocol 1
+fn:NSStringFromRange 1
+fn:NSStringFromRect 1
+fn:NSStringFromSelector 1
+fn:NSStringFromSize 1
+fn:NSSwapBigDoubleToHost 1
+fn:NSSwapBigFloatToHost 1
+fn:NSSwapBigIntToHost 1
+fn:NSSwapBigLongLongToHost 1
+fn:NSSwapBigLongToHost 1
+fn:NSSwapBigShortToHost 1
+fn:NSSwapDouble 1
+fn:NSSwapFloat 1
+fn:NSSwapHostDoubleToBig 1
+fn:NSSwapHostDoubleToLittle 1
+fn:NSSwapHostFloatToBig 1
+fn:NSSwapHostFloatToLittle 1
+fn:NSSwapHostIntToBig 1
+fn:NSSwapHostIntToLittle 1
+fn:NSSwapHostLongLongToBig 1
+fn:NSSwapHostLongLongToLittle 1
+fn:NSSwapHostLongToBig 1
+fn:NSSwapHostLongToLittle 1
+fn:NSSwapHostShortToBig 1
+fn:NSSwapHostShortToLittle 1
+fn:NSSwapInt 1
+fn:NSSwapLittleDoubleToHost 1
+fn:NSSwapLittleFloatToHost 1
+fn:NSSwapLittleIntToHost 1
+fn:NSSwapLittleLongLongToHost 1
+fn:NSSwapLittleLongToHost 1
+fn:NSSwapLittleShortToHost 1
+fn:NSSwapLong 1
+fn:NSSwapLongLong 1
+fn:NSSwapShort 1
+fn:NSTemporaryDirectory 1
+fn:NSUnionRange 1
+fn:NSUnionRect 1
+fn:NSUserName 1
+fn:NSWidth 1
+fn:NSZoneCalloc 1
+fn:NSZoneFree 1
+fn:NSZoneFromPointer 1
+fn:NSZoneMalloc 1
+fn:NSZoneName 1
+fn:NSZoneRealloc 1
+fndecl:NSAllHashTableObjects 1
+fndecl:NSAllMapTableKeys 1
+fndecl:NSAllMapTableValues 1
+fndecl:NSAllocateCollectable 1
+fndecl:NSAllocateMemoryPages 1
+fndecl:NSAllocateObject 1
+fndecl:NSClassFromString 1
+fndecl:NSCompareHashTables 1
+fndecl:NSCompareMapTables 1
+fndecl:NSContainsRect 1
+fndecl:NSConvertHostDoubleToSwapped 1
+fndecl:NSConvertHostFloatToSwapped 1
+fndecl:NSConvertSwappedDoubleToHost 1
+fndecl:NSConvertSwappedFloatToHost 1
+fndecl:NSCopyHashTableWithZone 1
+fndecl:NSCopyMapTableWithZone 1
+fndecl:NSCopyMemoryPages 1
+fndecl:NSCopyObject 1
+fndecl:NSCountFrames 0
+fndecl:NSCountHashTable 1
+fndecl:NSCountMapTable 1
+fndecl:NSCreateHashTable 1
+fndecl:NSCreateHashTableWithZone 1
+fndecl:NSCreateMapTable 1
+fndecl:NSCreateMapTableWithZone 1
+fndecl:NSCreateZone 1
+fndecl:NSDeallocateMemoryPages 1
+fndecl:NSDeallocateObject 1
+fndecl:NSDecimalAdd 1
+fndecl:NSDecimalCompact 1
+fndecl:NSDecimalCompare 1
+fndecl:NSDecimalCopy 1
+fndecl:NSDecimalDivide 1
+fndecl:NSDecimalIsNotANumber 1
+fndecl:NSDecimalMultiply 1
+fndecl:NSDecimalMultiplyByPowerOf10 1
+fndecl:NSDecimalNormalize 1
+fndecl:NSDecimalPower 1
+fndecl:NSDecimalRound 1
+fndecl:NSDecimalString 1
+fndecl:NSDecimalSubtract 1
+fndecl:NSDecrementExtraRefCountWasZero 1
+fndecl:NSDefaultMallocZone 1
+fndecl:NSDivideRect 1
+fndecl:NSEndHashTableEnumeration 1
+fndecl:NSEndMapTableEnumeration 1
+fndecl:NSEnumerateHashTable 1
+fndecl:NSEnumerateMapTable 1
+fndecl:NSEqualPoints 1
+fndecl:NSEqualRanges 1
+fndecl:NSEqualRects 1
+fndecl:NSEqualSizes 1
+fndecl:NSExtraRefCount 1
+fndecl:NSFileTypeForHFSTypeCode 1
+fndecl:NSFrameAddress 1
+fndecl:NSFreeHashTable 1
+fndecl:NSFreeMapTable 1
+fndecl:NSFullUserName 1
+fndecl:NSGetSizeAndAlignment 1
+fndecl:NSGetUncaughtExceptionHandler 1
+fndecl:NSHFSTypeCodeFromFileType 1
+fndecl:NSHFSTypeOfFile 1
+fndecl:NSHashGet 1
+fndecl:NSHashInsert 1
+fndecl:NSHashInsertIfAbsent 1
+fndecl:NSHashInsertKnownAbsent 1
+fndecl:NSHashRemove 1
+fndecl:NSHeight 1
+fndecl:NSHomeDirectory 1
+fndecl:NSHomeDirectoryForUser 1
+fndecl:NSHostByteOrder 1
+fndecl:NSIncrementExtraRefCount 1
+fndecl:NSInsetRect 1
+fndecl:NSIntegralRect 1
+fndecl:NSIntersectionRange 1
+fndecl:NSIntersectionRect 1
+fndecl:NSIntersectsRect 1
+fndecl:NSIsEmptyRect 1
+fndecl:NSIsFreedObject 1
+fndecl:NSLog 1
+fndecl:NSLogPageSize 1
+fndecl:NSLogv 1
+fndecl:NSMakeCollectable 1
+fndecl:NSMakePoint 1
+fndecl:NSMakeRect 1
+fndecl:NSMakeSize 1
+fndecl:NSMapGet 1
+fndecl:NSMapInsert 1
+fndecl:NSMapInsertIfAbsent 1
+fndecl:NSMapInsertKnownAbsent 1
+fndecl:NSMapMember 1
+fndecl:NSMapRemove 1
+fndecl:NSMaxX 1
+fndecl:NSMaxY 1
+fndecl:NSMidX 1
+fndecl:NSMidY 1
+fndecl:NSMinX 1
+fndecl:NSMinY 1
+fndecl:NSMouseInRect 1
+fndecl:NSNextHashEnumeratorItem 1
+fndecl:NSNextMapEnumeratorPair 1
+fndecl:NSOffsetRect 1
+fndecl:NSOpenStepRootDirectory 1
+fndecl:NSPageSize 1
+fndecl:NSPointFromCGPoint 1
+fndecl:NSPointFromString 1
+fndecl:NSPointInRect 1
+fndecl:NSPointToCGPoint 1
+fndecl:NSProtocolFromString 1
+fndecl:NSRangeFromString 1
+fndecl:NSRealMemoryAvailable 1
+fndecl:NSReallocateCollectable 1
+fndecl:NSRecordAllocationEvent 1
+fndecl:NSRectFromCGRect 1
+fndecl:NSRectFromString 1
+fndecl:NSRectToCGRect 1
+fndecl:NSRecycleZone 1
+fndecl:NSResetHashTable 1
+fndecl:NSResetMapTable 1
+fndecl:NSReturnAddress 1
+fndecl:NSRoundDownToMultipleOfPageSize 1
+fndecl:NSRoundUpToMultipleOfPageSize 1
+fndecl:NSSearchPathForDirectoriesInDomains 1
+fndecl:NSSelectorFromString 1
+fndecl:NSSetUncaughtExceptionHandler 1
+fndecl:NSSetZoneName 1
+fndecl:NSShouldRetainWithZone 1
+fndecl:NSSizeFromCGSize 1
+fndecl:NSSizeFromString 1
+fndecl:NSSizeToCGSize 1
+fndecl:NSStringFromClass 1
+fndecl:NSStringFromHashTable 1
+fndecl:NSStringFromMapTable 1
+fndecl:NSStringFromPoint 1
+fndecl:NSStringFromProtocol 1
+fndecl:NSStringFromRange 1
+fndecl:NSStringFromRect 1
+fndecl:NSStringFromSelector 1
+fndecl:NSStringFromSize 1
+fndecl:NSSwapBigDoubleToHost 1
+fndecl:NSSwapBigFloatToHost 1
+fndecl:NSSwapBigIntToHost 1
+fndecl:NSSwapBigLongLongToHost 1
+fndecl:NSSwapBigLongToHost 1
+fndecl:NSSwapBigShortToHost 1
+fndecl:NSSwapDouble 1
+fndecl:NSSwapFloat 1
+fndecl:NSSwapHostDoubleToBig 1
+fndecl:NSSwapHostDoubleToLittle 1
+fndecl:NSSwapHostFloatToBig 1
+fndecl:NSSwapHostFloatToLittle 1
+fndecl:NSSwapHostIntToBig 1
+fndecl:NSSwapHostIntToLittle 1
+fndecl:NSSwapHostLongLongToBig 1
+fndecl:NSSwapHostLongLongToLittle 1
+fndecl:NSSwapHostLongToBig 1
+fndecl:NSSwapHostLongToLittle 1
+fndecl:NSSwapHostShortToBig 1
+fndecl:NSSwapHostShortToLittle 1
+fndecl:NSSwapInt 1
+fndecl:NSSwapLittleDoubleToHost 1
+fndecl:NSSwapLittleFloatToHost 1
+fndecl:NSSwapLittleIntToHost 1
+fndecl:NSSwapLittleLongLongToHost 1
+fndecl:NSSwapLittleLongToHost 1
+fndecl:NSSwapLittleShortToHost 1
+fndecl:NSSwapLong 1
+fndecl:NSSwapLongLong 1
+fndecl:NSSwapShort 1
+fndecl:NSTemporaryDirectory 1
+fndecl:NSUnionRange 1
+fndecl:NSUnionRect 1
+fndecl:NSUserName 1
+fndecl:NSWidth 1
+fndecl:NSZoneCalloc 1
+fndecl:NSZoneFree 1
+fndecl:NSZoneFromPointer 1
+fndecl:NSZoneMalloc 1
+fndecl:NSZoneName 1
+fndecl:NSZoneRealloc 1
+functions-declared 179
+functions-declared-not-defined 0
+functions-defined-not-declared 0
+functions-missing 1
+functions-offered 180
+functions-present 179
+methods-declared 3360
+methods-declared-not-implemented 5
+proto:NSCacheDelegate 1
+proto:NSCoding 1
+proto:NSConnectionDelegate 1
+proto:NSCopying 1
+proto:NSDecimalNumberBehaviors 1
+proto:NSDiscardableContent 1
+proto:NSFastEnumeration 1
+proto:NSKeyedArchiverDelegate 1
+proto:NSKeyedUnarchiverDelegate 1
+proto:NSLocking 1
+proto:NSMachPortDelegate 1
+proto:NSMetadataQueryDelegate 0
+proto:NSMutableCopying 1
+proto:NSNetServiceBrowserDelegate 0
+proto:NSNetServiceDelegate 0
+proto:NSObject 1
+proto:NSPortDelegate 1
+proto:NSSpellServerDelegate 1
+proto:NSStreamDelegate 1
+proto:NSURLAuthenticationChallengeSender 1
+proto:NSURLHandleClient 1
+proto:NSURLProtocolClient 1
+proto:NSXMLParserDelegate 1
+protocols-missing 3
+protocols-offered 23
+protocols-present 20
+sel:NSAffineTransform 14
+sel:NSArchiver 7
+sel:NSArray 64
+sel:NSAssertionHandler 3
+sel:NSAttributedString 13
+sel:NSAutoreleasePool 3
+sel:NSBlockOperation 3
+sel:NSBundle 55
+sel:NSCache 15
+sel:NSCachedURLResponse 6
+sel:NSCalendar 21
+sel:NSCalendarDate 26
+sel:NSCharacterSet 25
+sel:NSCoder 52
+sel:NSComparisonPredicate 10
+sel:NSCompoundPredicate 6
+sel:NSConditionLock 10
+sel:NSConnection 39
+sel:NSCountedSet 7
+sel:NSData 32
+sel:NSDate 27
+sel:NSDateComponents 22
+sel:NSDateFormatter 53
+sel:NSDecimalNumber 33
+sel:NSDecimalNumberHandler 3
+sel:NSDictionary 55
+sel:NSDirectoryEnumerator 5
+sel:NSDistantObject 6
+sel:NSDistantObjectRequest 4
+sel:NSDistributedLock 6
+sel:NSDistributedNotificationCenter 10
+sel:NSEnumerator 2
+sel:NSError 11
+sel:NSException 8
+sel:NSExpression 25
+sel:NSFileHandle 31
+sel:NSFileManager 52
+sel:NSFormatter 6
+sel:NSHTTPCookie 17
+sel:NSHTTPCookieStorage 8
+sel:NSHTTPURLResponse 3
+sel:NSHashTable 20
+sel:NSHost 12
+sel:NSIndexPath 10
+sel:NSIndexSet 30
+sel:NSInputStream 9
+sel:NSInvocation 14
+sel:NSInvocationOperation 4
+sel:NSKeyedArchiver 18
+sel:NSKeyedUnarchiver 17
+sel:NSLocale 21
+sel:NSLock 4
+sel:NSMachBootstrapServer 5
+sel:NSMachPort 9
+sel:NSMapTable 13
+sel:NSMessagePortNameServer 3
+sel:NSMethodSignature 7
+sel:NSMutableArray 29
+sel:NSMutableAttributedString 13
+sel:NSMutableCharacterSet 7
+sel:NSMutableData 13
+sel:NSMutableDictionary 9
+sel:NSMutableIndexSet 8
+sel:NSMutableSet 11
+sel:NSMutableString 9
+sel:NSMutableURLRequest 11
+sel:NSNotification 5
+sel:NSNotificationCenter 8
+sel:NSNotificationQueue 5
+sel:NSNull 1
+sel:NSNumber 50
+sel:NSNumberFormatter 134
+sel:NSObject 47
+sel:NSOperation 12
+sel:NSOperationQueue 14
+sel:NSOrthography 9
+sel:NSOutputStream 10
+sel:NSPipe 4
+sel:NSPointerArray 10
+sel:NSPointerFunctions 5
+sel:NSPort 13
+sel:NSPortCoder 6
+sel:NSPortMessage 7
+sel:NSPortNameServer 5
+sel:NSPredicate 9
+sel:NSProcessInfo 16
+sel:NSPropertyListSerialization 7
+sel:NSProtocolChecker 4
+sel:NSProxy 9
+sel:NSRecursiveLock 4
+sel:NSRunLoop 15
+sel:NSScanner 27
+sel:NSSet 37
+sel:NSSocketPort 11
+sel:NSSocketPortNameServer 8
+sel:NSSortDescriptor 12
+sel:NSSpellServer 5
+sel:NSStream 11
+sel:NSString 140
+sel:NSTask 26
+sel:NSTextCheckingResult 21
+sel:NSThread 23
+sel:NSTimeZone 25
+sel:NSTimer 12
+sel:NSURL 53
+sel:NSURLAuthenticationChallenge 8
+sel:NSURLCache 10
+sel:NSURLConnection 7
+sel:NSURLCredential 6
+sel:NSURLCredentialStorage 7
+sel:NSURLDownload 9
+sel:NSURLHandle 23
+sel:NSURLProtectionSpace 10
+sel:NSURLProtocol 14
+sel:NSURLRequest 14
+sel:NSURLResponse 6
+sel:NSUnarchiver 8
+sel:NSUndoManager 26
+sel:NSUserDefaults 37
+sel:NSValue 18
+sel:NSValueTransformer 7
+sel:NSXMLDTD 17
+sel:NSXMLDTDNode 9
+sel:NSXMLDocument 26
+sel:NSXMLElement 26
+sel:NSXMLNode 46
+sel:NSXMLParser 17
+selectors-missing 239
+selectors-offered 2514
+selectors-present 2275
+selphantom:NSAffineTransform 3
+selphantom:NSObject 1
+selphantom:NSXMLNode 1

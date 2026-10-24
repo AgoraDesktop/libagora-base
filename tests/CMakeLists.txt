@@ -112,3 +112,51 @@ add_executable(zones zones.m)
 target_link_libraries(zones PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
 add_test(NAME zones COMMAND zones)
+
+# ---------------------------------------------------------------------------
+# THE MEASUREMENT — how much of the Mac OS X 10.6 Foundation this library answers, as a gate.
+# ---------------------------------------------------------------------------
+# `claims_census` in the AppKit tier counts what a tree SAYS it cannot do. This counts what a caller would actually
+# GET, against the committed facts of Apple's 10.6 Foundation (`api/10.6/foundation-manifest.txt` — names and
+# relationships only, because the SDK is not redistributable). Whether a selector is answered needs a superclass
+# chain rather than a regex, so the parser is `api-ledger`; the pin is `api-10.6-census.txt`; and moving a number is
+# a deliberate act in the same commit that says which wave moved it.
+#
+# **THE LEDGER IS A SIBLING COMPONENT'S, AND THAT IS THE TREE'S PRECEDENT.** libagora-data points at the same tool
+# through a CACHE PATH, and libagora-base already points at `../libagora-drawing` for Core Graphics' headers the same
+# way. A path variable means a checkout where the sibling lives elsewhere can still run the suite.
+set(AGORA_LEDGER "${CMAKE_CURRENT_SOURCE_DIR}/../../libagora-app/tools/api-ledger"
+    CACHE FILEPATH "api-ledger, from the libagora-app component")
+
+# **AND ONE INCLUDE DIRECTORY IS PART OF THE SURFACE.** NSMakeRange and NSMaxRange are inline doors declared in
+# libagora-core and reached through NSObjCRuntime.h, so a census that reads only this directory's headers reports
+# them as functions with no symbol. The ledger is given the directory rather than the two names, so a future
+# Foundation-shaped inline door in Core Foundation is measured the same way.
+set(AGORA_CORE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../libagora-core/include"
+    CACHE PATH "libagora-core's headers, for Foundation's inline NSRange doors")
+
+# **THE BUILT LIBRARY IS AN INPUT, BECAUSE A DECLARATION IS NOT A DOOR.** `-DLIBRARY=$<TARGET_FILE:Foundation>` lets
+# `nm -D --defined-only` answer which functions a caller can link against, and the gate fails outright if the headers
+# and the symbols disagree in either direction rather than moving a number.
+#
+# A PYTHON INTERPRETER IS A RUN-TIME REQUIREMENT, NOT A BUILD ONE. Every other test in this suite is a compiled
+# executable, so the tree needs no interpreter to build; only this gate needs one to run. It is registered whenever
+# the interpreter exists and fails loudly at run time if the ledger is missing, instead of disappearing from the
+# suite — a gate that quietly unregisters itself is the drift these censuses exist to stop.
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME foundation-api-census
+    COMMAND "${CMAKE_COMMAND}"
+            "-DPYTHON=${Python3_EXECUTABLE}"
+            "-DLEDGER=${AGORA_LEDGER}"
+            "-DMANIFEST=${CMAKE_CURRENT_SOURCE_DIR}/../api/10.6/foundation-manifest.txt"
+            "-DLIBRARY=$<TARGET_FILE:Foundation>"
+            "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/.."
+            "-DCENSUS=${CMAKE_CURRENT_SOURCE_DIR}/api-10.6-census.txt"
+            "-DINCLUDES=${AGORA_CORE_INCLUDE_DIR}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/api_census.cmake")
+else()
+  message(STATUS
+    "libagora-base: no Python3 interpreter, so the 10.6 API census gate is not registered — install python3, or the "
+    "Foundation surface goes unmeasured.")
+endif()

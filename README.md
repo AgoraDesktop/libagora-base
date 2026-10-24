@@ -135,3 +135,30 @@ with a NULL zone. `tests/zones.m` measures the whole contract.
    rejected write announces nothing. Measured by `tests/user_defaults_kvo.m` (**25 cases**): one notification per
    door, the KVC write's single announcement, the removed-and-absent removal, the registration's effective-value rule,
    two observers with one removed, Prior's bracket, and the rejected write's silence.
+
+## The 10.6 surface, measured
+
+`Foundation.h` names macOS 10.6 as this library's reference, and the reference is now a number rather than a
+sentence. `api/10.6/foundation-manifest.txt` holds the committed facts of Apple's 10.6 Foundation — 173 classes, 23
+protocols, 183 C functions and 2,840 declared selectors, names and relationships only, because the SDK is not
+redistributable — and `tests/api-10.6-census.txt` pins what this tree answers.
+
+**130 of 173 classes, 2,275 of 2,514 selectors (90.5%), 20 of 23 protocols, 179 of 180 functions.** The gate is
+`foundation-api-census` in `tests/`, which runs `../libagora-app/tools/api-ledger` and fails in both directions: a
+metric that moves, a metric that appears, or a metric that disappears. Inline doors are exempt from being symbols,
+and `NSMakeRange`/`NSMaxRange` are found where they are declared (`libagora-core`), so the one absent function is
+`NSCountFrames`.
+
+The gap is not diffuse. The **43 absent classes** partition exactly onto `COCOA-10.11-SURFACE-PLAN.md` §6.1 once
+the members that are 10.7 or later are removed — scripting and AppleEvents (F10) 34, metadata (F3) 4, net services
+(F6) 2, `NSCondition` (F5) 1, and `NSSimpleCString`/`NSGarbageCollector` (F11) 2 — and the **239 absent selectors**
+sit on 39 classes, `NSObject` alone accounting for 133. About 35 of those are declaration-only: the URL-loading and
+file-manager informal delegate callbacks, which this tree declares as formal protocols and already dispatches.
+
+**A refusal in prose is not a door.** `methods-declared-not-implemented` is pinned at 5 — the three `NSAffineTransform`
+AppKit additions and two missing defaults — because a header that says it does not implement something is a note, and
+the plan's declaration tier asks for a body that refuses by name. Those five fall when the bodies land.
+
+The census measures 10.6 because that is the reference. `Foundation.h` also records a 10.2 **baseline** used to
+decide removals (§11.0); 81 of the 239 selectors are 10.3–10.6 additions that baseline excluded. Which of them a
+slice schedules is a separate decision — the census keeps them visible either way.

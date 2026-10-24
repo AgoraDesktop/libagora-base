@@ -1,0 +1,3219 @@
+class NSAffineTransform : NSObject
+class NSAppleEventDescriptor : NSObject
+class NSAppleEventManager : NSObject
+class NSAppleScript : NSObject
+class NSArchiver : NSCoder
+class NSArray : NSObject
+class NSAssertionHandler : NSObject
+class NSAttributedString : NSObject
+class NSAutoreleasePool : NSObject
+class NSBlockOperation : NSOperation
+class NSBundle : NSObject
+class NSCache : NSObject
+class NSCachedURLResponse : NSObject
+class NSCalendar : NSObject
+class NSCalendarDate : NSDate
+class NSCharacterSet : NSObject
+class NSClassDescription : NSObject
+class NSCloneCommand : NSScriptCommand
+class NSCloseCommand : NSScriptCommand
+class NSCoder : NSObject
+class NSComparisonPredicate : NSPredicate
+class NSCompoundPredicate : NSPredicate
+class NSCondition : NSObject
+class NSConditionLock : NSObject
+class NSConnection : NSObject
+class NSConstantString : NSSimpleCString
+class NSCountCommand : NSScriptCommand
+class NSCountedSet : NSMutableSet
+class NSCreateCommand : NSScriptCommand
+class NSData : NSObject
+class NSDate : NSObject
+class NSDateComponents : NSObject
+class NSDateFormatter : NSFormatter
+class NSDecimalNumber : NSNumber
+class NSDecimalNumberHandler : NSObject
+class NSDeleteCommand : NSScriptCommand
+class NSDictionary : NSObject
+class NSDirectoryEnumerator : NSEnumerator
+class NSDistantObject : NSProxy
+class NSDistantObjectRequest : NSObject
+class NSDistributedLock : NSObject
+class NSDistributedNotificationCenter : NSNotificationCenter
+class NSEnumerator : NSObject
+class NSError : NSObject
+class NSException : NSObject
+class NSExistsCommand : NSScriptCommand
+class NSExpression : NSObject
+class NSFileHandle : NSObject
+class NSFileManager : NSObject
+class NSFormatter : NSObject
+class NSGarbageCollector : NSObject
+class NSGetCommand : NSScriptCommand
+class NSHTTPCookie : NSObject
+class NSHTTPCookieStorage : NSObject
+class NSHTTPURLResponse : NSURLResponse
+class NSHashTable : NSObject
+class NSHost : NSObject
+class NSIndexPath : NSObject
+class NSIndexSet : NSObject
+class NSIndexSpecifier : NSScriptObjectSpecifier
+class NSInputStream : NSStream
+class NSInvocation : NSObject
+class NSInvocationOperation : NSOperation
+class NSKeyedArchiver : NSCoder
+class NSKeyedUnarchiver : NSCoder
+class NSLocale : NSObject
+class NSLock : NSObject
+class NSLogicalTest : NSScriptWhoseTest
+class NSMachBootstrapServer : NSPortNameServer
+class NSMachPort : NSPort
+class NSMapTable : NSObject
+class NSMessagePort : NSPort
+class NSMessagePortNameServer : NSPortNameServer
+class NSMetadataItem : NSObject
+class NSMetadataQuery : NSObject
+class NSMetadataQueryAttributeValueTuple : NSObject
+class NSMetadataQueryResultGroup : NSObject
+class NSMethodSignature : NSObject
+class NSMiddleSpecifier : NSScriptObjectSpecifier
+class NSMoveCommand : NSScriptCommand
+class NSMutableArray : NSArray
+class NSMutableAttributedString : NSAttributedString
+class NSMutableCharacterSet : NSCharacterSet
+class NSMutableData : NSData
+class NSMutableDictionary : NSDictionary
+class NSMutableIndexSet : NSIndexSet
+class NSMutableSet : NSSet
+class NSMutableString : NSString
+class NSMutableURLRequest : NSURLRequest
+class NSNameSpecifier : NSScriptObjectSpecifier
+class NSNetService : NSObject
+class NSNetServiceBrowser : NSObject
+class NSNotification : NSObject
+class NSNotificationCenter : NSObject
+class NSNotificationQueue : NSObject
+class NSNull : NSObject
+class NSNumber : NSValue
+class NSNumberFormatter : NSFormatter
+class NSObject : -
+class NSOperation : NSObject
+class NSOperationQueue : NSObject
+class NSOrthography : NSObject
+class NSOutputStream : NSStream
+class NSPipe : NSObject
+class NSPointerArray : NSObject
+class NSPointerFunctions : NSObject
+class NSPort : NSObject
+class NSPortCoder : NSCoder
+class NSPortMessage : NSObject
+class NSPortNameServer : NSObject
+class NSPositionalSpecifier : NSObject
+class NSPredicate : NSObject
+class NSProcessInfo : NSObject
+class NSPropertyListSerialization : NSObject
+class NSPropertySpecifier : NSScriptObjectSpecifier
+class NSProtocolChecker : NSProxy
+class NSProxy : -
+class NSPurgeableData : NSMutableData
+class NSQuitCommand : NSScriptCommand
+class NSRandomSpecifier : NSScriptObjectSpecifier
+class NSRangeSpecifier : NSScriptObjectSpecifier
+class NSRecursiveLock : NSObject
+class NSRelativeSpecifier : NSScriptObjectSpecifier
+class NSRunLoop : NSObject
+class NSScanner : NSObject
+class NSScriptClassDescription : NSClassDescription
+class NSScriptCoercionHandler : NSObject
+class NSScriptCommand : NSObject
+class NSScriptCommandDescription : NSObject
+class NSScriptExecutionContext : NSObject
+class NSScriptObjectSpecifier : NSObject
+class NSScriptSuiteRegistry : NSObject
+class NSScriptWhoseTest : NSObject
+class NSSet : NSObject
+class NSSetCommand : NSScriptCommand
+class NSSimpleCString : NSString
+class NSSocketPort : NSPort
+class NSSocketPortNameServer : NSPortNameServer
+class NSSortDescriptor : NSObject
+class NSSpecifierTest : NSScriptWhoseTest
+class NSSpellServer : NSObject
+class NSStream : NSObject
+class NSString : NSObject
+class NSTask : NSObject
+class NSTextCheckingResult : NSObject
+class NSThread : NSObject
+class NSTimeZone : NSObject
+class NSTimer : NSObject
+class NSURL : NSObject
+class NSURLAuthenticationChallenge : NSObject
+class NSURLCache : NSObject
+class NSURLConnection : NSObject
+class NSURLCredential : NSObject
+class NSURLCredentialStorage : NSObject
+class NSURLDownload : NSObject
+class NSURLHandle : NSObject
+class NSURLProtectionSpace : NSObject
+class NSURLProtocol : NSObject
+class NSURLRequest : NSObject
+class NSURLResponse : NSObject
+class NSUnarchiver : NSCoder
+class NSUndoManager : NSObject
+class NSUniqueIDSpecifier : NSScriptObjectSpecifier
+class NSUserDefaults : NSObject
+class NSValue : NSObject
+class NSValueTransformer : NSObject
+class NSWhoseSpecifier : NSScriptObjectSpecifier
+class NSXMLDTD : NSXMLNode
+class NSXMLDTDNode : NSXMLNode
+class NSXMLDocument : NSXMLNode
+class NSXMLElement : NSXMLNode
+class NSXMLNode : NSObject
+class NSXMLParser : NSObject
+function NSAllHashTableObjects
+function NSAllMapTableKeys
+function NSAllMapTableValues
+function NSAllocateCollectable
+function NSAllocateMemoryPages
+function NSAllocateObject
+function NSClassFromString
+function NSCompareHashTables
+function NSCompareMapTables
+function NSContainsRect
+function NSConvertHostDoubleToSwapped
+function NSConvertHostFloatToSwapped
+function NSConvertSwappedDoubleToHost
+function NSConvertSwappedFloatToHost
+function NSCopyHashTableWithZone
+function NSCopyMapTableWithZone
+function NSCopyMemoryPages
+function NSCopyObject
+function NSCountFrames
+function NSCountHashTable
+function NSCountMapTable
+function NSCreateHashTable
+function NSCreateHashTableWithZone
+function NSCreateMapTable
+function NSCreateMapTableWithZone
+function NSCreateZone
+function NSDeallocateMemoryPages
+function NSDeallocateObject
+function NSDecimalAdd
+function NSDecimalCompact
+function NSDecimalCompare
+function NSDecimalCopy
+function NSDecimalDivide
+function NSDecimalIsNotANumber
+function NSDecimalMultiply
+function NSDecimalMultiplyByPowerOf10
+function NSDecimalNormalize
+function NSDecimalPower
+function NSDecimalRound
+function NSDecimalString
+function NSDecimalSubtract
+function NSDecrementExtraRefCountWasZero
+function NSDefaultMallocZone
+function NSDivideRect
+function NSEndHashTableEnumeration
+function NSEndMapTableEnumeration
+function NSEnumerateHashTable
+function NSEnumerateMapTable
+function NSEqualPoints
+function NSEqualRanges
+function NSEqualRects
+function NSEqualSizes
+function NSExtraRefCount
+function NSFileTypeForHFSTypeCode
+function NSFrameAddress
+function NSFreeHashTable
+function NSFreeMapTable
+function NSFullUserName
+function NSGetSizeAndAlignment
+function NSGetUncaughtExceptionHandler
+function NSHFSTypeCodeFromFileType
+function NSHFSTypeOfFile
+function NSHashGet
+function NSHashInsert
+function NSHashInsertIfAbsent
+function NSHashInsertKnownAbsent
+function NSHashRemove
+function NSHeight
+function NSHomeDirectory
+function NSHomeDirectoryForUser
+function NSHostByteOrder
+function NSIncrementExtraRefCount
+function NSInsetRect
+function NSIntegralRect
+function NSIntersectionRange
+function NSIntersectionRect
+function NSIntersectsRect
+function NSIsEmptyRect
+function NSIsFreedObject
+function NSLocationInRange
+function NSLog
+function NSLogPageSize
+function NSLogv
+function NSMakeCollectable
+function NSMakePoint
+function NSMakeRange
+function NSMakeRect
+function NSMakeSize
+function NSMapGet
+function NSMapInsert
+function NSMapInsertIfAbsent
+function NSMapInsertKnownAbsent
+function NSMapMember
+function NSMapRemove
+function NSMaxRange
+function NSMaxX
+function NSMaxY
+function NSMidX
+function NSMidY
+function NSMinX
+function NSMinY
+function NSMouseInRect
+function NSNextHashEnumeratorItem
+function NSNextMapEnumeratorPair
+function NSOffsetRect
+function NSOpenStepRootDirectory
+function NSPageSize
+function NSPointFromCGPoint
+function NSPointFromString
+function NSPointInRect
+function NSPointToCGPoint
+function NSProtocolFromString
+function NSRangeFromString
+function NSRealMemoryAvailable
+function NSReallocateCollectable
+function NSRecordAllocationEvent
+function NSRectFromCGRect
+function NSRectFromString
+function NSRectToCGRect
+function NSRecycleZone
+function NSResetHashTable
+function NSResetMapTable
+function NSReturnAddress
+function NSRoundDownToMultipleOfPageSize
+function NSRoundUpToMultipleOfPageSize
+function NSSearchPathForDirectoriesInDomains
+function NSSelectorFromString
+function NSSetUncaughtExceptionHandler
+function NSSetZoneName
+function NSShouldRetainWithZone
+function NSSizeFromCGSize
+function NSSizeFromString
+function NSSizeToCGSize
+function NSStringFromClass
+function NSStringFromHashTable
+function NSStringFromMapTable
+function NSStringFromPoint
+function NSStringFromProtocol
+function NSStringFromRange
+function NSStringFromRect
+function NSStringFromSelector
+function NSStringFromSize
+function NSSwapBigDoubleToHost
+function NSSwapBigFloatToHost
+function NSSwapBigIntToHost
+function NSSwapBigLongLongToHost
+function NSSwapBigLongToHost
+function NSSwapBigShortToHost
+function NSSwapDouble
+function NSSwapFloat
+function NSSwapHostDoubleToBig
+function NSSwapHostDoubleToLittle
+function NSSwapHostFloatToBig
+function NSSwapHostFloatToLittle
+function NSSwapHostIntToBig
+function NSSwapHostIntToLittle
+function NSSwapHostLongLongToBig
+function NSSwapHostLongLongToLittle
+function NSSwapHostLongToBig
+function NSSwapHostLongToLittle
+function NSSwapHostShortToBig
+function NSSwapHostShortToLittle
+function NSSwapInt
+function NSSwapLittleDoubleToHost
+function NSSwapLittleFloatToHost
+function NSSwapLittleIntToHost
+function NSSwapLittleLongLongToHost
+function NSSwapLittleLongToHost
+function NSSwapLittleShortToHost
+function NSSwapLong
+function NSSwapLongLong
+function NSSwapShort
+function NSTemporaryDirectory
+function NSUnionRange
+function NSUnionRect
+function NSUserName
+function NSWidth
+function NSZoneCalloc
+function NSZoneFree
+function NSZoneFromPointer
+function NSZoneMalloc
+function NSZoneName
+function NSZoneRealloc
+protocol NSCacheDelegate
+protocol NSCoding
+protocol NSConnectionDelegate
+protocol NSCopying
+protocol NSDecimalNumberBehaviors
+protocol NSDiscardableContent
+protocol NSFastEnumeration
+protocol NSKeyedArchiverDelegate
+protocol NSKeyedUnarchiverDelegate
+protocol NSLocking
+protocol NSMachPortDelegate
+protocol NSMetadataQueryDelegate
+protocol NSMutableCopying
+protocol NSNetServiceBrowserDelegate
+protocol NSNetServiceDelegate
+protocol NSObject
+protocol NSPortDelegate
+protocol NSSpellServerDelegate
+protocol NSStreamDelegate
+protocol NSURLAuthenticationChallengeSender
+protocol NSURLHandleClient
+protocol NSURLProtocolClient
+protocol NSXMLParserDelegate
+selector NSAffineTransform appendTransform:
+selector NSAffineTransform initWithTransform:
+selector NSAffineTransform invert
+selector NSAffineTransform prependTransform:
+selector NSAffineTransform rotateByDegrees:
+selector NSAffineTransform rotateByRadians:
+selector NSAffineTransform scaleBy:
+selector NSAffineTransform scaleXBy:yBy:
+selector NSAffineTransform setTransformStruct:
+selector NSAffineTransform transform
+selector NSAffineTransform transformPoint:
+selector NSAffineTransform transformSize:
+selector NSAffineTransform transformStruct
+selector NSAffineTransform translateXBy:yBy:
+selector NSAppleEventDescriptor aeDesc
+selector NSAppleEventDescriptor appleEventWithEventClass:eventID:targetDescriptor:returnID:transactionID:
+selector NSAppleEventDescriptor attributeDescriptorForKeyword:
+selector NSAppleEventDescriptor booleanValue
+selector NSAppleEventDescriptor coerceToDescriptorType:
+selector NSAppleEventDescriptor data
+selector NSAppleEventDescriptor descriptorAtIndex:
+selector NSAppleEventDescriptor descriptorForKeyword:
+selector NSAppleEventDescriptor descriptorType
+selector NSAppleEventDescriptor descriptorWithBoolean:
+selector NSAppleEventDescriptor descriptorWithDescriptorType:bytes:length:
+selector NSAppleEventDescriptor descriptorWithDescriptorType:data:
+selector NSAppleEventDescriptor descriptorWithEnumCode:
+selector NSAppleEventDescriptor descriptorWithInt32:
+selector NSAppleEventDescriptor descriptorWithString:
+selector NSAppleEventDescriptor descriptorWithTypeCode:
+selector NSAppleEventDescriptor enumCodeValue
+selector NSAppleEventDescriptor eventClass
+selector NSAppleEventDescriptor eventID
+selector NSAppleEventDescriptor initListDescriptor
+selector NSAppleEventDescriptor initRecordDescriptor
+selector NSAppleEventDescriptor initWithAEDescNoCopy:
+selector NSAppleEventDescriptor initWithDescriptorType:bytes:length:
+selector NSAppleEventDescriptor initWithDescriptorType:data:
+selector NSAppleEventDescriptor initWithEventClass:eventID:targetDescriptor:returnID:transactionID:
+selector NSAppleEventDescriptor insertDescriptor:atIndex:
+selector NSAppleEventDescriptor int32Value
+selector NSAppleEventDescriptor keywordForDescriptorAtIndex:
+selector NSAppleEventDescriptor listDescriptor
+selector NSAppleEventDescriptor nullDescriptor
+selector NSAppleEventDescriptor numberOfItems
+selector NSAppleEventDescriptor paramDescriptorForKeyword:
+selector NSAppleEventDescriptor recordDescriptor
+selector NSAppleEventDescriptor removeDecriptorAtIndex:
+selector NSAppleEventDescriptor removeDescriptorAtIndex:
+selector NSAppleEventDescriptor removeDescriptorWithKeyword:
+selector NSAppleEventDescriptor removeParamDescriptorWithKeyword:
+selector NSAppleEventDescriptor returnID
+selector NSAppleEventDescriptor setAttributeDescriptor:forKeyword:
+selector NSAppleEventDescriptor setDescriptor:forKeyword:
+selector NSAppleEventDescriptor setParamDescriptor:forKeyword:
+selector NSAppleEventDescriptor stringValue
+selector NSAppleEventDescriptor transactionID
+selector NSAppleEventDescriptor typeCodeValue
+selector NSAppleEventManager appleEventForSuspensionID:
+selector NSAppleEventManager currentAppleEvent
+selector NSAppleEventManager currentReplyAppleEvent
+selector NSAppleEventManager dispatchRawAppleEvent:withRawReply:handlerRefCon:
+selector NSAppleEventManager removeEventHandlerForEventClass:andEventID:
+selector NSAppleEventManager replyAppleEventForSuspensionID:
+selector NSAppleEventManager resumeWithSuspensionID:
+selector NSAppleEventManager setCurrentAppleEventAndReplyEventWithSuspensionID:
+selector NSAppleEventManager setEventHandler:andSelector:forEventClass:andEventID:
+selector NSAppleEventManager sharedAppleEventManager
+selector NSAppleEventManager suspendCurrentAppleEvent
+selector NSAppleScript compileAndReturnError:
+selector NSAppleScript executeAndReturnError:
+selector NSAppleScript executeAppleEvent:error:
+selector NSAppleScript initWithContentsOfURL:error:
+selector NSAppleScript initWithSource:
+selector NSAppleScript isCompiled
+selector NSAppleScript source
+selector NSArchiver archiveRootObject:toFile:
+selector NSArchiver archivedDataWithRootObject:
+selector NSArchiver archiverData
+selector NSArchiver classNameEncodedForTrueClassName:
+selector NSArchiver encodeClassName:intoClassName:
+selector NSArchiver encodeConditionalObject:
+selector NSArchiver encodeRootObject:
+selector NSArchiver initForWritingWithMutableData:
+selector NSArchiver replaceObject:withObject:
+selector NSArray addObserver:forKeyPath:options:context:
+selector NSArray addObserver:toObjectsAtIndexes:forKeyPath:options:context:
+selector NSArray array
+selector NSArray arrayByAddingObject:
+selector NSArray arrayByAddingObjectsFromArray:
+selector NSArray arrayWithArray:
+selector NSArray arrayWithContentsOfFile:
+selector NSArray arrayWithContentsOfURL:
+selector NSArray arrayWithObject:
+selector NSArray arrayWithObjects:
+selector NSArray arrayWithObjects:count:
+selector NSArray componentsJoinedByString:
+selector NSArray containsObject:
+selector NSArray count
+selector NSArray description
+selector NSArray descriptionWithLocale:
+selector NSArray descriptionWithLocale:indent:
+selector NSArray enumerateObjectsAtIndexes:options:usingBlock:
+selector NSArray enumerateObjectsUsingBlock:
+selector NSArray enumerateObjectsWithOptions:usingBlock:
+selector NSArray filteredArrayUsingPredicate:
+selector NSArray firstObjectCommonWithArray:
+selector NSArray getObjects:
+selector NSArray getObjects:range:
+selector NSArray indexOfObject:
+selector NSArray indexOfObject:inRange:
+selector NSArray indexOfObject:inSortedRange:options:usingComparator:
+selector NSArray indexOfObjectAtIndexes:options:passingTest:
+selector NSArray indexOfObjectIdenticalTo:
+selector NSArray indexOfObjectIdenticalTo:inRange:
+selector NSArray indexOfObjectPassingTest:
+selector NSArray indexOfObjectWithOptions:passingTest:
+selector NSArray indexesOfObjectsAtIndexes:options:passingTest:
+selector NSArray indexesOfObjectsPassingTest:
+selector NSArray indexesOfObjectsWithOptions:passingTest:
+selector NSArray initWithArray:
+selector NSArray initWithArray:copyItems:
+selector NSArray initWithContentsOfFile:
+selector NSArray initWithContentsOfURL:
+selector NSArray initWithObjects:
+selector NSArray initWithObjects:count:
+selector NSArray isEqualToArray:
+selector NSArray lastObject
+selector NSArray makeObjectsPerformSelector:
+selector NSArray makeObjectsPerformSelector:withObject:
+selector NSArray objectAtIndex:
+selector NSArray objectEnumerator
+selector NSArray objectsAtIndexes:
+selector NSArray pathsMatchingExtensions:
+selector NSArray removeObserver:forKeyPath:
+selector NSArray removeObserver:fromObjectsAtIndexes:forKeyPath:
+selector NSArray reverseObjectEnumerator
+selector NSArray setValue:forKey:
+selector NSArray sortedArrayHint
+selector NSArray sortedArrayUsingComparator:
+selector NSArray sortedArrayUsingDescriptors:
+selector NSArray sortedArrayUsingFunction:context:
+selector NSArray sortedArrayUsingFunction:context:hint:
+selector NSArray sortedArrayUsingSelector:
+selector NSArray sortedArrayWithOptions:usingComparator:
+selector NSArray subarrayWithRange:
+selector NSArray valueForKey:
+selector NSArray writeToFile:atomically:
+selector NSArray writeToURL:atomically:
+selector NSAssertionHandler currentHandler
+selector NSAssertionHandler handleFailureInFunction:file:lineNumber:description:
+selector NSAssertionHandler handleFailureInMethod:object:file:lineNumber:description:
+selector NSAttributedString attribute:atIndex:effectiveRange:
+selector NSAttributedString attribute:atIndex:longestEffectiveRange:inRange:
+selector NSAttributedString attributedSubstringFromRange:
+selector NSAttributedString attributesAtIndex:effectiveRange:
+selector NSAttributedString attributesAtIndex:longestEffectiveRange:inRange:
+selector NSAttributedString enumerateAttribute:inRange:options:usingBlock:
+selector NSAttributedString enumerateAttributesInRange:options:usingBlock:
+selector NSAttributedString initWithAttributedString:
+selector NSAttributedString initWithString:
+selector NSAttributedString initWithString:attributes:
+selector NSAttributedString isEqualToAttributedString:
+selector NSAttributedString length
+selector NSAttributedString string
+selector NSAutoreleasePool addObject:
+selector NSAutoreleasePool autoreleasedObjectCount
+selector NSAutoreleasePool drain
+selector NSAutoreleasePool enableFreedObjectCheck:
+selector NSAutoreleasePool enableRelease:
+selector NSAutoreleasePool poolCountHighWaterMark
+selector NSAutoreleasePool poolCountHighWaterResolution
+selector NSAutoreleasePool resetTotalAutoreleasedObjects
+selector NSAutoreleasePool setPoolCountHighWaterMark:
+selector NSAutoreleasePool setPoolCountHighWaterResolution:
+selector NSAutoreleasePool showPools
+selector NSAutoreleasePool topAutoreleasePoolCount
+selector NSAutoreleasePool totalAutoreleasedObjects
+selector NSBlockOperation addExecutionBlock:
+selector NSBlockOperation blockOperationWithBlock:
+selector NSBlockOperation executionBlocks
+selector NSBundle URLForAuxiliaryExecutable:
+selector NSBundle URLForResource:withExtension:
+selector NSBundle URLForResource:withExtension:subdirectory:
+selector NSBundle URLForResource:withExtension:subdirectory:inBundleWithURL:
+selector NSBundle URLForResource:withExtension:subdirectory:localization:
+selector NSBundle URLsForResourcesWithExtension:subdirectory:
+selector NSBundle URLsForResourcesWithExtension:subdirectory:inBundleWithURL:
+selector NSBundle URLsForResourcesWithExtension:subdirectory:localization:
+selector NSBundle allBundles
+selector NSBundle allFrameworks
+selector NSBundle builtInPlugInsPath
+selector NSBundle builtInPlugInsURL
+selector NSBundle bundleForClass:
+selector NSBundle bundleIdentifier
+selector NSBundle bundlePath
+selector NSBundle bundleURL
+selector NSBundle bundleWithIdentifier:
+selector NSBundle bundleWithPath:
+selector NSBundle bundleWithURL:
+selector NSBundle classNamed:
+selector NSBundle developmentLocalization
+selector NSBundle executableArchitectures
+selector NSBundle executablePath
+selector NSBundle executableURL
+selector NSBundle infoDictionary
+selector NSBundle initWithPath:
+selector NSBundle initWithURL:
+selector NSBundle isLoaded
+selector NSBundle load
+selector NSBundle loadAndReturnError:
+selector NSBundle localizations
+selector NSBundle localizedInfoDictionary
+selector NSBundle localizedStringForKey:value:table:
+selector NSBundle mainBundle
+selector NSBundle objectForInfoDictionaryKey:
+selector NSBundle pathForAuxiliaryExecutable:
+selector NSBundle pathForResource:ofType:
+selector NSBundle pathForResource:ofType:inDirectory:
+selector NSBundle pathForResource:ofType:inDirectory:forLocalization:
+selector NSBundle pathsForResourcesOfType:inDirectory:
+selector NSBundle pathsForResourcesOfType:inDirectory:forLocalization:
+selector NSBundle preferredLocalizations
+selector NSBundle preferredLocalizationsFromArray:
+selector NSBundle preferredLocalizationsFromArray:forPreferences:
+selector NSBundle preflightAndReturnError:
+selector NSBundle principalClass
+selector NSBundle privateFrameworksPath
+selector NSBundle privateFrameworksURL
+selector NSBundle resourcePath
+selector NSBundle resourceURL
+selector NSBundle sharedFrameworksPath
+selector NSBundle sharedFrameworksURL
+selector NSBundle sharedSupportPath
+selector NSBundle sharedSupportURL
+selector NSBundle unload
+selector NSCache countLimit
+selector NSCache delegate
+selector NSCache evictsObjectsWithDiscardedContent
+selector NSCache name
+selector NSCache objectForKey:
+selector NSCache removeAllObjects
+selector NSCache removeObjectForKey:
+selector NSCache setCountLimit:
+selector NSCache setDelegate:
+selector NSCache setEvictsObjectsWithDiscardedContent:
+selector NSCache setName:
+selector NSCache setObject:forKey:
+selector NSCache setObject:forKey:cost:
+selector NSCache setTotalCostLimit:
+selector NSCache totalCostLimit
+selector NSCachedURLResponse data
+selector NSCachedURLResponse initWithResponse:data:
+selector NSCachedURLResponse initWithResponse:data:userInfo:storagePolicy:
+selector NSCachedURLResponse response
+selector NSCachedURLResponse storagePolicy
+selector NSCachedURLResponse userInfo
+selector NSCalendar autoupdatingCurrentCalendar
+selector NSCalendar calendarIdentifier
+selector NSCalendar components:fromDate:
+selector NSCalendar components:fromDate:toDate:options:
+selector NSCalendar currentCalendar
+selector NSCalendar dateByAddingComponents:toDate:options:
+selector NSCalendar dateFromComponents:
+selector NSCalendar firstWeekday
+selector NSCalendar initWithCalendarIdentifier:
+selector NSCalendar locale
+selector NSCalendar maximumRangeOfUnit:
+selector NSCalendar minimumDaysInFirstWeek
+selector NSCalendar minimumRangeOfUnit:
+selector NSCalendar ordinalityOfUnit:inUnit:forDate:
+selector NSCalendar rangeOfUnit:inUnit:forDate:
+selector NSCalendar rangeOfUnit:startDate:interval:forDate:
+selector NSCalendar setFirstWeekday:
+selector NSCalendar setLocale:
+selector NSCalendar setMinimumDaysInFirstWeek:
+selector NSCalendar setTimeZone:
+selector NSCalendar timeZone
+selector NSCalendarDate calendarDate
+selector NSCalendarDate calendarFormat
+selector NSCalendarDate dateByAddingYears:months:days:hours:minutes:seconds:
+selector NSCalendarDate dateWithString:calendarFormat:
+selector NSCalendarDate dateWithString:calendarFormat:locale:
+selector NSCalendarDate dateWithYear:month:day:hour:minute:second:timeZone:
+selector NSCalendarDate dayOfCommonEra
+selector NSCalendarDate dayOfMonth
+selector NSCalendarDate dayOfWeek
+selector NSCalendarDate dayOfYear
+selector NSCalendarDate descriptionWithCalendarFormat:
+selector NSCalendarDate descriptionWithCalendarFormat:locale:
+selector NSCalendarDate descriptionWithLocale:
+selector NSCalendarDate hourOfDay
+selector NSCalendarDate initWithString:
+selector NSCalendarDate initWithString:calendarFormat:
+selector NSCalendarDate initWithString:calendarFormat:locale:
+selector NSCalendarDate initWithYear:month:day:hour:minute:second:timeZone:
+selector NSCalendarDate minuteOfHour
+selector NSCalendarDate monthOfYear
+selector NSCalendarDate secondOfMinute
+selector NSCalendarDate setCalendarFormat:
+selector NSCalendarDate setTimeZone:
+selector NSCalendarDate timeZone
+selector NSCalendarDate yearOfCommonEra
+selector NSCalendarDate years:months:days:hours:minutes:seconds:sinceDate:
+selector NSCharacterSet alphanumericCharacterSet
+selector NSCharacterSet bitmapRepresentation
+selector NSCharacterSet capitalizedLetterCharacterSet
+selector NSCharacterSet characterIsMember:
+selector NSCharacterSet characterSetWithBitmapRepresentation:
+selector NSCharacterSet characterSetWithCharactersInString:
+selector NSCharacterSet characterSetWithContentsOfFile:
+selector NSCharacterSet characterSetWithRange:
+selector NSCharacterSet controlCharacterSet
+selector NSCharacterSet decimalDigitCharacterSet
+selector NSCharacterSet decomposableCharacterSet
+selector NSCharacterSet hasMemberInPlane:
+selector NSCharacterSet illegalCharacterSet
+selector NSCharacterSet invertedSet
+selector NSCharacterSet isSupersetOfSet:
+selector NSCharacterSet letterCharacterSet
+selector NSCharacterSet longCharacterIsMember:
+selector NSCharacterSet lowercaseLetterCharacterSet
+selector NSCharacterSet newlineCharacterSet
+selector NSCharacterSet nonBaseCharacterSet
+selector NSCharacterSet punctuationCharacterSet
+selector NSCharacterSet symbolCharacterSet
+selector NSCharacterSet uppercaseLetterCharacterSet
+selector NSCharacterSet whitespaceAndNewlineCharacterSet
+selector NSCharacterSet whitespaceCharacterSet
+selector NSClassDescription attributeKeys
+selector NSClassDescription classDescriptionForClass:
+selector NSClassDescription invalidateClassDescriptionCache
+selector NSClassDescription inverseForRelationshipKey:
+selector NSClassDescription registerClassDescription:forClass:
+selector NSClassDescription toManyRelationshipKeys
+selector NSClassDescription toOneRelationshipKeys
+selector NSCloneCommand keySpecifier
+selector NSCloneCommand setReceiversSpecifier:
+selector NSCloseCommand saveOptions
+selector NSCoder allowsKeyedCoding
+selector NSCoder containsValueForKey:
+selector NSCoder decodeArrayOfObjCType:count:at:
+selector NSCoder decodeBoolForKey:
+selector NSCoder decodeBytesForKey:returnedLength:
+selector NSCoder decodeBytesWithReturnedLength:
+selector NSCoder decodeDataObject
+selector NSCoder decodeDoubleForKey:
+selector NSCoder decodeFloatForKey:
+selector NSCoder decodeInt32ForKey:
+selector NSCoder decodeInt64ForKey:
+selector NSCoder decodeIntForKey:
+selector NSCoder decodeIntegerForKey:
+selector NSCoder decodeNXObject
+selector NSCoder decodeObject
+selector NSCoder decodeObjectForKey:
+selector NSCoder decodePoint
+selector NSCoder decodePointForKey:
+selector NSCoder decodePropertyList
+selector NSCoder decodeRect
+selector NSCoder decodeRectForKey:
+selector NSCoder decodeSize
+selector NSCoder decodeSizeForKey:
+selector NSCoder decodeValueOfObjCType:at:
+selector NSCoder decodeValuesOfObjCTypes:
+selector NSCoder encodeArrayOfObjCType:count:at:
+selector NSCoder encodeBool:forKey:
+selector NSCoder encodeBycopyObject:
+selector NSCoder encodeByrefObject:
+selector NSCoder encodeBytes:length:
+selector NSCoder encodeBytes:length:forKey:
+selector NSCoder encodeConditionalObject:
+selector NSCoder encodeConditionalObject:forKey:
+selector NSCoder encodeDataObject:
+selector NSCoder encodeDouble:forKey:
+selector NSCoder encodeFloat:forKey:
+selector NSCoder encodeInt32:forKey:
+selector NSCoder encodeInt64:forKey:
+selector NSCoder encodeInt:forKey:
+selector NSCoder encodeInteger:forKey:
+selector NSCoder encodeNXObject:
+selector NSCoder encodeObject:
+selector NSCoder encodeObject:forKey:
+selector NSCoder encodePoint:
+selector NSCoder encodePoint:forKey:
+selector NSCoder encodePropertyList:
+selector NSCoder encodeRect:
+selector NSCoder encodeRect:forKey:
+selector NSCoder encodeRootObject:
+selector NSCoder encodeSize:
+selector NSCoder encodeSize:forKey:
+selector NSCoder encodeValueOfObjCType:at:
+selector NSCoder encodeValuesOfObjCTypes:
+selector NSCoder objectZone
+selector NSCoder setObjectZone:
+selector NSCoder systemVersion
+selector NSCoder versionForClassName:
+selector NSComparisonPredicate comparisonPredicateModifier
+selector NSComparisonPredicate customSelector
+selector NSComparisonPredicate initWithLeftExpression:rightExpression:customSelector:
+selector NSComparisonPredicate initWithLeftExpression:rightExpression:modifier:type:options:
+selector NSComparisonPredicate leftExpression
+selector NSComparisonPredicate options
+selector NSComparisonPredicate predicateOperatorType
+selector NSComparisonPredicate predicateWithLeftExpression:rightExpression:customSelector:
+selector NSComparisonPredicate predicateWithLeftExpression:rightExpression:modifier:type:options:
+selector NSComparisonPredicate rightExpression
+selector NSCompoundPredicate andPredicateWithSubpredicates:
+selector NSCompoundPredicate compoundPredicateType
+selector NSCompoundPredicate initWithType:subpredicates:
+selector NSCompoundPredicate notPredicateWithSubpredicate:
+selector NSCompoundPredicate orPredicateWithSubpredicates:
+selector NSCompoundPredicate subpredicates
+selector NSCondition broadcast
+selector NSCondition name
+selector NSCondition setName:
+selector NSCondition signal
+selector NSCondition wait
+selector NSCondition waitUntilDate:
+selector NSConditionLock condition
+selector NSConditionLock initWithCondition:
+selector NSConditionLock lockBeforeDate:
+selector NSConditionLock lockWhenCondition:
+selector NSConditionLock lockWhenCondition:beforeDate:
+selector NSConditionLock name
+selector NSConditionLock setName:
+selector NSConditionLock tryLock
+selector NSConditionLock tryLockWhenCondition:
+selector NSConditionLock unlockWithCondition:
+selector NSConnection addRequestMode:
+selector NSConnection addRunLoop:
+selector NSConnection allConnections
+selector NSConnection connectionWithReceivePort:sendPort:
+selector NSConnection connectionWithRegisteredName:host:
+selector NSConnection connectionWithRegisteredName:host:usingNameServer:
+selector NSConnection currentConversation
+selector NSConnection defaultConnection
+selector NSConnection delegate
+selector NSConnection enableMultipleThreads
+selector NSConnection independentConversationQueueing
+selector NSConnection initWithReceivePort:sendPort:
+selector NSConnection invalidate
+selector NSConnection isValid
+selector NSConnection localObjects
+selector NSConnection multipleThreadsEnabled
+selector NSConnection receivePort
+selector NSConnection registerName:
+selector NSConnection registerName:withNameServer:
+selector NSConnection remoteObjects
+selector NSConnection removeRequestMode:
+selector NSConnection removeRunLoop:
+selector NSConnection replyTimeout
+selector NSConnection requestModes
+selector NSConnection requestTimeout
+selector NSConnection rootObject
+selector NSConnection rootProxy
+selector NSConnection rootProxyForConnectionWithRegisteredName:host:
+selector NSConnection rootProxyForConnectionWithRegisteredName:host:usingNameServer:
+selector NSConnection runInNewThread
+selector NSConnection sendPort
+selector NSConnection serviceConnectionWithName:rootObject:
+selector NSConnection serviceConnectionWithName:rootObject:usingNameServer:
+selector NSConnection setDelegate:
+selector NSConnection setIndependentConversationQueueing:
+selector NSConnection setReplyTimeout:
+selector NSConnection setRequestTimeout:
+selector NSConnection setRootObject:
+selector NSConnection statistics
+selector NSCountedSet addObject:
+selector NSCountedSet countForObject:
+selector NSCountedSet initWithArray:
+selector NSCountedSet initWithCapacity:
+selector NSCountedSet initWithSet:
+selector NSCountedSet objectEnumerator
+selector NSCountedSet removeObject:
+selector NSCreateCommand createClassDescription
+selector NSCreateCommand resolvedKeyDictionary
+selector NSData bytes
+selector NSData data
+selector NSData dataWithBytes:length:
+selector NSData dataWithBytesNoCopy:length:
+selector NSData dataWithBytesNoCopy:length:freeWhenDone:
+selector NSData dataWithContentsOfFile:
+selector NSData dataWithContentsOfFile:options:error:
+selector NSData dataWithContentsOfMappedFile:
+selector NSData dataWithContentsOfURL:
+selector NSData dataWithContentsOfURL:options:error:
+selector NSData dataWithData:
+selector NSData description
+selector NSData getBytes:
+selector NSData getBytes:length:
+selector NSData getBytes:range:
+selector NSData initWithBytes:length:
+selector NSData initWithBytesNoCopy:length:
+selector NSData initWithBytesNoCopy:length:freeWhenDone:
+selector NSData initWithContentsOfFile:
+selector NSData initWithContentsOfFile:options:error:
+selector NSData initWithContentsOfMappedFile:
+selector NSData initWithContentsOfURL:
+selector NSData initWithContentsOfURL:options:error:
+selector NSData initWithData:
+selector NSData isEqualToData:
+selector NSData length
+selector NSData rangeOfData:options:range:
+selector NSData subdataWithRange:
+selector NSData writeToFile:atomically:
+selector NSData writeToFile:options:error:
+selector NSData writeToURL:atomically:
+selector NSData writeToURL:options:error:
+selector NSDate addTimeInterval:
+selector NSDate compare:
+selector NSDate date
+selector NSDate dateByAddingTimeInterval:
+selector NSDate dateWithCalendarFormat:timeZone:
+selector NSDate dateWithNaturalLanguageString:
+selector NSDate dateWithNaturalLanguageString:locale:
+selector NSDate dateWithString:
+selector NSDate dateWithTimeInterval:sinceDate:
+selector NSDate dateWithTimeIntervalSince1970:
+selector NSDate dateWithTimeIntervalSinceNow:
+selector NSDate dateWithTimeIntervalSinceReferenceDate:
+selector NSDate description
+selector NSDate descriptionWithCalendarFormat:timeZone:locale:
+selector NSDate descriptionWithLocale:
+selector NSDate distantFuture
+selector NSDate distantPast
+selector NSDate earlierDate:
+selector NSDate init
+selector NSDate initWithString:
+selector NSDate initWithTimeInterval:sinceDate:
+selector NSDate initWithTimeIntervalSince1970:
+selector NSDate initWithTimeIntervalSinceNow:
+selector NSDate initWithTimeIntervalSinceReferenceDate:
+selector NSDate isEqualToDate:
+selector NSDate laterDate:
+selector NSDate timeIntervalSince1970
+selector NSDate timeIntervalSinceDate:
+selector NSDate timeIntervalSinceNow
+selector NSDate timeIntervalSinceReferenceDate
+selector NSDateComponents day
+selector NSDateComponents era
+selector NSDateComponents hour
+selector NSDateComponents minute
+selector NSDateComponents month
+selector NSDateComponents quarter
+selector NSDateComponents second
+selector NSDateComponents setDay:
+selector NSDateComponents setEra:
+selector NSDateComponents setHour:
+selector NSDateComponents setMinute:
+selector NSDateComponents setMonth:
+selector NSDateComponents setQuarter:
+selector NSDateComponents setSecond:
+selector NSDateComponents setWeek:
+selector NSDateComponents setWeekday:
+selector NSDateComponents setWeekdayOrdinal:
+selector NSDateComponents setYear:
+selector NSDateComponents week
+selector NSDateComponents weekday
+selector NSDateComponents weekdayOrdinal
+selector NSDateComponents year
+selector NSDateFormatter AMSymbol
+selector NSDateFormatter PMSymbol
+selector NSDateFormatter allowsNaturalLanguage
+selector NSDateFormatter calendar
+selector NSDateFormatter dateFormat
+selector NSDateFormatter dateFormatFromTemplate:options:locale:
+selector NSDateFormatter dateFromString:
+selector NSDateFormatter dateStyle
+selector NSDateFormatter defaultDate
+selector NSDateFormatter defaultFormatterBehavior
+selector NSDateFormatter doesRelativeDateFormatting
+selector NSDateFormatter eraSymbols
+selector NSDateFormatter formatterBehavior
+selector NSDateFormatter generatesCalendarDates
+selector NSDateFormatter getObjectValue:forString:range:error:
+selector NSDateFormatter gregorianStartDate
+selector NSDateFormatter initWithDateFormat:allowNaturalLanguage:
+selector NSDateFormatter isLenient
+selector NSDateFormatter locale
+selector NSDateFormatter localizedStringFromDate:dateStyle:timeStyle:
+selector NSDateFormatter longEraSymbols
+selector NSDateFormatter monthSymbols
+selector NSDateFormatter quarterSymbols
+selector NSDateFormatter setAMSymbol:
+selector NSDateFormatter setCalendar:
+selector NSDateFormatter setDateFormat:
+selector NSDateFormatter setDateStyle:
+selector NSDateFormatter setDefaultDate:
+selector NSDateFormatter setDefaultFormatterBehavior:
+selector NSDateFormatter setDoesRelativeDateFormatting:
+selector NSDateFormatter setEraSymbols:
+selector NSDateFormatter setFormatterBehavior:
+selector NSDateFormatter setGeneratesCalendarDates:
+selector NSDateFormatter setGregorianStartDate:
+selector NSDateFormatter setLenient:
+selector NSDateFormatter setLocale:
+selector NSDateFormatter setLongEraSymbols:
+selector NSDateFormatter setMonthSymbols:
+selector NSDateFormatter setPMSymbol:
+selector NSDateFormatter setQuarterSymbols:
+selector NSDateFormatter setShortMonthSymbols:
+selector NSDateFormatter setShortQuarterSymbols:
+selector NSDateFormatter setShortStandaloneMonthSymbols:
+selector NSDateFormatter setShortStandaloneQuarterSymbols:
+selector NSDateFormatter setShortStandaloneWeekdaySymbols:
+selector NSDateFormatter setShortWeekdaySymbols:
+selector NSDateFormatter setStandaloneMonthSymbols:
+selector NSDateFormatter setStandaloneQuarterSymbols:
+selector NSDateFormatter setStandaloneWeekdaySymbols:
+selector NSDateFormatter setTimeStyle:
+selector NSDateFormatter setTimeZone:
+selector NSDateFormatter setTwoDigitStartDate:
+selector NSDateFormatter setVeryShortMonthSymbols:
+selector NSDateFormatter setVeryShortStandaloneMonthSymbols:
+selector NSDateFormatter setVeryShortStandaloneWeekdaySymbols:
+selector NSDateFormatter setVeryShortWeekdaySymbols:
+selector NSDateFormatter setWeekdaySymbols:
+selector NSDateFormatter shortMonthSymbols
+selector NSDateFormatter shortQuarterSymbols
+selector NSDateFormatter shortStandaloneMonthSymbols
+selector NSDateFormatter shortStandaloneQuarterSymbols
+selector NSDateFormatter shortStandaloneWeekdaySymbols
+selector NSDateFormatter shortWeekdaySymbols
+selector NSDateFormatter standaloneMonthSymbols
+selector NSDateFormatter standaloneQuarterSymbols
+selector NSDateFormatter standaloneWeekdaySymbols
+selector NSDateFormatter stringFromDate:
+selector NSDateFormatter timeStyle
+selector NSDateFormatter timeZone
+selector NSDateFormatter twoDigitStartDate
+selector NSDateFormatter veryShortMonthSymbols
+selector NSDateFormatter veryShortStandaloneMonthSymbols
+selector NSDateFormatter veryShortStandaloneWeekdaySymbols
+selector NSDateFormatter veryShortWeekdaySymbols
+selector NSDateFormatter weekdaySymbols
+selector NSDecimalNumber compare:
+selector NSDecimalNumber decimalNumberByAdding:
+selector NSDecimalNumber decimalNumberByAdding:withBehavior:
+selector NSDecimalNumber decimalNumberByDividingBy:
+selector NSDecimalNumber decimalNumberByDividingBy:withBehavior:
+selector NSDecimalNumber decimalNumberByMultiplyingBy:
+selector NSDecimalNumber decimalNumberByMultiplyingBy:withBehavior:
+selector NSDecimalNumber decimalNumberByMultiplyingByPowerOf10:
+selector NSDecimalNumber decimalNumberByMultiplyingByPowerOf10:withBehavior:
+selector NSDecimalNumber decimalNumberByRaisingToPower:
+selector NSDecimalNumber decimalNumberByRaisingToPower:withBehavior:
+selector NSDecimalNumber decimalNumberByRoundingAccordingToBehavior:
+selector NSDecimalNumber decimalNumberBySubtracting:
+selector NSDecimalNumber decimalNumberBySubtracting:withBehavior:
+selector NSDecimalNumber decimalNumberWithDecimal:
+selector NSDecimalNumber decimalNumberWithMantissa:exponent:isNegative:
+selector NSDecimalNumber decimalNumberWithString:
+selector NSDecimalNumber decimalNumberWithString:locale:
+selector NSDecimalNumber decimalValue
+selector NSDecimalNumber defaultBehavior
+selector NSDecimalNumber descriptionWithLocale:
+selector NSDecimalNumber doubleValue
+selector NSDecimalNumber initWithDecimal:
+selector NSDecimalNumber initWithMantissa:exponent:isNegative:
+selector NSDecimalNumber initWithString:
+selector NSDecimalNumber initWithString:locale:
+selector NSDecimalNumber maximumDecimalNumber
+selector NSDecimalNumber minimumDecimalNumber
+selector NSDecimalNumber notANumber
+selector NSDecimalNumber objCType
+selector NSDecimalNumber one
+selector NSDecimalNumber setDefaultBehavior:
+selector NSDecimalNumber zero
+selector NSDecimalNumberHandler decimalNumberHandlerWithRoundingMode:scale:raiseOnExactness:raiseOnOverflow:raiseOnUnderflow:raiseOnDivideByZero:
+selector NSDecimalNumberHandler defaultDecimalNumberHandler
+selector NSDecimalNumberHandler initWithRoundingMode:scale:raiseOnExactness:raiseOnOverflow:raiseOnUnderflow:raiseOnDivideByZero:
+selector NSDeleteCommand keySpecifier
+selector NSDeleteCommand setReceiversSpecifier:
+selector NSDictionary allKeys
+selector NSDictionary allKeysForObject:
+selector NSDictionary allValues
+selector NSDictionary count
+selector NSDictionary description
+selector NSDictionary descriptionInStringsFileFormat
+selector NSDictionary descriptionWithLocale:
+selector NSDictionary descriptionWithLocale:indent:
+selector NSDictionary dictionary
+selector NSDictionary dictionaryWithContentsOfFile:
+selector NSDictionary dictionaryWithContentsOfURL:
+selector NSDictionary dictionaryWithDictionary:
+selector NSDictionary dictionaryWithObject:forKey:
+selector NSDictionary dictionaryWithObjects:forKeys:
+selector NSDictionary dictionaryWithObjects:forKeys:count:
+selector NSDictionary dictionaryWithObjectsAndKeys:
+selector NSDictionary enumerateKeysAndObjectsUsingBlock:
+selector NSDictionary enumerateKeysAndObjectsWithOptions:usingBlock:
+selector NSDictionary fileCreationDate
+selector NSDictionary fileExtensionHidden
+selector NSDictionary fileGroupOwnerAccountID
+selector NSDictionary fileGroupOwnerAccountName
+selector NSDictionary fileHFSCreatorCode
+selector NSDictionary fileHFSTypeCode
+selector NSDictionary fileIsAppendOnly
+selector NSDictionary fileIsImmutable
+selector NSDictionary fileModificationDate
+selector NSDictionary fileOwnerAccountID
+selector NSDictionary fileOwnerAccountName
+selector NSDictionary filePosixPermissions
+selector NSDictionary fileSize
+selector NSDictionary fileSystemFileNumber
+selector NSDictionary fileSystemNumber
+selector NSDictionary fileType
+selector NSDictionary getObjects:andKeys:
+selector NSDictionary initWithContentsOfFile:
+selector NSDictionary initWithContentsOfURL:
+selector NSDictionary initWithDictionary:
+selector NSDictionary initWithDictionary:copyItems:
+selector NSDictionary initWithObjects:forKeys:
+selector NSDictionary initWithObjects:forKeys:count:
+selector NSDictionary initWithObjectsAndKeys:
+selector NSDictionary isEqualToDictionary:
+selector NSDictionary keyEnumerator
+selector NSDictionary keysOfEntriesPassingTest:
+selector NSDictionary keysOfEntriesWithOptions:passingTest:
+selector NSDictionary keysSortedByValueUsingComparator:
+selector NSDictionary keysSortedByValueUsingSelector:
+selector NSDictionary keysSortedByValueWithOptions:usingComparator:
+selector NSDictionary objectEnumerator
+selector NSDictionary objectForKey:
+selector NSDictionary objectsForKeys:notFoundMarker:
+selector NSDictionary valueForKey:
+selector NSDictionary writeToFile:atomically:
+selector NSDictionary writeToURL:atomically:
+selector NSDirectoryEnumerator directoryAttributes
+selector NSDirectoryEnumerator fileAttributes
+selector NSDirectoryEnumerator level
+selector NSDirectoryEnumerator skipDescendants
+selector NSDirectoryEnumerator skipDescendents
+selector NSDistantObject connectionForProxy
+selector NSDistantObject initWithLocal:connection:
+selector NSDistantObject initWithTarget:connection:
+selector NSDistantObject proxyWithLocal:connection:
+selector NSDistantObject proxyWithTarget:connection:
+selector NSDistantObject setProtocolForProxy:
+selector NSDistantObjectRequest connection
+selector NSDistantObjectRequest conversation
+selector NSDistantObjectRequest invocation
+selector NSDistantObjectRequest replyWithException:
+selector NSDistributedLock breakLock
+selector NSDistributedLock initWithPath:
+selector NSDistributedLock lockDate
+selector NSDistributedLock lockWithPath:
+selector NSDistributedLock tryLock
+selector NSDistributedLock unlock
+selector NSDistributedNotificationCenter addObserver:selector:name:object:
+selector NSDistributedNotificationCenter addObserver:selector:name:object:suspensionBehavior:
+selector NSDistributedNotificationCenter defaultCenter
+selector NSDistributedNotificationCenter notificationCenterForType:
+selector NSDistributedNotificationCenter postNotificationName:object:
+selector NSDistributedNotificationCenter postNotificationName:object:userInfo:
+selector NSDistributedNotificationCenter postNotificationName:object:userInfo:deliverImmediately:
+selector NSDistributedNotificationCenter postNotificationName:object:userInfo:options:
+selector NSDistributedNotificationCenter removeObserver:name:object:
+selector NSDistributedNotificationCenter setSuspended:
+selector NSDistributedNotificationCenter suspended
+selector NSEnumerator allObjects
+selector NSEnumerator nextObject
+selector NSError code
+selector NSError domain
+selector NSError errorWithDomain:code:userInfo:
+selector NSError helpAnchor
+selector NSError initWithDomain:code:userInfo:
+selector NSError localizedDescription
+selector NSError localizedFailureReason
+selector NSError localizedRecoveryOptions
+selector NSError localizedRecoverySuggestion
+selector NSError recoveryAttempter
+selector NSError userInfo
+selector NSException callStackReturnAddresses
+selector NSException callStackSymbols
+selector NSException exceptionWithName:reason:userInfo:
+selector NSException initWithName:reason:userInfo:
+selector NSException name
+selector NSException raise
+selector NSException raise:format:
+selector NSException raise:format:arguments:
+selector NSException reason
+selector NSException userInfo
+selector NSExpression arguments
+selector NSExpression collection
+selector NSExpression constantValue
+selector NSExpression expressionBlock
+selector NSExpression expressionForAggregate:
+selector NSExpression expressionForBlock:arguments:
+selector NSExpression expressionForConstantValue:
+selector NSExpression expressionForEvaluatedObject
+selector NSExpression expressionForFunction:arguments:
+selector NSExpression expressionForFunction:selectorName:arguments:
+selector NSExpression expressionForIntersectSet:with:
+selector NSExpression expressionForKeyPath:
+selector NSExpression expressionForMinusSet:with:
+selector NSExpression expressionForSubquery:usingIteratorVariable:predicate:
+selector NSExpression expressionForUnionSet:with:
+selector NSExpression expressionForVariable:
+selector NSExpression expressionType
+selector NSExpression expressionValueWithObject:context:
+selector NSExpression function
+selector NSExpression initWithExpressionType:
+selector NSExpression keyPath
+selector NSExpression leftExpression
+selector NSExpression operand
+selector NSExpression predicate
+selector NSExpression rightExpression
+selector NSExpression variable
+selector NSFileHandle acceptConnectionInBackgroundAndNotify
+selector NSFileHandle acceptConnectionInBackgroundAndNotifyForModes:
+selector NSFileHandle availableData
+selector NSFileHandle closeFile
+selector NSFileHandle fileDescriptor
+selector NSFileHandle fileHandleForReadingAtPath:
+selector NSFileHandle fileHandleForReadingFromURL:error:
+selector NSFileHandle fileHandleForUpdatingAtPath:
+selector NSFileHandle fileHandleForUpdatingURL:error:
+selector NSFileHandle fileHandleForWritingAtPath:
+selector NSFileHandle fileHandleForWritingToURL:error:
+selector NSFileHandle fileHandleWithNullDevice
+selector NSFileHandle fileHandleWithStandardError
+selector NSFileHandle fileHandleWithStandardInput
+selector NSFileHandle fileHandleWithStandardOutput
+selector NSFileHandle initWithFileDescriptor:
+selector NSFileHandle initWithFileDescriptor:closeOnDealloc:
+selector NSFileHandle offsetInFile
+selector NSFileHandle readDataOfLength:
+selector NSFileHandle readDataToEndOfFile
+selector NSFileHandle readInBackgroundAndNotify
+selector NSFileHandle readInBackgroundAndNotifyForModes:
+selector NSFileHandle readToEndOfFileInBackgroundAndNotify
+selector NSFileHandle readToEndOfFileInBackgroundAndNotifyForModes:
+selector NSFileHandle seekToEndOfFile
+selector NSFileHandle seekToFileOffset:
+selector NSFileHandle synchronizeFile
+selector NSFileHandle truncateFileAtOffset:
+selector NSFileHandle waitForDataInBackgroundAndNotify
+selector NSFileHandle waitForDataInBackgroundAndNotifyForModes:
+selector NSFileHandle writeData:
+selector NSFileManager URLForDirectory:inDomain:appropriateForURL:create:error:
+selector NSFileManager URLsForDirectory:inDomains:
+selector NSFileManager attributesOfFileSystemForPath:error:
+selector NSFileManager attributesOfItemAtPath:error:
+selector NSFileManager changeCurrentDirectoryPath:
+selector NSFileManager changeFileAttributes:atPath:
+selector NSFileManager componentsToDisplayForPath:
+selector NSFileManager contentsAtPath:
+selector NSFileManager contentsEqualAtPath:andPath:
+selector NSFileManager contentsOfDirectoryAtPath:error:
+selector NSFileManager contentsOfDirectoryAtURL:includingPropertiesForKeys:options:error:
+selector NSFileManager copyItemAtPath:toPath:error:
+selector NSFileManager copyItemAtURL:toURL:error:
+selector NSFileManager copyPath:toPath:handler:
+selector NSFileManager createDirectoryAtPath:attributes:
+selector NSFileManager createDirectoryAtPath:withIntermediateDirectories:attributes:error:
+selector NSFileManager createFileAtPath:contents:attributes:
+selector NSFileManager createSymbolicLinkAtPath:pathContent:
+selector NSFileManager createSymbolicLinkAtPath:withDestinationPath:error:
+selector NSFileManager currentDirectoryPath
+selector NSFileManager defaultManager
+selector NSFileManager delegate
+selector NSFileManager destinationOfSymbolicLinkAtPath:error:
+selector NSFileManager directoryContentsAtPath:
+selector NSFileManager displayNameAtPath:
+selector NSFileManager enumeratorAtPath:
+selector NSFileManager enumeratorAtURL:includingPropertiesForKeys:options:errorHandler:
+selector NSFileManager fileAttributesAtPath:traverseLink:
+selector NSFileManager fileExistsAtPath:
+selector NSFileManager fileExistsAtPath:isDirectory:
+selector NSFileManager fileSystemAttributesAtPath:
+selector NSFileManager fileSystemRepresentationWithPath:
+selector NSFileManager isDeletableFileAtPath:
+selector NSFileManager isExecutableFileAtPath:
+selector NSFileManager isReadableFileAtPath:
+selector NSFileManager isWritableFileAtPath:
+selector NSFileManager linkItemAtPath:toPath:error:
+selector NSFileManager linkItemAtURL:toURL:error:
+selector NSFileManager linkPath:toPath:handler:
+selector NSFileManager mountedVolumeURLsIncludingResourceValuesForKeys:options:
+selector NSFileManager moveItemAtPath:toPath:error:
+selector NSFileManager moveItemAtURL:toURL:error:
+selector NSFileManager movePath:toPath:handler:
+selector NSFileManager pathContentOfSymbolicLinkAtPath:
+selector NSFileManager removeFileAtPath:handler:
+selector NSFileManager removeItemAtPath:error:
+selector NSFileManager removeItemAtURL:error:
+selector NSFileManager replaceItemAtURL:withItemAtURL:backupItemName:options:resultingItemURL:error:
+selector NSFileManager setAttributes:ofItemAtPath:error:
+selector NSFileManager setDelegate:
+selector NSFileManager stringWithFileSystemRepresentation:length:
+selector NSFileManager subpathsAtPath:
+selector NSFileManager subpathsOfDirectoryAtPath:error:
+selector NSFormatter attributedStringForObjectValue:withDefaultAttributes:
+selector NSFormatter editingStringForObjectValue:
+selector NSFormatter getObjectValue:forString:errorDescription:
+selector NSFormatter isPartialStringValid:newEditingString:errorDescription:
+selector NSFormatter isPartialStringValid:proposedSelectedRange:originalString:originalSelectedRange:errorDescription:
+selector NSFormatter stringForObjectValue:
+selector NSGarbageCollector collectExhaustively
+selector NSGarbageCollector collectIfNeeded
+selector NSGarbageCollector defaultCollector
+selector NSGarbageCollector disable
+selector NSGarbageCollector disableCollectorForPointer:
+selector NSGarbageCollector enable
+selector NSGarbageCollector enableCollectorForPointer:
+selector NSGarbageCollector isCollecting
+selector NSGarbageCollector isEnabled
+selector NSGarbageCollector zone
+selector NSHTTPCookie comment
+selector NSHTTPCookie commentURL
+selector NSHTTPCookie cookieWithProperties:
+selector NSHTTPCookie cookiesWithResponseHeaderFields:forURL:
+selector NSHTTPCookie domain
+selector NSHTTPCookie expiresDate
+selector NSHTTPCookie initWithProperties:
+selector NSHTTPCookie isHTTPOnly
+selector NSHTTPCookie isSecure
+selector NSHTTPCookie isSessionOnly
+selector NSHTTPCookie name
+selector NSHTTPCookie path
+selector NSHTTPCookie portList
+selector NSHTTPCookie properties
+selector NSHTTPCookie requestHeaderFieldsWithCookies:
+selector NSHTTPCookie value
+selector NSHTTPCookie version
+selector NSHTTPCookieStorage cookieAcceptPolicy
+selector NSHTTPCookieStorage cookies
+selector NSHTTPCookieStorage cookiesForURL:
+selector NSHTTPCookieStorage deleteCookie:
+selector NSHTTPCookieStorage initWithStorageLocation:
+selector NSHTTPCookieStorage setCookie:
+selector NSHTTPCookieStorage setCookieAcceptPolicy:
+selector NSHTTPCookieStorage setCookies:forURL:mainDocumentURL:
+selector NSHTTPCookieStorage sharedHTTPCookieStorage
+selector NSHTTPURLResponse allHeaderFields
+selector NSHTTPURLResponse localizedStringForStatusCode:
+selector NSHTTPURLResponse statusCode
+selector NSHashTable addObject:
+selector NSHashTable allObjects
+selector NSHashTable anyObject
+selector NSHashTable containsObject:
+selector NSHashTable count
+selector NSHashTable hashTableWithOptions:
+selector NSHashTable hashTableWithWeakObjects
+selector NSHashTable initWithOptions:capacity:
+selector NSHashTable initWithPointerFunctions:capacity:
+selector NSHashTable intersectHashTable:
+selector NSHashTable intersectsHashTable:
+selector NSHashTable isEqualToHashTable:
+selector NSHashTable isSubsetOfHashTable:
+selector NSHashTable member:
+selector NSHashTable minusHashTable:
+selector NSHashTable objectEnumerator
+selector NSHashTable pointerFunctions
+selector NSHashTable removeAllObjects
+selector NSHashTable removeObject:
+selector NSHashTable setRepresentation
+selector NSHashTable unionHashTable:
+selector NSHost address
+selector NSHost addresses
+selector NSHost currentHost
+selector NSHost flushHostCache
+selector NSHost hostWithAddress:
+selector NSHost hostWithName:
+selector NSHost isEqualToHost:
+selector NSHost isHostCacheEnabled
+selector NSHost localizedName
+selector NSHost name
+selector NSHost names
+selector NSHost setHostCacheEnabled:
+selector NSIndexPath compare:
+selector NSIndexPath getIndexes:
+selector NSIndexPath indexAtPosition:
+selector NSIndexPath indexPathByAddingIndex:
+selector NSIndexPath indexPathByRemovingLastIndex
+selector NSIndexPath indexPathWithIndex:
+selector NSIndexPath indexPathWithIndexes:length:
+selector NSIndexPath initWithIndex:
+selector NSIndexPath initWithIndexes:length:
+selector NSIndexPath length
+selector NSIndexSet containsIndex:
+selector NSIndexSet containsIndexes:
+selector NSIndexSet containsIndexesInRange:
+selector NSIndexSet count
+selector NSIndexSet countOfIndexesInRange:
+selector NSIndexSet enumerateIndexesInRange:options:usingBlock:
+selector NSIndexSet enumerateIndexesUsingBlock:
+selector NSIndexSet enumerateIndexesWithOptions:usingBlock:
+selector NSIndexSet firstIndex
+selector NSIndexSet getIndexes:maxCount:inIndexRange:
+selector NSIndexSet indexGreaterThanIndex:
+selector NSIndexSet indexGreaterThanOrEqualToIndex:
+selector NSIndexSet indexInRange:options:passingTest:
+selector NSIndexSet indexLessThanIndex:
+selector NSIndexSet indexLessThanOrEqualToIndex:
+selector NSIndexSet indexPassingTest:
+selector NSIndexSet indexSet
+selector NSIndexSet indexSetWithIndex:
+selector NSIndexSet indexSetWithIndexesInRange:
+selector NSIndexSet indexWithOptions:passingTest:
+selector NSIndexSet indexesInRange:options:passingTest:
+selector NSIndexSet indexesPassingTest:
+selector NSIndexSet indexesWithOptions:passingTest:
+selector NSIndexSet init
+selector NSIndexSet initWithIndex:
+selector NSIndexSet initWithIndexSet:
+selector NSIndexSet initWithIndexesInRange:
+selector NSIndexSet intersectsIndexesInRange:
+selector NSIndexSet isEqualToIndexSet:
+selector NSIndexSet lastIndex
+selector NSIndexSpecifier index
+selector NSIndexSpecifier initWithContainerClassDescription:containerSpecifier:key:index:
+selector NSIndexSpecifier setIndex:
+selector NSInputStream getBuffer:length:
+selector NSInputStream hasBytesAvailable
+selector NSInputStream initWithData:
+selector NSInputStream initWithFileAtPath:
+selector NSInputStream initWithURL:
+selector NSInputStream inputStreamWithData:
+selector NSInputStream inputStreamWithFileAtPath:
+selector NSInputStream inputStreamWithURL:
+selector NSInputStream read:maxLength:
+selector NSInvocation argumentsRetained
+selector NSInvocation getArgument:atIndex:
+selector NSInvocation getReturnValue:
+selector NSInvocation invocationWithMethodSignature:
+selector NSInvocation invoke
+selector NSInvocation invokeWithTarget:
+selector NSInvocation methodSignature
+selector NSInvocation retainArguments
+selector NSInvocation selector
+selector NSInvocation setArgument:atIndex:
+selector NSInvocation setReturnValue:
+selector NSInvocation setSelector:
+selector NSInvocation setTarget:
+selector NSInvocation target
+selector NSInvocationOperation initWithInvocation:
+selector NSInvocationOperation initWithTarget:selector:object:
+selector NSInvocationOperation invocation
+selector NSInvocationOperation result
+selector NSKeyedArchiver archiveRootObject:toFile:
+selector NSKeyedArchiver archivedDataWithRootObject:
+selector NSKeyedArchiver classNameForClass:
+selector NSKeyedArchiver delegate
+selector NSKeyedArchiver encodeBool:forKey:
+selector NSKeyedArchiver encodeBytes:length:forKey:
+selector NSKeyedArchiver encodeConditionalObject:forKey:
+selector NSKeyedArchiver encodeDouble:forKey:
+selector NSKeyedArchiver encodeFloat:forKey:
+selector NSKeyedArchiver encodeInt32:forKey:
+selector NSKeyedArchiver encodeInt64:forKey:
+selector NSKeyedArchiver encodeInt:forKey:
+selector NSKeyedArchiver encodeObject:forKey:
+selector NSKeyedArchiver finishEncoding
+selector NSKeyedArchiver initForWritingWithMutableData:
+selector NSKeyedArchiver outputFormat
+selector NSKeyedArchiver setClassName:forClass:
+selector NSKeyedArchiver setDelegate:
+selector NSKeyedArchiver setOutputFormat:
+selector NSKeyedUnarchiver classForClassName:
+selector NSKeyedUnarchiver containsValueForKey:
+selector NSKeyedUnarchiver decodeBoolForKey:
+selector NSKeyedUnarchiver decodeBytesForKey:returnedLength:
+selector NSKeyedUnarchiver decodeDoubleForKey:
+selector NSKeyedUnarchiver decodeFloatForKey:
+selector NSKeyedUnarchiver decodeInt32ForKey:
+selector NSKeyedUnarchiver decodeInt64ForKey:
+selector NSKeyedUnarchiver decodeIntForKey:
+selector NSKeyedUnarchiver decodeObjectForKey:
+selector NSKeyedUnarchiver delegate
+selector NSKeyedUnarchiver finishDecoding
+selector NSKeyedUnarchiver initForReadingWithData:
+selector NSKeyedUnarchiver setClass:forClassName:
+selector NSKeyedUnarchiver setDelegate:
+selector NSKeyedUnarchiver unarchiveObjectWithData:
+selector NSKeyedUnarchiver unarchiveObjectWithFile:
+selector NSLocale ISOCountryCodes
+selector NSLocale ISOCurrencyCodes
+selector NSLocale ISOLanguageCodes
+selector NSLocale autoupdatingCurrentLocale
+selector NSLocale availableLocaleIdentifiers
+selector NSLocale canonicalLanguageIdentifierFromString:
+selector NSLocale canonicalLocaleIdentifierFromString:
+selector NSLocale characterDirectionForLanguage:
+selector NSLocale commonISOCurrencyCodes
+selector NSLocale componentsFromLocaleIdentifier:
+selector NSLocale currentLocale
+selector NSLocale displayNameForKey:value:
+selector NSLocale initWithLocaleIdentifier:
+selector NSLocale lineDirectionForLanguage:
+selector NSLocale localeIdentifier
+selector NSLocale localeIdentifierFromComponents:
+selector NSLocale localeIdentifierFromWindowsLocaleCode:
+selector NSLocale objectForKey:
+selector NSLocale preferredLanguages
+selector NSLocale systemLocale
+selector NSLocale windowsLocaleCodeFromLocaleIdentifier:
+selector NSLock lockBeforeDate:
+selector NSLock name
+selector NSLock setName:
+selector NSLock tryLock
+selector NSLogicalTest initAndTestWithTests:
+selector NSLogicalTest initNotTestWithTest:
+selector NSLogicalTest initOrTestWithTests:
+selector NSMachBootstrapServer portForName:
+selector NSMachBootstrapServer portForName:host:
+selector NSMachBootstrapServer registerPort:name:
+selector NSMachBootstrapServer servicePortWithName:
+selector NSMachBootstrapServer sharedInstance
+selector NSMachPort delegate
+selector NSMachPort initWithMachPort:
+selector NSMachPort initWithMachPort:options:
+selector NSMachPort machPort
+selector NSMachPort portWithMachPort:
+selector NSMachPort portWithMachPort:options:
+selector NSMachPort removeFromRunLoop:forMode:
+selector NSMachPort scheduleInRunLoop:forMode:
+selector NSMachPort setDelegate:
+selector NSMapTable count
+selector NSMapTable dictionaryRepresentation
+selector NSMapTable initWithKeyOptions:valueOptions:capacity:
+selector NSMapTable initWithKeyPointerFunctions:valuePointerFunctions:capacity:
+selector NSMapTable keyEnumerator
+selector NSMapTable keyPointerFunctions
+selector NSMapTable mapTableWithKeyOptions:valueOptions:
+selector NSMapTable mapTableWithStrongToStrongObjects
+selector NSMapTable mapTableWithStrongToWeakObjects
+selector NSMapTable mapTableWithWeakToStrongObjects
+selector NSMapTable mapTableWithWeakToWeakObjects
+selector NSMapTable objectEnumerator
+selector NSMapTable objectForKey:
+selector NSMapTable removeAllObjects
+selector NSMapTable removeObjectForKey:
+selector NSMapTable setObject:forKey:
+selector NSMapTable valuePointerFunctions
+selector NSMessagePortNameServer portForName:
+selector NSMessagePortNameServer portForName:host:
+selector NSMessagePortNameServer sharedInstance
+selector NSMetadataItem attributes
+selector NSMetadataItem valueForAttribute:
+selector NSMetadataItem valuesForAttributes:
+selector NSMetadataQuery delegate
+selector NSMetadataQuery disableUpdates
+selector NSMetadataQuery enableUpdates
+selector NSMetadataQuery groupedResults
+selector NSMetadataQuery groupingAttributes
+selector NSMetadataQuery indexOfResult:
+selector NSMetadataQuery init
+selector NSMetadataQuery isGathering
+selector NSMetadataQuery isStarted
+selector NSMetadataQuery isStopped
+selector NSMetadataQuery notificationBatchingInterval
+selector NSMetadataQuery predicate
+selector NSMetadataQuery resultAtIndex:
+selector NSMetadataQuery resultCount
+selector NSMetadataQuery results
+selector NSMetadataQuery searchScopes
+selector NSMetadataQuery setDelegate:
+selector NSMetadataQuery setGroupingAttributes:
+selector NSMetadataQuery setNotificationBatchingInterval:
+selector NSMetadataQuery setPredicate:
+selector NSMetadataQuery setSearchScopes:
+selector NSMetadataQuery setSortDescriptors:
+selector NSMetadataQuery setValueListAttributes:
+selector NSMetadataQuery sortDescriptors
+selector NSMetadataQuery startQuery
+selector NSMetadataQuery stopQuery
+selector NSMetadataQuery valueListAttributes
+selector NSMetadataQuery valueLists
+selector NSMetadataQuery valueOfAttribute:forResultAtIndex:
+selector NSMetadataQueryAttributeValueTuple attribute
+selector NSMetadataQueryAttributeValueTuple count
+selector NSMetadataQueryAttributeValueTuple value
+selector NSMetadataQueryResultGroup attribute
+selector NSMetadataQueryResultGroup resultAtIndex:
+selector NSMetadataQueryResultGroup resultCount
+selector NSMetadataQueryResultGroup results
+selector NSMetadataQueryResultGroup subgroups
+selector NSMetadataQueryResultGroup value
+selector NSMethodSignature frameLength
+selector NSMethodSignature getArgumentTypeAtIndex:
+selector NSMethodSignature isOneway
+selector NSMethodSignature methodReturnLength
+selector NSMethodSignature methodReturnType
+selector NSMethodSignature numberOfArguments
+selector NSMethodSignature signatureWithObjCTypes:
+selector NSMoveCommand keySpecifier
+selector NSMoveCommand setReceiversSpecifier:
+selector NSMutableArray addObject:
+selector NSMutableArray addObjectsFromArray:
+selector NSMutableArray arrayWithCapacity:
+selector NSMutableArray exchangeObjectAtIndex:withObjectAtIndex:
+selector NSMutableArray filterUsingPredicate:
+selector NSMutableArray initWithCapacity:
+selector NSMutableArray insertObject:atIndex:
+selector NSMutableArray insertObjects:atIndexes:
+selector NSMutableArray removeAllObjects
+selector NSMutableArray removeLastObject
+selector NSMutableArray removeObject:
+selector NSMutableArray removeObject:inRange:
+selector NSMutableArray removeObjectAtIndex:
+selector NSMutableArray removeObjectIdenticalTo:
+selector NSMutableArray removeObjectIdenticalTo:inRange:
+selector NSMutableArray removeObjectsAtIndexes:
+selector NSMutableArray removeObjectsFromIndices:numIndices:
+selector NSMutableArray removeObjectsInArray:
+selector NSMutableArray removeObjectsInRange:
+selector NSMutableArray replaceObjectAtIndex:withObject:
+selector NSMutableArray replaceObjectsAtIndexes:withObjects:
+selector NSMutableArray replaceObjectsInRange:withObjectsFromArray:
+selector NSMutableArray replaceObjectsInRange:withObjectsFromArray:range:
+selector NSMutableArray setArray:
+selector NSMutableArray sortUsingComparator:
+selector NSMutableArray sortUsingDescriptors:
+selector NSMutableArray sortUsingFunction:context:
+selector NSMutableArray sortUsingSelector:
+selector NSMutableArray sortWithOptions:usingComparator:
+selector NSMutableAttributedString addAttribute:value:range:
+selector NSMutableAttributedString addAttributes:range:
+selector NSMutableAttributedString appendAttributedString:
+selector NSMutableAttributedString beginEditing
+selector NSMutableAttributedString deleteCharactersInRange:
+selector NSMutableAttributedString endEditing
+selector NSMutableAttributedString insertAttributedString:atIndex:
+selector NSMutableAttributedString mutableString
+selector NSMutableAttributedString removeAttribute:range:
+selector NSMutableAttributedString replaceCharactersInRange:withAttributedString:
+selector NSMutableAttributedString replaceCharactersInRange:withString:
+selector NSMutableAttributedString setAttributedString:
+selector NSMutableAttributedString setAttributes:range:
+selector NSMutableCharacterSet addCharactersInRange:
+selector NSMutableCharacterSet addCharactersInString:
+selector NSMutableCharacterSet formIntersectionWithCharacterSet:
+selector NSMutableCharacterSet formUnionWithCharacterSet:
+selector NSMutableCharacterSet invert
+selector NSMutableCharacterSet removeCharactersInRange:
+selector NSMutableCharacterSet removeCharactersInString:
+selector NSMutableData appendBytes:length:
+selector NSMutableData appendData:
+selector NSMutableData dataWithCapacity:
+selector NSMutableData dataWithLength:
+selector NSMutableData increaseLengthBy:
+selector NSMutableData initWithCapacity:
+selector NSMutableData initWithLength:
+selector NSMutableData mutableBytes
+selector NSMutableData replaceBytesInRange:withBytes:
+selector NSMutableData replaceBytesInRange:withBytes:length:
+selector NSMutableData resetBytesInRange:
+selector NSMutableData setData:
+selector NSMutableData setLength:
+selector NSMutableDictionary addEntriesFromDictionary:
+selector NSMutableDictionary dictionaryWithCapacity:
+selector NSMutableDictionary initWithCapacity:
+selector NSMutableDictionary removeAllObjects
+selector NSMutableDictionary removeObjectForKey:
+selector NSMutableDictionary removeObjectsForKeys:
+selector NSMutableDictionary setDictionary:
+selector NSMutableDictionary setObject:forKey:
+selector NSMutableDictionary setValue:forKey:
+selector NSMutableIndexSet addIndex:
+selector NSMutableIndexSet addIndexes:
+selector NSMutableIndexSet addIndexesInRange:
+selector NSMutableIndexSet removeAllIndexes
+selector NSMutableIndexSet removeIndex:
+selector NSMutableIndexSet removeIndexes:
+selector NSMutableIndexSet removeIndexesInRange:
+selector NSMutableIndexSet shiftIndexesStartingAtIndex:by:
+selector NSMutableSet addObject:
+selector NSMutableSet addObjectsFromArray:
+selector NSMutableSet filterUsingPredicate:
+selector NSMutableSet initWithCapacity:
+selector NSMutableSet intersectSet:
+selector NSMutableSet minusSet:
+selector NSMutableSet removeAllObjects
+selector NSMutableSet removeObject:
+selector NSMutableSet setSet:
+selector NSMutableSet setWithCapacity:
+selector NSMutableSet unionSet:
+selector NSMutableString appendFormat:
+selector NSMutableString appendString:
+selector NSMutableString deleteCharactersInRange:
+selector NSMutableString initWithCapacity:
+selector NSMutableString insertString:atIndex:
+selector NSMutableString replaceCharactersInRange:withString:
+selector NSMutableString replaceOccurrencesOfString:withString:options:range:
+selector NSMutableString setString:
+selector NSMutableString stringWithCapacity:
+selector NSMutableURLRequest addValue:forHTTPHeaderField:
+selector NSMutableURLRequest setAllHTTPHeaderFields:
+selector NSMutableURLRequest setCachePolicy:
+selector NSMutableURLRequest setHTTPBody:
+selector NSMutableURLRequest setHTTPBodyStream:
+selector NSMutableURLRequest setHTTPMethod:
+selector NSMutableURLRequest setHTTPShouldHandleCookies:
+selector NSMutableURLRequest setMainDocumentURL:
+selector NSMutableURLRequest setTimeoutInterval:
+selector NSMutableURLRequest setURL:
+selector NSMutableURLRequest setValue:forHTTPHeaderField:
+selector NSNameSpecifier initWithContainerClassDescription:containerSpecifier:key:name:
+selector NSNameSpecifier name
+selector NSNameSpecifier setName:
+selector NSNetService TXTRecordData
+selector NSNetService addresses
+selector NSNetService dataFromTXTRecordDictionary:
+selector NSNetService delegate
+selector NSNetService dictionaryFromTXTRecordData:
+selector NSNetService domain
+selector NSNetService getInputStream:outputStream:
+selector NSNetService hostName
+selector NSNetService initWithDomain:type:name:
+selector NSNetService initWithDomain:type:name:port:
+selector NSNetService name
+selector NSNetService port
+selector NSNetService protocolSpecificInformation
+selector NSNetService publish
+selector NSNetService publishWithOptions:
+selector NSNetService removeFromRunLoop:forMode:
+selector NSNetService resolve
+selector NSNetService resolveWithTimeout:
+selector NSNetService scheduleInRunLoop:forMode:
+selector NSNetService setDelegate:
+selector NSNetService setProtocolSpecificInformation:
+selector NSNetService setTXTRecordData:
+selector NSNetService startMonitoring
+selector NSNetService stop
+selector NSNetService stopMonitoring
+selector NSNetService type
+selector NSNetServiceBrowser delegate
+selector NSNetServiceBrowser init
+selector NSNetServiceBrowser removeFromRunLoop:forMode:
+selector NSNetServiceBrowser scheduleInRunLoop:forMode:
+selector NSNetServiceBrowser searchForAllDomains
+selector NSNetServiceBrowser searchForBrowsableDomains
+selector NSNetServiceBrowser searchForRegistrationDomains
+selector NSNetServiceBrowser searchForServicesOfType:inDomain:
+selector NSNetServiceBrowser setDelegate:
+selector NSNetServiceBrowser stop
+selector NSNotification name
+selector NSNotification notificationWithName:object:
+selector NSNotification notificationWithName:object:userInfo:
+selector NSNotification object
+selector NSNotification userInfo
+selector NSNotificationCenter addObserver:selector:name:object:
+selector NSNotificationCenter addObserverForName:object:queue:usingBlock:
+selector NSNotificationCenter defaultCenter
+selector NSNotificationCenter postNotification:
+selector NSNotificationCenter postNotificationName:object:
+selector NSNotificationCenter postNotificationName:object:userInfo:
+selector NSNotificationCenter removeObserver:
+selector NSNotificationCenter removeObserver:name:object:
+selector NSNotificationQueue defaultQueue
+selector NSNotificationQueue dequeueNotificationsMatching:coalesceMask:
+selector NSNotificationQueue enqueueNotification:postingStyle:
+selector NSNotificationQueue enqueueNotification:postingStyle:coalesceMask:forModes:
+selector NSNotificationQueue initWithNotificationCenter:
+selector NSNull null
+selector NSNumber boolValue
+selector NSNumber charValue
+selector NSNumber compare:
+selector NSNumber decimalValue
+selector NSNumber descriptionWithLocale:
+selector NSNumber doubleValue
+selector NSNumber floatValue
+selector NSNumber initWithBool:
+selector NSNumber initWithChar:
+selector NSNumber initWithDouble:
+selector NSNumber initWithFloat:
+selector NSNumber initWithInt:
+selector NSNumber initWithInteger:
+selector NSNumber initWithLong:
+selector NSNumber initWithLongLong:
+selector NSNumber initWithShort:
+selector NSNumber initWithUnsignedChar:
+selector NSNumber initWithUnsignedInt:
+selector NSNumber initWithUnsignedInteger:
+selector NSNumber initWithUnsignedLong:
+selector NSNumber initWithUnsignedLongLong:
+selector NSNumber initWithUnsignedShort:
+selector NSNumber intValue
+selector NSNumber integerValue
+selector NSNumber isEqualToNumber:
+selector NSNumber longLongValue
+selector NSNumber longValue
+selector NSNumber numberWithBool:
+selector NSNumber numberWithChar:
+selector NSNumber numberWithDouble:
+selector NSNumber numberWithFloat:
+selector NSNumber numberWithInt:
+selector NSNumber numberWithInteger:
+selector NSNumber numberWithLong:
+selector NSNumber numberWithLongLong:
+selector NSNumber numberWithShort:
+selector NSNumber numberWithUnsignedChar:
+selector NSNumber numberWithUnsignedInt:
+selector NSNumber numberWithUnsignedInteger:
+selector NSNumber numberWithUnsignedLong:
+selector NSNumber numberWithUnsignedLongLong:
+selector NSNumber numberWithUnsignedShort:
+selector NSNumber shortValue
+selector NSNumber stringValue
+selector NSNumber unsignedCharValue
+selector NSNumber unsignedIntValue
+selector NSNumber unsignedIntegerValue
+selector NSNumber unsignedLongLongValue
+selector NSNumber unsignedLongValue
+selector NSNumber unsignedShortValue
+selector NSNumberFormatter allowsFloats
+selector NSNumberFormatter alwaysShowsDecimalSeparator
+selector NSNumberFormatter attributedStringForNil
+selector NSNumberFormatter attributedStringForNotANumber
+selector NSNumberFormatter attributedStringForZero
+selector NSNumberFormatter currencyCode
+selector NSNumberFormatter currencyDecimalSeparator
+selector NSNumberFormatter currencyGroupingSeparator
+selector NSNumberFormatter currencySymbol
+selector NSNumberFormatter decimalSeparator
+selector NSNumberFormatter defaultFormatterBehavior
+selector NSNumberFormatter exponentSymbol
+selector NSNumberFormatter format
+selector NSNumberFormatter formatWidth
+selector NSNumberFormatter formatterBehavior
+selector NSNumberFormatter generatesDecimalNumbers
+selector NSNumberFormatter getObjectValue:forString:range:error:
+selector NSNumberFormatter groupingSeparator
+selector NSNumberFormatter groupingSize
+selector NSNumberFormatter hasThousandSeparators
+selector NSNumberFormatter internationalCurrencySymbol
+selector NSNumberFormatter isLenient
+selector NSNumberFormatter isPartialStringValidationEnabled
+selector NSNumberFormatter locale
+selector NSNumberFormatter localizedStringFromNumber:numberStyle:
+selector NSNumberFormatter localizesFormat
+selector NSNumberFormatter maximum
+selector NSNumberFormatter maximumFractionDigits
+selector NSNumberFormatter maximumIntegerDigits
+selector NSNumberFormatter maximumSignificantDigits
+selector NSNumberFormatter minimum
+selector NSNumberFormatter minimumFractionDigits
+selector NSNumberFormatter minimumIntegerDigits
+selector NSNumberFormatter minimumSignificantDigits
+selector NSNumberFormatter minusSign
+selector NSNumberFormatter multiplier
+selector NSNumberFormatter negativeFormat
+selector NSNumberFormatter negativeInfinitySymbol
+selector NSNumberFormatter negativePrefix
+selector NSNumberFormatter negativeSuffix
+selector NSNumberFormatter nilSymbol
+selector NSNumberFormatter notANumberSymbol
+selector NSNumberFormatter numberFromString:
+selector NSNumberFormatter numberStyle
+selector NSNumberFormatter paddingCharacter
+selector NSNumberFormatter paddingPosition
+selector NSNumberFormatter perMillSymbol
+selector NSNumberFormatter percentSymbol
+selector NSNumberFormatter plusSign
+selector NSNumberFormatter positiveFormat
+selector NSNumberFormatter positiveInfinitySymbol
+selector NSNumberFormatter positivePrefix
+selector NSNumberFormatter positiveSuffix
+selector NSNumberFormatter roundingBehavior
+selector NSNumberFormatter roundingIncrement
+selector NSNumberFormatter roundingMode
+selector NSNumberFormatter secondaryGroupingSize
+selector NSNumberFormatter setAllowsFloats:
+selector NSNumberFormatter setAlwaysShowsDecimalSeparator:
+selector NSNumberFormatter setAttributedStringForNil:
+selector NSNumberFormatter setAttributedStringForNotANumber:
+selector NSNumberFormatter setAttributedStringForZero:
+selector NSNumberFormatter setCurrencyCode:
+selector NSNumberFormatter setCurrencyDecimalSeparator:
+selector NSNumberFormatter setCurrencyGroupingSeparator:
+selector NSNumberFormatter setCurrencySymbol:
+selector NSNumberFormatter setDecimalSeparator:
+selector NSNumberFormatter setDefaultFormatterBehavior:
+selector NSNumberFormatter setExponentSymbol:
+selector NSNumberFormatter setFormat:
+selector NSNumberFormatter setFormatWidth:
+selector NSNumberFormatter setFormatterBehavior:
+selector NSNumberFormatter setGeneratesDecimalNumbers:
+selector NSNumberFormatter setGroupingSeparator:
+selector NSNumberFormatter setGroupingSize:
+selector NSNumberFormatter setHasThousandSeparators:
+selector NSNumberFormatter setInternationalCurrencySymbol:
+selector NSNumberFormatter setLenient:
+selector NSNumberFormatter setLocale:
+selector NSNumberFormatter setLocalizesFormat:
+selector NSNumberFormatter setMaximum:
+selector NSNumberFormatter setMaximumFractionDigits:
+selector NSNumberFormatter setMaximumIntegerDigits:
+selector NSNumberFormatter setMaximumSignificantDigits:
+selector NSNumberFormatter setMinimum:
+selector NSNumberFormatter setMinimumFractionDigits:
+selector NSNumberFormatter setMinimumIntegerDigits:
+selector NSNumberFormatter setMinimumSignificantDigits:
+selector NSNumberFormatter setMinusSign:
+selector NSNumberFormatter setMultiplier:
+selector NSNumberFormatter setNegativeFormat:
+selector NSNumberFormatter setNegativeInfinitySymbol:
+selector NSNumberFormatter setNegativePrefix:
+selector NSNumberFormatter setNegativeSuffix:
+selector NSNumberFormatter setNilSymbol:
+selector NSNumberFormatter setNotANumberSymbol:
+selector NSNumberFormatter setNumberStyle:
+selector NSNumberFormatter setPaddingCharacter:
+selector NSNumberFormatter setPaddingPosition:
+selector NSNumberFormatter setPartialStringValidationEnabled:
+selector NSNumberFormatter setPerMillSymbol:
+selector NSNumberFormatter setPercentSymbol:
+selector NSNumberFormatter setPlusSign:
+selector NSNumberFormatter setPositiveFormat:
+selector NSNumberFormatter setPositiveInfinitySymbol:
+selector NSNumberFormatter setPositivePrefix:
+selector NSNumberFormatter setPositiveSuffix:
+selector NSNumberFormatter setRoundingBehavior:
+selector NSNumberFormatter setRoundingIncrement:
+selector NSNumberFormatter setRoundingMode:
+selector NSNumberFormatter setSecondaryGroupingSize:
+selector NSNumberFormatter setTextAttributesForNegativeInfinity:
+selector NSNumberFormatter setTextAttributesForNegativeValues:
+selector NSNumberFormatter setTextAttributesForNil:
+selector NSNumberFormatter setTextAttributesForNotANumber:
+selector NSNumberFormatter setTextAttributesForPositiveInfinity:
+selector NSNumberFormatter setTextAttributesForPositiveValues:
+selector NSNumberFormatter setTextAttributesForZero:
+selector NSNumberFormatter setThousandSeparator:
+selector NSNumberFormatter setUsesGroupingSeparator:
+selector NSNumberFormatter setUsesSignificantDigits:
+selector NSNumberFormatter setZeroSymbol:
+selector NSNumberFormatter stringFromNumber:
+selector NSNumberFormatter textAttributesForNegativeInfinity
+selector NSNumberFormatter textAttributesForNegativeValues
+selector NSNumberFormatter textAttributesForNil
+selector NSNumberFormatter textAttributesForNotANumber
+selector NSNumberFormatter textAttributesForPositiveInfinity
+selector NSNumberFormatter textAttributesForPositiveValues
+selector NSNumberFormatter textAttributesForZero
+selector NSNumberFormatter thousandSeparator
+selector NSNumberFormatter usesGroupingSeparator
+selector NSNumberFormatter usesSignificantDigits
+selector NSNumberFormatter zeroSymbol
+selector NSObject URL:resourceDataDidBecomeAvailable:
+selector NSObject URL:resourceDidFailLoadingWithReason:
+selector NSObject URLResourceDidCancelLoading:
+selector NSObject URLResourceDidFinishLoading:
+selector NSObject accessInstanceVariablesDirectly
+selector NSObject addObserver:forKeyPath:options:context:
+selector NSObject alloc
+selector NSObject allocWithZone:
+selector NSObject attemptRecoveryFromError:optionIndex:
+selector NSObject attemptRecoveryFromError:optionIndex:delegate:didRecoverSelector:contextInfo:
+selector NSObject attributeKeys
+selector NSObject autoContentAccessingProxy
+selector NSObject automaticallyNotifiesObserversForKey:
+selector NSObject awakeAfterUsingCoder:
+selector NSObject cancelPreviousPerformRequestsWithTarget:
+selector NSObject cancelPreviousPerformRequestsWithTarget:selector:object:
+selector NSObject class
+selector NSObject classCode
+selector NSObject classDescription
+selector NSObject classFallbacksForKeyedArchiver
+selector NSObject classForArchiver
+selector NSObject classForCoder
+selector NSObject classForKeyedArchiver
+selector NSObject classForKeyedUnarchiver
+selector NSObject classForPortCoder
+selector NSObject className
+selector NSObject coerceValue:forKey:
+selector NSObject conformsToProtocol:
+selector NSObject connection:canAuthenticateAgainstProtectionSpace:
+selector NSObject connection:didCancelAuthenticationChallenge:
+selector NSObject connection:didFailWithError:
+selector NSObject connection:didReceiveAuthenticationChallenge:
+selector NSObject connection:didReceiveData:
+selector NSObject connection:didReceiveResponse:
+selector NSObject connection:didSendBodyData:totalBytesWritten:totalBytesExpectedToWrite:
+selector NSObject connection:needNewBodyStream:
+selector NSObject connection:willCacheResponse:
+selector NSObject connection:willSendRequest:redirectResponse:
+selector NSObject connectionDidFinishLoading:
+selector NSObject connectionShouldUseCredentialStorage:
+selector NSObject copy
+selector NSObject copyScriptingValue:forKey:withProperties:
+selector NSObject copyWithZone:
+selector NSObject dealloc
+selector NSObject description
+selector NSObject dictionaryWithValuesForKeys:
+selector NSObject didChange:valuesAtIndexes:forKey:
+selector NSObject didChangeValueForKey:
+selector NSObject didChangeValueForKey:withSetMutation:usingObjects:
+selector NSObject doesContain:
+selector NSObject doesNotRecognizeSelector:
+selector NSObject download:canAuthenticateAgainstProtectionSpace:
+selector NSObject download:decideDestinationWithSuggestedFilename:
+selector NSObject download:didCancelAuthenticationChallenge:
+selector NSObject download:didCreateDestination:
+selector NSObject download:didFailWithError:
+selector NSObject download:didReceiveAuthenticationChallenge:
+selector NSObject download:didReceiveDataOfLength:
+selector NSObject download:didReceiveResponse:
+selector NSObject download:shouldDecodeSourceDataOfMIMEType:
+selector NSObject download:willResumeWithResponse:fromByte:
+selector NSObject download:willSendRequest:redirectResponse:
+selector NSObject downloadDidBegin:
+selector NSObject downloadDidFinish:
+selector NSObject downloadShouldUseCredentialStorage:
+selector NSObject fileManager:shouldCopyItemAtPath:toPath:
+selector NSObject fileManager:shouldCopyItemAtURL:toURL:
+selector NSObject fileManager:shouldLinkItemAtPath:toPath:
+selector NSObject fileManager:shouldLinkItemAtURL:toURL:
+selector NSObject fileManager:shouldMoveItemAtPath:toPath:
+selector NSObject fileManager:shouldMoveItemAtURL:toURL:
+selector NSObject fileManager:shouldProceedAfterError:
+selector NSObject fileManager:shouldProceedAfterError:copyingItemAtPath:toPath:
+selector NSObject fileManager:shouldProceedAfterError:copyingItemAtURL:toURL:
+selector NSObject fileManager:shouldProceedAfterError:linkingItemAtPath:toPath:
+selector NSObject fileManager:shouldProceedAfterError:linkingItemAtURL:toURL:
+selector NSObject fileManager:shouldProceedAfterError:movingItemAtPath:toPath:
+selector NSObject fileManager:shouldProceedAfterError:movingItemAtURL:toURL:
+selector NSObject fileManager:shouldProceedAfterError:removingItemAtPath:
+selector NSObject fileManager:shouldProceedAfterError:removingItemAtURL:
+selector NSObject fileManager:shouldRemoveItemAtPath:
+selector NSObject fileManager:shouldRemoveItemAtURL:
+selector NSObject fileManager:willProcessPath:
+selector NSObject finalize
+selector NSObject forwardInvocation:
+selector NSObject forwardingTargetForSelector:
+selector NSObject handleQueryWithUnboundKey:
+selector NSObject handleTakeValue:forUnboundKey:
+selector NSObject indicesOfObjectsByEvaluatingObjectSpecifier:
+selector NSObject init
+selector NSObject initialize
+selector NSObject insertValue:atIndex:inPropertyWithKey:
+selector NSObject insertValue:inPropertyWithKey:
+selector NSObject instanceMethodForSelector:
+selector NSObject instanceMethodSignatureForSelector:
+selector NSObject instancesRespondToSelector:
+selector NSObject inverseForRelationshipKey:
+selector NSObject isCaseInsensitiveLike:
+selector NSObject isEqualTo:
+selector NSObject isGreaterThan:
+selector NSObject isGreaterThanOrEqualTo:
+selector NSObject isLessThan:
+selector NSObject isLessThanOrEqualTo:
+selector NSObject isLike:
+selector NSObject isNotEqualTo:
+selector NSObject isSubclassOfClass:
+selector NSObject keyPathsForValuesAffectingValueForKey:
+selector NSObject load
+selector NSObject methodForSelector:
+selector NSObject methodSignatureForSelector:
+selector NSObject mutableArrayValueForKey:
+selector NSObject mutableArrayValueForKeyPath:
+selector NSObject mutableCopy
+selector NSObject mutableCopyWithZone:
+selector NSObject mutableSetValueForKey:
+selector NSObject mutableSetValueForKeyPath:
+selector NSObject new
+selector NSObject newScriptingObjectOfClass:forValueForKey:withContentsValue:properties:
+selector NSObject objectSpecifier
+selector NSObject observationInfo
+selector NSObject observeValueForKeyPath:ofObject:change:context:
+selector NSObject performSelector:onThread:withObject:waitUntilDone:
+selector NSObject performSelector:onThread:withObject:waitUntilDone:modes:
+selector NSObject performSelector:withObject:afterDelay:
+selector NSObject performSelector:withObject:afterDelay:inModes:
+selector NSObject performSelectorInBackground:withObject:
+selector NSObject performSelectorOnMainThread:withObject:waitUntilDone:
+selector NSObject performSelectorOnMainThread:withObject:waitUntilDone:modes:
+selector NSObject poseAsClass:
+selector NSObject removeObserver:forKeyPath:
+selector NSObject removeValueAtIndex:fromPropertyWithKey:
+selector NSObject replaceValueAtIndex:inPropertyWithKey:withValue:
+selector NSObject replacementObjectForArchiver:
+selector NSObject replacementObjectForCoder:
+selector NSObject replacementObjectForKeyedArchiver:
+selector NSObject replacementObjectForPortCoder:
+selector NSObject resolveClassMethod:
+selector NSObject resolveInstanceMethod:
+selector NSObject scriptingBeginsWith:
+selector NSObject scriptingContains:
+selector NSObject scriptingEndsWith:
+selector NSObject scriptingIsEqualTo:
+selector NSObject scriptingIsGreaterThan:
+selector NSObject scriptingIsGreaterThanOrEqualTo:
+selector NSObject scriptingIsLessThan:
+selector NSObject scriptingIsLessThanOrEqualTo:
+selector NSObject scriptingProperties
+selector NSObject scriptingValueForSpecifier:
+selector NSObject setKeys:triggerChangeNotificationsForDependentKey:
+selector NSObject setNilValueForKey:
+selector NSObject setObservationInfo:
+selector NSObject setScriptingProperties:
+selector NSObject setValue:forKey:
+selector NSObject setValue:forKeyPath:
+selector NSObject setValue:forUndefinedKey:
+selector NSObject setValuesForKeysWithDictionary:
+selector NSObject setVersion:
+selector NSObject storedValueForKey:
+selector NSObject superclass
+selector NSObject takeStoredValue:forKey:
+selector NSObject takeValue:forKey:
+selector NSObject takeValue:forKeyPath:
+selector NSObject takeValuesFromDictionary:
+selector NSObject toManyRelationshipKeys
+selector NSObject toOneRelationshipKeys
+selector NSObject unableToSetNilForKey:
+selector NSObject useStoredAccessor
+selector NSObject validateValue:forKey:error:
+selector NSObject validateValue:forKeyPath:error:
+selector NSObject valueAtIndex:inPropertyWithKey:
+selector NSObject valueForKey:
+selector NSObject valueForKeyPath:
+selector NSObject valueForUndefinedKey:
+selector NSObject valueWithName:inPropertyWithKey:
+selector NSObject valueWithUniqueID:inPropertyWithKey:
+selector NSObject valuesForKeys:
+selector NSObject version
+selector NSObject willChange:valuesAtIndexes:forKey:
+selector NSObject willChangeValueForKey:
+selector NSObject willChangeValueForKey:withSetMutation:usingObjects:
+selector NSOperation addDependency:
+selector NSOperation cancel
+selector NSOperation completionBlock
+selector NSOperation dependencies
+selector NSOperation init
+selector NSOperation isCancelled
+selector NSOperation isConcurrent
+selector NSOperation isExecuting
+selector NSOperation isFinished
+selector NSOperation isReady
+selector NSOperation main
+selector NSOperation queuePriority
+selector NSOperation removeDependency:
+selector NSOperation setCompletionBlock:
+selector NSOperation setQueuePriority:
+selector NSOperation setThreadPriority:
+selector NSOperation start
+selector NSOperation threadPriority
+selector NSOperation waitUntilFinished
+selector NSOperationQueue addOperation:
+selector NSOperationQueue addOperationWithBlock:
+selector NSOperationQueue addOperations:waitUntilFinished:
+selector NSOperationQueue cancelAllOperations
+selector NSOperationQueue currentQueue
+selector NSOperationQueue isSuspended
+selector NSOperationQueue mainQueue
+selector NSOperationQueue maxConcurrentOperationCount
+selector NSOperationQueue name
+selector NSOperationQueue operationCount
+selector NSOperationQueue operations
+selector NSOperationQueue setMaxConcurrentOperationCount:
+selector NSOperationQueue setName:
+selector NSOperationQueue setSuspended:
+selector NSOperationQueue waitUntilAllOperationsAreFinished
+selector NSOrthography allLanguages
+selector NSOrthography allScripts
+selector NSOrthography dominantLanguage
+selector NSOrthography dominantLanguageForScript:
+selector NSOrthography dominantScript
+selector NSOrthography initWithDominantScript:languageMap:
+selector NSOrthography languageMap
+selector NSOrthography languagesForScript:
+selector NSOrthography orthographyWithDominantScript:languageMap:
+selector NSOutputStream hasSpaceAvailable
+selector NSOutputStream initToBuffer:capacity:
+selector NSOutputStream initToFileAtPath:append:
+selector NSOutputStream initToMemory
+selector NSOutputStream initWithURL:append:
+selector NSOutputStream outputStreamToBuffer:capacity:
+selector NSOutputStream outputStreamToFileAtPath:append:
+selector NSOutputStream outputStreamToMemory
+selector NSOutputStream outputStreamWithURL:append:
+selector NSOutputStream write:maxLength:
+selector NSPipe fileHandleForReading
+selector NSPipe fileHandleForWriting
+selector NSPipe init
+selector NSPipe pipe
+selector NSPointerArray addPointer:
+selector NSPointerArray allObjects
+selector NSPointerArray compact
+selector NSPointerArray count
+selector NSPointerArray insertPointer:atIndex:
+selector NSPointerArray pointerAtIndex:
+selector NSPointerArray pointerFunctions
+selector NSPointerArray removePointerAtIndex:
+selector NSPointerArray replacePointerAtIndex:withPointer:
+selector NSPointerArray setCount:
+selector NSPointerFunctions initWithOptions:
+selector NSPointerFunctions pointerFunctionsWithOptions:
+selector NSPointerFunctions setUsesStrongWriteBarrier:
+selector NSPointerFunctions setUsesWeakReadAndWriteBarriers:
+selector NSPointerFunctions usesStrongWriteBarrier
+selector NSPointerFunctions usesWeakReadAndWriteBarriers
+selector NSPort addConnection:toRunLoop:forMode:
+selector NSPort allocWithZone:
+selector NSPort delegate
+selector NSPort invalidate
+selector NSPort isValid
+selector NSPort port
+selector NSPort removeConnection:fromRunLoop:forMode:
+selector NSPort removeFromRunLoop:forMode:
+selector NSPort reservedSpaceLength
+selector NSPort scheduleInRunLoop:forMode:
+selector NSPort sendBeforeDate:components:from:reserved:
+selector NSPort sendBeforeDate:msgid:components:from:reserved:
+selector NSPort setDelegate:
+selector NSPortCoder connection
+selector NSPortCoder decodePortObject
+selector NSPortCoder dispatch
+selector NSPortCoder encodePortObject:
+selector NSPortCoder initWithReceivePort:sendPort:components:
+selector NSPortCoder isBycopy
+selector NSPortCoder isByref
+selector NSPortMessage components
+selector NSPortMessage initWithSendPort:receivePort:components:
+selector NSPortMessage msgid
+selector NSPortMessage receivePort
+selector NSPortMessage sendBeforeDate:
+selector NSPortMessage sendPort
+selector NSPortMessage setMsgid:
+selector NSPortNameServer portForName:
+selector NSPortNameServer portForName:host:
+selector NSPortNameServer registerPort:name:
+selector NSPortNameServer removePortForName:
+selector NSPortNameServer systemDefaultPortNameServer
+selector NSPositionalSpecifier evaluate
+selector NSPositionalSpecifier initWithPosition:objectSpecifier:
+selector NSPositionalSpecifier insertionContainer
+selector NSPositionalSpecifier insertionIndex
+selector NSPositionalSpecifier insertionKey
+selector NSPositionalSpecifier insertionReplaces
+selector NSPositionalSpecifier objectSpecifier
+selector NSPositionalSpecifier position
+selector NSPositionalSpecifier setInsertionClassDescription:
+selector NSPredicate evaluateWithObject:
+selector NSPredicate evaluateWithObject:substitutionVariables:
+selector NSPredicate predicateFormat
+selector NSPredicate predicateWithBlock:
+selector NSPredicate predicateWithFormat:
+selector NSPredicate predicateWithFormat:argumentArray:
+selector NSPredicate predicateWithFormat:arguments:
+selector NSPredicate predicateWithSubstitutionVariables:
+selector NSPredicate predicateWithValue:
+selector NSProcessInfo activeProcessorCount
+selector NSProcessInfo arguments
+selector NSProcessInfo disableSuddenTermination
+selector NSProcessInfo enableSuddenTermination
+selector NSProcessInfo environment
+selector NSProcessInfo globallyUniqueString
+selector NSProcessInfo hostName
+selector NSProcessInfo operatingSystem
+selector NSProcessInfo operatingSystemName
+selector NSProcessInfo operatingSystemVersionString
+selector NSProcessInfo physicalMemory
+selector NSProcessInfo processIdentifier
+selector NSProcessInfo processInfo
+selector NSProcessInfo processName
+selector NSProcessInfo processorCount
+selector NSProcessInfo setProcessName:
+selector NSProcessInfo systemUptime
+selector NSPropertyListSerialization dataFromPropertyList:format:errorDescription:
+selector NSPropertyListSerialization dataWithPropertyList:format:options:error:
+selector NSPropertyListSerialization propertyList:isValidForFormat:
+selector NSPropertyListSerialization propertyListFromData:mutabilityOption:format:errorDescription:
+selector NSPropertyListSerialization propertyListWithData:options:format:error:
+selector NSPropertyListSerialization propertyListWithStream:options:format:error:
+selector NSPropertyListSerialization writePropertyList:toStream:format:options:error:
+selector NSProtocolChecker initWithTarget:protocol:
+selector NSProtocolChecker protocol
+selector NSProtocolChecker protocolCheckerWithTarget:protocol:
+selector NSProtocolChecker target
+selector NSProxy alloc
+selector NSProxy allocWithZone:
+selector NSProxy class
+selector NSProxy dealloc
+selector NSProxy description
+selector NSProxy finalize
+selector NSProxy forwardInvocation:
+selector NSProxy methodSignatureForSelector:
+selector NSProxy respondsToSelector:
+selector NSQuitCommand saveOptions
+selector NSRangeSpecifier endSpecifier
+selector NSRangeSpecifier initWithContainerClassDescription:containerSpecifier:key:startSpecifier:endSpecifier:
+selector NSRangeSpecifier setEndSpecifier:
+selector NSRangeSpecifier setStartSpecifier:
+selector NSRangeSpecifier startSpecifier
+selector NSRecursiveLock lockBeforeDate:
+selector NSRecursiveLock name
+selector NSRecursiveLock setName:
+selector NSRecursiveLock tryLock
+selector NSRelativeSpecifier baseSpecifier
+selector NSRelativeSpecifier initWithContainerClassDescription:containerSpecifier:key:relativePosition:baseSpecifier:
+selector NSRelativeSpecifier relativePosition
+selector NSRelativeSpecifier setBaseSpecifier:
+selector NSRelativeSpecifier setRelativePosition:
+selector NSRunLoop acceptInputForMode:beforeDate:
+selector NSRunLoop addPort:forMode:
+selector NSRunLoop addTimer:forMode:
+selector NSRunLoop cancelPerformSelector:target:argument:
+selector NSRunLoop cancelPerformSelectorsWithTarget:
+selector NSRunLoop configureAsServer
+selector NSRunLoop currentMode
+selector NSRunLoop currentRunLoop
+selector NSRunLoop getCFRunLoop
+selector NSRunLoop limitDateForMode:
+selector NSRunLoop mainRunLoop
+selector NSRunLoop performSelector:target:argument:order:modes:
+selector NSRunLoop removePort:forMode:
+selector NSRunLoop run
+selector NSRunLoop runMode:beforeDate:
+selector NSRunLoop runUntilDate:
+selector NSScanner caseSensitive
+selector NSScanner charactersToBeSkipped
+selector NSScanner initWithString:
+selector NSScanner isAtEnd
+selector NSScanner locale
+selector NSScanner localizedScannerWithString:
+selector NSScanner scanCharactersFromSet:intoString:
+selector NSScanner scanDecimal:
+selector NSScanner scanDouble:
+selector NSScanner scanFloat:
+selector NSScanner scanHexDouble:
+selector NSScanner scanHexFloat:
+selector NSScanner scanHexInt:
+selector NSScanner scanHexLongLong:
+selector NSScanner scanInt:
+selector NSScanner scanInteger:
+selector NSScanner scanLocation
+selector NSScanner scanLongLong:
+selector NSScanner scanString:intoString:
+selector NSScanner scanUpToCharactersFromSet:intoString:
+selector NSScanner scanUpToString:intoString:
+selector NSScanner scannerWithString:
+selector NSScanner setCaseSensitive:
+selector NSScanner setCharactersToBeSkipped:
+selector NSScanner setLocale:
+selector NSScanner setScanLocation:
+selector NSScanner string
+selector NSScriptClassDescription appleEventCode
+selector NSScriptClassDescription appleEventCodeForKey:
+selector NSScriptClassDescription classDescriptionForClass:
+selector NSScriptClassDescription classDescriptionForKey:
+selector NSScriptClassDescription className
+selector NSScriptClassDescription defaultSubcontainerAttributeKey
+selector NSScriptClassDescription hasOrderedToManyRelationshipForKey:
+selector NSScriptClassDescription hasPropertyForKey:
+selector NSScriptClassDescription hasReadablePropertyForKey:
+selector NSScriptClassDescription hasWritablePropertyForKey:
+selector NSScriptClassDescription implementationClassName
+selector NSScriptClassDescription initWithSuiteName:className:dictionary:
+selector NSScriptClassDescription isLocationRequiredToCreateForKey:
+selector NSScriptClassDescription isReadOnlyKey:
+selector NSScriptClassDescription keyWithAppleEventCode:
+selector NSScriptClassDescription matchesAppleEventCode:
+selector NSScriptClassDescription selectorForCommand:
+selector NSScriptClassDescription suiteName
+selector NSScriptClassDescription superclassDescription
+selector NSScriptClassDescription supportsCommand:
+selector NSScriptClassDescription typeForKey:
+selector NSScriptCoercionHandler coerceValue:toClass:
+selector NSScriptCoercionHandler registerCoercer:selector:toConvertFromClass:toClass:
+selector NSScriptCoercionHandler sharedCoercionHandler
+selector NSScriptCommand appleEvent
+selector NSScriptCommand arguments
+selector NSScriptCommand commandDescription
+selector NSScriptCommand currentCommand
+selector NSScriptCommand directParameter
+selector NSScriptCommand evaluatedArguments
+selector NSScriptCommand evaluatedReceivers
+selector NSScriptCommand executeCommand
+selector NSScriptCommand initWithCommandDescription:
+selector NSScriptCommand isWellFormed
+selector NSScriptCommand performDefaultImplementation
+selector NSScriptCommand receiversSpecifier
+selector NSScriptCommand resumeExecutionWithResult:
+selector NSScriptCommand scriptErrorExpectedTypeDescriptor
+selector NSScriptCommand scriptErrorNumber
+selector NSScriptCommand scriptErrorOffendingObjectDescriptor
+selector NSScriptCommand scriptErrorString
+selector NSScriptCommand setArguments:
+selector NSScriptCommand setDirectParameter:
+selector NSScriptCommand setReceiversSpecifier:
+selector NSScriptCommand setScriptErrorExpectedTypeDescriptor:
+selector NSScriptCommand setScriptErrorNumber:
+selector NSScriptCommand setScriptErrorOffendingObjectDescriptor:
+selector NSScriptCommand setScriptErrorString:
+selector NSScriptCommand suspendExecution
+selector NSScriptCommandDescription appleEventClassCode
+selector NSScriptCommandDescription appleEventCode
+selector NSScriptCommandDescription appleEventCodeForArgumentWithName:
+selector NSScriptCommandDescription appleEventCodeForReturnType
+selector NSScriptCommandDescription argumentNames
+selector NSScriptCommandDescription commandClassName
+selector NSScriptCommandDescription commandName
+selector NSScriptCommandDescription createCommandInstance
+selector NSScriptCommandDescription createCommandInstanceWithZone:
+selector NSScriptCommandDescription initWithSuiteName:commandName:dictionary:
+selector NSScriptCommandDescription isOptionalArgumentWithName:
+selector NSScriptCommandDescription returnType
+selector NSScriptCommandDescription suiteName
+selector NSScriptCommandDescription typeForArgumentWithName:
+selector NSScriptExecutionContext objectBeingTested
+selector NSScriptExecutionContext rangeContainerObject
+selector NSScriptExecutionContext setObjectBeingTested:
+selector NSScriptExecutionContext setRangeContainerObject:
+selector NSScriptExecutionContext setTopLevelObject:
+selector NSScriptExecutionContext sharedScriptExecutionContext
+selector NSScriptExecutionContext topLevelObject
+selector NSScriptObjectSpecifier childSpecifier
+selector NSScriptObjectSpecifier containerClassDescription
+selector NSScriptObjectSpecifier containerIsObjectBeingTested
+selector NSScriptObjectSpecifier containerIsRangeContainerObject
+selector NSScriptObjectSpecifier containerSpecifier
+selector NSScriptObjectSpecifier descriptor
+selector NSScriptObjectSpecifier evaluationErrorNumber
+selector NSScriptObjectSpecifier evaluationErrorSpecifier
+selector NSScriptObjectSpecifier indicesOfObjectsByEvaluatingWithContainer:count:
+selector NSScriptObjectSpecifier initWithContainerClassDescription:containerSpecifier:key:
+selector NSScriptObjectSpecifier initWithContainerSpecifier:key:
+selector NSScriptObjectSpecifier key
+selector NSScriptObjectSpecifier keyClassDescription
+selector NSScriptObjectSpecifier objectSpecifierWithDescriptor:
+selector NSScriptObjectSpecifier objectsByEvaluatingSpecifier
+selector NSScriptObjectSpecifier objectsByEvaluatingWithContainers:
+selector NSScriptObjectSpecifier setChildSpecifier:
+selector NSScriptObjectSpecifier setContainerClassDescription:
+selector NSScriptObjectSpecifier setContainerIsObjectBeingTested:
+selector NSScriptObjectSpecifier setContainerIsRangeContainerObject:
+selector NSScriptObjectSpecifier setContainerSpecifier:
+selector NSScriptObjectSpecifier setEvaluationErrorNumber:
+selector NSScriptObjectSpecifier setKey:
+selector NSScriptSuiteRegistry aeteResource:
+selector NSScriptSuiteRegistry appleEventCodeForSuite:
+selector NSScriptSuiteRegistry bundleForSuite:
+selector NSScriptSuiteRegistry classDescriptionWithAppleEventCode:
+selector NSScriptSuiteRegistry classDescriptionsInSuite:
+selector NSScriptSuiteRegistry commandDescriptionWithAppleEventClass:andAppleEventCode:
+selector NSScriptSuiteRegistry commandDescriptionsInSuite:
+selector NSScriptSuiteRegistry loadSuiteWithDictionary:fromBundle:
+selector NSScriptSuiteRegistry loadSuitesFromBundle:
+selector NSScriptSuiteRegistry registerClassDescription:
+selector NSScriptSuiteRegistry registerCommandDescription:
+selector NSScriptSuiteRegistry setSharedScriptSuiteRegistry:
+selector NSScriptSuiteRegistry sharedScriptSuiteRegistry
+selector NSScriptSuiteRegistry suiteForAppleEventCode:
+selector NSScriptSuiteRegistry suiteNames
+selector NSScriptWhoseTest isTrue
+selector NSSet addObserver:forKeyPath:options:context:
+selector NSSet allObjects
+selector NSSet anyObject
+selector NSSet containsObject:
+selector NSSet count
+selector NSSet description
+selector NSSet descriptionWithLocale:
+selector NSSet enumerateObjectsUsingBlock:
+selector NSSet enumerateObjectsWithOptions:usingBlock:
+selector NSSet filteredSetUsingPredicate:
+selector NSSet initWithArray:
+selector NSSet initWithObjects:
+selector NSSet initWithObjects:count:
+selector NSSet initWithSet:
+selector NSSet initWithSet:copyItems:
+selector NSSet intersectsSet:
+selector NSSet isEqualToSet:
+selector NSSet isSubsetOfSet:
+selector NSSet makeObjectsPerformSelector:
+selector NSSet makeObjectsPerformSelector:withObject:
+selector NSSet member:
+selector NSSet objectEnumerator
+selector NSSet objectsPassingTest:
+selector NSSet objectsWithOptions:passingTest:
+selector NSSet removeObserver:forKeyPath:
+selector NSSet set
+selector NSSet setByAddingObject:
+selector NSSet setByAddingObjectsFromArray:
+selector NSSet setByAddingObjectsFromSet:
+selector NSSet setValue:forKey:
+selector NSSet setWithArray:
+selector NSSet setWithObject:
+selector NSSet setWithObjects:
+selector NSSet setWithObjects:count:
+selector NSSet setWithSet:
+selector NSSet sortedArrayUsingDescriptors:
+selector NSSet valueForKey:
+selector NSSetCommand keySpecifier
+selector NSSetCommand setReceiversSpecifier:
+selector NSSocketPort address
+selector NSSocketPort init
+selector NSSocketPort initRemoteWithProtocolFamily:socketType:protocol:address:
+selector NSSocketPort initRemoteWithTCPPort:host:
+selector NSSocketPort initWithProtocolFamily:socketType:protocol:address:
+selector NSSocketPort initWithProtocolFamily:socketType:protocol:socket:
+selector NSSocketPort initWithTCPPort:
+selector NSSocketPort protocol
+selector NSSocketPort protocolFamily
+selector NSSocketPort socket
+selector NSSocketPort socketType
+selector NSSocketPortNameServer defaultNameServerPortNumber
+selector NSSocketPortNameServer portForName:
+selector NSSocketPortNameServer portForName:host:
+selector NSSocketPortNameServer portForName:host:nameServerPortNumber:
+selector NSSocketPortNameServer registerPort:name:
+selector NSSocketPortNameServer registerPort:name:nameServerPortNumber:
+selector NSSocketPortNameServer removePortForName:
+selector NSSocketPortNameServer setDefaultNameServerPortNumber:
+selector NSSocketPortNameServer sharedInstance
+selector NSSortDescriptor ascending
+selector NSSortDescriptor comparator
+selector NSSortDescriptor compareObject:toObject:
+selector NSSortDescriptor initWithKey:ascending:
+selector NSSortDescriptor initWithKey:ascending:comparator:
+selector NSSortDescriptor initWithKey:ascending:selector:
+selector NSSortDescriptor key
+selector NSSortDescriptor reversedSortDescriptor
+selector NSSortDescriptor selector
+selector NSSortDescriptor sortDescriptorWithKey:ascending:
+selector NSSortDescriptor sortDescriptorWithKey:ascending:comparator:
+selector NSSortDescriptor sortDescriptorWithKey:ascending:selector:
+selector NSSpecifierTest initWithObjectSpecifier:comparisonOperator:testObject:
+selector NSSpellServer delegate
+selector NSSpellServer isWordInUserDictionaries:caseSensitive:
+selector NSSpellServer registerLanguage:byVendor:
+selector NSSpellServer run
+selector NSSpellServer setDelegate:
+selector NSStream close
+selector NSStream delegate
+selector NSStream getStreamsToHost:port:inputStream:outputStream:
+selector NSStream open
+selector NSStream propertyForKey:
+selector NSStream removeFromRunLoop:forMode:
+selector NSStream scheduleInRunLoop:forMode:
+selector NSStream setDelegate:
+selector NSStream setProperty:forKey:
+selector NSStream streamError
+selector NSStream streamStatus
+selector NSString UTF8String
+selector NSString availableStringEncodings
+selector NSString boolValue
+selector NSString cString
+selector NSString cStringLength
+selector NSString cStringUsingEncoding:
+selector NSString canBeConvertedToEncoding:
+selector NSString capitalizedString
+selector NSString caseInsensitiveCompare:
+selector NSString characterAtIndex:
+selector NSString commonPrefixWithString:options:
+selector NSString compare:
+selector NSString compare:options:
+selector NSString compare:options:range:
+selector NSString compare:options:range:locale:
+selector NSString completePathIntoString:caseSensitive:matchesIntoArray:filterTypes:
+selector NSString componentsSeparatedByCharactersInSet:
+selector NSString componentsSeparatedByString:
+selector NSString dataUsingEncoding:
+selector NSString dataUsingEncoding:allowLossyConversion:
+selector NSString decomposedStringWithCanonicalMapping
+selector NSString decomposedStringWithCompatibilityMapping
+selector NSString defaultCStringEncoding
+selector NSString description
+selector NSString doubleValue
+selector NSString enumerateLinesUsingBlock:
+selector NSString enumerateSubstringsInRange:options:usingBlock:
+selector NSString fastestEncoding
+selector NSString fileSystemRepresentation
+selector NSString floatValue
+selector NSString getBytes:maxLength:usedLength:encoding:options:range:remainingRange:
+selector NSString getCString:
+selector NSString getCString:maxLength:
+selector NSString getCString:maxLength:encoding:
+selector NSString getCString:maxLength:range:remainingRange:
+selector NSString getCharacters:
+selector NSString getCharacters:range:
+selector NSString getFileSystemRepresentation:maxLength:
+selector NSString getLineStart:end:contentsEnd:forRange:
+selector NSString getParagraphStart:end:contentsEnd:forRange:
+selector NSString hasPrefix:
+selector NSString hasSuffix:
+selector NSString hash
+selector NSString init
+selector NSString initWithBytes:length:encoding:
+selector NSString initWithBytesNoCopy:length:encoding:freeWhenDone:
+selector NSString initWithCString:
+selector NSString initWithCString:encoding:
+selector NSString initWithCString:length:
+selector NSString initWithCStringNoCopy:length:freeWhenDone:
+selector NSString initWithCharacters:length:
+selector NSString initWithCharactersNoCopy:length:freeWhenDone:
+selector NSString initWithContentsOfFile:
+selector NSString initWithContentsOfFile:encoding:error:
+selector NSString initWithContentsOfFile:usedEncoding:error:
+selector NSString initWithContentsOfURL:
+selector NSString initWithContentsOfURL:encoding:error:
+selector NSString initWithContentsOfURL:usedEncoding:error:
+selector NSString initWithData:encoding:
+selector NSString initWithFormat:
+selector NSString initWithFormat:arguments:
+selector NSString initWithFormat:locale:
+selector NSString initWithFormat:locale:arguments:
+selector NSString initWithString:
+selector NSString initWithUTF8String:
+selector NSString intValue
+selector NSString integerValue
+selector NSString isAbsolutePath
+selector NSString isEqualToString:
+selector NSString lastPathComponent
+selector NSString length
+selector NSString lengthOfBytesUsingEncoding:
+selector NSString lineRangeForRange:
+selector NSString localizedCaseInsensitiveCompare:
+selector NSString localizedCompare:
+selector NSString localizedNameOfStringEncoding:
+selector NSString localizedStandardCompare:
+selector NSString localizedStringWithFormat:
+selector NSString longLongValue
+selector NSString lossyCString
+selector NSString lowercaseString
+selector NSString maximumLengthOfBytesUsingEncoding:
+selector NSString paragraphRangeForRange:
+selector NSString pathComponents
+selector NSString pathExtension
+selector NSString pathWithComponents:
+selector NSString precomposedStringWithCanonicalMapping
+selector NSString precomposedStringWithCompatibilityMapping
+selector NSString propertyList
+selector NSString propertyListFromStringsFileFormat
+selector NSString rangeOfCharacterFromSet:
+selector NSString rangeOfCharacterFromSet:options:
+selector NSString rangeOfCharacterFromSet:options:range:
+selector NSString rangeOfComposedCharacterSequenceAtIndex:
+selector NSString rangeOfComposedCharacterSequencesForRange:
+selector NSString rangeOfString:
+selector NSString rangeOfString:options:
+selector NSString rangeOfString:options:range:
+selector NSString rangeOfString:options:range:locale:
+selector NSString smallestEncoding
+selector NSString string
+selector NSString stringByAbbreviatingWithTildeInPath
+selector NSString stringByAddingPercentEscapesUsingEncoding:
+selector NSString stringByAppendingFormat:
+selector NSString stringByAppendingPathComponent:
+selector NSString stringByAppendingPathExtension:
+selector NSString stringByAppendingString:
+selector NSString stringByDeletingLastPathComponent
+selector NSString stringByDeletingPathExtension
+selector NSString stringByExpandingTildeInPath
+selector NSString stringByFoldingWithOptions:locale:
+selector NSString stringByPaddingToLength:withString:startingAtIndex:
+selector NSString stringByReplacingCharactersInRange:withString:
+selector NSString stringByReplacingOccurrencesOfString:withString:
+selector NSString stringByReplacingOccurrencesOfString:withString:options:range:
+selector NSString stringByReplacingPercentEscapesUsingEncoding:
+selector NSString stringByResolvingSymlinksInPath
+selector NSString stringByStandardizingPath
+selector NSString stringByTrimmingCharactersInSet:
+selector NSString stringWithCString:
+selector NSString stringWithCString:encoding:
+selector NSString stringWithCString:length:
+selector NSString stringWithCharacters:length:
+selector NSString stringWithContentsOfFile:
+selector NSString stringWithContentsOfFile:encoding:error:
+selector NSString stringWithContentsOfFile:usedEncoding:error:
+selector NSString stringWithContentsOfURL:
+selector NSString stringWithContentsOfURL:encoding:error:
+selector NSString stringWithContentsOfURL:usedEncoding:error:
+selector NSString stringWithFormat:
+selector NSString stringWithString:
+selector NSString stringWithUTF8String:
+selector NSString stringsByAppendingPaths:
+selector NSString substringFromIndex:
+selector NSString substringToIndex:
+selector NSString substringWithRange:
+selector NSString uppercaseString
+selector NSString writeToFile:atomically:
+selector NSString writeToFile:atomically:encoding:error:
+selector NSString writeToURL:atomically:
+selector NSString writeToURL:atomically:encoding:error:
+selector NSTask arguments
+selector NSTask currentDirectoryPath
+selector NSTask environment
+selector NSTask init
+selector NSTask interrupt
+selector NSTask isRunning
+selector NSTask launch
+selector NSTask launchPath
+selector NSTask launchedTaskWithLaunchPath:arguments:
+selector NSTask processIdentifier
+selector NSTask resume
+selector NSTask setArguments:
+selector NSTask setCurrentDirectoryPath:
+selector NSTask setEnvironment:
+selector NSTask setLaunchPath:
+selector NSTask setStandardError:
+selector NSTask setStandardInput:
+selector NSTask setStandardOutput:
+selector NSTask standardError
+selector NSTask standardInput
+selector NSTask standardOutput
+selector NSTask suspend
+selector NSTask terminate
+selector NSTask terminationReason
+selector NSTask terminationStatus
+selector NSTask waitUntilExit
+selector NSTextCheckingResult URL
+selector NSTextCheckingResult addressCheckingResultWithRange:components:
+selector NSTextCheckingResult addressComponents
+selector NSTextCheckingResult correctionCheckingResultWithRange:replacementString:
+selector NSTextCheckingResult dashCheckingResultWithRange:replacementString:
+selector NSTextCheckingResult date
+selector NSTextCheckingResult dateCheckingResultWithRange:date:
+selector NSTextCheckingResult dateCheckingResultWithRange:date:timeZone:duration:
+selector NSTextCheckingResult duration
+selector NSTextCheckingResult grammarCheckingResultWithRange:details:
+selector NSTextCheckingResult grammarDetails
+selector NSTextCheckingResult linkCheckingResultWithRange:URL:
+selector NSTextCheckingResult orthography
+selector NSTextCheckingResult orthographyCheckingResultWithRange:orthography:
+selector NSTextCheckingResult quoteCheckingResultWithRange:replacementString:
+selector NSTextCheckingResult range
+selector NSTextCheckingResult replacementCheckingResultWithRange:replacementString:
+selector NSTextCheckingResult replacementString
+selector NSTextCheckingResult resultType
+selector NSTextCheckingResult spellCheckingResultWithRange:
+selector NSTextCheckingResult timeZone
+selector NSThread callStackReturnAddresses
+selector NSThread callStackSymbols
+selector NSThread cancel
+selector NSThread currentThread
+selector NSThread detachNewThreadSelector:toTarget:withObject:
+selector NSThread exit
+selector NSThread init
+selector NSThread initWithTarget:selector:object:
+selector NSThread isCancelled
+selector NSThread isExecuting
+selector NSThread isFinished
+selector NSThread isMainThread
+selector NSThread isMultiThreaded
+selector NSThread main
+selector NSThread mainThread
+selector NSThread name
+selector NSThread setName:
+selector NSThread setStackSize:
+selector NSThread setThreadPriority:
+selector NSThread sleepForTimeInterval:
+selector NSThread sleepUntilDate:
+selector NSThread stackSize
+selector NSThread start
+selector NSThread threadDictionary
+selector NSThread threadPriority
+selector NSTimeZone abbreviation
+selector NSTimeZone abbreviationDictionary
+selector NSTimeZone abbreviationForDate:
+selector NSTimeZone data
+selector NSTimeZone daylightSavingTimeOffset
+selector NSTimeZone daylightSavingTimeOffsetForDate:
+selector NSTimeZone defaultTimeZone
+selector NSTimeZone description
+selector NSTimeZone initWithName:
+selector NSTimeZone initWithName:data:
+selector NSTimeZone isDaylightSavingTime
+selector NSTimeZone isDaylightSavingTimeForDate:
+selector NSTimeZone isEqualToTimeZone:
+selector NSTimeZone knownTimeZoneNames
+selector NSTimeZone localTimeZone
+selector NSTimeZone localizedName:locale:
+selector NSTimeZone name
+selector NSTimeZone nextDaylightSavingTimeTransition
+selector NSTimeZone nextDaylightSavingTimeTransitionAfterDate:
+selector NSTimeZone resetSystemTimeZone
+selector NSTimeZone secondsFromGMT
+selector NSTimeZone secondsFromGMTForDate:
+selector NSTimeZone setAbbreviationDictionary:
+selector NSTimeZone setDefaultTimeZone:
+selector NSTimeZone systemTimeZone
+selector NSTimeZone timeZoneDataVersion
+selector NSTimeZone timeZoneForSecondsFromGMT:
+selector NSTimeZone timeZoneWithAbbreviation:
+selector NSTimeZone timeZoneWithName:
+selector NSTimeZone timeZoneWithName:data:
+selector NSTimer fire
+selector NSTimer fireDate
+selector NSTimer initWithFireDate:interval:target:selector:userInfo:repeats:
+selector NSTimer invalidate
+selector NSTimer isValid
+selector NSTimer scheduledTimerWithTimeInterval:invocation:repeats:
+selector NSTimer scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:
+selector NSTimer setFireDate:
+selector NSTimer timeInterval
+selector NSTimer timerWithTimeInterval:invocation:repeats:
+selector NSTimer timerWithTimeInterval:target:selector:userInfo:repeats:
+selector NSTimer userInfo
+selector NSURL URLByAppendingPathComponent:
+selector NSURL URLByAppendingPathExtension:
+selector NSURL URLByDeletingLastPathComponent
+selector NSURL URLByDeletingPathExtension
+selector NSURL URLByResolvingBookmarkData:options:relativeToURL:bookmarkDataIsStale:error:
+selector NSURL URLByResolvingSymlinksInPath
+selector NSURL URLByStandardizingPath
+selector NSURL URLHandleUsingCache:
+selector NSURL URLWithString:
+selector NSURL URLWithString:relativeToURL:
+selector NSURL absoluteString
+selector NSURL absoluteURL
+selector NSURL baseURL
+selector NSURL bookmarkDataWithContentsOfURL:error:
+selector NSURL bookmarkDataWithOptions:includingResourceValuesForKeys:relativeToURL:error:
+selector NSURL checkResourceIsReachableAndReturnError:
+selector NSURL filePathURL
+selector NSURL fileReferenceURL
+selector NSURL fileURLWithPath:
+selector NSURL fileURLWithPath:isDirectory:
+selector NSURL fileURLWithPathComponents:
+selector NSURL fragment
+selector NSURL getResourceValue:forKey:error:
+selector NSURL host
+selector NSURL initByResolvingBookmarkData:options:relativeToURL:bookmarkDataIsStale:error:
+selector NSURL initFileURLWithPath:
+selector NSURL initFileURLWithPath:isDirectory:
+selector NSURL initWithScheme:host:path:
+selector NSURL isFileReferenceURL
+selector NSURL isFileURL
+selector NSURL lastPathComponent
+selector NSURL loadResourceDataNotifyingClient:usingCache:
+selector NSURL parameterString
+selector NSURL password
+selector NSURL path
+selector NSURL pathComponents
+selector NSURL pathExtension
+selector NSURL port
+selector NSURL propertyForKey:
+selector NSURL query
+selector NSURL relativePath
+selector NSURL relativeString
+selector NSURL resourceDataUsingCache:
+selector NSURL resourceSpecifier
+selector NSURL resourceValuesForKeys:error:
+selector NSURL resourceValuesForKeys:fromBookmarkData:
+selector NSURL scheme
+selector NSURL setProperty:forKey:
+selector NSURL setResourceData:
+selector NSURL setResourceValue:forKey:error:
+selector NSURL setResourceValues:error:
+selector NSURL standardizedURL
+selector NSURL user
+selector NSURL writeBookmarkData:toURL:options:error:
+selector NSURLAuthenticationChallenge error
+selector NSURLAuthenticationChallenge failureResponse
+selector NSURLAuthenticationChallenge initWithAuthenticationChallenge:sender:
+selector NSURLAuthenticationChallenge initWithProtectionSpace:proposedCredential:previousFailureCount:failureResponse:error:sender:
+selector NSURLAuthenticationChallenge previousFailureCount
+selector NSURLAuthenticationChallenge proposedCredential
+selector NSURLAuthenticationChallenge protectionSpace
+selector NSURLAuthenticationChallenge sender
+selector NSURLCache cachedResponseForRequest:
+selector NSURLCache currentDiskUsage
+selector NSURLCache currentMemoryUsage
+selector NSURLCache diskCapacity
+selector NSURLCache initWithMemoryCapacity:diskCapacity:diskPath:
+selector NSURLCache memoryCapacity
+selector NSURLCache removeAllCachedResponses
+selector NSURLCache removeCachedResponseForRequest:
+selector NSURLCache setDiskCapacity:
+selector NSURLCache setMemoryCapacity:
+selector NSURLCache setSharedURLCache:
+selector NSURLCache sharedURLCache
+selector NSURLCache storeCachedResponse:forRequest:
+selector NSURLConnection canHandleRequest:
+selector NSURLConnection cancel
+selector NSURLConnection connectionWithRequest:delegate:
+selector NSURLConnection initWithRequest:delegate:
+selector NSURLConnection initWithRequest:delegate:startImmediately:
+selector NSURLConnection scheduleInRunLoop:forMode:
+selector NSURLConnection sendSynchronousRequest:returningResponse:error:
+selector NSURLConnection start
+selector NSURLConnection unscheduleFromRunLoop:forMode:
+selector NSURLCredential certificates
+selector NSURLCredential credentialForTrust:
+selector NSURLCredential credentialWithIdentity:certificates:persistence:
+selector NSURLCredential credentialWithUser:password:persistence:
+selector NSURLCredential hasPassword
+selector NSURLCredential identity
+selector NSURLCredential initWithIdentity:certificates:persistence:
+selector NSURLCredential initWithTrust:
+selector NSURLCredential initWithUser:password:persistence:
+selector NSURLCredential password
+selector NSURLCredential persistence
+selector NSURLCredential user
+selector NSURLCredentialStorage allCredentials
+selector NSURLCredentialStorage credentialsForProtectionSpace:
+selector NSURLCredentialStorage defaultCredentialForProtectionSpace:
+selector NSURLCredentialStorage removeCredential:forProtectionSpace:
+selector NSURLCredentialStorage setCredential:forProtectionSpace:
+selector NSURLCredentialStorage setDefaultCredential:forProtectionSpace:
+selector NSURLCredentialStorage sharedCredentialStorage
+selector NSURLDownload canResumeDownloadDecodedWithEncodingMIMEType:
+selector NSURLDownload cancel
+selector NSURLDownload deletesFileUponFailure
+selector NSURLDownload initWithRequest:delegate:
+selector NSURLDownload initWithResumeData:delegate:path:
+selector NSURLDownload request
+selector NSURLDownload resumeData
+selector NSURLDownload setDeletesFileUponFailure:
+selector NSURLDownload setDestination:allowOverwrite:
+selector NSURLHandle URLHandleClassForURL:
+selector NSURLHandle addClient:
+selector NSURLHandle availableResourceData
+selector NSURLHandle backgroundLoadDidFailWithReason:
+selector NSURLHandle beginLoadInBackground
+selector NSURLHandle cachedHandleForURL:
+selector NSURLHandle canInitWithURL:
+selector NSURLHandle cancelLoadInBackground
+selector NSURLHandle didLoadBytes:loadComplete:
+selector NSURLHandle endLoadInBackground
+selector NSURLHandle expectedResourceDataSize
+selector NSURLHandle failureReason
+selector NSURLHandle flushCachedData
+selector NSURLHandle loadInBackground
+selector NSURLHandle loadInForeground
+selector NSURLHandle propertyForKey:
+selector NSURLHandle propertyForKeyIfAvailable:
+selector NSURLHandle registerURLHandleClass:
+selector NSURLHandle removeClient:
+selector NSURLHandle resourceData
+selector NSURLHandle status
+selector NSURLHandle writeData:
+selector NSURLHandle writeProperty:forKey:
+selector NSURLProtectionSpace authenticationMethod
+selector NSURLProtectionSpace distinguishedNames
+selector NSURLProtectionSpace host
+selector NSURLProtectionSpace initWithHost:port:protocol:realm:authenticationMethod:
+selector NSURLProtectionSpace initWithProxyHost:port:type:realm:authenticationMethod:
+selector NSURLProtectionSpace isProxy
+selector NSURLProtectionSpace port
+selector NSURLProtectionSpace protocol
+selector NSURLProtectionSpace proxyType
+selector NSURLProtectionSpace realm
+selector NSURLProtectionSpace receivesCredentialSecurely
+selector NSURLProtectionSpace serverTrust
+selector NSURLProtocol cachedResponse
+selector NSURLProtocol canInitWithRequest:
+selector NSURLProtocol canonicalRequestForRequest:
+selector NSURLProtocol client
+selector NSURLProtocol initWithRequest:cachedResponse:client:
+selector NSURLProtocol propertyForKey:inRequest:
+selector NSURLProtocol registerClass:
+selector NSURLProtocol removePropertyForKey:inRequest:
+selector NSURLProtocol request
+selector NSURLProtocol requestIsCacheEquivalent:toRequest:
+selector NSURLProtocol setProperty:forKey:inRequest:
+selector NSURLProtocol startLoading
+selector NSURLProtocol stopLoading
+selector NSURLProtocol unregisterClass:
+selector NSURLRequest HTTPBody
+selector NSURLRequest HTTPBodyStream
+selector NSURLRequest HTTPMethod
+selector NSURLRequest HTTPShouldHandleCookies
+selector NSURLRequest URL
+selector NSURLRequest allHTTPHeaderFields
+selector NSURLRequest cachePolicy
+selector NSURLRequest initWithURL:
+selector NSURLRequest initWithURL:cachePolicy:timeoutInterval:
+selector NSURLRequest mainDocumentURL
+selector NSURLRequest requestWithURL:
+selector NSURLRequest requestWithURL:cachePolicy:timeoutInterval:
+selector NSURLRequest timeoutInterval
+selector NSURLRequest valueForHTTPHeaderField:
+selector NSURLResponse MIMEType
+selector NSURLResponse URL
+selector NSURLResponse expectedContentLength
+selector NSURLResponse initWithURL:MIMEType:expectedContentLength:textEncodingName:
+selector NSURLResponse suggestedFilename
+selector NSURLResponse textEncodingName
+selector NSUnarchiver classNameDecodedForArchiveClassName:
+selector NSUnarchiver decodeClassName:asClassName:
+selector NSUnarchiver initForReadingWithData:
+selector NSUnarchiver isAtEnd
+selector NSUnarchiver objectZone
+selector NSUnarchiver replaceObject:withObject:
+selector NSUnarchiver setObjectZone:
+selector NSUnarchiver systemVersion
+selector NSUnarchiver unarchiveObjectWithData:
+selector NSUnarchiver unarchiveObjectWithFile:
+selector NSUndoManager beginUndoGrouping
+selector NSUndoManager canRedo
+selector NSUndoManager canUndo
+selector NSUndoManager disableUndoRegistration
+selector NSUndoManager enableUndoRegistration
+selector NSUndoManager endUndoGrouping
+selector NSUndoManager groupingLevel
+selector NSUndoManager groupsByEvent
+selector NSUndoManager isRedoing
+selector NSUndoManager isUndoRegistrationEnabled
+selector NSUndoManager isUndoing
+selector NSUndoManager levelsOfUndo
+selector NSUndoManager prepareWithInvocationTarget:
+selector NSUndoManager redo
+selector NSUndoManager redoActionName
+selector NSUndoManager redoMenuItemTitle
+selector NSUndoManager redoMenuTitleForUndoActionName:
+selector NSUndoManager registerUndoWithTarget:selector:object:
+selector NSUndoManager removeAllActions
+selector NSUndoManager removeAllActionsWithTarget:
+selector NSUndoManager runLoopModes
+selector NSUndoManager setActionName:
+selector NSUndoManager setGroupsByEvent:
+selector NSUndoManager setLevelsOfUndo:
+selector NSUndoManager setRunLoopModes:
+selector NSUndoManager undo
+selector NSUndoManager undoActionName
+selector NSUndoManager undoMenuItemTitle
+selector NSUndoManager undoMenuTitleForUndoActionName:
+selector NSUndoManager undoNestedGroup
+selector NSUniqueIDSpecifier initWithContainerClassDescription:containerSpecifier:key:uniqueID:
+selector NSUniqueIDSpecifier setUniqueID:
+selector NSUniqueIDSpecifier uniqueID
+selector NSUserDefaults URLForKey:
+selector NSUserDefaults addSuiteNamed:
+selector NSUserDefaults arrayForKey:
+selector NSUserDefaults boolForKey:
+selector NSUserDefaults dataForKey:
+selector NSUserDefaults dictionaryForKey:
+selector NSUserDefaults dictionaryRepresentation
+selector NSUserDefaults doubleForKey:
+selector NSUserDefaults floatForKey:
+selector NSUserDefaults init
+selector NSUserDefaults initWithUser:
+selector NSUserDefaults integerForKey:
+selector NSUserDefaults objectForKey:
+selector NSUserDefaults objectIsForcedForKey:
+selector NSUserDefaults objectIsForcedForKey:inDomain:
+selector NSUserDefaults persistentDomainForName:
+selector NSUserDefaults persistentDomainNames
+selector NSUserDefaults registerDefaults:
+selector NSUserDefaults removeObjectForKey:
+selector NSUserDefaults removePersistentDomainForName:
+selector NSUserDefaults removeSuiteNamed:
+selector NSUserDefaults removeVolatileDomainForName:
+selector NSUserDefaults resetStandardUserDefaults
+selector NSUserDefaults setBool:forKey:
+selector NSUserDefaults setDouble:forKey:
+selector NSUserDefaults setFloat:forKey:
+selector NSUserDefaults setInteger:forKey:
+selector NSUserDefaults setObject:forKey:
+selector NSUserDefaults setPersistentDomain:forName:
+selector NSUserDefaults setURL:forKey:
+selector NSUserDefaults setVolatileDomain:forName:
+selector NSUserDefaults standardUserDefaults
+selector NSUserDefaults stringArrayForKey:
+selector NSUserDefaults stringForKey:
+selector NSUserDefaults synchronize
+selector NSUserDefaults volatileDomainForName:
+selector NSUserDefaults volatileDomainNames
+selector NSValue getValue:
+selector NSValue initWithBytes:objCType:
+selector NSValue isEqualToValue:
+selector NSValue nonretainedObjectValue
+selector NSValue objCType
+selector NSValue pointValue
+selector NSValue pointerValue
+selector NSValue rangeValue
+selector NSValue rectValue
+selector NSValue sizeValue
+selector NSValue value:withObjCType:
+selector NSValue valueWithBytes:objCType:
+selector NSValue valueWithNonretainedObject:
+selector NSValue valueWithPoint:
+selector NSValue valueWithPointer:
+selector NSValue valueWithRange:
+selector NSValue valueWithRect:
+selector NSValue valueWithSize:
+selector NSValueTransformer allowsReverseTransformation
+selector NSValueTransformer reverseTransformedValue:
+selector NSValueTransformer setValueTransformer:forName:
+selector NSValueTransformer transformedValue:
+selector NSValueTransformer transformedValueClass
+selector NSValueTransformer valueTransformerForName:
+selector NSValueTransformer valueTransformerNames
+selector NSWhoseSpecifier endSubelementIdentifier
+selector NSWhoseSpecifier endSubelementIndex
+selector NSWhoseSpecifier initWithContainerClassDescription:containerSpecifier:key:test:
+selector NSWhoseSpecifier setEndSubelementIdentifier:
+selector NSWhoseSpecifier setEndSubelementIndex:
+selector NSWhoseSpecifier setStartSubelementIdentifier:
+selector NSWhoseSpecifier setStartSubelementIndex:
+selector NSWhoseSpecifier setTest:
+selector NSWhoseSpecifier startSubelementIdentifier
+selector NSWhoseSpecifier startSubelementIndex
+selector NSWhoseSpecifier test
+selector NSXMLDTD addChild:
+selector NSXMLDTD attributeDeclarationForName:elementName:
+selector NSXMLDTD elementDeclarationForName:
+selector NSXMLDTD entityDeclarationForName:
+selector NSXMLDTD initWithContentsOfURL:options:error:
+selector NSXMLDTD initWithData:options:error:
+selector NSXMLDTD insertChild:atIndex:
+selector NSXMLDTD insertChildren:atIndex:
+selector NSXMLDTD notationDeclarationForName:
+selector NSXMLDTD predefinedEntityDeclarationForName:
+selector NSXMLDTD publicID
+selector NSXMLDTD removeChildAtIndex:
+selector NSXMLDTD replaceChildAtIndex:withNode:
+selector NSXMLDTD setChildren:
+selector NSXMLDTD setPublicID:
+selector NSXMLDTD setSystemID:
+selector NSXMLDTD systemID
+selector NSXMLDTDNode DTDKind
+selector NSXMLDTDNode initWithXMLString:
+selector NSXMLDTDNode isExternal
+selector NSXMLDTDNode notationName
+selector NSXMLDTDNode publicID
+selector NSXMLDTDNode setDTDKind:
+selector NSXMLDTDNode setNotationName:
+selector NSXMLDTDNode setPublicID:
+selector NSXMLDTDNode setSystemID:
+selector NSXMLDTDNode systemID
+selector NSXMLDocument DTD
+selector NSXMLDocument MIMEType
+selector NSXMLDocument XMLData
+selector NSXMLDocument XMLDataWithOptions:
+selector NSXMLDocument addChild:
+selector NSXMLDocument characterEncoding
+selector NSXMLDocument documentContentKind
+selector NSXMLDocument initWithContentsOfURL:options:error:
+selector NSXMLDocument initWithData:options:error:
+selector NSXMLDocument initWithRootElement:
+selector NSXMLDocument initWithXMLString:options:error:
+selector NSXMLDocument insertChild:atIndex:
+selector NSXMLDocument insertChildren:atIndex:
+selector NSXMLDocument isStandalone
+selector NSXMLDocument objectByApplyingXSLT:arguments:error:
+selector NSXMLDocument objectByApplyingXSLTAtURL:arguments:error:
+selector NSXMLDocument objectByApplyingXSLTString:arguments:error:
+selector NSXMLDocument removeChildAtIndex:
+selector NSXMLDocument replaceChildAtIndex:withNode:
+selector NSXMLDocument replacementClassForClass:
+selector NSXMLDocument rootElement
+selector NSXMLDocument setCharacterEncoding:
+selector NSXMLDocument setChildren:
+selector NSXMLDocument setDTD:
+selector NSXMLDocument setDocumentContentKind:
+selector NSXMLDocument setMIMEType:
+selector NSXMLDocument setRootElement:
+selector NSXMLDocument setStandalone:
+selector NSXMLDocument setVersion:
+selector NSXMLDocument validateAndReturnError:
+selector NSXMLDocument version
+selector NSXMLElement addAttribute:
+selector NSXMLElement addChild:
+selector NSXMLElement addNamespace:
+selector NSXMLElement attributeForLocalName:URI:
+selector NSXMLElement attributeForName:
+selector NSXMLElement attributes
+selector NSXMLElement elementsForLocalName:URI:
+selector NSXMLElement elementsForName:
+selector NSXMLElement initWithName:
+selector NSXMLElement initWithName:URI:
+selector NSXMLElement initWithName:stringValue:
+selector NSXMLElement initWithXMLString:error:
+selector NSXMLElement insertChild:atIndex:
+selector NSXMLElement insertChildren:atIndex:
+selector NSXMLElement namespaceForPrefix:
+selector NSXMLElement namespaces
+selector NSXMLElement normalizeAdjacentTextNodesPreservingCDATA:
+selector NSXMLElement removeAttributeForName:
+selector NSXMLElement removeChildAtIndex:
+selector NSXMLElement removeNamespaceForPrefix:
+selector NSXMLElement replaceChildAtIndex:withNode:
+selector NSXMLElement resolveNamespaceForName:
+selector NSXMLElement resolvePrefixForNamespaceURI:
+selector NSXMLElement setAttributes:
+selector NSXMLElement setAttributesAsDictionary:
+selector NSXMLElement setChildren:
+selector NSXMLElement setNamespaces:
+selector NSXMLNode DTDNodeWithXMLString:
+selector NSXMLNode URI
+selector NSXMLNode XMLString
+selector NSXMLNode XMLStringWithOptions:
+selector NSXMLNode XPath
+selector NSXMLNode attributeWithName:URI:stringValue:
+selector NSXMLNode attributeWithName:stringValue:
+selector NSXMLNode canonicalXMLStringPreservingComments:
+selector NSXMLNode childAtIndex:
+selector NSXMLNode childCount
+selector NSXMLNode children
+selector NSXMLNode commentWithStringValue:
+selector NSXMLNode description
+selector NSXMLNode detach
+selector NSXMLNode document
+selector NSXMLNode documentWithRootElement:
+selector NSXMLNode elementWithName:
+selector NSXMLNode elementWithName:URI:
+selector NSXMLNode elementWithName:children:attributes:
+selector NSXMLNode elementWithName:stringValue:
+selector NSXMLNode index
+selector NSXMLNode initWithKind:
+selector NSXMLNode initWithKind:options:
+selector NSXMLNode kind
+selector NSXMLNode level
+selector NSXMLNode localName
+selector NSXMLNode localNameForName:
+selector NSXMLNode name
+selector NSXMLNode namespaceWithName:stringValue:
+selector NSXMLNode nextNode
+selector NSXMLNode nextSibling
+selector NSXMLNode nodesForXPath:error:
+selector NSXMLNode objectValue
+selector NSXMLNode objectsForXQuery:constants:error:
+selector NSXMLNode objectsForXQuery:error:
+selector NSXMLNode parent
+selector NSXMLNode predefinedNamespaceForPrefix:
+selector NSXMLNode prefix
+selector NSXMLNode prefixForName:
+selector NSXMLNode previousNode
+selector NSXMLNode previousSibling
+selector NSXMLNode processingInstructionWithName:stringValue:
+selector NSXMLNode rootDocument
+selector NSXMLNode setName:
+selector NSXMLNode setObjectValue:
+selector NSXMLNode setStringValue:
+selector NSXMLNode setStringValue:resolvingEntities:
+selector NSXMLNode setURI:
+selector NSXMLNode stringValue
+selector NSXMLNode textWithStringValue:
+selector NSXMLParser abortParsing
+selector NSXMLParser columnNumber
+selector NSXMLParser delegate
+selector NSXMLParser initWithContentsOfURL:
+selector NSXMLParser initWithData:
+selector NSXMLParser lineNumber
+selector NSXMLParser parse
+selector NSXMLParser parserError
+selector NSXMLParser publicID
+selector NSXMLParser setDelegate:
+selector NSXMLParser setShouldProcessNamespaces:
+selector NSXMLParser setShouldReportNamespacePrefixes:
+selector NSXMLParser setShouldResolveExternalEntities:
+selector NSXMLParser shouldProcessNamespaces
+selector NSXMLParser shouldReportNamespacePrefixes
+selector NSXMLParser shouldResolveExternalEntities
+selector NSXMLParser systemID
