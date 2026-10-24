@@ -475,7 +475,18 @@ static char fn_decimal_separator(id locale)
 
 - (BOOL)isEqualToNumber:(NSNumber *)number
 {
+	NSDecimal other;
+
 	if (number == nil) {
+		return NO;
+	}
+	/* **NaN IS NOT EQUAL TO ANYTHING, INCLUDING ITSELF.** Apple's contract, and the reason the comparison cannot
+	 * just be -compare: == Same: NSDecimalCompare gives NaN no ordering, so two NaNs would read as equal. */
+	if (NSDecimalIsNotANumber(&_decimal)) {
+		return NO;
+	}
+	other = [number decimalValue];
+	if (NSDecimalIsNotANumber(&other)) {
 		return NO;
 	}
 	return [self compare:number] == NSOrderedSame;

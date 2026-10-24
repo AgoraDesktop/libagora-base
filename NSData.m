@@ -301,11 +301,13 @@
 	size_t start = range.location;
 	size_t n = range.length;
 
-	if (start > [self length]) {
-		start = [self length];
-	}
-	if (n > [self length] - start) {
-		n = [self length] - start;
+	/* **A RANGE DOOR RAISES, IT DOES NOT CLAMP.** Apple's -subdataWithRange: raises NSRangeException when the range
+	 * lies past the end; a clamped answer would be a shorter run of bytes presented as the requested one. */
+	if (start > [self length] || n > [self length] - start) {
+		[NSException raise:NSRangeException
+			    format:@"-[%@ subdataWithRange:]: range {%lu, %lu} is out of bounds (length %lu)",
+				   [self class], (unsigned long)start, (unsigned long)n,
+				   (unsigned long)[self length]];
 	}
 	return [[NSData alloc] initWithBytes:[self bytes] + start length:n];
 }

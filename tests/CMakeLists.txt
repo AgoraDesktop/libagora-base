@@ -175,3 +175,11 @@ add_test(NAME object_surface COMMAND object_surface)
 add_executable(scripting_surface scripting_surface.m)
 target_link_libraries(scripting_surface PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 add_test(NAME scripting_surface COMMAND scripting_surface)
+
+# THE BEHAVIOURAL PASS OVER THE VALUE TYPES: strings (UTF-16 indices, comparison options, hashing), the collections
+# (copy/mutability, equality and hashing, enumeration mutation), numbers (cross-kind equality, 64-bit comparison,
+# decimals), data, index sets, dates, JSON, property lists, both archivers, and NSURL.
+add_executable(core_values core_values.m)
+target_link_libraries(core_values PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+add_test(NAME core_values COMMAND core_values)
+

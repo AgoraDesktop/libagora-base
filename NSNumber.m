@@ -451,16 +451,48 @@ FN_NUMBER_GET(double, double)
 
 - (NSComparisonResult)compare:(NSNumber *)other
 {
-	double a = [self doubleValue];
-	double b = [other doubleValue];
+	/* **THE INTEGER PATH MATCHES -isEqualToNumber:'s, FOR THE SAME REASON.** Comparing two 64-bit integers as doubles
+	 * calls 2^53 and 2^53+1 equal; -isEqualToNumber: already refuses that, and a -compare: that disagreed with it
+	 * would make a sorted array say two distinct numbers are the same. Mixed integer/floating pairs go through the
+	 * double, which is the only common domain they have. */
+	if (![self isFloating] && ![other isFloating]) {
+		if ([self isUnsigned] || [other isUnsigned]) {
+			unsigned long long a = [self unsignedLongLongValue];
+			unsigned long long b = [other unsignedLongLongValue];
 
-	if (a < b) {
-		return NSOrderedAscending;
+			if (a < b) {
+				return NSOrderedAscending;
+			}
+			if (a > b) {
+				return NSOrderedDescending;
+			}
+			return NSOrderedSame;
+		}
+		{
+			long long a = [self longLongValue];
+			long long b = [other longLongValue];
+
+			if (a < b) {
+				return NSOrderedAscending;
+			}
+			if (a > b) {
+				return NSOrderedDescending;
+			}
+			return NSOrderedSame;
+		}
 	}
-	if (a > b) {
-		return NSOrderedDescending;
+	{
+		double a = [self doubleValue];
+		double b = [other doubleValue];
+
+		if (a < b) {
+			return NSOrderedAscending;
+		}
+		if (a > b) {
+			return NSOrderedDescending;
+		}
+		return NSOrderedSame;
 	}
-	return NSOrderedSame;
 }
 
 - (BOOL)isEqual:(id)other

@@ -592,12 +592,18 @@ static NSUInteger utf8_find(NSString *haystack, NSString *needle, NSRange range,
 	if (end > haySize) {
 		end = haySize;
 	}
-	for (i = start; i + needleSize <= end; i++) {
+	if (end < start + needleSize) {
+		return NSNotFound;
+	}
+	/* **ANCHORED MEANS ONE POSITION, NOT ONE RUN.** With NSAnchoredSearch the search is the match AT the edge; with
+	 * NSBackwardsSearch as well, the edge is the END of the range, so the only candidate starts where the needle
+	 * would finish. This is Apple's combination rule, and it is the one the old loop could not express. */
+	if ((options & NSAnchoredSearch) != 0) {
+		size_t candidate = (options & NSBackwardsSearch) != 0 ? end - needleSize : start;
 		size_t k;
-		int match = 1;
 
 		for (k = 0; k < needleSize; k++) {
-			unsigned char a = [haystack byteAtIndex:i + k];
+			unsigned char a = [haystack byteAtIndex:candidate + k];
 			unsigned char b = [needle byteAtIndex:k];
 
 			if (options & NSCaseInsensitiveSearch) {
@@ -605,15 +611,40 @@ static NSUInteger utf8_find(NSString *haystack, NSString *needle, NSRange range,
 				b = utf8_lower(b);
 			}
 			if (a != b) {
-				match = 0;
-				break;
+				return NSNotFound;
 			}
 		}
-		if (match) {
-			return i;
-		}
+		return candidate;
 	}
-	return NSNotFound;
+	{
+		size_t last = NSNotFound;
+
+		for (i = start; i + needleSize <= end; i++) {
+			size_t k;
+			int match = 1;
+
+			for (k = 0; k < needleSize; k++) {
+				unsigned char a = [haystack byteAtIndex:i + k];
+				unsigned char b = [needle byteAtIndex:k];
+
+				if (options & NSCaseInsensitiveSearch) {
+					a = utf8_lower(a);
+					b = utf8_lower(b);
+				}
+				if (a != b) {
+					match = 0;
+					break;
+				}
+			}
+			if (match) {
+				if ((options & NSBackwardsSearch) == 0) {
+					return i;
+				}
+				last = i;	/* keep looking: the LAST match is the backwards answer */
+			}
+		}
+		return last;
+	}
 }
 
 /* THE ENUMERATION HELPERS, DECLARED BEFORE THEY ARE USED: the enumeration method moved into the
@@ -1942,8 +1973,99 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 	return [self compare:other options:NSCaseInsensitiveSearch];
 }
 
+/* **A RANGE DOOR RAISES; IT DOES NOT CLAMP.** Apple's -substringFromIndex:, -substringToIndex: and
+ * -substringWithRange: all raise NSRangeException when any part of the range lies past the end, and the clamp the
+ * first version wrote turned a caller's mistake into a SHORTER STRING — the kind of wrong answer that survives to a
+ * user. The same check is used by the three doors below. */
+static void fn_require_range(NSString *string, SEL selector, NSRange range)
+{
+	NSUInteger length = [string length];
+
+	if (range.location > length || range.length > length - range.location) {
+		[NSException raise:NSRangeException
+			    format:@"-[%@ %@]: range {%lu, %lu} is out of bounds (length %lu)",
+				   [string class], NSStringFromSelector(selector),
+				   (unsigned long)range.location, (unsigned long)range.length,
+				   (unsigned long)length];
+	}
+}
+
+static BOOL fn_ascii_digit(unsigned char c)
+{
+	return c >= '0' && c <= '9';
+}
+
+/* **NSNUMERICSEARCH COMPARES DIGIT RUNS BY VALUE.** "file10" is greater than "file9", and "01" equals "1" for this
+ * comparison; every other byte compares as it does without the option. The walk is over UTF-8 because the digits are
+ * ASCII and the rest of this class's comparison is byte-wise too (the stance the header states). */
+static NSComparisonResult fn_compare_numeric(NSString *left, NSString *right, NSStringCompareOptions options)
+{
+	size_t leftLength = [left lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+	size_t rightLength = [right lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+	size_t i = 0, j = 0;
+
+	while (i < leftLength && j < rightLength) {
+		unsigned char a = [left byteAtIndex:i];
+		unsigned char b = [right byteAtIndex:j];
+
+		if (fn_ascii_digit(a) && fn_ascii_digit(b)) {
+			size_t leftStart = i, rightStart = j;
+			size_t leftZero, rightZero, leftDigits, rightDigits, k;
+
+			while (i < leftLength && fn_ascii_digit([left byteAtIndex:i])) {
+				i++;
+			}
+			while (j < rightLength && fn_ascii_digit([right byteAtIndex:j])) {
+				j++;
+			}
+			leftZero = leftStart;
+			while (leftZero + 1 < i && [left byteAtIndex:leftZero] == '0') {
+				leftZero++;
+			}
+			rightZero = rightStart;
+			while (rightZero + 1 < j && [right byteAtIndex:rightZero] == '0') {
+				rightZero++;
+			}
+			leftDigits = i - leftZero;
+			rightDigits = j - rightZero;
+			if (leftDigits != rightDigits) {
+				return leftDigits < rightDigits ? NSOrderedAscending : NSOrderedDescending;
+			}
+			for (k = 0; k < leftDigits; k++) {
+				unsigned char da = [left byteAtIndex:leftZero + k];
+				unsigned char db = [right byteAtIndex:rightZero + k];
+
+				if (da != db) {
+					return da < db ? NSOrderedAscending : NSOrderedDescending;
+				}
+			}
+			continue;
+		}
+		if (options & NSCaseInsensitiveSearch) {
+			a = utf8_lower(a);
+			b = utf8_lower(b);
+		}
+		if (a != b) {
+			return a < b ? NSOrderedAscending : NSOrderedDescending;
+		}
+		i++;
+		j++;
+	}
+	if (i < leftLength) {
+		return NSOrderedDescending;
+	}
+	if (j < rightLength) {
+		return NSOrderedAscending;
+	}
+	return NSOrderedSame;
+}
+
 - (NSComparisonResult)compare:(NSString *)other options:(NSStringCompareOptions)options
 {
+	if (options & NSNumericSearch) {
+		return fn_compare_numeric(self, other, options);
+	}
+	{
 	size_t a = [self lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 	size_t b = [other lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 	size_t n = (a < b) ? a : b;
@@ -1965,6 +2087,7 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 		return NSOrderedSame;
 	}
 	return (a < b) ? NSOrderedAscending : NSOrderedDescending;
+	}
 }
 
 - (BOOL)hasPrefix:(NSString *)prefix
@@ -2013,8 +2136,12 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 	/* THE RANGE COMES IN UNITS, THE SEARCH WALKS BYTES, THE ANSWER GOES BACK IN
 	 * UNITS — so both edges of the range are mapped, and the length is the
 	 * SUBSTRING's unit length (never its byte length). */
-	NSUInteger byteStart = fn_unit_to_byte(self, range.location);
-	NSUInteger byteEnd = fn_unit_to_byte(self, range.location + range.length);
+	NSUInteger byteStart;
+	NSUInteger byteEnd;
+
+	fn_require_range(self, _cmd, range);
+	byteStart = fn_unit_to_byte(self, range.location);
+	byteEnd = fn_unit_to_byte(self, range.location + range.length);
 	NSUInteger found = utf8_find(self, substring, NSMakeRange(byteStart, byteEnd - byteStart),
 				     options);
 
@@ -2094,24 +2221,23 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 	size_t bytes = [self lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 	size_t from;
 
-	if (index > [self length]) {
-		index = [self length];
-	}
+	fn_require_range(self, _cmd, NSMakeRange(index, 0));
 	from = fn_unit_to_byte(self, index);
 	return utf8_substring(self, from, bytes - from);
 }
 
 - (NSString *)substringToIndex:(NSUInteger)index
 {
-	if (index > [self length]) {
-		index = [self length];
-	}
+	fn_require_range(self, _cmd, NSMakeRange(index, 0));
 	return utf8_substring(self, 0, fn_unit_to_byte(self, index));
 }
 
 - (NSString *)substringWithRange:(NSRange)range
 {
-	NSUInteger from = fn_unit_to_byte(self, range.location);
+	NSUInteger from;
+
+	fn_require_range(self, _cmd, range);
+	from = fn_unit_to_byte(self, range.location);
 
 	return utf8_substring(self, from, fn_unit_to_byte(self, range.location + range.length) - from);
 }
@@ -5728,8 +5854,11 @@ static void fn_utf16_to_utf8(const unsigned char *data, size_t units, char *out)
 {
 	unsigned int encoding = _rflags & FN_CONST_ENCODING_MASK;
 
+	/* **PAST THE END RAISES.** A literal answers 0 here in no version of Cocoa; 0 is a character. */
 	if (index >= [self length]) {
-		return 0;
+		[NSException raise:NSRangeException
+			    format:@"NSConstantString: index %lu out of range (length %lu)",
+				   (unsigned long)index, (unsigned long)[self length]];
 	}
 	if (encoding == FN_CONST_ENCODING_UTF16 && _rstr != NULL) {
 		const unsigned short *units = (const unsigned short *)(const void *)_rstr;

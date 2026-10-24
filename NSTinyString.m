@@ -64,8 +64,12 @@ static char tiny_character(id self, size_t index)
 
 - (unsigned short)characterAtIndex:(size_t)index
 {
+	/* **PAST THE END RAISES, AS IT DOES ON EVERY OTHER CONCRETE STRING.** Returning 0 turned an out-of-range read
+	 * into a NUL character that a caller could not tell from a real one. */
 	if (index >= tiny_length(self)) {
-		return 0;
+		[NSException raise:NSRangeException
+			    format:@"NSTinyString: index %lu out of range (length %lu)",
+				   (unsigned long)index, (unsigned long)tiny_length(self)];
 	}
 	return (unsigned short)(unsigned char)tiny_character(self, index);
 }

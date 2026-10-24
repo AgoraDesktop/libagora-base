@@ -426,11 +426,12 @@ static NSArray *array_from_varargs(Class cls, id firstObject, va_list args)
 	id __unsafe_unretained *objects;
 	NSArray *result;
 
-	if (start > n) {
-		start = n;
-	}
-	if (length > n - start) {
-		length = n - start;
+	/* **A RANGE DOOR RAISES, IT DOES NOT CLAMP.** Apple's -subarrayWithRange: raises NSRangeException when the range
+	 * lies past the end; clamping would hand back a SHORTER array and hide the caller's mistake. */
+	if (start > n || length > n - start) {
+		[NSException raise:NSRangeException
+			    format:@"-[%@ subarrayWithRange:]: range {%lu, %lu} is out of bounds (count %lu)",
+				   [self class], (unsigned long)start, (unsigned long)length, (unsigned long)n];
 	}
 	objects = (id __unsafe_unretained *)calloc(length + 1, sizeof(id));
 	if (objects == NULL) {
