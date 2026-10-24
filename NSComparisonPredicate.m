@@ -213,7 +213,23 @@ static BOOL FNMatchesRegularExpression(NSString *subject, NSString *pattern, BOO
 		return [l isEqual:r];
 
 	case NSNotEqualToPredicateOperatorType:
-		return ![self fn_compareLeft:l right:r] ? YES : NO;
+		/* ⚠ **THIS USED TO CALL ITSELF WITH THE SAME OPERATOR AND RECURSE FOR EVER.** `return ![self
+		 * fn_compareLeft:l right:r]` switches on `_operatorType`, which is still NotEqual, so the first `!=` in
+		 * any predicate overflowed the stack — found by a 10^5-row Core Data suite whose `department != nil` was
+		 * the first `!=` the whole test corpus had ever evaluated (COREDATA-PLAN.md §0.13). The negation is
+		 * computed here instead: equality is decided, then inverted. */
+		{
+			BOOL equal;
+
+			if (l == nil || r == nil) {
+				equal = (l == r);
+			} else if (caseInsensitive && FNIsString(l) && FNIsString(r)) {
+				equal = [FNLower(l) isEqualToString:FNLower(r)];
+			} else {
+				equal = [l isEqual:r];
+			}
+			return !equal;
+		}
 
 	case NSLessThanPredicateOperatorType:
 		return FNOrder(l, r) == NSOrderedAscending;

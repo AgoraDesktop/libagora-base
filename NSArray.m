@@ -540,25 +540,93 @@ static NSArray *array_from_varargs(Class cls, id firstObject, va_list args)
 	return nil;
 }
 
-/* The comparator sort, shared by the immutable and mutable forms. */
+/* ⚠ **THIS WAS AN INSERTION SORT AND IS NOW A STABLE MERGE SORT (2026-10-23).** Insertion sort is O(n^2) in
+ * comparisons: measured at 16 s to sort 5,000 objects and 502 s for 20,000, which is what made a 10^5-row Core Data
+ * fetch-with-a-sort a ten-minute test (COREDATA-PLAN.md §0.13). A bottom-up merge sort is O(n log n), STABLE without
+ * any extra rule — a tie takes the LEFT run's element — and needs no recursion, so a pathological input cannot
+ * exhaust the stack.
+ *
+ * THE MEMBERS ARE RETAINED FOR THE DURATION. The merge writes into a C array, so a comparator that mutated the
+ * source would otherwise be able to free a member mid-sort.
+ */
 static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator comparator)
 {
-	NSMutableArray *sorted = [[NSMutableArray alloc] init];
-	NSUInteger i;
+	NSUInteger count = [source count];
+	NSUInteger i, width;
+	id *buffer;
+	id *scratch;
+	id *from;
+	id *to;
+	NSMutableArray *sorted;
 
-	[sorted addObjectsFromArray:source];
-	for (i = 1; i < [sorted count]; i++) {
-		id key = [sorted objectAtIndex:i];
-		NSUInteger j = i;
-
-		while (j > 0 && comparator([sorted objectAtIndex:j - 1], key) ==
-			       NSOrderedDescending) {
-			[sorted replaceObjectAtIndex:j
-					   withObject:[sorted objectAtIndex:j - 1]];
-			j--;
-		}
-		[sorted replaceObjectAtIndex:j withObject:key];
+	if (count < 2) {
+		return [[NSArray alloc] initWithArray:source];
 	}
+	buffer = (id *)malloc(sizeof(id) * count);
+	scratch = (id *)malloc(sizeof(id) * count);
+	if (buffer == NULL || scratch == NULL) {
+		free(buffer);
+		free(scratch);
+		/* THE SMALL-SET PATH, KEPT AS A FALLBACK rather than crashing: without two buffers there is still an
+		 * answer, and it is the one this function used to give. */
+		sorted = [[NSMutableArray alloc] init];
+		[sorted addObjectsFromArray:source];
+		for (i = 1; i < [sorted count]; i++) {
+			id key = [sorted objectAtIndex:i];
+			NSUInteger j = i;
+
+			while (j > 0 && comparator([sorted objectAtIndex:j - 1], key) == NSOrderedDescending) {
+				[sorted replaceObjectAtIndex:j withObject:[sorted objectAtIndex:j - 1]];
+				j--;
+			}
+			[sorted replaceObjectAtIndex:j withObject:key];
+		}
+		return sorted;
+	}
+
+	for (i = 0; i < count; i++) {
+		buffer[i] = [[source objectAtIndex:i] retain];
+	}
+	from = buffer;
+	to = scratch;
+	for (width = 1; width < count; width *= 2) {
+		for (i = 0; i < count; i += 2 * width) {
+			NSUInteger left = i;
+			NSUInteger leftEnd = (i + width < count) ? (i + width) : count;
+			NSUInteger right = leftEnd;
+			NSUInteger rightEnd = (i + 2 * width < count) ? (i + 2 * width) : count;
+			NSUInteger out = i;
+
+			while (left < leftEnd && right < rightEnd) {
+				/* THE TIE TAKES THE LEFT ELEMENT, which is the whole of stability. */
+				if (comparator(from[right], from[left]) == NSOrderedAscending) {
+					to[out++] = from[right++];
+				} else {
+					to[out++] = from[left++];
+				}
+			}
+			while (left < leftEnd) {
+				to[out++] = from[left++];
+			}
+			while (right < rightEnd) {
+				to[out++] = from[right++];
+			}
+		}
+		{
+			id *swap = from;
+
+			from = to;
+			to = swap;
+		}
+	}
+
+	sorted = [[NSMutableArray alloc] initWithCapacity:count];
+	for (i = 0; i < count; i++) {
+		[sorted addObject:from[i]];
+		[from[i] release];
+	}
+	free(buffer);
+	free(scratch);
 	return sorted;
 }
 
@@ -571,19 +639,18 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 }
 
 /* THE OPTIONS FORM (§62.104): the same algorithm, and the option is a FACT ABOUT IT rather than a branch —
- * the insertion sort keeps equal elements in the order they arrived, which is what NSSortStable asks for. A
- * concurrency hint is not taken (nothing here sorts concurrently), and the probe asserts the stability. */
+ * the merge sort keeps equal elements in the order they arrived, which is what NSSortStable asks for. A concurrency
+ * hint is not taken (nothing here sorts concurrently), and the probe asserts the stability. */
 - (NSArray *)sortedArrayWithOptions:(NSSortOptions)options usingComparator:(NSComparator)comparator
 {
 	(void)options;
 	return array_sorted_with_comparator(self, comparator);
 }
 
-/* THE DESCRIPTOR CHAIN, and the reason the helper above is an INSERTION sort: it moves an element
- * only while the comparison says NSOrderedDescending, so two elements that compare EQUAL keep
- * the order they arrived in. A chain PROMISES that (F10), and the probe measures the promise
- * rather than assuming it. The chain itself is the other half of the rule: the first descriptor
- * decides, and only a TIE falls through to the next. */
+/* THE DESCRIPTOR CHAIN. `NSSortStable` is a promise (F10) and the helper above keeps it: a merge sort takes the
+ * left run's element on a tie, so two elements that compare EQUAL keep the order they arrived in, and the probe
+ * measures the promise rather than assuming it. The chain itself is the other half of the rule: the first
+ * descriptor decides, and only a TIE falls through to the next. */
 - (NSArray *)sortedArrayUsingDescriptors:(NSArray *)sortDescriptors
 {
 	NSUInteger count = [sortDescriptors count];

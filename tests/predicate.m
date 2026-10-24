@@ -103,6 +103,17 @@ int main(void)
 	p = [NSPredicate predicateWithFormat:@"NOT (age > 30)"];
 	CHECK([p evaluateWithObject:[people objectAtIndex:1]] == YES, "NOT over a group");
 
+	/* 2b. `!=` AND `<>`, which nothing in this suite evaluated until a 10^5-row Core Data run found that the
+	 * operator RECURSED FOR EVER — it called itself with the same operator, so the first `!=` in the tree
+	 * overflowed the stack. A suite that tests `==` and not `!=` is a suite with a hole in it. */
+	p = [NSPredicate predicateWithFormat:@"age != 40"];
+	CHECK([p evaluateWithObject:[people objectAtIndex:0]] == NO, "!= is false for 40");
+	CHECK([p evaluateWithObject:[people objectAtIndex:1]] == YES, "and true for 25");
+	p = [NSPredicate predicateWithFormat:@"age <> 40"];
+	CHECK([p evaluateWithObject:[people objectAtIndex:0]] == NO, "<> is the same operator");
+	p = [NSPredicate predicateWithFormat:@"name != nil"];
+	CHECK([p evaluateWithObject:[people objectAtIndex:0]] == YES, "!= nil is true for a string");
+
 	/* 3. the string operators, including the case-insensitive option */
 	p = [NSPredicate predicateWithFormat:@"name BEGINSWITH[c] \"al\""];
 	CHECK([p evaluateWithObject:[people objectAtIndex:0]] == YES, "BEGINSWITH[c] al -> alice");
