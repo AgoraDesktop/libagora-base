@@ -116,6 +116,7 @@ suspensionBehavior:(NSNotificationSuspensionBehavior)behavior;
 /* §63.235: SUSPENSION IS THE DELIVERY GATE, not a flag nothing reads: this class's own posting path consults it,
  * so a suspended centre queues nothing to its observers until it is resumed — Apple's contract for the door. */
 @property (getter=isSuspended) BOOL suspended;
+- (BOOL)suspended;
 @end
 
 NS_ASSUME_NONNULL_END

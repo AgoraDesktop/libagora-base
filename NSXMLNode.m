@@ -13,6 +13,8 @@
  */
 
 #import <Foundation/NSXMLNode.h>
+#import <Foundation/NSXMLParser.h>	/* NSXMLParserInternalError + the error domain */
+#import <Foundation/NSError.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSNull.h>
@@ -230,6 +232,22 @@ static NSString *fn_xml_escape_attribute(NSString *text, BOOL singleQuoted)
 	_stringValue = [stringValue copy];
 }
 - (nullable id)objectValue { return self; }
+
+/* THE WRITE HALF. The value is stored and, for an ELEMENT, the children are replaced by one text node — which is
+ * Apple's contract and what makes `-stringValue` answer the text that was written. */
+- (void)setObjectValue:(nullable id)value
+{
+	[_objectValue release];
+	_objectValue = [value retain];
+	if (_kind == NSXMLElementKind) {
+		while ([_children count] > 0) {
+			[self removeChildAtIndex:0];
+		}
+		if (value != nil) {
+			[self addChild:[NSXMLNode textWithStringValue:[value description]]];
+		}
+	}
+}
 - (nullable NSString *)URI { return _uri; }
 
 - (NSString *)localName
@@ -861,6 +879,49 @@ static NSString *fn_canonical_escape_attribute(NSString *text)
 		return out;
 	}
 }
+- (NSArray *)nodesForXPath:(NSString *)xpath error:(NSError **)error
+{
+	(void)xpath;
+	if (error != NULL) {
+		*error = [NSError errorWithDomain:@"NSXMLParserErrorDomain"
+					    code:NSXMLParserInternalError
+					userInfo:@{ NSLocalizedDescriptionKey :
+						    @"NSXMLNode -nodesForXPath:error:: this library has no XPath engine" }];
+	}
+	return nil;
+}
+
+- (NSArray *)objectsForXQuery:(NSString *)xquery constants:(NSDictionary *)constants error:(NSError **)error
+{
+	(void)xquery; (void)constants;
+	if (error != NULL) {
+		*error = [NSError errorWithDomain:@"NSXMLParserErrorDomain"
+					    code:NSXMLParserInternalError
+					userInfo:@{ NSLocalizedDescriptionKey :
+						    @"NSXMLNode -objectsForXQuery:constants:error:: this library has no "
+						     "XQuery processor" }];
+	}
+	return nil;
+}
+
+- (NSArray *)objectsForXQuery:(NSString *)xquery error:(NSError **)error
+{
+	return [self objectsForXQuery:xquery constants:nil error:error];
+}
+
+/* THE ONE-ARGUMENT DOOR ON THE ROOT CLASS IS A RAISE, and that is the honest default: parsing XML text into a node
+ * is a question only an ELEMENT or a DTD node can answer. NSXMLElement implements the failing form
+ * (`-initWithXMLString:error:`) and this class does not, so a bare NSXMLNode asked to parse a string says why
+ * instead of manufacturing a text node that was never in the document. */
+- (id)initWithXMLString:(NSString *)string
+{
+	(void)string;
+	[NSException raise:NSInvalidArgumentException
+		    format:@"NSXMLNode -initWithXMLString:: parsing XML text needs an element or DTD node, and "
+			   "this is a %@", [self class]];
+	return nil;
+}
+
 @end
 
 @implementation NSXMLElement
@@ -1195,4 +1256,20 @@ static NSString *fn_canonical_escape_attribute(NSString *text)
 	}
 	return self;
 }
+/* REPLACE THE NAMESPACE DECLARATIONS: each incoming namespace's prefix is removed first so a duplicate neither
+ * accumulates nor shadows, then the node is added. The order is the array's, which is what a serializer walks. */
+- (void)setNamespaces:(NSArray *)namespaces
+{
+	NSUInteger i;
+
+	for (i = 0; i < [namespaces count]; i++) {
+		id node = [namespaces objectAtIndex:i];
+
+		[self removeNamespaceForPrefix:[node name]];
+	}
+	for (i = 0; i < [namespaces count]; i++) {
+		[self addNamespace:[namespaces objectAtIndex:i]];
+	}
+}
+
 @end

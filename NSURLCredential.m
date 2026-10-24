@@ -10,6 +10,61 @@
 
 @implementation NSURLCredential
 
+/* THE FOUR REFUSALS AND THE TWO ACCESSORS THAT GO WITH THEM. They are one family: an identity credential is a
+ * private key plus a certificate chain, and a trust credential is a decision about a server's chain. With no
+ * certificate stack there is nothing to store, so a body that returned a plausible object would be the failure mode
+ * this header exists to avoid. */
+static void fn_credential_refuse(const char *door)
+{
+	[NSException raise:NSInvalidArgumentException
+		    format:@"NSURLCredential -%s: this system has no Security framework, so no identity, "
+			   "certificate or trust can be held", door];
+}
+
++ (instancetype)credentialWithIdentity:(void *)identity
+			  certificates:(NSArray *)certArray
+			   persistence:(NSURLCredentialPersistence)persistence
+{
+	(void)identity; (void)certArray; (void)persistence;
+	fn_credential_refuse("credentialWithIdentity:certificates:persistence:");
+	return nil;
+}
+
+- (instancetype)initWithIdentity:(void *)identity
+		    certificates:(NSArray *)certArray
+		     persistence:(NSURLCredentialPersistence)persistence
+{
+	(void)identity; (void)certArray; (void)persistence;
+	fn_credential_refuse("initWithIdentity:certificates:persistence:");
+	return nil;
+}
+
++ (instancetype)credentialForTrust:(void *)trust
+{
+	(void)trust;
+	fn_credential_refuse("credentialForTrust:");
+	return nil;
+}
+
+- (instancetype)initWithTrust:(void *)trust
+{
+	(void)trust;
+	fn_credential_refuse("initWithTrust:");
+	return nil;
+}
+
+- (void *)identity
+{
+	fn_credential_refuse("identity");
+	return NULL;
+}
+
+- (NSArray *)certificates
+{
+	fn_credential_refuse("certificates");
+	return nil;
+}
+
 + (instancetype)credentialWithUser:(NSString *)user
 			  password:(NSString *)password
 		       persistence:(NSURLCredentialPersistence)persistence

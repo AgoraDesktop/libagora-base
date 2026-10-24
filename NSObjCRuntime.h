@@ -99,6 +99,16 @@ typedef struct _NSZone NSZone;
 #define NS_SWIFT_NONISOLATED		__attribute__((swift_attr("@nonisolated")))
 #define NS_SWIFT_UI_ACTOR		__attribute__((swift_attr("@MainActor")))
 
+/* FN_INFORMAL MARKS A DECLARATION THE CLIENT IMPLEMENTS, NOT THIS LIBRARY.
+ *
+ * An informal protocol is Apple's older shape for a delegate: a category on NSObject that declares the messages a
+ * sender MAY send, with no bodies, because the sender asks `-respondsToSelector:` first and the delegate is the one
+ * that answers. A default body here would make every object appear to implement the message and change the sender's
+ * decision, so the declaration must stay bodiless. The word is a macro rather than a comment so it survives comment
+ * stripping in `tools/api-ledger`, which exempts these selectors from `methods-declared-not-implemented` — a metric
+ * about THIS TREE's promises — and counts them in `methods-informal` so the exemption is visible. */
+#define FN_INFORMAL			/* implemented by the delegate, not by NSObject */
+
 /* --- declaring an enum (Apple's signatures) --- */
 /* THE ATTRIBUTES ARE PART OF THE MACRO, not decoration: `enum_extensibility` and
  * `flag_enum` are what make the Swift importer emit the constants as members of

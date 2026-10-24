@@ -36,6 +36,7 @@
 #import <Foundation/NSDictionary.h>
 
 @class NSString;
+@class NSArray;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -62,6 +63,12 @@ NS_SWIFT_NAME(Thread)
 + (NSThread *)currentThread;
 + (NSThread *)mainThread;
 + (BOOL)isMainThread;
+
+/* THE STACK OF THE CALLING THREAD (10.5 return addresses, 10.6 symbols). `+callStackReturnAddresses` answers
+ * NSNumbers holding the addresses, and `+callStackSymbols` answers the same frames as `backtrace_symbols(3)`
+ * strings. Both begin at the CALLER, not at this class. */
++ (NSArray *)callStackReturnAddresses;
++ (NSArray *)callStackSymbols;
 - (BOOL)isMainThread;
 
 - (nullable NSString *)name;
@@ -106,6 +113,41 @@ NS_SWIFT_NAME(Thread)
 - (void)start;
 
 - (NSString *)description;
+
+@end
+
+/*
+ * THE THREADED PERFORM FAMILY (10.2 and 10.5), declared in NSThread.h because that is Apple's placement: the
+ * receiver is an NSObject, but the subject is a THREAD, and `NSObject (NSThreadPerformAdditions)` is where the SDK
+ * puts all five doors. The delayed pair is in NSRunLoop.h for the same reason.
+ *
+ * WHAT EACH ONE MEANS, because the differences are the point:
+ *   * `...waitUntilDone:YES` BLOCKS THE CALLER until the selector has run on the other thread;
+ *   * `...waitUntilDone:NO` returns immediately, and the request is queued on that thread's run loop;
+ *   * called ON the target thread, the selector is performed IMMEDIATELY and `wait` is irrelevant;
+ *   * a thread with no run loop cannot receive one, and that is an exception rather than a silent drop.
+ * `-performSelectorInBackground:` starts a NEW detached thread, so there is no loop to reach: the selector runs as
+ * the thread's body.
+ */
+@interface NSObject (NSThreadPerformAdditions)
+
+- (void)performSelectorOnMainThread:(SEL)aSelector
+			 withObject:(nullable id)arg
+		      waitUntilDone:(BOOL)wait
+			      modes:(nullable NSArray *)array;
+- (void)performSelectorOnMainThread:(SEL)aSelector
+			 withObject:(nullable id)arg
+		      waitUntilDone:(BOOL)wait;
+- (void)performSelector:(SEL)aSelector
+	       onThread:(NSThread *)thr
+	     withObject:(nullable id)arg
+	  waitUntilDone:(BOOL)wait
+		  modes:(nullable NSArray *)array;
+- (void)performSelector:(SEL)aSelector
+	       onThread:(NSThread *)thr
+	     withObject:(nullable id)arg
+	  waitUntilDone:(BOOL)wait;
+- (void)performSelectorInBackground:(SEL)aSelector withObject:(nullable id)arg;
 
 @end
 

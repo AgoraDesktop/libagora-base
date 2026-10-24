@@ -157,6 +157,32 @@ typedef enum {
 - (void)backgroundLoadDidFailWithReason:(nullable NSString *)reason;
 @end
 
+/*
+ * THE URL-HANDLE CLIENT (10.0): the oldest of the URL-loading informal protocols, and the one whose selectors begin
+ * with `URL`, which is why the ledger's grouping put them in a row of their own.
+ *
+ * THE DECLARATIONS BELOW ARE THIS TREE'S OWN, COPIED FROM THE FORMAL PROTOCOL ABOVE AND MARKED `FN_INFORMAL`:
+ * 10.6 ALSO DECLARES THEM AS A CATEGORY ON NSObject, for a delegate written before the protocol existed and for the
+ * `-respondsToSelector:` check a sender makes. They must stay BODILESS. A default body would make every object
+ * appear to implement every callback, and the sender would stop asking.
+ */
+@interface NSObject (NSURLHandleClient)
+
+- (void)URLHandleResourceDidBeginLoading:(NSURLHandle *)sender FN_INFORMAL;
+- (void)URLHandleResourceDidFinishLoading:(NSURLHandle *)sender FN_INFORMAL;
+- (void)URLHandleResourceDidCancelLoading:(NSURLHandle *)sender FN_INFORMAL;
+- (void)URLHandle:(NSURLHandle *)sender resourceDataDidBecomeAvailable:(NSData *)newBytes FN_INFORMAL;
+- (void)URLHandle:(NSURLHandle *)sender resourceDidFailLoadingWithReason:(NSString *)reason FN_INFORMAL;
+
+/* THE FOUR ROWS THE FORMAL PROTOCOL DOES NOT CARRY, and 10.6's informal category does: the client's own loading
+ * callbacks, whose selectors begin with `URL` (which is why the census grouped them separately). Bodiless by
+ * design — the client implements them and the handle asks `-respondsToSelector:`. */
+- (void)URL:(NSURL *)sender resourceDataDidBecomeAvailable:(NSData *)newBytes FN_INFORMAL;
+- (void)URL:(NSURL *)sender resourceDidFailLoadingWithReason:(NSString *)reason FN_INFORMAL;
+- (void)URLResourceDidCancelLoading:(NSURL *)sender FN_INFORMAL;
+- (void)URLResourceDidFinishLoading:(NSURL *)sender FN_INFORMAL;
+@end
+
 NS_ASSUME_NONNULL_END
 
 #endif /* FOUNDATION_NSURLHANDLE_H */

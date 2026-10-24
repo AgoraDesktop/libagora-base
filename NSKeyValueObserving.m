@@ -84,6 +84,116 @@
 static NSMutableArray *fn_autos = nil;
 static NSMutableArray *fn_notify_pairs = nil;
 
+/* THE DEPENDENT-KEY RELATION, in the two spellings Apple ships: the declarative `+keyPathsForValuesAffecting<Key>`
+ * (which this file reads, not stores) and the deprecated per-class registration below. Class name -> key ->
+ * set of dependent keys; class names are used as the outer key because a Class object is not a stable dictionary
+ * key for a table that outlives a bundle unload. */
+static NSMutableDictionary *fn_dependent_keys = nil;
+static pthread_mutex_t fn_dependent_keys_lock = PTHREAD_MUTEX_INITIALIZER;
+
+/* ONE THREAD'S KEYS IN FLIGHT, so a cycle in the dependent relation (A affects B affects A) terminates instead of
+ * recursing until the stack ends. Thread-local and never freed: it lives for the thread's lifetime, and freeing it
+ * from a thread with no pool would be the leak it is not worth fixing. */
+static __thread NSMutableSet *fn_keys_in_flight = nil;
+
+static NSString *fn_capitalised_key(NSString *key)
+{
+	if ([key length] == 0) {
+		return key;
+	}
+	return [NSString stringWithFormat:@"%@%@", [[key substringToIndex:1] uppercaseString],
+						 [key substringFromIndex:1]];
+}
+
+static BOOL fn_enter_key(NSString *key)
+{
+	if (fn_keys_in_flight == nil) {
+		fn_keys_in_flight = [[NSMutableSet alloc] init];
+	}
+	if ([fn_keys_in_flight containsObject:key]) {
+		return NO;
+	}
+	[fn_keys_in_flight addObject:key];
+	return YES;
+}
+
+static void fn_leave_key(NSString *key)
+{
+	[fn_keys_in_flight removeObject:key];
+}
+
+static NSMutableSet *fn_registered_dependents(Class cls, NSString *key)
+{
+	NSString *className;
+	NSMutableDictionary *byKey;
+	NSMutableSet *dependents;
+
+	pthread_mutex_lock(&fn_dependent_keys_lock);
+	if (fn_dependent_keys == nil) {
+		fn_dependent_keys = [[NSMutableDictionary alloc] init];
+	}
+	className = NSStringFromClass(cls);
+	byKey = [fn_dependent_keys objectForKey:className];
+	if (byKey == nil) {
+		byKey = [NSMutableDictionary dictionary];
+		[fn_dependent_keys setObject:byKey forKey:className];
+	}
+	dependents = [byKey objectForKey:key];
+	if (dependents == nil) {
+		dependents = [NSMutableSet set];
+		[byKey setObject:dependents forKey:key];
+	}
+	pthread_mutex_unlock(&fn_dependent_keys_lock);
+	return dependents;
+}
+
+static void fn_register_dependent(Class cls, NSString *key, NSString *dependentKey)
+{
+	NSMutableSet *dependents;
+
+	pthread_mutex_lock(&fn_dependent_keys_lock);
+	/* The helper above takes the lock itself, so this one inlines the same three steps rather than nesting a
+	 * non-recursive mutex. */
+	if (fn_dependent_keys == nil) {
+		fn_dependent_keys = [[NSMutableDictionary alloc] init];
+	}
+	{
+		NSString *className = NSStringFromClass(cls);
+		NSMutableDictionary *byKey = [fn_dependent_keys objectForKey:className];
+
+		if (byKey == nil) {
+			byKey = [NSMutableDictionary dictionary];
+			[fn_dependent_keys setObject:byKey forKey:className];
+		}
+		dependents = [byKey objectForKey:key];
+		if (dependents == nil) {
+			dependents = [NSMutableSet set];
+			[byKey setObject:dependents forKey:key];
+		}
+	}
+	[dependents addObject:dependentKey];
+	pthread_mutex_unlock(&fn_dependent_keys_lock);
+}
+
+/* THE WHOLE CHAIN, because a subclass inherits its ancestors' registrations. */
+static NSArray *fn_dependent_keys_for(Class cls, NSString *key)
+{
+	NSMutableArray *out = [NSMutableArray array];
+	Class current;
+
+	pthread_mutex_lock(&fn_dependent_keys_lock);
+	for (current = cls; current != Nil; current = class_getSuperclass(current)) {
+		NSMutableDictionary *byKey = [fn_dependent_keys objectForKey:NSStringFromClass(current)];
+		NSMutableSet *dependents = [byKey objectForKey:key];
+
+		if (dependents != nil) {
+			[out addObjectsFromArray:[dependents allObjects]];
+		}
+	}
+	pthread_mutex_unlock(&fn_dependent_keys_lock);
+	return out;
+}
+
 NSString *const NSKeyValueChangeKindKey = @"NSKeyValueChangeKindKey";
 NSString *const NSKeyValueChangeNewKey = @"NSKeyValueChangeNewKey";
 NSString *const NSKeyValueChangeOldKey = @"NSKeyValueChangeOldKey";
@@ -112,13 +222,10 @@ NSString *const NSKeyValueChangeNotificationIsPriorKey = @"NSKeyValueChangeNotif
 @public
 	__unsafe_unretained NSObject *_observed;
 	NSString *_key;
-	/* ⚠ RETAINED. The setting path captures the OLD value in `-willChangeValueForKey:` — before the write,
-	 * when the property is still the only owner — and reads it back in `-didChangeValueForKey:`, AFTER the
-	 * setter has released it. A property whose old value nothing else held is therefore DEALLOCATED in
-	 * between, and retaining it here is what keeps the OLD side of the change dictionary alive. Measured on
-	 * ubuntu-24.04: `[model setItems:[NSMutableArray array...]]` over a model-owned array freed the array,
-	 * glibc's tcache overwrote its isa, and `-setObject:forKey:` died in `objc_retain` on the freed pointer.
-	 * The to-many arm's `_oldObjects` is retained for exactly the same reason. */
+	/* ⚠ RETAINED. `-willChangeValueForKey:` captures the OLD value before the write, when the property is
+	 * still its only owner, and `-didChangeValueForKey:` reads it back AFTER the setter has released it — so
+	 * an old value nothing else held is deallocated in between and the change dictionary retains a stale
+	 * pointer. The to-many arm's `_oldObjects` is retained for the same stated reason. */
 	id _oldValue;			/* RETAINED, setting changes */
 	BOOL _hasOld;
 	/* THE TO-MANY HALF. `_changeKind` is 0 for a setting change and Insertion/Removal/Replacement otherwise;
@@ -649,6 +756,23 @@ static NSArray *fn_objects_at_indexes(NSArray *collection, NSIndexSet *indexes)
 	registration->_options = options;
 	registration->_context = context;
 	[fn_registrations addObject:registration];
+	/* **THE DEPENDENCY TABLE IS BUILT FROM THE DECLARATIVE FORM AT REGISTRATION TIME, AND IT IS THE INVERSE.**
+	 * `+keyPathsForValuesAffectingValueForKey:@"fullName"` answers {firstName, lastName} — the keys that affect
+	 * fullName — while the notification path needs "which keys DOES firstName affect". Registering the reverse at
+	 * the moment somebody observes the dependent key is what makes the declarative method drive direct setters
+	 * without scanning every method on every change. */
+	if ([keyPath rangeOfString:@"."].location == NSNotFound) {
+		NSSet *dependencies = [[self class] keyPathsForValuesAffectingValueForKey:keyPath];
+		NSEnumerator *enumerator = [dependencies objectEnumerator];
+		NSString *dependency;
+
+		while ((dependency = [enumerator nextObject]) != nil) {
+			fn_register_dependent(object_getClass(self), dependency, keyPath);
+			/* THE DEPENDENCY'S OWN SETTER MUST ANNOUNCE TOO. Observing `fullName` is what makes KVO watch
+			 * `firstName`; without this the direct setter has no wrapper and the dependent key never hears. */
+			fn_install_auto_kvo(self, dependency);
+		}
+	}
 	/* **THE OBJECT IS MOVED TO ITS NOTIFYING CLASS BEFORE THE INITIAL NOTIFICATION**, so the first observation and every
 	 * later direct setter see the same world. The move is a no-op when the key has no wrappable setter. */
 	fn_install_auto_kvo(self, keyPath);
@@ -719,7 +843,7 @@ static NSArray *fn_objects_at_indexes(NSArray *collection, NSIndexSet *indexes)
 			   [observer class], keyPath];
 }
 
-- (void)willChangeValueForKey:(NSString *)key
+- (void)fnWillChangeValueForKeyBody:(NSString *)key
 {
 	FNKVOPending *pending;
 	BOOL wantsOld = NO;
@@ -785,7 +909,7 @@ static NSArray *fn_objects_at_indexes(NSArray *collection, NSIndexSet *indexes)
 	}
 }
 
-- (void)didChangeValueForKey:(NSString *)key
+- (void)fnDidChangeValueForKeyBody:(NSString *)key
 {
 	FNKVOPending *pending;
 	NSUInteger i;
@@ -826,6 +950,100 @@ static NSArray *fn_objects_at_indexes(NSArray *collection, NSIndexSet *indexes)
 						context:held->_context];
 	}
 	[fn_pendings removeObjectIdenticalTo:pending];
+}
+
+/* ============================================================================================
+ * THE PUBLIC PAIR, THE DEPENDENCY RULE, AND THE TWO CLASS-SIDE SWITCHES.
+ *
+ * THE PUBLIC PAIR IS A WRAPPER RATHER THAN THE BODY, because a dependent key has to be announced in the same
+ * bracket as the key that changed: `will` for every dependent BEFORE the primary `will`, `did` for the primary
+ * BEFORE the dependents. The bodies below are the original methods renamed, so the change is visible as the two
+ * lines of ordering it actually is.
+ *
+ * THE IN-FLIGHT SET IS WHAT MAKES A CYCLE TERMINATE. `+keyPathsForValuesAffectingValueForKey:` is allowed to be
+ * symmetric (two keys that affect each other), and a naive recursion would send `will` forever. A key already on
+ * this thread's stack is not entered again, so each key is announced once per change.
+ * ============================================================================================ */
+
+static NSArray *fn_all_dependent_keys(id object, NSString *key)
+{
+	NSMutableSet *all = [NSMutableSet setWithArray:fn_dependent_keys_for(object_getClass(object), key)];
+	NSSet *declared = [[object class] keyPathsForValuesAffectingValueForKey:key];
+
+	if (declared != nil) {
+		[all unionSet:declared];
+	}
+	return [all allObjects];
+}
+
+- (void)willChangeValueForKey:(NSString *)key
+{
+	BOOL entered = fn_enter_key(key);
+	NSArray *dependents;
+	NSUInteger i;
+
+	if (entered) {
+		dependents = fn_all_dependent_keys(self, key);
+		for (i = 0; i < [dependents count]; i++) {
+			[self willChangeValueForKey:[dependents objectAtIndex:i]];
+		}
+	}
+	[self fnWillChangeValueForKeyBody:key];
+	if (entered) {
+		fn_leave_key(key);
+	}
+}
+
+- (void)didChangeValueForKey:(NSString *)key
+{
+	BOOL entered = fn_enter_key(key);
+	NSArray *dependents;
+	NSUInteger i;
+
+	[self fnDidChangeValueForKeyBody:key];
+	if (entered) {
+		dependents = fn_all_dependent_keys(self, key);
+		for (i = 0; i < [dependents count]; i++) {
+			[self didChangeValueForKey:[dependents objectAtIndex:i]];
+		}
+		fn_leave_key(key);
+	}
+}
+
++ (BOOL)automaticallyNotifiesObserversForKey:(NSString *)key
+{
+	(void)key;
+	return YES;
+}
+
+/* APPLE'S DECLARATIVE FORM: a class implements `+keyPathsForValuesAffecting<Key>` and this answers what it says.
+ * `class_respondsToSelector` on the metaclass includes the inherited class methods, so a subclass inherits its
+ * ancestors' declarations. The legacy registrations are added so both spellings drive the same notification path. */
++ (NSSet *)keyPathsForValuesAffectingValueForKey:(NSString *)key
+{
+	NSMutableSet *paths = [NSMutableSet set];
+	NSString *name = [NSString stringWithFormat:@"keyPathsForValuesAffecting%@", fn_capitalised_key(key)];
+	SEL sel = sel_registerName([name UTF8String]);
+
+	if (class_respondsToSelector(object_getClass(self), sel)) {
+		typedef NSSet *(*fn_paths_method)(id, SEL);
+		fn_paths_method call = (fn_paths_method)[self methodForSelector:sel];
+		NSSet *declared = call(self, sel);
+
+		if (declared != nil) {
+			[paths unionSet:declared];
+		}
+	}
+	return paths;
+}
+
+- (void)setKeys:(NSArray *)keys triggerChangeNotificationsForDependentKey:(NSString *)dependentKey
+{
+	NSUInteger i;
+
+	for (i = 0; i < [keys count]; i++) {
+		fn_register_dependent(object_getClass(self), [keys objectAtIndex:i], dependentKey);
+	}
 }
 
 /* ============================================================================================
@@ -1172,4 +1390,25 @@ static NSArray *fn_objects_at_indexes(NSArray *collection, NSIndexSet *indexes)
 	}
 }
 
+
+/* THE OBSERVER'S DEFAULT, WHICH IS A RAISE. Apple's contract: a class that registers itself as an observer and does
+ * not override this is a programming error, and the failure must be loud rather than a silent no-op. */
 @end
+
+@implementation NSObject (NSKeyValueObservingObserver)
+
+- (void)observeValueForKeyPath:(NSString *)keyPath
+		      ofObject:(id)object
+			change:(NSDictionary *)change
+		       context:(void *)context
+{
+	(void)object;
+	(void)change;
+	(void)context;
+	[NSException raise:NSInternalInconsistencyException
+		    format:@"%@ received -observeValueForKeyPath:%@ but does not implement it",
+			   [self class], keyPath];
+}
+
+@end
+

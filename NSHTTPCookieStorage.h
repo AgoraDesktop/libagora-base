@@ -52,6 +52,7 @@ extern NSString * const NSHTTPCookieManagerCookiesChangedNotification;
 	NSMutableArray *_cookies;
 	NSLock *_lock;
 	NSHTTPCookieAcceptPolicy _policy;
+	NSURL *_storageFileURL;	/* where a store created by -initWithStorageLocation: would persist */
 }
 
 /*
@@ -59,6 +60,9 @@ extern NSString * const NSHTTPCookieManagerCookiesChangedNotification;
  * public because Apple's is (`-init` makes a store of one's own).
  */
 + (NSHTTPCookieStorage *)sharedHTTPCookieStorage;
+/* THE STORE AT A NAMED FILE (10.6). The location is remembered and answered; this store keeps its cookies in
+ * memory and writes nothing, which the header states rather than implying persistence by accepting a path. */
+- (instancetype)initWithStorageLocation:(NSURL *)storageFileURL;
 
 @property NSHTTPCookieAcceptPolicy cookieAcceptPolicy;
 

@@ -292,6 +292,23 @@ typedef enum {
  * base. */
 - (NSInteger)versionForClassName:(NSString *)className;
 
+/*
+ * THE ROOT, THE ZONE AND THE TYPEDSTREAM PAIR. `-encodeRootObject:` is the sequential family's "this is the whole
+ * graph": NSArchiver answers it and this base raises, which is Apple's arrangement ("not implemented in NSCoder;
+ * subclasses must override"). `-objectZone`/`-setObjectZone:` are the base's defaults — no zone and a setter that
+ * does nothing — because a keyed archive has no allocator requirement; the classic pair overrides both.
+ *
+ * `-encodeNXObject:`/`-decodeNXObject` are the deprecated typedstream compatibility doors, and they are implemented
+ * as the EQUIVALENCE Apple documents rather than as a second format: an NX object is written through
+ * `-encodeObject:` and read through `-decodeObject`, which is correct for both families and cannot disagree with
+ * them about the wire.
+ */
+- (void)encodeRootObject:(id)rootObject;
+- (nullable NSZone *)objectZone;
+- (void)setObjectZone:(nullable NSZone *)zone;
+- (void)encodeNXObject:(nullable id)object;
+- (nullable id)decodeNXObject;
+
 @end
 
 NS_ASSUME_NONNULL_END

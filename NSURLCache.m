@@ -206,7 +206,26 @@ static NSURLCache *fn_sharedCache = nil;
 }
 
 - (NSUInteger)memoryCapacity { return _memoryCapacity; }
+- (void)setMemoryCapacity:(NSUInteger)capacity
+{
+	[_lock lock];
+	_memoryCapacity = capacity;
+	[_lock unlock];
+}
 - (NSUInteger)diskCapacity { return _diskCapacity; }
+- (void)setDiskCapacity:(NSUInteger)capacity
+{
+	[_lock lock];
+	_diskCapacity = capacity;
+	[_lock unlock];
+}
+
+/* APPLE'S PUBLIC REPLACEMENT DOOR. It is the internal installer with the name callers were given; the cache is
+ * retained for the process's life, which is what "shared" means and what the private door already did. */
++ (void)setSharedURLCache:(NSURLCache *)cache
+{
+	[self fnSetSharedURLCache:cache];
+}
 /* NOTHING IS WRITTEN, so the disk usage is zero - reported rather than hidden, and the header says why. */
 - (NSUInteger)currentDiskUsage { return 0; }
 

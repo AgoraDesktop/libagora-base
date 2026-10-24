@@ -173,6 +173,11 @@ static NSString *fn_describe_integer(const void *item)
 
 @implementation NSPointerFunctions
 
++ (instancetype)pointerFunctionsWithOptions:(NSPointerFunctionsOptions)options
+{
+	return [[[self alloc] initWithOptions:options] autorelease];
+}
+
 - (instancetype)initWithOptions:(NSPointerFunctionsOptions)options
 {
 	self = [super init];

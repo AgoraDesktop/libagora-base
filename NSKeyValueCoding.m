@@ -885,6 +885,220 @@ static BOOL fn_call_setter(id receiver, SEL sel, id value)
 	return YES;
 }
 
+/* ------------------------------------------------ the OpenStep spellings and the stored accessors */
+
+/* THE STORED ACCESSOR IS THE ONE KVC PATH THAT MUST NOT USE AN ACCESSOR. `-takeStoredValue:forKey:` writes the
+ * instance variable directly, which is what a class does while decoding itself (the accessor may validate, notify or
+ * refuse a half-built value). The search order is the one KVC itself uses, and it is here rather than in the helper
+ * above because the helper is a READER: the four names and the scalar conversions are the same, so they are
+ * duplicated deliberately rather than routed through `-setValue:forKey:`. */
+static BOOL fn_store_ivar(id object, NSString *key, id value)
+{
+	Class cls = object_getClass(object);
+	NSString *capitalised = fn_capitalise(key);
+	NSString *candidates[4];
+	Ivar ivar = NULL;
+	const char *type;
+	void *slot;
+	int i;
+
+	candidates[0] = fn_prefixed(@"_", key);
+	candidates[1] = fn_prefixed(@"_is", capitalised);
+	candidates[2] = key;
+	candidates[3] = fn_prefixed(@"is", capitalised);
+	for (i = 0; i < 4 && ivar == NULL; i++) {
+		ivar = class_getInstanceVariable(cls, [candidates[i] UTF8String]);
+	}
+	if (ivar == NULL) {
+		return NO;
+	}
+	type = ivar_getTypeEncoding(ivar);
+	slot = (char *)(__bridge void *)object + ivar_getOffset(ivar);
+	if (type != NULL && (type[0] == '@' || type[0] == '#')) {
+		object_setIvar(object, ivar, value);
+		return YES;
+	}
+	if (type == NULL || value == nil) {
+		return NO;
+	}
+	switch (type[0]) {
+	case 'c': case 'C': case 'B':
+		*(unsigned char *)slot = (unsigned char)[value charValue];
+		return YES;
+	case 's': case 'S':
+		*(short *)slot = (short)[value shortValue];
+		return YES;
+	case 'i': case 'I':
+		*(int *)slot = [value intValue];
+		return YES;
+	case 'l': case 'L':
+		*(long *)slot = (long)[value longValue];
+		return YES;
+	case 'q': case 'Q':
+		*(long long *)slot = [value longLongValue];
+		return YES;
+	case 'f':
+		*(float *)slot = [value floatValue];
+		return YES;
+	case 'd':
+		*(double *)slot = [value doubleValue];
+		return YES;
+	default:
+		return NO;
+	}
+}
+
++ (BOOL)accessInstanceVariablesDirectly
+{
+	return YES;
+}
+
+- (nullable id)storedValueForKey:(NSString *)key
+{
+	Class cls = object_getClass(self);
+	NSString *capitalised;
+	BOOL found = NO;
+	id value;
+
+	if (key == nil) {
+		[NSException raise:NSInvalidArgumentException format:@"-storedValueForKey: needs a key"];
+	}
+	capitalised = fn_capitalise(key);
+	value = fn_ivar_value(self, cls, fn_prefixed(@"_", key), &found);
+	if (!found) {
+		value = fn_ivar_value(self, cls, fn_prefixed(@"_is", capitalised), &found);
+	}
+	if (!found) {
+		value = fn_ivar_value(self, cls, key, &found);
+	}
+	if (!found) {
+		value = fn_ivar_value(self, cls, fn_prefixed(@"is", capitalised), &found);
+	}
+	if (!found) {
+		return [self handleQueryWithUnboundKey:key];
+	}
+	return value;
+}
+
+- (void)takeStoredValue:(nullable id)value forKey:(NSString *)key
+{
+	if (key == nil) {
+		[NSException raise:NSInvalidArgumentException format:@"-takeStoredValue:forKey: needs a key"];
+	}
+	if (!fn_store_ivar(self, key, value)) {
+		if (value == nil) {
+			[self unableToSetNilForKey:key];
+		} else {
+			[self handleTakeValue:value forUnboundKey:key];
+		}
+	}
+}
+
+- (void)takeValue:(nullable id)value forKey:(NSString *)key
+{
+	[self setValue:value forKey:key];
+}
+
+- (void)takeValue:(nullable id)value forKeyPath:(NSString *)keyPath
+{
+	[self setValue:value forKeyPath:keyPath];
+}
+
+- (void)takeValuesFromDictionary:(NSDictionary *)properties
+{
+	NSEnumerator *keys = [properties keyEnumerator];
+	NSString *key;
+
+	while ((key = [keys nextObject]) != nil) {
+		id value = [properties objectForKey:key];
+
+		[self takeValue:(value == [NSNull null] ? nil : value) forKey:key];
+	}
+}
+
+- (NSArray *)valuesForKeys:(NSArray *)keys
+{
+	NSMutableArray *values = [NSMutableArray arrayWithCapacity:[keys count]];
+	NSUInteger i;
+
+	for (i = 0; i < [keys count]; i++) {
+		id value = [self valueForKey:[keys objectAtIndex:i]];
+
+		[values addObject:(value != nil ? value : (id)[NSNull null])];
+	}
+	return values;
+}
+
+- (NSDictionary *)dictionaryWithValuesForKeys:(NSArray *)keys
+{
+	NSMutableDictionary *values = [NSMutableDictionary dictionaryWithCapacity:[keys count]];
+	NSUInteger i;
+
+	for (i = 0; i < [keys count]; i++) {
+		NSString *key = [keys objectAtIndex:i];
+		id value = [self valueForKey:key];
+
+		[values setObject:(value != nil ? value : (id)[NSNull null]) forKey:key];
+	}
+	return values;
+}
+
+- (void)setValuesForKeysWithDictionary:(NSDictionary *)keyedValues
+{
+	NSEnumerator *keys = [keyedValues keyEnumerator];
+	NSString *key;
+
+	while ((key = [keys nextObject]) != nil) {
+		id value = [keyedValues objectForKey:key];
+
+		[self setValue:(value == [NSNull null] ? nil : value) forKey:key];
+	}
+}
+
+/* THE LEGACY HOOKS. `-handleQueryWithUnboundKey:` is what `-valueForKey:` called before
+ * `-valueForUndefinedKey:` existed; `-handleTakeValue:forUnboundKey:` is its setter; and
+ * `-unableToSetNilForKey:` is what a scalar setter calls instead of accepting nil. All three default to the loud
+ * answer, because a default that quietly did nothing would let a typo become a missing property. */
+- (nullable id)handleQueryWithUnboundKey:(NSString *)key
+{
+	[NSException raise:NSUndefinedKeyException
+		    format:@"[%@ %@]: this class is not key value coding-compliant for the key %@",
+			   [self class], @"handleQueryWithUnboundKey:", key];
+	return nil;
+}
+
+- (void)handleTakeValue:(nullable id)value forUnboundKey:(NSString *)key
+{
+	(void)value;
+	[NSException raise:NSUndefinedKeyException
+		    format:@"[%@ %@]: this class is not key value coding-compliant for the key %@",
+			   [self class], @"handleTakeValue:forUnboundKey:", key];
+}
+
+- (void)unableToSetNilForKey:(NSString *)key
+{
+	[NSException raise:NSInvalidArgumentException
+		    format:@"[%@ %@]: cannot set nil for the scalar key %@",
+			   [self class], @"takeStoredValue:forKey:", key];
+}
+
+- (BOOL)useStoredAccessor
+{
+	return YES;
+}
+
+/* APPLE'S DEFAULT VALIDATES NOTHING. `-validateValue:forKeyPath:error:` exists so a class can override it; a default
+ * that walked the path and validated each segment would be a policy no caller asked for. */
+- (BOOL)validateValue:(id _Nullable * _Nullable)ioValue
+	    forKeyPath:(NSString *)keyPath
+		 error:(NSError * _Nullable * _Nullable)outError
+{
+	(void)ioValue;
+	(void)keyPath;
+	(void)outError;
+	return YES;
+}
+
 @end
 
 /* ------------------------------------------------------ the collection rules */

@@ -58,6 +58,15 @@ NS_ASSUME_NONNULL_BEGIN
  * -dateByAddingTimeInterval:. The two -...CalendarFormat: doors are NOT here: they go through NSCalendarDate,
  * whose description doors take a format and an optional LOCALE but no time zone — see §63.197. */
 + (nullable NSDate *)dateWithString:(NSString *)description;
+
+/* THE NATURAL-LANGUAGE DOORS (10.0/10.4) AND THE 10.5 STRING INITIALISER. Apple's are lenient parsers; THIS
+ * IMPLEMENTATION IS A DOCUMENTED SET rather than a guess: the relative words it knows, a handful of date patterns
+ * and ISO-8601, and NIL for anything else — which is Apple's own answer for a string it cannot parse. The locale
+ * argument is accepted and does not change the patterns this reader tries, which is stated here rather than
+ * implied. */
++ (nullable NSDate *)dateWithNaturalLanguageString:(NSString *)string;
++ (nullable NSDate *)dateWithNaturalLanguageString:(NSString *)string locale:(nullable id)locale;
+- (nullable instancetype)initWithString:(NSString *)description;
 - (NSDate *)addTimeInterval:(double)seconds;
 + (NSDate *)distantPast;
 + (NSDate *)distantFuture;

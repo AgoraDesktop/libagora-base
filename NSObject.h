@@ -29,6 +29,7 @@
 @class NSString;
 @class NSMethodSignature;
 @class NSInvocation;
+@class NSCoder;
 
 /*
  * NULLABILITY (F6). The sweep's rules, in one place: everything below is NONNULL
@@ -192,6 +193,44 @@ __attribute__((objc_root_class))
 - (Class)classForCoder;
 - (Class)classForArchiver;
 
+/*
+ * THE CODER-SIDE CLASS DOORS, in Apple's own category shape (`NSObject (NSCoderMethods)`, NSObject.h).
+ * `+version`/`+setVersion:` are the class version an archiver may consult; the default is the runtime's
+ * class version, which starts at 0 and is what an unversioned class answers.
+ * `-replacementObjectForCoder:` is the OLD substitution seam that `-classForCoder` grew out of: an object
+ * may answer a DIFFERENT object to be encoded in its place, and the default substitutes nothing.
+ * `-awakeAfterUsingCoder:` is the decoder's post-decode hook, answered SELF by default.
+ */
++ (NSInteger)version;
++ (void)setVersion:(NSInteger)aVersion;
+- (nullable id)replacementObjectForCoder:(NSCoder *)aCoder;
+- (nullable id)awakeAfterUsingCoder:(NSCoder *)aDecoder;
+
+/*
+ * `+poseAsClass:` IS DEPRECATED SINCE 10.5 AND REFUSED BY NAME HERE. It asked the runtime to swap the
+ * receiver into the hierarchy in place of aClass for all future message sends. libobjc2 has no
+ * `class_poseAs` — the runtime removed the mechanism, which is why Apple deprecated it — and emulating it by
+ * rewriting every existing class reference is not something a library can do correctly. So the door exists,
+ * compiles, and raises with the reason instead of doing half of it. (Apple's own header marks it unavailable
+ * to 64-bit code, so a 64-bit caller cannot reach it there either.)
+ */
++ (void)poseAsClass:(Class)aClass;
+
+/*
+ * THE DISCARDABLE-CONTENT PROXY (10.6). For an object whose content can be purged, this answers a proxy that
+ * brackets each use with `-beginContentAccess`/`-endContentAccess`. The root class's default is SELF, which is
+ * Apple's answer for an object with no purgeable content; NSDiscardableContent is where a class declares that
+ * it has some, and NSPurgeableData is the concrete one this tree ships.
+ */
+- (id)autoContentAccessingProxy;
+
+/*
+ * THE GARBAGE COLLECTOR'S HOOK, and a NO-OP BY DOCUMENTATION rather than by omission: `-finalize` was sent
+ * once, by the collector, before an object was freed. This library has no collector (NSGarbageCollector is
+ * declared and refuses), so there is nothing to send it; a class that overrides it still compiles.
+ */
+- (void)finalize;
+
 - (id)self;
 
 /*
@@ -235,6 +274,23 @@ __attribute__((objc_root_class))
 - (nullable IMP)methodForSelector:(SEL)aSelector;
 + (BOOL)respondsToSelector:(SEL)aSelector;
 + (BOOL)instancesRespondToSelector:(SEL)aSelector;
+
+/*
+ * THE RUNTIME'S HOOKS AND THE CLASS-SIDE METHOD LOOKUPS. `+resolveInstanceMethod:`/`+resolveClassMethod:`
+ * are what a runtime calls once before it gives up on a selector (GNUstep's runtime does, and Apple's does);
+ * the root class answers NO, which is Apple's default and the only default that cannot change another
+ * class's behaviour. A class that wants dynamic method generation overrides them, adds the method with
+ * `class_addMethod`, and answers YES.
+ *
+ * `+instanceMethodForSelector:` and `+instanceMethodSignatureForSelector:` are the CLASS-side questions the
+ * runtime's method list answers: the instance method's IMP and its types. They are not the same lookup as
+ * `+methodForSelector:`, which asks the metaclass for a CLASS method — the distinction Apple's two doors make
+ * and the one this tree's `fn_signature_for` helper already honours for `-methodSignatureForSelector:`.
+ */
++ (BOOL)resolveInstanceMethod:(SEL)aSelector;
++ (BOOL)resolveClassMethod:(SEL)aSelector;
++ (nullable IMP)instanceMethodForSelector:(SEL)aSelector;
++ (nullable NSMethodSignature *)instanceMethodSignatureForSelector:(SEL)aSelector;
 + (void)load;			/* the runtime calls these; declared so overrides match */
 + (void)initialize;
 - (BOOL)isProxy;

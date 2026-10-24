@@ -104,6 +104,7 @@ typedef NSUInteger (*NSPointerFunctionsSizeFunction)(const void *item);
 /* THE OPTIONS WORD IS THE WHOLE CONFIGURATION. The callouts it selects are readable below and may be
  * replaced one at a time, which is how a caller keeps Apple's personality but changes one decision. */
 - (instancetype)initWithOptions:(NSPointerFunctionsOptions)options;
++ (instancetype)pointerFunctionsWithOptions:(NSPointerFunctionsOptions)options;
 
 /* PERSONALITY: how the pointer is hashed, compared, measured and described. */
 - (nullable NSPointerFunctionsHashFunction)hashFunction;

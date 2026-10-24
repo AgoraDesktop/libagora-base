@@ -111,6 +111,20 @@ enum {
 };
 
 @interface NSTimeZone (NSExtendedTimeZone)
+
+/*
+ * THE ABBREVIATION MAP (10.0), and the two doors that make it useful. Apple's dictionary is CURATED — one chosen
+ * zone per abbreviation, so "EST" means America/New_York and not one of the dozen zones that also answer "EST". ICU
+ * has abbreviations but no such curation, so this implementation builds the map from the zone database with
+ * first-match-wins and lets a caller REPLACE it through `+setAbbreviationDictionary:` — which is the door a system
+ * configuration uses. `+timeZoneDataVersion` is ICU's tz-data version, the string a program checks when it needs to
+ * know whether its offset table is current.
+ */
++ (NSDictionary *)abbreviationDictionary;
++ (void)setAbbreviationDictionary:(NSDictionary *)dictionary;
++ (nullable NSTimeZone *)timeZoneWithAbbreviation:(NSString *)abbreviation;
++ (NSString *)timeZoneDataVersion;
+- (NSTimeInterval)daylightSavingTimeOffset;
 /* ⚠⚠ FOUR OF `NSTimeZone`'S TEN, THROUGH ICU — WHICH THIS CLASS ALREADY IS ("ICU's default zone", says its own
  * `+systemTimeZone`). **AND ONE ICU DISCOVERY IS RECORDED HERE RATHER THAN HIDDEN: APPLE PUBLISHES SIX
  * `NSTimeZoneNameStyle` CASES WITH THEIR MEANINGS, AND ICU HAS NO GENERIC DISPLAY NAME AT ALL** —

@@ -50,6 +50,12 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/* THE DISTRIBUTED-OBJECTS SUBSTITUTION PROTOCOL (10.0), on NSObject as Apple declares it. */
+@interface NSObject (NSDistributedObjects)
+- (Class)classForPortCoder;
+- (nullable id)replacementObjectForPortCoder:(NSCoder *)coder;
+@end
+
 @interface NSPortCoder : NSCoder
 {
 	NSPort *_receivePort;
@@ -73,6 +79,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 /* Sends what has been added. Answers NO when the port cannot carry it. */
 - (void)dispatch;
+
+/* THE DISTRIBUTED-OBJECTS OWNER (10.0). A port coder is made BY an NSConnection, and this library's coders are
+ * made directly, so there is no connection to answer: nil is the honest "no connection owns this coder". */
+- (nullable id)connection;
 
 - (BOOL)isBycopy;
 - (BOOL)isByref;

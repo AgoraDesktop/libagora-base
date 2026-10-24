@@ -42,6 +42,7 @@
 #define FOUNDATION_FOUNDATION_H
 
 #import <Foundation/NSObjCRuntime.h>
+#import <Foundation/NSDebug.h>
 #import <Foundation/NSZone.h>
 #import <Foundation/NSBundle.h>
 #import <Foundation/NSByteOrder.h>
@@ -118,6 +119,7 @@
 #import <Foundation/NSExpression.h>
 #import <Foundation/NSPredicate.h>
 #import <Foundation/NSComparisonPredicate.h>
+#import <Foundation/NSScriptWhoseTests.h>
 #import <Foundation/NSCompoundPredicate.h>
 #import <Foundation/NSFormatter.h>
 #import <Foundation/NSLengthFormatter.h>

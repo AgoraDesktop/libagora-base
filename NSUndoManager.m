@@ -7,6 +7,8 @@
  * NSUndoManager.m — the implementation (W2h).
  */
 #import <Foundation/NSUndoManager.h>
+#import <Foundation/NSRunLoop.h>
+#import <Foundation/NSArray.h>
 #import <Foundation/NSException.h>
 #import <Foundation/NSInvocation.h>
 #import <Foundation/NSMethodSignature.h>
@@ -362,6 +364,8 @@ NSString *const NSUndoManagerWillUndoChangeNotification = @"NSUndoManagerWillUnd
 	_group = nil;
 	_groupingLevel = 0;
 	_levelsOfUndo = 0;
+	_groupsByEvent = YES;
+	_runLoopModes = [[NSArray alloc] initWithObjects:NSDefaultRunLoopMode, nil];
 	return self;
 }
 
@@ -371,6 +375,7 @@ NSString *const NSUndoManagerWillUndoChangeNotification = @"NSUndoManagerWillUnd
 	[_redoStack release];
 	[_group release];
 	[_actionName release];
+	[_runLoopModes release];
 	[super dealloc];
 }
 
@@ -454,6 +459,50 @@ NSString *const NSUndoManagerWillUndoChangeNotification = @"NSUndoManagerWillUnd
 	_group = [[FnUndoGroup alloc] init];
 	_groupingLevel = 1;
 	[self fnPost:NSUndoManagerDidOpenUndoGroupNotification];
+	if (_groupsByEvent && !_autoClosePending) {
+		_autoClosePending = YES;
+		[[NSRunLoop currentRunLoop] performSelector:@selector(fnAutoCloseTopLevelGroup)
+						     target:self
+						   argument:nil
+						      order:NSUndoCloseGroupingRunLoopOrdering
+						      modes:_runLoopModes];
+	}
+}
+
+/* THE EVENT'S END, AS CLOSE AS A LIBRARY-WITHOUT-AN-EVENT-LOOP GETS: a performer runs at the start of the next
+ * iteration, which is the first moment after the current callout — the same point Apple's event-loop hook closes
+ * the group at. A caller that opened a group and closed it by hand finds nothing to do here. */
+- (void)fnAutoCloseTopLevelGroup
+{
+	_autoClosePending = NO;
+	if (_groupsByEvent && _group != nil && _groupingLevel == 1) {
+		[self endUndoGrouping];
+	}
+}
+
+- (BOOL)groupsByEvent
+{
+	return _groupsByEvent;
+}
+
+- (void)setGroupsByEvent:(BOOL)flag
+{
+	_groupsByEvent = flag;
+}
+
+- (NSArray *)runLoopModes
+{
+	return _runLoopModes;
+}
+
+- (void)setRunLoopModes:(NSArray *)modes
+{
+	NSArray *copy = (modes != nil && [modes count] > 0)
+		? [modes copy]
+		: [[NSArray alloc] initWithObjects:NSDefaultRunLoopMode, nil];
+
+	[_runLoopModes release];
+	_runLoopModes = copy;
 }
 
 - (void)endUndoGrouping

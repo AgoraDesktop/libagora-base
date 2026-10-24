@@ -70,6 +70,13 @@ typedef NSPointerFunctionsOptions NSMapTableOptions;
 
 + (NSMapTable<KeyType, ObjectType> *)mapTableWithKeyOptions:(NSMapTableOptions)keyOptions
 			  valueOptions:(NSMapTableOptions)valueOptions;
+/* THE 10.6 SPELLINGS. Apple's 10.6 header carries only these four names (`+mapTableWithStrongToStrongObjects`
+ * and its three siblings); the `...ObjectsMapTable` family above arrived later and is what this class implemented
+ * first. Both spellings are here, and the old ones delegate, so a program written against either header runs. */
++ (NSMapTable<KeyType, ObjectType> *)mapTableWithStrongToStrongObjects;
++ (NSMapTable<KeyType, ObjectType> *)mapTableWithWeakToStrongObjects;
++ (NSMapTable<KeyType, ObjectType> *)mapTableWithStrongToWeakObjects;
++ (NSMapTable<KeyType, ObjectType> *)mapTableWithWeakToWeakObjects;
 + (NSMapTable<KeyType, ObjectType> *)strongToStrongObjectsMapTable;
 + (NSMapTable<KeyType, ObjectType> *)weakToStrongObjectsMapTable;
 + (NSMapTable<KeyType, ObjectType> *)strongToWeakObjectsMapTable;

@@ -12,6 +12,8 @@
 #import <Foundation/NSException.h>
 #import <Foundation/NSCoder.h>
 #import <Foundation/NSThread.h>
+#import <Foundation/NSArray.h>
+#import "FNCallStack.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <objc/objc-exception.h>	/* the runtime's uncaught hook: the only code that KNOWS */	/* the handler lives in the thread dictionary */
@@ -65,6 +67,18 @@ NSExceptionName const NSUndefinedKeyException = @"NSUndefinedKeyException";
 
 NSExceptionName const NSCharacterConversionException = @"NSCharacterConversionException";
 NSExceptionName const NSParseErrorException = @"NSParseErrorException";
+
+/* THE STACK AT THE MOMENT OF THE ASK (10.5 addresses, 10.6 symbols). The exception does not carry one — Apple's
+ * do not either — so these are the same walk NSThread answers, spelled as the exception's doors. */
+- (NSArray *)callStackReturnAddresses
+{
+	return FNCallStackReturnAddresses();
+}
+
+- (NSArray *)callStackSymbols
+{
+	return FNCallStackSymbols();
+}
 
 + (NSException *)exceptionWithName:(NSString *)name
 			    reason:(NSString *)reason

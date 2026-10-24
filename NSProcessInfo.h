@@ -104,6 +104,10 @@ NS_SWIFT_NAME(ProcessInfo)
 - (NSString *)fullUserName;
 - (NSString *)globallyUniqueString;
 - (NSString *)hostName;
+/* THE DEPRECATED 10.0 DOOR (10.6 deprecates it in favour of -operatingSystemName). Apple's enum names Mach,
+ * Windows NT and their relatives, and NONE OF THEM DESCRIBES THIS SYSTEM; 0 is returned as the stated "no Mac OS
+ * value applies", which is why the modern name door exists. */
+- (NSUInteger)operatingSystem;
 - (NSString *)operatingSystemName;
 /* THE STATE THE ENUM ABOVE DESCRIBES HAD NO DOOR UNTIL §62.98, which is how the enum sat here orphaned.
  * ANSWERED AS Nominal, and the boundary is stated rather than implied: no thermal sensor is plumbed into this

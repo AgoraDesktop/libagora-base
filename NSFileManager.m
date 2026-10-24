@@ -2119,6 +2119,56 @@ static NSString *fn_link_target(NSString *path, int *outErrno)
 		     toItemAtURL:url
 			   error:errorPtr];
 }
+- (BOOL)replaceItemAtURL:(NSURL *)originalItemURL
+	   withItemAtURL:(NSURL *)newItemURL
+	  backupItemName:(NSString *)backupItemName
+		 options:(NSFileManagerItemReplacementOptions)options
+	resultingItemURL:(NSURL **)resultingURL
+		   error:(NSError **)error
+{
+	NSString *originalPath = [originalItemURL path];
+	NSString *newPath = [newItemURL path];
+	NSString *backupPath = nil;
+	BOOL keepBackup = (options & NSFileManagerItemReplacementWithoutDeletingBackupItem) != 0;
+
+	if (originalPath == nil || newPath == nil || ![originalItemURL isFileURL] || ![newItemURL isFileURL]) {
+		return fn_failed(error, EINVAL);
+	}
+	if (backupItemName != nil) {
+		backupPath = [[originalPath stringByDeletingLastPathComponent]
+			      stringByAppendingPathComponent:backupItemName];
+		/* A STALE BACKUP IS REPLACED, not an error: Apple's door leaves the backup at that name, and a second
+		 * replacement must not fail because the first one's backup is still there. */
+		if ([self fileExistsAtPath:backupPath]) {
+			if (![self removeItemAtPath:backupPath error:error]) {
+				return NO;
+			}
+		}
+		if ([self fileExistsAtPath:originalPath]) {
+			if (![self moveItemAtPath:originalPath toPath:backupPath error:error]) {
+				return NO;
+			}
+		}
+	}
+	/* ONE rename(2): same file system, so the replacement is atomic, and a failure leaves the original (or its
+	 * backup) in place rather than half-swapped. */
+	if (rename([newPath fileSystemRepresentation], [originalPath fileSystemRepresentation]) != 0) {
+		int saved = errno;
+
+		if (backupPath != nil && [self fileExistsAtPath:backupPath]) {
+			(void)[self moveItemAtPath:backupPath toPath:originalPath error:NULL];
+		}
+		return fn_failed(error, saved);
+	}
+	if (backupPath != nil && !keepBackup) {
+		(void)[self removeItemAtPath:backupPath error:NULL];
+	}
+	if (resultingURL != NULL) {
+		*resultingURL = originalItemURL;
+	}
+	return YES;
+}
+
 @end
 
 /* THE FSH'S OWN ANSWER, WITH APPLE'S TRAILING SEPARATOR. It is a CONSTANT rather than a lookup because the

@@ -73,6 +73,11 @@
 		capacity:0] autorelease];
 }
 
++ (instancetype)hashTableWithWeakObjects
+{
+	return [self hashTableWithOptions:NSPointerFunctionsWeakMemory];
+}
+
 + (instancetype)hashTableWithOptions:(NSHashTableOptions)options
 {
 	return [[[self alloc] initWithOptions:options capacity:0] autorelease];

@@ -110,8 +110,18 @@ static BOOL fn_same_cookie(NSHTTPCookie *a, NSHTTPCookie *b)
 	return self;
 }
 
+- (instancetype)initWithStorageLocation:(NSURL *)storageFileURL
+{
+	self = [self init];
+	if (self != nil) {
+		_storageFileURL = [storageFileURL copy];
+	}
+	return self;
+}
+
 - (void)dealloc
 {
+	[_storageFileURL release];
 	[_cookies release];
 	[_lock release];
 	[super dealloc];

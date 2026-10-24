@@ -278,6 +278,7 @@ static NSString *fn_key_for_class(Class cls)
 - (instancetype)initForWritingWithMutableData:(NSMutableData *)data
 {
 	self = [super init];
+	_outputFormat = NSPropertyListXMLFormat_v1_0;
 	if (self == nil) {
 		return nil;
 	}
@@ -654,7 +655,7 @@ static NSString *fn_key_for_class(Class cls)
 	};
 
 	return [NSPropertyListSerialization dataWithPropertyList:archive
-							  format:NSPropertyListXMLFormat_v1_0
+							  format:_outputFormat
 							 options:0
 							   error:NULL];
 }
@@ -682,7 +683,17 @@ static NSString *fn_key_for_class(Class cls)
 
 - (NSPropertyListFormat)outputFormat
 {
-	return NSPropertyListXMLFormat_v1_0;	/* what -finishEncoding writes, measured from the bytes */
+	return _outputFormat;
+}
+
+- (void)setOutputFormat:(NSPropertyListFormat)format
+{
+	if (format != NSPropertyListXMLFormat_v1_0 && format != NSPropertyListBinaryFormat_v1_0) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"NSKeyedArchiver: format %ld is not one this library can write (XML or binary)",
+				   (long)format];
+	}
+	_outputFormat = format;
 }
 
 @end
@@ -1642,6 +1653,35 @@ static NSString *fn_key_for_class(Class cls)
 - (void)setDelegate:(nullable id <NSKeyedUnarchiverDelegate>)delegate
 {
 	_delegate = delegate;	/* NOT retained: see the header */
+}
+
+@end
+
+@implementation NSObject (NSKeyedArchiverObjectSubstitution)
+
+/* AN EMPTY ARRAY, WHICH IS APPLE'S DEFAULT: a class names fallback class names only when it has older archives to
+ * keep readable. */
++ (NSArray *)classFallbacksForKeyedArchiver
+{
+	return [NSArray array];
+}
+
+/* THE CLASS ITSELF, FOR BOTH DIRECTIONS. They exist so a class cluster can answer its PUBLIC class for a private
+ * concrete one — the same job -classForCoder does for the sequential format. */
++ (Class)classForKeyedArchiver
+{
+	return self;
+}
+
++ (Class)classForKeyedUnarchiver
+{
+	return self;
+}
+
+- (id)replacementObjectForKeyedArchiver:(NSCoder *)archiver
+{
+	(void)archiver;
+	return self;
 }
 
 @end

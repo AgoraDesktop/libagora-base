@@ -30,6 +30,8 @@ NS_ASSUME_NONNULL_BEGIN
 {
 	void *_token;		/* the runtime's pool handle, from the push */
 	BOOL _discarded;	/* a pool pops ONCE, however it is ended */
+	BOOL _releasesOnDrain;	/* the 10.x diagnostic switch; remembered and reported */
+	BOOL _checksFreedObjects;	/* ditto */
 }
 
 - (void)_ARCCompatibleAutoreleasePool;	/* THE RUNTIME ASKS FOR THIS BY NAME — see above */
@@ -43,6 +45,29 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)addObject:(id)object;
 - (void)addObject:(id)object;
 + (void)showPools;
+
+/*
+ * THE 10.x DIAGNOSTIC FAMILY. These were the classic pool's instrumentation: how many objects it had released, how
+ * deep the pool stack went, and the high-water marks a program tuned its pool placement with.
+ *
+ * WHAT THIS CLASS CAN AND CANNOT SEE, stated rather than faked: the RUNTIME owns the autorelease stack here (the
+ * marker above keeps libobjc2 on its ARC path), so this class observes no per-object releases. The two counters
+ * that name objects are therefore the ones this class was ASKED to add — which is zero on the ARC path and is the
+ * truthful answer for a pool that does not see the releases. What IS real is the pool DEPTH (this class pushes and
+ * pops it) and the two switches, which are remembered and reported because that is the whole of their contract.
+ * `+resetTotalAutoreleasedObjects` resets the process-wide total; the high-water mark is what the depth has ever
+ * reached and is not reset by it.
+ */
+- (NSUInteger)autoreleasedObjectCount;
++ (NSUInteger)totalAutoreleasedObjects;
++ (void)resetTotalAutoreleasedObjects;
+- (NSUInteger)poolCountHighWaterMark;
+- (void)setPoolCountHighWaterMark:(NSUInteger)count;
+- (NSUInteger)poolCountHighWaterResolution;
+- (void)setPoolCountHighWaterResolution:(NSUInteger)resolution;
+- (NSUInteger)topAutoreleasePoolCount;
+- (void)enableRelease:(BOOL)enable;
+- (void)enableFreedObjectCheck:(BOOL)enable;
 @end
 
 NS_ASSUME_NONNULL_END

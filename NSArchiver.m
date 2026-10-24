@@ -76,9 +76,27 @@ static NSUInteger fn_index_of(NSArray *table, id object)
 	[_data appendBytes:bytes length:length];
 }
 
+- (void)encodeClassName:(NSString *)trueName intoClassName:(NSString *)inArchiveName
+{
+	if (trueName == nil || inArchiveName == nil) {
+		return;
+	}
+	if (_classMap == nil) {
+		_classMap = [[NSMutableDictionary alloc] init];
+	}
+	[_classMap setObject:inArchiveName forKey:trueName];
+}
+
+- (NSString *)classNameEncodedForTrueClassName:(NSString *)trueName
+{
+	NSString *mapped = [_classMap objectForKey:trueName];
+
+	return (mapped != nil) ? mapped : trueName;
+}
+
 - (void)fnWriteObjectOfClass:(id)object
 {
-	NSString *name = NSStringFromClass([object classForArchiver]);
+	NSString *name = [self classNameEncodedForTrueClassName:NSStringFromClass([object classForArchiver])];
 
 	[self fnWriteByte:FNARTagObject];
 	/* THE LENGTH IS BYTES, NOT CHARACTERS — the wire counts the same unit on both sides, and a class name is
@@ -402,6 +420,16 @@ static NSUInteger fn_index_of(NSArray *table, id object)
 	NSData *data = [self archivedDataWithRootObject:rootObject];
 
 	return [data writeToFile:path atomically:YES];
+}
+
+@end
+
+@implementation NSObject (NSArchiverCallback)
+
+- (id)replacementObjectForArchiver:(NSCoder *)anArchiver
+{
+	(void)anArchiver;
+	return self;		/* the root class substitutes nothing; a cluster overrides -classForArchiver */
 }
 
 @end

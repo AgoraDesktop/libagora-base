@@ -25,6 +25,8 @@
 #import <Foundation/NSPort.h>
 #import <Foundation/NSDate.h>
 #import <Foundation/NSArray.h>
+#import <Foundation/NSSet.h>	/* NSMutableSet, the delayed-perform registry */
+#import <Foundation/NSThread.h>	/* the loop records itself in its owner thread's dictionary */
 #import <Foundation/NSString.h>
 /* THE NOTIFICATION QUEUE'S SEAM (§62.61). Two of NSNotificationQueue's posting styles are DEFINED as points in
  * a run loop — "as soon as possible" is "when the current callout completes" and "when idle" is "when the loop
@@ -46,6 +48,17 @@
 
 NSString *const NSDefaultRunLoopMode = @"NSDefaultRunLoopMode";
 NSString *const NSRunLoopCommonModes = @"NSRunLoopCommonModes";
+
+/* THE PERFORMER QUEUE IS THE ONE PART OF THIS CLASS ANOTHER THREAD WRITES. `-performSelector:onThread:` reaches a
+ * loop it does not own, so an enqueue can land while the owner is walking the array. One process-wide mutex is
+ * enough: a performer list is touched for microseconds, and a per-loop lock would need a pthread_mutex_t in a public
+ * header for no measured gain. */
+static pthread_mutex_t fn_performer_queue_lock = PTHREAD_MUTEX_INITIALIZER;
+
+/* AND THE RUN LOOP A THREAD OWNS IS RECORDED IN THAT THREAD'S DICTIONARY, because the pthread-specific this class
+ * uses is readable only by its owner. The dictionary is the one per-thread object every thread can read. */
+static NSString *const FNRunLoopThreadStoreKey = @"FNRunLoop";
+static pthread_mutex_t fn_loop_owner_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* THE SOURCE, AND TWO OF ITS THREE DECISIONS ARE LOAD-BEARING. The target is `__weak`: a run loop lives as
  * long as its thread, so a retained target is a leak nobody can fix, and a target that has gone away is
@@ -510,6 +523,31 @@ static BOOL fn_performer_modes_allow(FNPerformer *performer, NSString *mode)
 
 @implementation NSRunLoop
 
+static void fn_register_loop_with_thread(NSRunLoop *loop, NSThread *thread)
+{
+	if (thread == nil) {
+		return;
+	}
+	pthread_mutex_lock(&fn_loop_owner_lock);
+	/* THE DICTIONARY RETAINS THE LOOP, and the loop already lives for the thread's lifetime (the pthread-specific
+	 * owns it), so this is one reference held as long as both do rather than a leak with no owner. */
+	[[thread threadDictionary] setObject:loop forKey:FNRunLoopThreadStoreKey];
+	pthread_mutex_unlock(&fn_loop_owner_lock);
+}
+
++ (NSRunLoop *)fn_runLoopForThread:(NSThread *)thread
+{
+	NSRunLoop *loop;
+
+	if (thread == nil) {
+		return nil;
+	}
+	pthread_mutex_lock(&fn_loop_owner_lock);
+	loop = [[[thread threadDictionary] objectForKey:FNRunLoopThreadStoreKey] retain];
+	pthread_mutex_unlock(&fn_loop_owner_lock);
+	return [loop autorelease];
+}
+
 + (NSRunLoop *)currentRunLoop
 {
 	NSRunLoop *loop;
@@ -521,6 +559,7 @@ static BOOL fn_performer_modes_allow(FNPerformer *performer, NSString *mode)
 		if (fn_loop_key_ready) {
 			pthread_setspecific(fn_loop_key, (void *)loop);
 		}
+		fn_register_loop_with_thread(loop, [NSThread currentThread]);
 		if (fn_first_loop == nil) {
 			/* THE FIRST LOOP MADE IS THE MAIN ONE, which is the only answer "+mainRunLoop" can
 			 * give without knowing which thread is main — NSThread knows that, and this class
@@ -839,8 +878,7 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 
 - (void)runUntilDate:(NSDate *)limit
 {
-	while ([self fnHasLiveWorkForMode:_currentMode] &&
-	       (limit == nil || [limit timeIntervalSinceNow] > 0)) {
+	while (limit == nil || [limit timeIntervalSinceNow] > 0) {
 		double soonest = [self fnNextFire:_currentMode];
 
 		/* "WHEN IDLE" IS THIS POINT AND NOT ANOTHER ONE (§62.61): the loop is about to WAIT, which is the last
@@ -851,17 +889,24 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 			[self fnPollSourcesInMode:_currentMode
 					  seconds:soonest - fn_now()
 					 dispatch:NO];
-		} else if ([self fnHasLiveSourcesForMode:_currentMode]) {
-			/* NO TIMER IS DUE, BUT A SOURCE IS STILL WATCHED: wait out the cap rather than spin. */
+		} else {
+			/* NO TIMER IS DUE: wait out the cap rather than spin — and wait even with no source, so a
+			 * performer enqueued by another thread is seen. */
 			[self fnPollSourcesInMode:_currentMode seconds:FN_WAIT_CAP dispatch:NO];
 		}
 		[self runMode:_currentMode beforeDate:limit];
 	}
 }
 
+/* **A RUN LOOP WITH NOTHING TO DO MUST STILL WAIT, OR ANOTHER THREAD CAN NEVER GIVE IT WORK.** Both loops used to
+ * exit when `-fnHasLiveWorkForMode:` was false, which looked right for a loop with only timers and sources and made
+ * `-performSelector:onThread:…` DEADLOCK: the target thread's loop returned before the request was enqueued, and the
+ * waiting caller blocked forever on a semaphore nothing would post. The fixes are two: the condition is the
+ * DEADLINE (Apple's contract for both doors), and a pass with no timer and no source sleeps the wait cap so a
+ * request enqueued by another thread is noticed rather than spun past. */
 - (void)run
 {
-	while ([self fnHasLiveWorkForMode:_currentMode]) {
+	while (YES) {
 		double soonest = [self fnNextFire:_currentMode];
 
 		[NSNotificationQueue fnPostPendingWhenIdle:YES mode:_currentMode];	/* see -runUntilDate: */
@@ -869,7 +914,7 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 			[self fnPollSourcesInMode:_currentMode
 					  seconds:soonest - fn_now()
 					 dispatch:NO];
-		} else if ([self fnHasLiveSourcesForMode:_currentMode]) {
+		} else {
 			[self fnPollSourcesInMode:_currentMode seconds:FN_WAIT_CAP dispatch:NO];
 		}
 		[self runMode:_currentMode beforeDate:nil];
@@ -909,7 +954,11 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 	performer->_order = order;
 	performer->_modes = [[NSArray alloc] initWithArray:(modes != nil && [modes count] > 0)
 				   ? modes : [NSArray arrayWithObject:NSDefaultRunLoopMode]];
+	/* THE ONLY QUEUE IN THIS CLASS THAT ANOTHER THREAD WRITES. `-performSelector:onThread:` reaches a loop it does
+	 * not own, and a request appended while the owner is walking the array is a crash rather than a race. */
+	pthread_mutex_lock(&fn_performer_queue_lock);
 	[[self fnPerformers] addObject:performer];
+	pthread_mutex_unlock(&fn_performer_queue_lock);
 	[performer release];		/* ... the array owns it now */
 }
 
@@ -932,7 +981,9 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 	performer->_block = Block_copy(block);	/* the runtime's own entry point: the run loop holds it past the call */
 	performer->_modes = [[NSArray alloc] initWithArray:(modes != nil && [modes count] > 0)
 				   ? modes : [NSArray arrayWithObject:NSDefaultRunLoopMode]];
+	pthread_mutex_lock(&fn_performer_queue_lock);
 	[[self fnPerformers] addObject:performer];
+	pthread_mutex_unlock(&fn_performer_queue_lock);
 	[performer release];
 }
 
@@ -945,6 +996,7 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 {
 	NSUInteger i = 0;
 
+	pthread_mutex_lock(&fn_performer_queue_lock);
 	while (_performers != nil && i < [_performers count]) {
 		FNPerformer *performer = [_performers objectAtIndex:i];
 
@@ -955,12 +1007,14 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 		}
 		i++;
 	}
+	pthread_mutex_unlock(&fn_performer_queue_lock);
 }
 
 - (void)cancelPerformSelectorsWithTarget:(id)target
 {
 	NSUInteger i = 0;
 
+	pthread_mutex_lock(&fn_performer_queue_lock);
 	while (_performers != nil && i < [_performers count]) {
 		FNPerformer *performer = [_performers objectAtIndex:i];
 
@@ -970,6 +1024,7 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 		}
 		i++;
 	}
+	pthread_mutex_unlock(&fn_performer_queue_lock);
 }
 
 /* THE SENDING, AND IT TAKES THE DUE ONES OUT FIRST so that a performer scheduling another performer cannot loop
@@ -983,6 +1038,7 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 	if (_performers == nil) {
 		return;
 	}
+	pthread_mutex_lock(&fn_performer_queue_lock);
 	i = 0;
 	while (i < [_performers count]) {
 		FNPerformer *performer = [_performers objectAtIndex:i];
@@ -994,6 +1050,7 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 		}
 		i++;
 	}
+	pthread_mutex_unlock(&fn_performer_queue_lock);
 	/* "MESSAGES WITH A LOWER ORDER VALUE ARE SENT BEFORE MESSAGES WITH A HIGHER ORDER VALUE" — and an insertion
 	 * sort is STABLE, so two performers with the same order keep the order they were scheduled in.
 	 *
@@ -1028,13 +1085,17 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 - (BOOL)fnHasPendingPerformerForMode:(NSString *)mode
 {
 	NSUInteger i;
+	BOOL pending = NO;
 
+	pthread_mutex_lock(&fn_performer_queue_lock);
 	for (i = 0; _performers != nil && i < [_performers count]; i++) {
 		if (fn_performer_modes_allow([_performers objectAtIndex:i], mode)) {
-			return YES;
+			pending = YES;
+			break;
 		}
 	}
-	return NO;
+	pthread_mutex_unlock(&fn_performer_queue_lock);
+	return pending;
 }
 
 
@@ -1074,4 +1135,203 @@ static BOOL fn_mode_fires(NSString *timerMode, NSString *runningMode)
 {
 	/* APPLE: "This method does nothing." Kept so source that calls it links and runs. */
 }
+@end
+
+/* ==================================================================================================================
+ * NSDelayedPerforming — the four doors, and the registry that makes the cancels possible.
+ *
+ * A DELAYED PERFORM IS A ONE-SHOT TIMER, so the request is an object the timer can address and the registry can
+ * find. The registry is what `+cancelPreviousPerformRequestsWithTarget:` searches, and it holds the request (and
+ * through it the target and the argument) until the message is sent or cancelled — Apple's ownership rule, and the
+ * reason a target cannot be collected out from under a pending perform.
+ *
+ * THE THREE-WAY MATCH IS DELIBERATE. The one-argument cancel names only a target and cancels everything queued for
+ * it; the three-argument cancel names target, selector and argument, because two requests can share a selector (two
+ * different arguments is the ordinary case) and cancelling one must not cancel both.
+ * ================================================================================================================ */
+
+@interface FNDelayedPerform : NSObject
+{
+	id _target;
+	SEL _selector;
+	id _argument;
+	NSTimer *_timer;
+}
+- (instancetype)initWithTarget:(id)target selector:(SEL)aSelector argument:(nullable id)anArgument;
+- (void)scheduleInModes:(nullable NSArray *)modes delay:(NSTimeInterval)delay;
+- (void)cancel;
+- (BOOL)matchesTarget:(id)target selector:(SEL)aSelector argument:(nullable id)anArgument;
+- (void)fire:(NSTimer *)timer;
+@end
+
+static pthread_mutex_t fn_delayed_registry_lock = PTHREAD_MUTEX_INITIALIZER;
+static NSMutableSet *fn_delayed_registry = nil;
+
+static void fn_delayed_registry_add(FNDelayedPerform *request)
+{
+	pthread_mutex_lock(&fn_delayed_registry_lock);
+	if (fn_delayed_registry == nil) {
+		fn_delayed_registry = [[NSMutableSet alloc] init];
+	}
+	[fn_delayed_registry addObject:request];
+	pthread_mutex_unlock(&fn_delayed_registry_lock);
+}
+
+static void fn_delayed_registry_remove(FNDelayedPerform *request)
+{
+	pthread_mutex_lock(&fn_delayed_registry_lock);
+	[fn_delayed_registry removeObject:request];
+	pthread_mutex_unlock(&fn_delayed_registry_lock);
+}
+
+/* A SNAPSHOT, because cancelling mutates the registry while it is being walked. The array retains each request, so
+ * a cancel that removes the registry's reference cannot free one out from under this loop. */
+static NSArray *fn_delayed_registry_snapshot(void)
+{
+	NSArray *snapshot;
+
+	pthread_mutex_lock(&fn_delayed_registry_lock);
+	snapshot = [[fn_delayed_registry allObjects] retain];
+	pthread_mutex_unlock(&fn_delayed_registry_lock);
+	return [snapshot autorelease];
+}
+
+@implementation FNDelayedPerform
+
+- (instancetype)initWithTarget:(id)target selector:(SEL)aSelector argument:(nullable id)anArgument
+{
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	_target = [target retain];
+	_selector = aSelector;
+	_argument = [anArgument retain];
+	return self;
+}
+
+- (void)dealloc
+{
+	[_target release];
+	[_argument release];
+	[_timer release];
+	[super dealloc];
+}
+
+/* THE REQUEST IS ADDED TO THE REGISTRY BEFORE THE TIMER IS ARMED, so a cancel from another thread can see it from
+ * the moment it can fire. `_timer` is kept so the cancel can invalidate it; the run loop owns its own reference. */
+- (void)scheduleInModes:(nullable NSArray *)modes delay:(NSTimeInterval)delay
+{
+	NSRunLoop *loop = [NSRunLoop currentRunLoop];
+	NSTimer *timer;
+	NSUInteger i;
+
+	if (_timer != nil) {
+		return;		/* already scheduled: a second schedule would arm a second timer for one request */
+	}
+	fn_delayed_registry_add(self);
+	timer = [NSTimer timerWithTimeInterval:delay target:self selector:@selector(fire:) userInfo:nil repeats:NO];
+	_timer = [timer retain];
+	if (modes == nil || [modes count] == 0) {
+		[loop addTimer:timer forMode:NSDefaultRunLoopMode];
+		return;
+	}
+	for (i = 0; i < [modes count]; i++) {
+		[loop addTimer:timer forMode:[modes objectAtIndex:i]];
+	}
+}
+
+- (void)fire:(NSTimer *)timer
+{
+	(void)timer;
+	/* RETAINED ACROSS THE SEND: removing the registry's reference below can be the last one, and the message has
+	 * not been sent yet. The loop's timer also releases its target when the timer dies. */
+	[self retain];
+	fn_delayed_registry_remove(self);
+	[_timer release];
+	_timer = nil;
+	[_target performSelector:_selector withObject:_argument];
+	[self release];
+}
+
+- (void)cancel
+{
+	if (_timer != nil) {
+		[_timer invalidate];
+		[_timer release];
+		_timer = nil;
+	}
+	fn_delayed_registry_remove(self);
+}
+
+- (BOOL)matchesTarget:(id)target selector:(SEL)aSelector argument:(nullable id)anArgument
+{
+	if (_target != target) {
+		return NO;
+	}
+	if (aSelector != NULL && _selector != aSelector) {
+		return NO;
+	}
+	if (aSelector != NULL && _argument != anArgument) {
+		return NO;
+	}
+	return YES;
+}
+
+@end
+
+@implementation NSObject (NSDelayedPerforming)
+
+- (void)performSelector:(SEL)aSelector
+	     withObject:(nullable id)anArgument
+	     afterDelay:(NSTimeInterval)delay
+		inModes:(NSArray *)modes
+{
+	FNDelayedPerform *request;
+
+	if (aSelector == NULL) {
+		return;
+	}
+	request = [[FNDelayedPerform alloc] initWithTarget:self selector:aSelector argument:anArgument];
+	[request scheduleInModes:modes delay:delay];
+	[request release];		/* the registry holds it until it fires or is cancelled */
+}
+
+- (void)performSelector:(SEL)aSelector
+	     withObject:(nullable id)anArgument
+	     afterDelay:(NSTimeInterval)delay
+{
+	[self performSelector:aSelector withObject:anArgument afterDelay:delay inModes:nil];
+}
+
++ (void)cancelPreviousPerformRequestsWithTarget:(id)aTarget
+				       selector:(SEL)aSelector
+					 object:(nullable id)anArgument
+{
+	NSArray *snapshot = fn_delayed_registry_snapshot();
+	NSUInteger i;
+
+	for (i = 0; i < [snapshot count]; i++) {
+		FNDelayedPerform *request = [snapshot objectAtIndex:i];
+
+		if ([request matchesTarget:aTarget selector:aSelector argument:anArgument]) {
+			[request cancel];
+		}
+	}
+}
+
++ (void)cancelPreviousPerformRequestsWithTarget:(id)aTarget
+{
+	[self cancelPreviousPerformRequestsWithTarget:aTarget selector:NULL object:nil];
+}
+
+- (CFRunLoopRef)getCFRunLoop
+{
+	[NSException raise:NSInvalidArgumentException
+		    format:@"NSRunLoop -getCFRunLoop: this run loop is not CF-backed, so it has no CFRunLoopRef; "
+			   "Core Foundation's own current loop is a DIFFERENT loop and handing it back would make a "
+			   "caller wait on the wrong one"];
+	return NULL;
+}
+
 @end

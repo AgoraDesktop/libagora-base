@@ -56,6 +56,10 @@ NS_SWIFT_NAME(OperationQueue)
 + (NSOperationQueue *)mainQueue;
 
 - (void)addOperation:(NSOperation *)operation;
+/* THE BATCH FORM (10.5). `waitUntilFinished:YES` adds every operation and then waits for the QUEUE to drain, which
+ * is -waitUntilAllOperationsAreFinished's contract rather than a wait per operation: a later operation may depend
+ * on an earlier one, and waiting for each in turn would still be right but would do it in the wrong order. */
+- (void)addOperations:(NSArray *)operations waitUntilFinished:(BOOL)wait;
 - (NSArray *)operations;
 - (NSUInteger)operationCount;
 

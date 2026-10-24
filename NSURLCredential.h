@@ -7,10 +7,11 @@
  *
  * A credential: what a caller offers in answer to a challenge.
  *
- * V1 IS THE PASSWORD KIND, and that is the whole of it here — the identity and trust kinds are refused by
- * name (below), because each names a `SecIdentityRef`, a `SecTrustRef` or a certificate chain, and this
- * system has no certificate stack to give any of them a meaning. The keychain plan's own consumer list is
- * where that half arrives (docs/design/foundation-plan.md §48.1).
+ * V1 IS THE PASSWORD KIND AND THE DOORS ARE ALL PRESENT. The identity and trust kinds name a `SecIdentityRef`, a
+ * `SecTrustRef` or a certificate chain, and this system has no certificate stack to give any of them a meaning, so
+ * those doors EXIST AND REFUSE BY NAME: they raise with the missing subsystem stated. That is the difference
+ * between an API surface a caller can compile against and one that silently lacks a name — and it is the plan's
+ * declaration tier, which this header now meets.
  *
  * IT IS A VALUE, AND IT KEEPS A SECRET — which is why two of its rules are about not leaking one:
  * `-hasPassword` answers WHETHER there is one without producing it, and `-description` never prints it.
@@ -60,6 +61,23 @@ typedef NS_ENUM(NSUInteger, NSURLCredentialPersistence) {
 /* ASK WHETHER A SECRET EXISTS WITHOUT ASKING FOR IT - the property a caller should reach for first. */
 @property (readonly) BOOL hasPassword;
 @property (readonly) NSURLCredentialPersistence persistence;
+
+/*
+ * THE IDENTITY AND TRUST KINDS. Their parameter and answer types are `void *` rather than `SecIdentityRef` /
+ * `SecTrustRef` because this library does not ship the Security framework's headers, and inventing a typedef that
+ * collides with Apple's would be worse than naming the platform's opaque handle by what it is. Every door raises
+ * `NSInvalidArgumentException` naming the absent subsystem; none of them pretends to hold a certificate.
+ */
++ (instancetype)credentialWithIdentity:(void *)identity
+			  certificates:(nullable NSArray *)certArray
+			   persistence:(NSURLCredentialPersistence)persistence;
+- (instancetype)initWithIdentity:(void *)identity
+		    certificates:(nullable NSArray *)certArray
+		     persistence:(NSURLCredentialPersistence)persistence;
++ (instancetype)credentialForTrust:(void *)trust;
+- (instancetype)initWithTrust:(void *)trust;
+- (nullable void *)identity;
+- (nullable NSArray *)certificates;
 
 @end
 

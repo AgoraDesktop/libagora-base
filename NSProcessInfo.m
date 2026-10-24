@@ -407,6 +407,13 @@ NSString * const NSSolarisOperatingSystem = @"NSSolarisOperatingSystem";
 NSString * const NSSunOSOperatingSystem = @"NSSunOSOperatingSystem";
 NSString * const NSOSF1OperatingSystem = @"NSOSF1OperatingSystem";
 
+- (NSUInteger)operatingSystem
+{
+	/* 0 IS NOT ONE OF APPLE'S SEVEN VALUES, and that is the point: none of them names this system, and answering
+	 * NSMACHOperatingSystem would be the lie the header's note refuses. */
+	return 0;
+}
+
 - (NSString *)operatingSystemName
 {
 	return @"NSArgentumOperatingSystem";

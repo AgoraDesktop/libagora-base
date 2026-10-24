@@ -145,11 +145,18 @@ static NSMachBootstrapServer *gBootstrapServer = nil;
 }
 
 
+static unsigned short fn_default_name_server_port = 0;
+
 + (unsigned short)defaultNameServerPortNumber
 {
 	/* THIS NAME SERVER IS IN-PROCESS, so there is no well-known remote port to answer — the number is ours and
-	 * it is stated here rather than implied. */
-	return 0;
+	 * it is stated here rather than implied. A caller may still set one, and the getter reports what it set. */
+	return fn_default_name_server_port;
+}
+
++ (void)setDefaultNameServerPortNumber:(unsigned short)portNumber
+{
+	fn_default_name_server_port = portNumber;
 }
 
 - (NSPort *)portForName:(NSString *)name host:(NSString *)host nameServerPortNumber:(unsigned short)portNumber

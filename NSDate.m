@@ -14,6 +14,7 @@
 #import <Foundation/NSTimeZone.h>	/* §63.229: the zone is set on the object */
 #import <Foundation/NSCalendarDate.h>	/* §63.229: the CalendarFormat: doors answer an NSCalendarDate */
 #import <Foundation/NSCoder.h>	/* the coder forms below */
+#import <Foundation/NSDateFormatter.h>	/* the natural-language doors parse with it */
 #import <Foundation/NSString.h>
 #include <stdio.h>
 #include <time.h>
@@ -331,4 +332,81 @@
 
 	return [date descriptionWithCalendarFormat:format locale:locale];
 }
+/* ==================================================================================================================
+ * THE NATURAL-LANGUAGE DOORS. The set is stated because a lenient parser with no published grammar cannot be
+ * guessed at: the four relative days, ISO-8601's two common shapes, and five unambiguous date patterns. Anything
+ * else answers nil, which is Apple's contract for a string the parser does not understand.
+ * ================================================================================================================ */
+
+static NSDate *fn_parse_date(NSString *string)
+{
+	static NSString *const patterns[] = {
+		@"yyyy-MM-dd'T'HH:mm:ssZZZZZ",
+		@"yyyy-MM-dd HH:mm:ss Z",
+		@"yyyy-MM-dd HH:mm:ss",
+		@"yyyy-MM-dd",
+		@"MM/dd/yyyy HH:mm:ss",
+		@"MM/dd/yyyy",
+		@"MMMM d, yyyy h:mm a",
+		@"MMMM d, yyyy",
+		@"d MMMM yyyy"
+	};
+	NSString *trimmed;
+	NSDateFormatter *formatter;
+	NSUInteger i;
+
+	if (string == nil) {
+		return nil;
+	}
+	trimmed = [string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+	if ([trimmed caseInsensitiveCompare:@"now"] == NSOrderedSame || [trimmed length] == 0) {
+		return [NSDate date];
+	}
+	if ([trimmed caseInsensitiveCompare:@"today"] == NSOrderedSame) {
+		return [NSDate date];
+	}
+	if ([trimmed caseInsensitiveCompare:@"tomorrow"] == NSOrderedSame) {
+		return [NSDate dateWithTimeIntervalSinceNow:86400.0];
+	}
+	if ([trimmed caseInsensitiveCompare:@"yesterday"] == NSOrderedSame) {
+		return [NSDate dateWithTimeIntervalSinceNow:-86400.0];
+	}
+	formatter = [[NSDateFormatter alloc] init];
+	for (i = 0; i < sizeof(patterns) / sizeof(patterns[0]); i++) {
+		NSDate *parsed;
+
+		[formatter setDateFormat:patterns[i]];
+		parsed = [formatter dateFromString:trimmed];
+		if (parsed != nil) {
+			[formatter release];
+			return parsed;
+		}
+	}
+	[formatter release];
+	return nil;
+}
+
++ (NSDate *)dateWithNaturalLanguageString:(NSString *)string
+{
+	return fn_parse_date(string);
+}
+
++ (NSDate *)dateWithNaturalLanguageString:(NSString *)string locale:(id)locale
+{
+	(void)locale;		/* the patterns above are locale-independent; see the header */
+	return fn_parse_date(string);
+}
+
+- (instancetype)initWithString:(NSString *)description
+{
+	NSDate *parsed = fn_parse_date(description);
+
+	if (parsed == nil) {
+		[self release];
+		return nil;
+	}
+	[self release];
+	return [parsed retain];
+}
+
 @end

@@ -14,27 +14,30 @@
 # protocols, 183 functions, 2,840 declared selectors). No declaration, comment, annotation or line of Apple's
 # expression is copied; names and relationships are the same kind of fact as a symbol table.
 #
-# THE MEASURED POSITION WHEN THIS FILE WAS PINNED — 130 of 173 classes, 2,275 of 2,514 selectors, 20 of 23 protocols,
-# 179 of 180 functions:
+# THE MEASURED POSITION WHEN THIS FILE WAS LAST PINNED — 130 of 173 classes, 2,492 of 2,514 selectors, 20 of 23
+# protocols, 180 of 180 functions:
 #
+#   * THE F1 SLICE LANDED, which is why the selector debt fell from 239 to 22. The root class answers the runtime
+#     hooks, the delayed and threaded perform family, the OpenStep KVC spellings and the stored accessor, KVO's
+#     dependency rule in both spellings, the comparison protocol and the error-recovery callback; the informal
+#     delegate protocols are declared and marked FN_INFORMAL (56 rows, counted in `methods-informal`); and the 10.4-
+#     and 10.6-era accessor families are real (NSDateFormatter's 22 symbol setters, NSOperation's completion block
+#     and priorities, NSAutoreleasePool's diagnostics, NSTimeZone's abbreviation map, the archivers' class-name
+#     translation, NSURLCache's setters, NSFileManager's atomic replacement). `tests/object_surface.m` is the caller
+#     that measures the behaviour rather than the presence.
+#   * THE 22 REMAINING SELECTORS ARE ALL SCRIPTING, on NSObject: the object-specifier family and the NSObject
+#     scripting category. They arrive with the F10 classes below, not as part of F1.
 #   * THE 43 ABSENT CLASSES PARTITION EXACTLY ONTO THE PLAN'S WAVES (COCOA-10.11-SURFACE-PLAN.md §6.1) once the
 #     members that are 10.7 or later are removed: F10 scripting and AppleEvents 34, F3 metadata 4, F6 net services 2,
 #     F5 NSCondition 1, F11 NSSimpleCString + NSGarbageCollector 2. The three absent protocols are the delegates the
 #     metadata and net-service waves need.
-#   * THE 239 SELECTORS ARE CONCENTRATED: 39 classes, and NSObject alone accounts for 133. About 35 of the NSObject
-#     rows are DECLARATION-ONLY — 11 NSURLConnection, 14 NSURLDownload, 2 NSURLHandle and 8 NSFileManager informal
-#     delegate callbacks that this tree declares as formal protocols and dispatches already. The real rows are 7
-#     delayed/threaded performSelector: doors plus 2 cancel doors, 12 legacy KVC, 3 KVO customization, 6 runtime and
-#     reflection doors, ~30 scripting rows and the coder hooks. NSDateFormatter's 22 are its symbol SETTERS, whose
-#     getters already ship.
-#   * THE ONE ABSENT FUNCTION IS `NSCountFrames`. `NSMakeRange` and `NSMaxRange` are inline doors that live in
-#     `libagora-core/include/CFBridgingTypes.h` and are reached through `NSObjCRuntime.h`; the gate passes that
-#     directory as `--include`, so they are counted as inline rather than as missing symbols.
-#   * `methods-declared-not-implemented` IS 5, AND EVERY ONE IS NAMED: `-concat`, `-set` and
-#     `-transformBezierPath:` on NSAffineTransform (the three AppKit additions its header refuses in prose),
-#     `-observeValueForKeyPath:ofObject:change:context:` and NSXMLNode's `-initWithXMLString:`. A PINNED 5 RATHER THAN
-#     A PINNED 0 is deliberate: a prose refusal is not a door, and the plan's M1 tier asks for a body that refuses by
-#     name. When those bodies land this number falls, in the commit that names them.
+#   * `methods-declared-not-implemented` IS 3, AND ALL THREE ARE NAMED: `-concat`, `-set` and
+#     `-transformBezierPath:` on NSAffineTransform (the AppKit additions its header refuses in prose). A PINNED 3
+#     RATHER THAN A PINNED 0 is deliberate: a prose refusal is not a door, and the plan's M1 tier asks for a body that
+#     refuses by name. When those bodies land this number falls, in the commit that names them.
+#   * FUNCTIONS ARE COMPLETE, and the two inline doors that looked missing are found where they are declared:
+#     `NSMakeRange` and `NSMaxRange` live in `libagora-core/include/CFBridgingTypes.h` and the gate passes that
+#     directory as `--include`. `NSCountFrames` now ships, with the stack walk NSThread and NSException share.
 #
 # THREE INSTRUMENT FAULTS WERE FOUND BY POINTING THIS LEDGER AT FOUNDATION, AND EACH PRODUCED A PLAUSIBLE WRONG
 # ANSWER. They are recorded because they are the reason the numbers above are trusted:
@@ -52,9 +55,9 @@
 #      the `@implementation`.
 #
 # ERA: this file measures against 10.6 because that is the tree's own reference. `Foundation.h` also records a 10.2
-# BASELINE used to decide removals (§11.0); that rule and this denominator are different questions, and 81 of the 239
-# selectors are 10.3–10.6 additions that the baseline rule had excluded. Which of them a slice SCHEDULES is the
-# plan's decision; none of them is invisible here.
+# BASELINE used to decide removals (§11.0); that rule and this denominator are different questions. The 10.3–10.6
+# additions that baseline had excluded are now ANSWERED rather than merely counted, which is the F1 slice's point:
+# a door the baseline cut and a door nobody finished look the same in a header and differ in a run.
 #
 # TWO DIRECTIONS, AS IN THE APPKIT CENSUS: a metric that moves fails with a diagnostic, and the only way to change
 # the pin is to edit this file in the same commit that says what landed. The gate is `tests/api_census.cmake`; the
@@ -81,7 +84,7 @@ fn:NSCopyHashTableWithZone 1
 fn:NSCopyMapTableWithZone 1
 fn:NSCopyMemoryPages 1
 fn:NSCopyObject 1
-fn:NSCountFrames 0
+fn:NSCountFrames 1
 fn:NSCountHashTable 1
 fn:NSCountMapTable 1
 fn:NSCreateHashTable 1
@@ -261,7 +264,7 @@ fndecl:NSCopyHashTableWithZone 1
 fndecl:NSCopyMapTableWithZone 1
 fndecl:NSCopyMemoryPages 1
 fndecl:NSCopyObject 1
-fndecl:NSCountFrames 0
+fndecl:NSCountFrames 1
 fndecl:NSCountHashTable 1
 fndecl:NSCountMapTable 1
 fndecl:NSCreateHashTable 1
@@ -423,14 +426,15 @@ fndecl:NSZoneFromPointer 1
 fndecl:NSZoneMalloc 1
 fndecl:NSZoneName 1
 fndecl:NSZoneRealloc 1
-functions-declared 179
+functions-declared 180
 functions-declared-not-defined 0
 functions-defined-not-declared 0
-functions-missing 1
+functions-missing 0
 functions-offered 180
-functions-present 179
-methods-declared 3360
-methods-declared-not-implemented 5
+functions-present 180
+methods-declared 3582
+methods-declared-not-implemented 3
+methods-informal 56
 proto:NSCacheDelegate 1
 proto:NSCoding 1
 proto:NSConnectionDelegate 1
@@ -458,11 +462,11 @@ protocols-missing 3
 protocols-offered 23
 protocols-present 20
 sel:NSAffineTransform 14
-sel:NSArchiver 7
+sel:NSArchiver 9
 sel:NSArray 64
 sel:NSAssertionHandler 3
 sel:NSAttributedString 13
-sel:NSAutoreleasePool 3
+sel:NSAutoreleasePool 13
 sel:NSBlockOperation 3
 sel:NSBundle 55
 sel:NSCache 15
@@ -470,16 +474,16 @@ sel:NSCachedURLResponse 6
 sel:NSCalendar 21
 sel:NSCalendarDate 26
 sel:NSCharacterSet 25
-sel:NSCoder 52
+sel:NSCoder 57
 sel:NSComparisonPredicate 10
 sel:NSCompoundPredicate 6
 sel:NSConditionLock 10
 sel:NSConnection 39
 sel:NSCountedSet 7
 sel:NSData 32
-sel:NSDate 27
+sel:NSDate 30
 sel:NSDateComponents 22
-sel:NSDateFormatter 53
+sel:NSDateFormatter 75
 sel:NSDecimalNumber 33
 sel:NSDecimalNumberHandler 3
 sel:NSDictionary 55
@@ -487,31 +491,31 @@ sel:NSDirectoryEnumerator 5
 sel:NSDistantObject 6
 sel:NSDistantObjectRequest 4
 sel:NSDistributedLock 6
-sel:NSDistributedNotificationCenter 10
+sel:NSDistributedNotificationCenter 11
 sel:NSEnumerator 2
 sel:NSError 11
-sel:NSException 8
-sel:NSExpression 25
+sel:NSException 10
+sel:NSExpression 26
 sel:NSFileHandle 31
-sel:NSFileManager 52
+sel:NSFileManager 53
 sel:NSFormatter 6
 sel:NSHTTPCookie 17
-sel:NSHTTPCookieStorage 8
+sel:NSHTTPCookieStorage 9
 sel:NSHTTPURLResponse 3
-sel:NSHashTable 20
+sel:NSHashTable 21
 sel:NSHost 12
 sel:NSIndexPath 10
 sel:NSIndexSet 30
 sel:NSInputStream 9
 sel:NSInvocation 14
 sel:NSInvocationOperation 4
-sel:NSKeyedArchiver 18
+sel:NSKeyedArchiver 19
 sel:NSKeyedUnarchiver 17
 sel:NSLocale 21
 sel:NSLock 4
 sel:NSMachBootstrapServer 5
 sel:NSMachPort 9
-sel:NSMapTable 13
+sel:NSMapTable 17
 sel:NSMessagePortNameServer 3
 sel:NSMethodSignature 7
 sel:NSMutableArray 29
@@ -529,64 +533,62 @@ sel:NSNotificationQueue 5
 sel:NSNull 1
 sel:NSNumber 50
 sel:NSNumberFormatter 134
-sel:NSObject 47
-sel:NSOperation 12
-sel:NSOperationQueue 14
+sel:NSObject 158
+sel:NSOperation 19
+sel:NSOperationQueue 15
 sel:NSOrthography 9
 sel:NSOutputStream 10
 sel:NSPipe 4
 sel:NSPointerArray 10
-sel:NSPointerFunctions 5
+sel:NSPointerFunctions 6
 sel:NSPort 13
-sel:NSPortCoder 6
+sel:NSPortCoder 7
 sel:NSPortMessage 7
 sel:NSPortNameServer 5
 sel:NSPredicate 9
-sel:NSProcessInfo 16
+sel:NSProcessInfo 17
 sel:NSPropertyListSerialization 7
 sel:NSProtocolChecker 4
 sel:NSProxy 9
 sel:NSRecursiveLock 4
-sel:NSRunLoop 15
+sel:NSRunLoop 16
 sel:NSScanner 27
 sel:NSSet 37
 sel:NSSocketPort 11
-sel:NSSocketPortNameServer 8
+sel:NSSocketPortNameServer 9
 sel:NSSortDescriptor 12
 sel:NSSpellServer 5
 sel:NSStream 11
-sel:NSString 140
+sel:NSString 141
 sel:NSTask 26
 sel:NSTextCheckingResult 21
-sel:NSThread 23
-sel:NSTimeZone 25
+sel:NSThread 25
+sel:NSTimeZone 30
 sel:NSTimer 12
-sel:NSURL 53
+sel:NSURL 54
 sel:NSURLAuthenticationChallenge 8
-sel:NSURLCache 10
-sel:NSURLConnection 7
-sel:NSURLCredential 6
+sel:NSURLCache 13
+sel:NSURLConnection 9
+sel:NSURLCredential 12
 sel:NSURLCredentialStorage 7
 sel:NSURLDownload 9
 sel:NSURLHandle 23
-sel:NSURLProtectionSpace 10
+sel:NSURLProtectionSpace 12
 sel:NSURLProtocol 14
 sel:NSURLRequest 14
 sel:NSURLResponse 6
-sel:NSUnarchiver 8
-sel:NSUndoManager 26
+sel:NSUnarchiver 10
+sel:NSUndoManager 30
 sel:NSUserDefaults 37
 sel:NSValue 18
 sel:NSValueTransformer 7
 sel:NSXMLDTD 17
-sel:NSXMLDTDNode 9
-sel:NSXMLDocument 26
-sel:NSXMLElement 26
-sel:NSXMLNode 46
+sel:NSXMLDTDNode 10
+sel:NSXMLDocument 31
+sel:NSXMLElement 27
+sel:NSXMLNode 50
 sel:NSXMLParser 17
-selectors-missing 239
+selectors-missing 22
 selectors-offered 2514
-selectors-present 2275
+selectors-present 2492
 selphantom:NSAffineTransform 3
-selphantom:NSObject 1
-selphantom:NSXMLNode 1

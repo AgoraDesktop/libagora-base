@@ -35,6 +35,9 @@ NS_ASSUME_NONNULL_BEGIN
  * +defaultNameServerPortNumber answers 0 because there is no well-known remote port — the one argument this
  * class cannot use, stated where it is taken. */
 @property (class, readonly) unsigned short defaultNameServerPortNumber;
+/* THE CLASS SETTER 10.6 declares beside the getter. The number is stored and reported; the doors above still
+ * delegate to the in-process registry, because there is no remote port to address with it. */
++ (void)setDefaultNameServerPortNumber:(unsigned short)portNumber;
 - (nullable NSPort *)portForName:(NSString *)name
 			    host:(nullable NSString *)host
 	     nameServerPortNumber:(unsigned short)portNumber;

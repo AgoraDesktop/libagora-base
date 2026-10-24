@@ -34,11 +34,14 @@
 #ifndef FOUNDATION_NSRUNLOOP_H
 #define FOUNDATION_NSRUNLOOP_H
 
+#import <CoreFoundation/CFRunLoop.h>	/* CFRunLoopRef, the answer -getCFRunLoop refuses to fake */
 #import <Foundation/NSObject.h>
+#import <Foundation/NSDate.h>	/* NSTimeInterval, which the delayed-perform category names */
 
 @class NSDate;
 @class NSTimer;
 @class NSString;
+@class NSThread;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -70,6 +73,14 @@ NS_SWIFT_NAME(RunLoop)
 
 + (NSRunLoop *)currentRunLoop;
 + (NSRunLoop *)mainRunLoop;
+
+/*
+ * INTERNAL, AND IT IS WHAT MAKES `-performSelector:onThread:…` POSSIBLE. A run loop is per-thread and its ownership
+ * is a pthread-specific, which one thread cannot read for another; so a loop also records itself in its OWNER
+ * THREAD's `-threadDictionary`, which every thread can read. The answer is nil when that thread has never asked for a
+ * run loop — which is the condition Apple raises for, because there is no loop to queue a request on.
+ */
++ (nullable NSRunLoop *)fn_runLoopForThread:(NSThread *)thread;
 
 - (NSString *)currentMode;
 
@@ -157,11 +168,40 @@ NS_SWIFT_NAME(RunLoop)
  * `-limitDateForMode:` reports the next timer due in that mode (a stated reading: the earliest fire date
  * among the timers that mode would fire, or nil); `-configureAsServer` IS A NO-OP BY APPLE'S OWN
  * DOCUMENTATION — "This method does nothing" — so implementing it as one is faithful rather than lazy.
- * `-getCFRunLoop` is NOT here: it returns the CFRunLoopRef behind the loop, and the CF core is a separate
- * accepted plan (docs/design/foundation-cf-core-plan.md). */
+ * `-getCFRunLoop` IS DECLARED AND REFUSES: it returns the CFRunLoopRef behind the loop, and this loop is NOT
+ * CF-backed (see the note above). Returning Core Foundation's own current loop would be a different loop with the
+ * same name — a caller would add a source to one and wait on the other — so the door raises with that ground. */
 - (BOOL)acceptInputForMode:(NSRunLoopMode)mode beforeDate:(NSDate *)limitDate;
 - (nullable NSDate *)limitDateForMode:(NSRunLoopMode)mode;
 - (void)configureAsServer;
+- (CFRunLoopRef)getCFRunLoop;
+@end
+
+/*
+ * THE DELAYED PERFORM FAMILY (10.2), and it is declared HERE because a delayed perform IS a timer on a run loop:
+ * Apple's NSRunLoop.h carries `NSObject (NSDelayedPerforming)` for exactly that reason. The four doors are the
+ * `afterDelay:` pair and the two cancels; the threaded half lives in NSThread.h, which is also Apple's placement.
+ *
+ * THE CONTRACT, THREE PARTS, each of which the implementation had to honour rather than approximate:
+ *   * the receiver is RETAINED with its argument until the message is sent (or cancelled);
+ *   * the message is sent on the run loop in the given modes, and NOT at all if the loop never runs them;
+ *   * cancelling matches the target alone for the one-argument form, and target, selector AND argument for the
+ *     three-argument form — so cancelling one of two requests with the same selector needs the argument too.
+ */
+@interface NSObject (NSDelayedPerforming)
+
+- (void)performSelector:(SEL)aSelector
+	     withObject:(nullable id)anArgument
+	     afterDelay:(NSTimeInterval)delay
+		inModes:(NSArray *)modes;
+- (void)performSelector:(SEL)aSelector
+	     withObject:(nullable id)anArgument
+	     afterDelay:(NSTimeInterval)delay;
++ (void)cancelPreviousPerformRequestsWithTarget:(id)aTarget
+				       selector:(SEL)aSelector
+					 object:(nullable id)anArgument;
++ (void)cancelPreviousPerformRequestsWithTarget:(id)aTarget;
+
 @end
 
 NS_ASSUME_NONNULL_END

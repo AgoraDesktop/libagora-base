@@ -24,6 +24,10 @@
 #import <Foundation/NSString.h>
 #import <Foundation/NSNotificationCenter.h>
 #import <Foundation/NSNotification.h>	/* the names the two posts use live here */
+#import <Foundation/NSArray.h>		/* the modes array the perform doors take */
+#import <Foundation/NSRunLoop.h>		/* -performSelector:onThread: queues on the target's loop */
+#import <Foundation/NSException.h>	/* a nil thread, or one with no loop, is an argument exception */
+#import "FNCallStack.h"
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
@@ -126,6 +130,18 @@ static void *fn_thread_entry(void *context)
 - (BOOL)isMainThread
 {
 	return _isMain;
+}
+
+/* THE STACK OF THE CALLING THREAD. One walk, shared with NSException and NSCountFrames (FNCallStack.h), and the
+ * array begins at the caller rather than at this method. */
++ (NSArray *)callStackReturnAddresses
+{
+	return FNCallStackReturnAddresses();
+}
+
++ (NSArray *)callStackSymbols
+{
+	return FNCallStackSymbols();
 }
 
 - (nullable NSString *)name
@@ -411,4 +427,172 @@ static int fn_thread_count = 0;
 	}
 	return (NSMutableDictionary *)_threadDictionary;
 }
+@end
+
+/* ==================================================================================================================
+ * NSThreadPerformAdditions — the five doors, and the two kinds of request they make.
+ *
+ * A REQUEST IS AN OBJECT BECAUSE THE RUN LOOP'S PERFORMER TAKES ONE: the loop retains its target and argument until
+ * the message is sent, and the semaphore that makes `waitUntilDone:YES` wait has to outlive both the enqueue and the
+ * send. The request owns the target and the argument (retained), so the message cannot arrive at a dead object.
+ *
+ * THE THREE CASES, and they are not the same mechanism:
+ *   * ON THE CURRENT THREAD the selector is performed IMMEDIATELY — Apple's rule, and the reason `wait` is ignored;
+ *   * ON ANOTHER THREAD the request is queued on that thread's run loop (found through the thread's dictionary,
+ *     since a pthread-specific is readable only by its owner). A thread that never asked for a run loop has none,
+ *     and that is the exception Apple documents rather than a silent drop;
+ *   * IN THE BACKGROUND a NEW thread is detached with the request as its target, so the request's `-fire` IS the
+ *     thread's body — there is no loop involved at all.
+ *
+ * `waitUntilDone:YES` BLOCKS ON A SEMAPHORE that `-fire` posts in a `@finally`, so a selector that raises still
+ * releases the waiting caller instead of leaving it blocked forever.
+ * ================================================================================================================ */
+
+#include <semaphore.h>
+
+@interface FNThreadPerform : NSObject
+{
+	id _target;
+	SEL _selector;
+	id _argument;
+	sem_t _done;
+	BOOL _waits;
+}
+- (instancetype)initWithTarget:(id)target
+		      selector:(SEL)aSelector
+		      argument:(nullable id)anArgument
+			 waits:(BOOL)waits;
+- (void)fire;
+- (void)waitForCompletion;
+@end
+
+@implementation FNThreadPerform
+
+- (instancetype)initWithTarget:(id)target
+		      selector:(SEL)aSelector
+		      argument:(nullable id)anArgument
+			 waits:(BOOL)waits
+{
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	_target = [target retain];
+	_selector = aSelector;
+	_argument = [anArgument retain];
+	_waits = waits;
+	if (_waits) {
+		sem_init(&_done, 0, 0);
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[_target release];
+	[_argument release];
+	if (_waits) {
+		sem_destroy(&_done);
+	}
+	[super dealloc];
+}
+
+- (void)fire
+{
+	@try {
+		[_target performSelector:_selector withObject:_argument];
+	}
+	@finally {
+		if (_waits) {
+			sem_post(&_done);
+		}
+	}
+}
+
+- (void)waitForCompletion
+{
+	if (_waits) {
+		sem_wait(&_done);
+	}
+}
+
+@end
+
+static void fn_perform_on_thread(id target, SEL aSelector, id anArgument, NSThread *thread, BOOL wait,
+				 NSArray *modes)
+{
+	FNThreadPerform *request;
+	NSRunLoop *loop;
+
+	if (thread == nil) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"performSelector:onThread:...: a target thread is required"];
+	}
+	if (thread == [NSThread currentThread]) {
+		/* APPLE: "If the current thread is the same as the thread you are trying to perform on, this method
+		 * invokes the selector immediately" — so the queue and the wait are both skipped. */
+		[target performSelector:aSelector withObject:anArgument];
+		return;
+	}
+	loop = [NSRunLoop fn_runLoopForThread:thread];
+	if (loop == nil) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"performSelector:onThread:...: %@ has no run loop, so there is nothing to queue on",
+				   thread];
+	}
+	request = [[FNThreadPerform alloc] initWithTarget:target selector:aSelector argument:anArgument waits:wait];
+	/* NIL MODES BECOME THE DEFAULT MODE, which is what the loop's own performer door does. Apple's `-1` shorthand
+	 * names the common modes; this loop delivers a mode by exact name, so the default is the honest equivalent. */
+	[loop performSelector:@selector(fire) target:request argument:nil order:0 modes:modes];
+	if (wait) {
+		[request waitForCompletion];
+	}
+	[request release];		/* the loop's performer owned it from the enqueue until the send */
+}
+
+@implementation NSObject (NSThreadPerformAdditions)
+
+- (void)performSelectorOnMainThread:(SEL)aSelector
+			 withObject:(nullable id)arg
+		      waitUntilDone:(BOOL)wait
+			      modes:(nullable NSArray *)array
+{
+	fn_perform_on_thread(self, aSelector, arg, [NSThread mainThread], wait, array);
+}
+
+- (void)performSelectorOnMainThread:(SEL)aSelector
+			 withObject:(nullable id)arg
+		      waitUntilDone:(BOOL)wait
+{
+	fn_perform_on_thread(self, aSelector, arg, [NSThread mainThread], wait, nil);
+}
+
+- (void)performSelector:(SEL)aSelector
+	       onThread:(NSThread *)thr
+	     withObject:(nullable id)arg
+	  waitUntilDone:(BOOL)wait
+		  modes:(nullable NSArray *)array
+{
+	fn_perform_on_thread(self, aSelector, arg, thr, wait, array);
+}
+
+- (void)performSelector:(SEL)aSelector
+	       onThread:(NSThread *)thr
+	     withObject:(nullable id)arg
+	  waitUntilDone:(BOOL)wait
+{
+	fn_perform_on_thread(self, aSelector, arg, thr, wait, nil);
+}
+
+- (void)performSelectorInBackground:(SEL)aSelector withObject:(nullable id)arg
+{
+	FNThreadPerform *request = [[FNThreadPerform alloc] initWithTarget:self
+								 selector:aSelector
+								 argument:arg
+								    waits:NO];
+
+	[NSThread detachNewThreadSelector:@selector(fire) toTarget:request withObject:nil];
+	[request release];		/* the thread retains its target until its body returns */
+}
+
 @end

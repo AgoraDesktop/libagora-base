@@ -632,13 +632,11 @@ __attribute__((swift_bridge("Swift.String")))
  * with two notions of "equal" would be worse than a class with one documented one. Passing
  * NSLiteralSearch changes nothing, because exactness is already the only thing this door does.
  *
- * (-propertyListFromStringsFileFormat WAS IN THIS UNIT AND IS WITHDRAWN, with the measurement that
- * withdrew it: a `.strings` body is brace-less — `"a" = "b";` — and this library's old-style plist
- * reader answers NIL for one, so the door cannot honour Apple's contract until the READER accepts a
- * brace-less dictionary. It is a defect in the reader rather than in this door, it is worth its own
- * unit, and the probe of this one records the nil rather than hiding it. THE ROW STAYS OPEN IN THE
- * LEDGER, which is the honest place for it: a door that cannot parse the format its name promises is
- * not shipped.)
+ * (-propertyListFromStringsFileFormat IS SHIPPED, WITH ITS OWN READER. The `.strings` body is brace-less —
+ * `"a" = "b";` — and this class's old-style PLIST reader still refuses one, so the door does not go through it:
+ * it scans the key/value grammar directly (quoted or bare keys, quoted or bare values, `=` and `;`, comments,
+ * escapes and an optional enclosing brace). That is a reader with one format and one caller, which is the honest
+ * size for the question this door asks.)
  * =================================================================================================== */
 - (NSRange)rangeOfCharacterFromSet:(NSCharacterSet *)set
 			   options:(NSStringCompareOptions)mask;
@@ -646,6 +644,9 @@ __attribute__((swift_bridge("Swift.String")))
 			   options:(NSStringCompareOptions)mask
 			     range:(NSRange)range;
 - (NSString *)commonPrefixWithString:(NSString *)other options:(NSStringCompareOptions)mask;
+/* A `.strings` FILE, PARSED (10.0). The answer is a dictionary of the pairs, with escapes decoded; malformed input
+ * answers nil, which is Apple's contract for a string that is not a strings file. */
+- (nullable NSDictionary *)propertyListFromStringsFileFormat;
 
 /* THE TRANSFORM AND FOLDING DOORS. -stringByApplyingTransform:reverse: honours the TWO strip transforms this
  * library can perform — NSStringTransformStripCombiningMarks and NSStringTransformStripDiacritics, i.e. NFD

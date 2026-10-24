@@ -179,4 +179,18 @@ NSString * const NSURLAuthenticationMethodServerTrust = @"NSURLAuthenticationMet
 			_realm, _authenticationMethod];
 }
 
+- (void *)serverTrust
+{
+	[NSException raise:NSInvalidArgumentException
+		    format:@"NSURLProtectionSpace -serverTrust: this system has no Security framework"];
+	return NULL;
+}
+
+- (NSArray *)distinguishedNames
+{
+	[NSException raise:NSInvalidArgumentException
+		    format:@"NSURLProtectionSpace -distinguishedNames: this system has no Security framework"];
+	return nil;
+}
+
 @end

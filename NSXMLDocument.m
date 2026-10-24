@@ -507,4 +507,52 @@
 	[super dealloc];
 }
 
+- (NSXMLDTD *)DTD
+{
+	return [self dtd];
+}
+
+/* THE THREE XSLT DOORS AND VALIDATION, DECLARED AND REFUSED WITH AN ERROR. They are not silent: each names the
+ * absent engine in the NSError it was given, because the door's contract is a value-and-error rather than an
+ * exception. Apple's own header describes these as running a stylesheet; there is no XSLT processor in this
+ * library, and NSXMLNode.h says so at the registration. */
+static void fn_xml_engine_error(NSError **outError, NSString *what)
+{
+	if (outError != NULL) {
+		*outError = [NSError errorWithDomain:@"NSXMLParserErrorDomain"
+						code:NSXMLParserInternalError
+					    userInfo:@{ NSLocalizedDescriptionKey :
+							    [NSString stringWithFormat:
+								     @"NSXMLDocument: %@ needs an engine this system does "
+								     "not have (no XSLT processor, no DTD validation)", what] }];
+	}
+}
+
+- (id)objectByApplyingXSLT:(NSData *)xslt arguments:(NSDictionary *)arguments error:(NSError **)error
+{
+	(void)xslt; (void)arguments;
+	fn_xml_engine_error(error, @"-objectByApplyingXSLT:arguments:error:");
+	return nil;
+}
+
+- (id)objectByApplyingXSLTString:(NSString *)xslt arguments:(NSDictionary *)arguments error:(NSError **)error
+{
+	(void)xslt; (void)arguments;
+	fn_xml_engine_error(error, @"-objectByApplyingXSLTString:arguments:error:");
+	return nil;
+}
+
+- (id)objectByApplyingXSLTAtURL:(NSURL *)xsltURL arguments:(NSDictionary *)arguments error:(NSError **)error
+{
+	(void)xsltURL; (void)arguments;
+	fn_xml_engine_error(error, @"-objectByApplyingXSLTAtURL:arguments:error:");
+	return nil;
+}
+
+- (BOOL)validateAndReturnError:(NSError **)error
+{
+	fn_xml_engine_error(error, @"-validateAndReturnError:");
+	return NO;
+}
+
 @end

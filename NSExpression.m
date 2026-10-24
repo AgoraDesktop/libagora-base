@@ -476,4 +476,12 @@ static id FNAggregate(NSString *function, NSArray *values)
 	return [NSString stringWithFormat:@"<NSExpression %p: type %lu>", (void *)self, (unsigned long)_type];
 }
 
+- (id (^)(id, NSArray *, NSMutableDictionary *))expressionBlock
+{
+	if (_type != NSBlockExpressionType) {
+		return nil;
+	}
+	return (id (^)(id, NSArray *, NSMutableDictionary *))_constantValue;
+}
+
 @end

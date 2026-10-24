@@ -4814,6 +4814,154 @@ static NSComparisonResult fn_compare_turkic(NSString *a, NSString *b, NSStringCo
 		at = end;
 	}
 }
+/* ==================================================================================================================
+ * -propertyListFromStringsFileFormat: THE `.strings` GRAMMAR, READ DIRECTLY.
+ *
+ * The format is a sequence of `key = value;` pairs where either side may be a quoted string or a bare token, with
+ * `//` and C comments between them and an optional enclosing brace. It is NOT an old-style property list — the
+ * braces are optional, which is exactly why the plist reader refuses it — so this is a small scanner of its own.
+ * Escapes are the C ones plus `\Uxxxx`, which is what a .strings file carries for non-ASCII text.
+ * ================================================================================================================ */
+
+static BOOL fn_strings_skip_space(const unichar *text, NSUInteger length, NSUInteger *at)
+{
+	while (*at < length) {
+		unichar c = text[*at];
+
+		if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f') {
+			(*at)++;
+			continue;
+		}
+		if (c == '/' && *at + 1 < length && text[*at + 1] == '/') {
+			*at += 2;
+			while (*at < length && text[*at] != '\n') {
+				(*at)++;
+			}
+			continue;
+		}
+		if (c == '/' && *at + 1 < length && text[*at + 1] == '*') {
+			*at += 2;
+			while (*at + 1 < length && !(text[*at] == '*' && text[*at + 1] == '/')) {
+				(*at)++;
+			}
+			*at = (*at + 1 < length) ? *at + 2 : length;
+			continue;
+		}
+		return YES;
+	}
+	return NO;
+}
+
+static NSString *fn_strings_read_token(const unichar *text, NSUInteger length, NSUInteger *at)
+{
+	NSMutableString *out;
+	BOOL quoted = NO;
+
+	if (!fn_strings_skip_space(text, length, at)) {
+		return nil;
+	}
+	if (text[*at] == '"') {
+		quoted = YES;
+		(*at)++;
+	}
+	out = [NSMutableString string];
+	while (*at < length) {
+		unichar c = text[*at];
+
+		if (quoted && c == '"') {
+			(*at)++;
+			return out;
+		}
+		if (!quoted && (c == '=' || c == ';' || c == '}' || c == '{')) {
+			return out;
+		}
+		if (!quoted && (c == ' ' || c == '\t' || c == '\n' || c == '\r')) {
+			return out;
+		}
+		if (c == '\\' && *at + 1 < length) {
+			unichar next = text[*at + 1];
+
+			(*at) += 2;
+			switch (next) {
+			case 'n': [out appendString:@"\n"]; break;
+			case 't': [out appendString:@"\t"]; break;
+			case 'r': [out appendString:@"\r"]; break;
+			case '"': [out appendString:@"\""]; break;
+			case '\\': [out appendString:@"\\"]; break;
+			case 'U': case 'u': {
+				unsigned value = 0;
+				NSUInteger digits = 0;
+
+				while (digits < 4 && *at < length) {
+					unichar d = text[*at];
+					unsigned nibble;
+
+					if (d >= '0' && d <= '9') nibble = (unsigned)(d - '0');
+					else if (d >= 'a' && d <= 'f') nibble = (unsigned)(d - 'a' + 10);
+					else if (d >= 'A' && d <= 'F') nibble = (unsigned)(d - 'A' + 10);
+					else break;
+					value = (value << 4) | nibble;
+					(*at)++;
+					digits++;
+				}
+				if (digits > 0) {
+					unichar unit = (unichar)value;
+
+					[out appendString:[NSString stringWithCharacters:&unit length:1]];
+				}
+				break;
+			}
+			default:
+				[out appendString:[NSString stringWithCharacters:&next length:1]];
+				break;
+			}
+			continue;
+		}
+		[out appendString:[NSString stringWithCharacters:&c length:1]];
+		(*at)++;
+	}
+	return quoted ? nil : out;	/* an unterminated quote is malformed */
+}
+
+- (NSDictionary *)propertyListFromStringsFileFormat
+{
+	NSUInteger length = [self length];
+	unichar *text = malloc(sizeof(unichar) * (length + 1));
+	NSUInteger at = 0;
+	NSMutableDictionary *strings;
+	BOOL malformed = NO;
+
+	if (text == NULL) {
+		return nil;
+	}
+	[self getCharacters:text range:NSMakeRange(0, length)];
+	strings = [NSMutableDictionary dictionary];
+	while (fn_strings_skip_space(text, length, &at)) {
+		NSString *key;
+		NSString *value;
+
+		if (text[at] == '{' || text[at] == '}') {
+			at++;
+			continue;
+		}
+		key = fn_strings_read_token(text, length, &at);
+		if (key == nil || key.length == 0 || !fn_strings_skip_space(text, length, &at) || text[at] != '=') {
+			malformed = YES;
+			break;
+		}
+		at++;
+		value = fn_strings_read_token(text, length, &at);
+		if (value == nil || !fn_strings_skip_space(text, length, &at) || text[at] != ';') {
+			malformed = YES;
+			break;
+		}
+		at++;
+		[strings setObject:value forKey:key];
+	}
+	free(text);
+	return malformed ? nil : strings;
+}
+
 @end
 
 @implementation NSOwnedString
@@ -5586,6 +5734,8 @@ NSString *NSStringFromRange(NSRange range)
 		 (unsigned long)range.length);
 	return [[NSOwnedString alloc] initWithUTF8String:buffer];
 }
+
+
 @end
 
 /* ===================================================================================================

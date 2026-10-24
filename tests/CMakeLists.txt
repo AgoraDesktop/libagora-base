@@ -160,3 +160,11 @@ else()
     "libagora-base: no Python3 interpreter, so the 10.6 API census gate is not registered — install python3, or the "
     "Foundation surface goes unmeasured.")
 endif()
+
+# THE 10.6 ROOT-CLASS DOORS, MEASURED BY A CALLER RATHER THAN BY THE CENSUS. The census finds a body; this probe is
+# what says the body means what the door means: the runtime hooks, the delayed and threaded perform family, the
+# OpenStep KVC spellings and the stored accessor, KVO's dependency rule in both spellings, the comparison protocol,
+# the stack doors, and the small formatter/collection/expression/strings-file additions.
+add_executable(object_surface object_surface.m)
+target_link_libraries(object_surface PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+add_test(NAME object_surface COMMAND object_surface)

@@ -75,6 +75,8 @@ typedef NSPointerFunctionsOptions NSHashTableOptions;
 
 + (NSHashTable<ObjectType> *)weakObjectsHashTable;
 + (NSHashTable<ObjectType> *)hashTableWithOptions:(NSHashTableOptions)options;
+/* THE 10.6 SPELLING: a table of weak objects, which `+hashTableWithOptions:` reaches with the weak-memory bit. */
++ (NSHashTable<ObjectType> *)hashTableWithWeakObjects;
 
 - (NSPointerFunctions *)pointerFunctions;
 

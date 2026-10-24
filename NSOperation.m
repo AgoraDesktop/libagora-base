@@ -65,7 +65,19 @@ static void fn_set_current_queue(NSOperationQueue *queue)
 	}
 	_dependencies = [[NSMutableArray alloc] init];
 	_condition = [[FNCondition alloc] init];
+	_queuePriority = NSOperationQueuePriorityNormal;
+	_threadPriority = 0.5;
 	return self;
+}
+
+- (void)dealloc
+{
+	[_dependencies release];
+	[_condition release];
+	if (_completionBlock != nil) {
+		Block_release(_completionBlock);
+	}
+	[super dealloc];
 }
 
 - (void)main
@@ -84,10 +96,12 @@ static void fn_set_current_queue(NSOperationQueue *queue)
 	}
 	if (_cancelled) {
 		/* CANCELLED IS FINISHED: the operation will not run, and anyone waiting on it must stop
-		 * waiting. */
+		 * waiting. THE COMPLETION BLOCK STILL RUNS — it is "after the operation finishes", and a
+		 * cancellation is a finish (Apple's contract, and the reason this is not inside -main). */
 		_finished = YES;
 		[_condition broadcast];
 		[_condition unlock];
+		[self fnRunCompletionBlock];
 		return;
 	}
 	_started = YES;
@@ -101,6 +115,74 @@ static void fn_set_current_queue(NSOperationQueue *queue)
 	_finished = YES;
 	[_condition broadcast];
 	[_condition unlock];
+	[self fnRunCompletionBlock];
+}
+
+/* THE BLOCK IS COPIED OUT UNDER THE LOCK AND RUN OUTSIDE IT: a completion block that asks -isFinished (the ordinary
+ * thing to do) would deadlock on this non-recursive condition, and one that runs another operation would hold the
+ * lock across arbitrary work. `_completionBlock` is cleared first so a second finish cannot run it twice. */
+- (void)fnRunCompletionBlock
+{
+	void (^block)(void) = NULL;
+
+	[_condition lock];
+	if (_completionBlock != nil) {
+		block = Block_copy(_completionBlock);
+		Block_release(_completionBlock);
+		_completionBlock = NULL;
+	}
+	[_condition unlock];
+	if (block != NULL) {
+		block();
+		Block_release(block);
+	}
+}
+
+- (void (^)(void))completionBlock
+{
+	void (^block)(void);
+
+	[_condition lock];
+	block = _completionBlock;
+	[_condition unlock];
+	return block;
+}
+
+- (void)setCompletionBlock:(void (^)(void))block
+{
+	void (^copied)(void) = (block != NULL) ? Block_copy(block) : NULL;
+
+	[_condition lock];
+	if (_completionBlock != nil) {
+		Block_release(_completionBlock);
+	}
+	_completionBlock = copied;
+	[_condition unlock];
+}
+
+- (NSOperationQueuePriority)queuePriority
+{
+	return _queuePriority;
+}
+
+- (void)setQueuePriority:(NSOperationQueuePriority)priority
+{
+	_queuePriority = priority;
+}
+
+- (double)threadPriority
+{
+	return _threadPriority;
+}
+
+- (void)setThreadPriority:(double)priority
+{
+	_threadPriority = priority;
+}
+
+- (BOOL)isConcurrent
+{
+	return NO;
 }
 
 - (void)cancel
@@ -402,6 +484,18 @@ const NSInteger NSOperationQueueDefaultMaxConcurrentOperationCount = -1;
 	}
 	[self fnSchedule];
 	[_condition unlock];
+}
+
+- (void)addOperations:(NSArray *)operations waitUntilFinished:(BOOL)wait
+{
+	NSUInteger i;
+
+	for (i = 0; i < [operations count]; i++) {
+		[self addOperation:[operations objectAtIndex:i]];
+	}
+	if (wait) {
+		[self waitUntilAllOperationsAreFinished];
+	}
 }
 
 - (void)waitUntilAllOperationsAreFinished

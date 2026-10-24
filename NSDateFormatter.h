@@ -67,6 +67,8 @@ NS_ASSUME_NONNULL_BEGIN
 	NSFormattingContext _formattingContext;	/* where the text will appear: ICU's capitalization */
 	NSDate *_twoDigitStartDate;		/* nil = ICU's own two-digit-year pivot */
 	NSDate *_gregorianStartDate;		/* nil = the calendar's own Julian->Gregorian cutover */
+	BOOL _generatesCalendarDates;		/* set by the 10.4 setter; the default is NO */
+	id _customSymbols;			/* NSMutableDictionary: symbol type -> the caller's array */
 }
 
 - (instancetype)init;
@@ -155,10 +157,43 @@ typedef enum {
 } NSDateFormatterBehavior;
 
 + (NSDateFormatterBehavior)defaultFormatterBehavior;
++ (void)setDefaultFormatterBehavior:(NSDateFormatterBehavior)behavior;
 - (NSDateFormatterBehavior)formatterBehavior;
 - (void)setFormatterBehavior:(NSDateFormatterBehavior)behavior;
-/* NO, always: this class answers NSDate values and nothing else. */
+/* NO by default: this class formats NSDate values, not calendar dates. The 10.4 setter stores the flag and the
+ * getter reports it, which is Apple's contract (the flag only ever affected NSDateFormatter's predecessor). */
 - (BOOL)generatesCalendarDates;
+- (void)setGeneratesCalendarDates:(BOOL)flag;
+
+/*
+ * THE SYMBOL SETTERS (10.4). Each replaces one of the arrays the getters above report — the eras, the month names,
+ * the weekday names and the quarters, in their standalone and narrow spellings — and the AM/PM pair individually.
+ *
+ * THEY ARE APPLIED TO THE ICU FORMATTER (`udat_setSymbols`) *and* KEPT, because this class rebuilds its ICU handle
+ * whenever the locale, calendar, zone or pattern changes. A setter that only mutated the current handle would make
+ * custom symbols vanish at the next unrelated setter, which is the kind of half-implementation the header above
+ * refuses. The dictionary is small and the arrays are what the caller passed.
+ */
+- (void)setEraSymbols:(nullable NSArray *)array;
+- (void)setLongEraSymbols:(nullable NSArray *)array;
+- (void)setMonthSymbols:(nullable NSArray *)array;
+- (void)setShortMonthSymbols:(nullable NSArray *)array;
+- (void)setVeryShortMonthSymbols:(nullable NSArray *)array;
+- (void)setStandaloneMonthSymbols:(nullable NSArray *)array;
+- (void)setShortStandaloneMonthSymbols:(nullable NSArray *)array;
+- (void)setVeryShortStandaloneMonthSymbols:(nullable NSArray *)array;
+- (void)setWeekdaySymbols:(nullable NSArray *)array;
+- (void)setShortWeekdaySymbols:(nullable NSArray *)array;
+- (void)setVeryShortWeekdaySymbols:(nullable NSArray *)array;
+- (void)setStandaloneWeekdaySymbols:(nullable NSArray *)array;
+- (void)setShortStandaloneWeekdaySymbols:(nullable NSArray *)array;
+- (void)setVeryShortStandaloneWeekdaySymbols:(nullable NSArray *)array;
+- (void)setQuarterSymbols:(nullable NSArray *)array;
+- (void)setShortQuarterSymbols:(nullable NSArray *)array;
+- (void)setStandaloneQuarterSymbols:(nullable NSArray *)array;
+- (void)setShortStandaloneQuarterSymbols:(nullable NSArray *)array;
+- (void)setAMSymbol:(nullable NSString *)string;
+- (void)setPMSymbol:(nullable NSString *)string;
 
 /* WHERE THE TEXT WILL APPEAR. ICU spells this as its capitalization context, and standalone is the
  * one that changes a name's case in the locales whose data says so. */

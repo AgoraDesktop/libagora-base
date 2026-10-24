@@ -262,7 +262,7 @@
 		name = [NSString stringWithUTF8String:buffer];
 		free(buffer);
 
-		cls = NSClassFromString(name);
+		cls = NSClassFromString([self classNameDecodedForArchiveClassName:name]);
 		if (cls == Nil) {
 			[NSException raise:NSInconsistentArchiveException
 				    format:@"the archive names the class %@, which this system does not have", name];
@@ -423,6 +423,24 @@
 		[NSException raise:NSInconsistentArchiveException
 			    format:@"type code '%c' has no sequential spelling in this wire", valueType[0]];
 	}
+}
+
+- (void)decodeClassName:(NSString *)inArchiveName asClassName:(NSString *)trueName
+{
+	if (inArchiveName == nil || trueName == nil) {
+		return;
+	}
+	if (_decodeMap == nil) {
+		_decodeMap = [[NSMutableDictionary alloc] init];
+	}
+	[_decodeMap setObject:trueName forKey:inArchiveName];
+}
+
+- (NSString *)classNameDecodedForArchiveClassName:(NSString *)inArchiveName
+{
+	NSString *mapped = [_decodeMap objectForKey:inArchiveName];
+
+	return (mapped != nil) ? mapped : inArchiveName;
 }
 
 - (NSInteger)versionForClassName:(NSString *)className

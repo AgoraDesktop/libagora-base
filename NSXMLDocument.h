@@ -114,6 +114,22 @@ enum {
  * because the DOCTYPE's own name is not reported by the parser (a boundary of XML-a's DOCTYPE reading, which
  * takes the subset and not the name). */
 - (nullable NSXMLDTD *)dtd;
+/* 10.6 SPELLS THIS DOOR IN CAPITALS. Both names answer the same object, so a caller written against either header
+ * compiles and cannot observe a difference. */
+- (nullable NSXMLDTD *)DTD;
+/* THE XSLT AND VALIDATION DOORS (10.2), DECLARED AND REFUSED BY NAME: this library has no XSLT processor and no
+ * DTD validator, so each answers its value-and-error contract with nil/NO and an error that names the missing
+ * engine (NSXMLNode.h records the same boundary at the registration). */
+- (nullable id)objectByApplyingXSLT:(NSData *)xslt
+			  arguments:(nullable NSDictionary *)arguments
+			      error:(NSError ** _Nullable)error;
+- (nullable id)objectByApplyingXSLTString:(NSString *)xslt
+			       arguments:(nullable NSDictionary *)arguments
+				   error:(NSError ** _Nullable)error;
+- (nullable id)objectByApplyingXSLTAtURL:(NSURL *)xsltURL
+			      arguments:(nullable NSDictionary *)arguments
+				  error:(NSError ** _Nullable)error;
+- (BOOL)validateAndReturnError:(NSError ** _Nullable)error;
 - (void)setDTD:(nullable NSXMLDTD *)dtd;
 
 /* THE TWO WRITING DOORS: the document's children as XML, with a declaration built from this document's own

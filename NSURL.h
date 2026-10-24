@@ -115,6 +115,10 @@ typedef NSString *NSURLFileResourceType;
 - (NSString *)absoluteString;
 - (NSString *)relativeString;
 - (BOOL)isFileURL;
+/* THE FILE-REFERENCE SPELLING (10.6). A reference URL tracks the ITEM rather than the path, which needs an inode
+ * the file system resolves; this library's NSURL is a parsed path, so the door refuses by name instead of returning
+ * `self` and claiming a durability it does not have. */
+- (nullable NSURL *)fileReferenceURL;
 
 /* Always self: there is nothing to resolve against, so every URL here is already
  * absolute (see +URLWithString:relativeToURL: in the refusal list). */

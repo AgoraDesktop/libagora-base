@@ -309,6 +309,12 @@ typedef enum {
 } NSFileManagerUnmountOptions;
 
 NS_SWIFT_NAME(FileManager)
+/* What -replaceItemAtURL:...: may do with the item it replaces. */
+typedef enum {
+	NSFileManagerItemReplacementUsingNewMetadataOnly = 1 << 0,
+	NSFileManagerItemReplacementWithoutDeletingBackupItem = 1 << 1
+} NSFileManagerItemReplacementOptions;
+
 @interface NSFileManager : NSObject
 {
 	/* ASSIGN, NOT WEAK, and that is MEASURED rather than chosen: Apple's own declaration comes back
@@ -604,6 +610,17 @@ NS_SWIFT_NAME(FileManager)
 - (BOOL)removeItemAtURL:(NSURL *)URL error:(NSError ** _Nullable)error;
 - (BOOL)copyItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL error:(NSError ** _Nullable)error;
 - (BOOL)moveItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL error:(NSError ** _Nullable)error;
+/* THE ATOMIC REPLACEMENT (10.6). `newItemURL` takes the place of `originalItemURL`; when `backupItemName` is not
+ * nil the item being replaced is moved to that name in the original's directory first, and
+ * `NSFileManagerItemReplacementWithoutDeletingBackupItem` keeps it after a successful swap. The metadata options
+ * are HONOURED AS THE RENAME'S OWN — a same-file-system rename keeps the new item's metadata, and this
+ * implementation says so rather than claiming to merge the old item's attributes onto it. */
+- (BOOL)replaceItemAtURL:(NSURL *)originalItemURL
+	   withItemAtURL:(NSURL *)newItemURL
+	  backupItemName:(nullable NSString *)backupItemName
+		 options:(NSFileManagerItemReplacementOptions)options
+	resultingItemURL:(NSURL * _Nullable * _Nullable)resultingURL
+		   error:(NSError ** _Nullable)error;
 - (BOOL)linkItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL error:(NSError ** _Nullable)error;
 - (BOOL)createSymbolicLinkAtURL:(NSURL *)url
 	     withDestinationURL:(NSURL *)destURL
@@ -749,12 +766,6 @@ typedef enum {
  * declaration used before it is declared is a compile error - the second time in this family that a
  * declaration's PLACE was the bug.) */
 
-/* What -replaceItemAtURL:...: may do with the item it replaces. */
-typedef enum {
-	NSFileManagerItemReplacementUsingNewMetadataOnly = 1 << 0,
-	NSFileManagerItemReplacementWithoutDeletingBackupItem = 1 << 1
-} NSFileManagerItemReplacementOptions;
-
 /* (NSFileManagerResumeSyncBehavior and NSFileManagerUploadLocalVersionConflictPolicy were HERE and are
  * now ABOVE the interface, where the sync-control doors that take them can see them.) */
 typedef enum {
@@ -831,6 +842,73 @@ typedef NSString *NSFileProviderServiceName;
 
 /* The key an unmount error carries when a process dissents: value == name, this library's convention. */
 extern NSString *const NSFileManagerUnmountDissentingProcessIdentifierErrorKey;
+
+/*
+ * THE FILE-MANAGER DELEGATE (10.0, with the URL forms in 10.5), declared on NSObject as 10.6 does.
+ *
+ * THE DECLARATIONS BELOW ARE THIS TREE'S OWN, COPIED FROM THE FORMAL PROTOCOL ABOVE AND MARKED `FN_INFORMAL`:
+ * 10.6 ALSO DECLARES THEM AS A CATEGORY ON NSObject, for a delegate written before the protocol existed and for the
+ * `-respondsToSelector:` check a sender makes. They must stay BODILESS. A default body would make every object
+ * appear to implement every callback, and the sender would stop asking.
+ */
+@interface NSObject (NSFileManagerDelegate)
+
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldCopyItemAtPath:(NSString *)srcPath
+	     toPath:(NSString *)dstPath FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldCopyItemAtURL:(NSURL *)srcURL
+	      toURL:(NSURL *)dstURL FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldProceedAfterError:(NSError *)error
+  copyingItemAtPath:(NSString *)srcPath
+	     toPath:(NSString *)dstPath FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldProceedAfterError:(NSError *)error
+   copyingItemAtURL:(NSURL *)srcURL
+	      toURL:(NSURL *)dstURL FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldMoveItemAtPath:(NSString *)srcPath
+	     toPath:(NSString *)dstPath FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldMoveItemAtURL:(NSURL *)srcURL
+	      toURL:(NSURL *)dstURL FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldProceedAfterError:(NSError *)error
+   movingItemAtPath:(NSString *)srcPath
+	     toPath:(NSString *)dstPath FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldProceedAfterError:(NSError *)error
+    movingItemAtURL:(NSURL *)srcURL
+	      toURL:(NSURL *)dstURL FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager shouldRemoveItemAtPath:(NSString *)path FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager shouldRemoveItemAtURL:(NSURL *)URL FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldProceedAfterError:(NSError *)error
+ removingItemAtPath:(NSString *)path FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldProceedAfterError:(NSError *)error
+  removingItemAtURL:(NSURL *)URL FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldLinkItemAtPath:(NSString *)srcPath
+	     toPath:(NSString *)dstPath FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldLinkItemAtURL:(NSURL *)srcURL
+	      toURL:(NSURL *)dstURL FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldProceedAfterError:(NSError *)error
+  linkingItemAtPath:(NSString *)srcPath
+	     toPath:(NSString *)dstPath FN_INFORMAL;
+- (BOOL)fileManager:(NSFileManager *)fileManager
+shouldProceedAfterError:(NSError *)error
+   linkingItemAtURL:(NSURL *)srcURL
+	      toURL:(NSURL *)dstURL FN_INFORMAL;
+
+/* THE TWO 10.0 ROWS: the legacy proceed-after-error callback and the path notification. Declaration-only. */
+- (BOOL)fileManager:(NSFileManager *)fileManager
+    shouldProceedAfterError:(NSError *)error FN_INFORMAL;
+- (void)fileManager:(NSFileManager *)fileManager willProcessPath:(NSString *)path FN_INFORMAL;
+@end
 
 NS_ASSUME_NONNULL_END
 

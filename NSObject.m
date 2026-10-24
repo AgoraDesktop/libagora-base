@@ -423,6 +423,93 @@ static NSMethodSignature *fn_signature_for(id receiver, SEL aSelector)
 	[self doesNotRecognizeSelector:[anInvocation selector]];
 }
 
+/* ------------------------------------------------------------------------------------------------------------------
+ * THE RUNTIME'S HOOKS, THE CODER'S CLASS DOORS, AND THE THREE 10.6 NO-OPS.
+ *
+ * The two `+resolve...Method:` answers are NO. That is Apple's default, and it is not a placeholder: the runtime
+ * calls these only when it is about to fail, and a YES means "I installed the method" — answering YES without
+ * calling `class_addMethod` would make the runtime retry forever. A subclass that generates trampolines overrides
+ * them, adds the method and answers YES; the default must not.
+ * ---------------------------------------------------------------------------------------------------------------- */
++ (BOOL)resolveInstanceMethod:(SEL)aSelector
+{
+	(void)aSelector;
+	return NO;
+}
+
++ (BOOL)resolveClassMethod:(SEL)aSelector
+{
+	(void)aSelector;
+	return NO;
+}
+
++ (IMP)instanceMethodForSelector:(SEL)aSelector
+{
+	Method method = class_getInstanceMethod(self, aSelector);
+
+	return (method != NULL) ? method_getImplementation(method) : NULL;
+}
+
++ (NSMethodSignature *)instanceMethodSignatureForSelector:(SEL)aSelector
+{
+	Method method = class_getInstanceMethod(self, aSelector);
+	const char *types = (method != NULL) ? method_getTypeEncoding(method) : NULL;
+
+	if (types == NULL) {
+		types = sel_getType_np(aSelector);
+	}
+	return (types != NULL) ? [NSMethodSignature signatureWithObjCTypes:types] : nil;
+}
+
+/* THE CLASS VERSION LIVES IN THE RUNTIME, which is where Apple keeps it too: `+version` is `class_getVersion` and
+ * `+setVersion:` is `class_setVersion:`. A class that never sets one answers the runtime's 0. */
++ (NSInteger)version
+{
+	return (NSInteger)class_getVersion(self);
+}
+
++ (void)setVersion:(NSInteger)aVersion
+{
+	class_setVersion(self, (int)aVersion);
+}
+
+/* THE OLD CODER SUBSTITUTION SEAM. The default substitutes nothing, which is what Apple documents, and the modern
+ * spelling (`-classForCoder`) is what a class cluster overrides. */
+- (id)replacementObjectForCoder:(NSCoder *)aCoder
+{
+	(void)aCoder;
+	return self;
+}
+
+- (id)awakeAfterUsingCoder:(NSCoder *)aDecoder
+{
+	(void)aDecoder;
+	return self;
+}
+
+/* `+poseAsClass:` IS REFUSED BY NAME RATHER THAN HALF-DONE. See the header: libobjc2 has no `class_poseAs`, and a
+ * library cannot rewrite the class references already compiled into a process. The exception says exactly that, so a
+ * caller learns why from the failure rather than from the absence of an effect.
+ *
+ * THE FIVE COLLECTOR/ACCESS NO-OPS ARE EACH DOCUMENTED BEHAVIOUR, NOT STUBS: this root class has no purgeable content
+ * of its own (so its proxy is itself), it has no collector to finalize it, and `NSGarbageCollector` refuses for the
+ * same reason. */
++ (void)poseAsClass:(Class)aClass
+{
+	[NSException raise:NSInvalidArgumentException
+		    format:@"+[NSObject poseAsClass:] is not supported: libobjc2 has no class_pose_as, so %@ cannot "
+			   @"replace %@ in the class hierarchy", NSStringFromClass(self), NSStringFromClass(aClass)];
+}
+
+- (id)autoContentAccessingProxy
+{
+	return self;
+}
+
+- (void)finalize
+{
+}
+
 
 /*
  * THE REST OF THE PUBLIC ROOT-CLASS API (the hard rule: a class passes only when
@@ -895,6 +982,52 @@ void objc_enumerationMutation(id object)
 		    format:@"*** Collection was mutated while being enumerated."];
 }
 @end
+
+@implementation NSObject (NSErrorRecoveryAttempting)
+
+/* THE DELEGATE FORM. The default attempts nothing, so the answer it reports is NO — and it REPORTS it, because a
+ * caller that named a delegate and a selector is waiting for that call. NSInvocation is used rather than a
+ * performSelector: because the callback's second argument is a BOOL, which performSelector: cannot carry. */
+- (void)attemptRecoveryFromError:(NSError *)error
+		     optionIndex:(NSUInteger)recoveryOptionIndex
+			delegate:(id)delegate
+	      didRecoverSelector:(SEL)didRecoverSelector
+		     contextInfo:(void *)contextInfo
+{
+	(void)error;
+	(void)recoveryOptionIndex;
+	if (delegate == nil || didRecoverSelector == NULL) {
+		return;
+	}
+	if ([delegate respondsToSelector:didRecoverSelector]) {
+		NSMethodSignature *signature = [delegate methodSignatureForSelector:didRecoverSelector];
+
+		if (signature != nil) {
+			NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+			id sender = self;
+			BOOL didRecover = NO;
+			void *info = contextInfo;
+
+			[invocation setTarget:delegate];
+			[invocation setSelector:didRecoverSelector];
+			[invocation setArgument:&sender atIndex:2];
+			[invocation setArgument:&didRecover atIndex:3];
+			[invocation setArgument:&info atIndex:4];
+			[invocation invoke];
+			return;
+		}
+	}
+}
+
+- (BOOL)attemptRecoveryFromError:(NSError *)error optionIndex:(NSUInteger)recoveryOptionIndex
+{
+	(void)error;
+	(void)recoveryOptionIndex;
+	return NO;		/* nothing was attempted, so nothing recovered */
+}
+
+@end
+
 
 /* ===================================================================================================
  * THE FREE FUNCTIONS OF §62.52: see NSObjCRuntime.h for each one's rule

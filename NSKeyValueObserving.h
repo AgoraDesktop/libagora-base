@@ -150,6 +150,21 @@ typedef NSUInteger NSKeyValueSetMutationKind;
 - (nullable void *)observationInfo;
 - (void)setObservationInfo:(nullable void *)info;
 
+/*
+ * THE DEPENDENCY DOORS. `+automaticallyNotifiesObserversForKey:` is the switch that lets a class opt OUT of the
+ * automatic wrapper for one key (answer NO for a key whose setter does its own announcing — the manual pair is then
+ * the caller's job). `+keyPathsForValuesAffectingValueForKey:` is the declarative form: a class implements
+ * `+keyPathsForValuesAffecting<Key>` and KVO sends that key's observers when the named paths change. Both are
+ * Apple's 10.5 shape, and the default answers keep the automatic machinery on.
+ *
+ * `-setKeys:triggerChangeNotificationsForDependentKey:` is the OLDER, imperative registration of the same relation.
+ * It is deprecated (10.5) but declared, and this tree implements it as a per-class registration so a legacy caller
+ * gets the notifications it asked for rather than a no-op.
+ */
++ (BOOL)automaticallyNotifiesObserversForKey:(NSString *)key;
++ (NSSet *)keyPathsForValuesAffectingValueForKey:(NSString *)key;
+- (void)setKeys:(NSArray *)keys triggerChangeNotificationsForDependentKey:(NSString *)dependentKey;
+
 @end
 
 /* ---- §63.45: THE ARRAY-WIDE REGISTRATION DOORS -----------------------------------------------------

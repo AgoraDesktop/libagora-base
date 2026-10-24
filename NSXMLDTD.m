@@ -449,6 +449,11 @@ NSArray *FNDTDDeclarationNodes(NSString *declaration)
 	[super dealloc];
 }
 
+- (BOOL)isExternal
+{
+	return _systemID != nil;
+}
+
 @end
 
 @implementation NSXMLDTD

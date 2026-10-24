@@ -28,6 +28,7 @@
 
 @class NSString;
 @class NSDictionary;
+@class NSArray;
 
 /* NULLABILITY (F6, slice 3): NONNULL by default. -name is required (the init takes
  * it nonnull and nothing clears it), while the other two are optional — both are
@@ -87,6 +88,12 @@ extern NSString *const NSMallocException;
 @property (nullable, readonly, copy) NSDictionary *userInfo;
 
 - (void)raise;
+
+/* THE STACK AT THE MOMENT THE QUESTION IS ASKED (10.5 addresses, 10.6 symbols). Apple declares these on the
+ * INSTANCE even though the exception does not carry a stack: they are the same walk NSThread answers, asked from
+ * the exception's spelling. Both begin at the caller. */
+- (NSArray *)callStackReturnAddresses;
+- (NSArray *)callStackSymbols;
 
 /* THE CODER DOORS. The KEYS are this library's (Apple's are private) and follow the house convention — the
  * plain property names, as Apple's term-of-address and morphology classes write theirs (§63.164 removed

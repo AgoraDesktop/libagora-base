@@ -78,9 +78,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)removeAllCachedResponses;
 
 @property (readonly) NSUInteger currentMemoryUsage;
-@property (readonly) NSUInteger memoryCapacity;
+@property (readwrite) NSUInteger memoryCapacity;
++ (void)setSharedURLCache:(NSURLCache *)cache;
 @property (readonly) NSUInteger currentDiskUsage;
-@property (readonly) NSUInteger diskCapacity;
+@property (readwrite) NSUInteger diskCapacity;
 
 @end
 

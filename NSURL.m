@@ -2194,4 +2194,12 @@ static BOOL fn_url_key_is_tied_to_contents(NSURLResourceKey key)
 	return [self checkResourceIsReachableAndReturnError:error];
 }
 
+- (NSURL *)fileReferenceURL
+{
+	[NSException raise:NSInvalidArgumentException
+		    format:@"NSURL -fileReferenceURL: this library resolves paths, not file-system identities, "
+			   "so a reference URL cannot be produced"];
+	return nil;
+}
+
 @end

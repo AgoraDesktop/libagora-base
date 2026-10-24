@@ -220,4 +220,18 @@ NS_ASSUME_NONNULL_END
 + (instancetype _Nonnull)fileProviderErrorForRejectedDeletionOfItem:(id _Nonnull)updatedItem;
 @end
 
+
+/* THE ERROR-RECOVERY INFORMAL PROTOCOL (10.2), on NSObject as Apple declares it in NSError.h. The default does
+ * nothing and answers NO: a class that can recover overrides it, and the delegate callback is only sent when a
+ * delegate was named.
+ */
+@interface NSObject (NSErrorRecoveryAttempting)
+- (void)attemptRecoveryFromError:(NSError *)error
+		     optionIndex:(NSUInteger)recoveryOptionIndex
+			delegate:(nullable id)delegate
+	      didRecoverSelector:(nullable SEL)didRecoverSelector
+		     contextInfo:(nullable void *)contextInfo;
+- (BOOL)attemptRecoveryFromError:(NSError *)error optionIndex:(NSUInteger)recoveryOptionIndex;
+@end
+
 #endif /* FOUNDATION_NSERROR_H */

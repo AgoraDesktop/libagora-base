@@ -104,6 +104,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable id)expressionValueWithObject:(nullable id)object
                                  context:(nullable NSMutableDictionary *)context;
 
+/* THE BLOCK PAYLOAD (10.6). `+expressionForBlock:arguments:` stores a copied block; this answers it, and nil for
+ * every other expression kind — the same total-accessor rule the other payload doors follow. */
+@property (nullable, readonly) id (^expressionBlock)(id, NSArray *, NSMutableDictionary *);
+
 @end
 
 NS_ASSUME_NONNULL_END

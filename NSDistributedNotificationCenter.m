@@ -289,4 +289,11 @@ suspensionBehavior:(NSNotificationSuspensionBehavior)behavior
 {
 	return _suspended;
 }
+
+/* APPLE'S METHOD SPELLING OF THE SAME QUESTION. 10.6 declares `-suspended` as the door and `isSuspended` as the
+ * property getter; both are the flag, so neither can disagree with the other. */
+- (BOOL)suspended
+{
+	return _suspended;
+}
 @end

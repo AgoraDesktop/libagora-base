@@ -115,6 +115,7 @@
 @class NSCachedURLResponse;
 @class NSURLAuthenticationChallenge;
 @class NSURL;
+@class NSRunLoop;
 @class NSURLProtectionSpace;
 @class NSURLProtocol;
 @class NSURLRequest;
@@ -353,6 +354,57 @@ totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite;
 	      completionHandler:(void (^)(NSURLResponse * _Nullable,
 					  NSData * _Nullable,
 					  NSError * _Nullable))handler;
+/* THE RUN-LOOP DELIVERY PAIR, DECLARED AND REFUSED (10.2). See the header note above: this connection delivers
+ * through `-setDelegateQueue:` and has no run-loop source to hand work to, so the pair raises with that stated
+ * rather than storing a run loop nothing reads. */
+- (void)scheduleInRunLoop:(NSRunLoop *)aRunLoop forMode:(NSString *)mode;
+- (void)unscheduleFromRunLoop:(NSRunLoop *)aRunLoop forMode:(NSString *)mode;
+
+@end
+
+/*
+ * THE URL-LOADING INFORMAL PROTOCOLS (10.2), and 10.6's spelling of them: one category on NSObject covering the
+ * connection's three formal protocols.
+ *
+ * THE DECLARATIONS BELOW ARE THIS TREE'S OWN, COPIED FROM THE FORMAL PROTOCOL ABOVE AND MARKED `FN_INFORMAL`:
+ * 10.6 ALSO DECLARES THEM AS A CATEGORY ON NSObject, for a delegate written before the protocol existed and for the
+ * `-respondsToSelector:` check a sender makes. They must stay BODILESS. A default body would make every object
+ * appear to implement every callback, and the sender would stop asking.
+ */
+@interface NSObject (NSURLConnectionDelegate)
+
+- (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error FN_INFORMAL;
+- (void)connection:(NSURLConnection *)connection
+willSendRequestForAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge FN_INFORMAL;
+- (BOOL)connection:(NSURLConnection *)connection
+canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace FN_INFORMAL;
+- (void)connection:(NSURLConnection *)connection
+didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge FN_INFORMAL;
+- (nullable NSURLRequest *)connection:(NSURLConnection *)connection
+		       willSendRequest:(NSURLRequest *)request
+		    redirectResponse:(nullable NSURLResponse *)response FN_INFORMAL;
+- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response FN_INFORMAL;
+- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data FN_INFORMAL;
+- (void)connectionDidFinishLoading:(NSURLConnection *)connection FN_INFORMAL;
+- (nullable NSInputStream *)connection:(NSURLConnection *)connection
+	     needNewBodyStream:(NSURLRequest *)request FN_INFORMAL;
+- (void)connection:(NSURLConnection *)connection
+  didSendBodyData:(NSInteger)bytesWritten
+totalBytesWritten:(NSInteger)totalBytesWritten
+totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite FN_INFORMAL;
+- (nullable NSCachedURLResponse *)connection:(NSURLConnection *)connection
+			  willCacheResponse:(NSCachedURLResponse *)cachedResponse FN_INFORMAL;
+- (void)connection:(NSURLConnection *)connection
+	 didWriteData:(long long)bytesWritten
+    totalBytesWritten:(long long)totalBytesWritten
+    expectedTotalBytes:(long long)expectedTotalBytes FN_INFORMAL;
+- (void)connectionDidFinishDownloading:(NSURLConnection *)connection destinationURL:(NSURL *)destinationURL FN_INFORMAL;
+
+/* THE TWO 10.6 ROWS THE FORMAL PROTOCOLS DO NOT NAME: the deprecated challenge-cancel callback and the
+ * credential-storage question. Declaration-only, as an informal protocol must be. */
+- (void)connection:(NSURLConnection *)connection
+    didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge FN_INFORMAL;
+- (BOOL)connectionShouldUseCredentialStorage:(NSURLConnection *)connection FN_INFORMAL;
 @end
 
 NS_ASSUME_NONNULL_END

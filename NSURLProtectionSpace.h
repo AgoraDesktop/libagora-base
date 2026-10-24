@@ -12,9 +12,10 @@
  * judgement about the caller. The store that keeps credentials is a different class, and the decision to
  * send one belongs to whoever is talking to the server.
  *
- * REFUSED BY NAME, and the checks assert they are ABSENT: `-serverTrust` and `-distinguishedNames`. Each
- * names a `SecTrustRef` or a certificate field - the SECURITY framework's types - and this system has no
- * certificate stack to give one a meaning (see docs/design/foundation-plan.md §48.1).
+ * DECLARED AND REFUSED BY NAME: `-serverTrust` and `-distinguishedNames`. Each names a `SecTrustRef` or a
+ * certificate field - the SECURITY framework's types - and this system has no certificate stack to give one a
+ * meaning (see docs/design/foundation-plan.md §48.1). They exist so a caller written against 10.6 compiles; they
+ * raise, with the absent subsystem named, rather than answering a fabricated trust.
  */
 
 #ifndef _FNX_FOUNDATION_NSURLPROTECTIONSPACE_H
@@ -92,6 +93,11 @@ extern NSString * const NSURLAuthenticationMethodServerTrust;
 /* A PROPERTY OF THE SCHEME, not of the caller's intentions: https receives credentials securely and http
  * does not, and that is the whole rule. */
 @property (readonly) BOOL receivesCredentialSecurely;
+
+/* THE TWO SECURITY-SHAPED DOORS, refused by name. `void *` stands in for SecTrustRef for the reason
+ * NSURLCredential.h gives. */
+- (nullable void *)serverTrust;
+- (nullable NSArray *)distinguishedNames;
 
 @end
 

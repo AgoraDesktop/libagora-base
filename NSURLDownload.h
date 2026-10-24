@@ -147,4 +147,41 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+/*
+ * THE DOWNLOAD DELEGATE (10.2): the other half of the URL-loading informal protocol, declared on NSObject as 10.6
+ * does.
+ *
+ * THE DECLARATIONS BELOW ARE THIS TREE'S OWN, COPIED FROM THE FORMAL PROTOCOL ABOVE AND MARKED `FN_INFORMAL`:
+ * 10.6 ALSO DECLARES THEM AS A CATEGORY ON NSObject, for a delegate written before the protocol existed and for the
+ * `-respondsToSelector:` check a sender makes. They must stay BODILESS. A default body would make every object
+ * appear to implement every callback, and the sender would stop asking.
+ */
+@interface NSObject (NSURLDownloadDelegate)
+
+- (BOOL)download:(NSURLDownload *)download
+    canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace FN_INFORMAL;
+- (void)download:(NSURLDownload *)download
+    decideDestinationWithSuggestedFilename:(NSString *)filename FN_INFORMAL;
+- (void)download:(NSURLDownload *)download
+    didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge FN_INFORMAL;
+- (void)download:(NSURLDownload *)download didCreateDestination:(NSString *)path FN_INFORMAL;
+- (void)download:(NSURLDownload *)download didFailWithError:(NSError *)error FN_INFORMAL;
+- (void)download:(NSURLDownload *)download
+    didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge FN_INFORMAL;
+- (void)download:(NSURLDownload *)download didReceiveResponse:(NSURLResponse *)response FN_INFORMAL;
+- (void)download:(NSURLDownload *)download didReceiveDataOfLength:(NSUInteger)length FN_INFORMAL;
+- (BOOL)download:(NSURLDownload *)download
+    shouldDecodeSourceDataOfMIMEType:(NSString *)encodingType FN_INFORMAL;
+- (void)download:(NSURLDownload *)download
+    willResumeWithResponse:(NSURLResponse *)response
+		  fromByte:(long long)startingByte FN_INFORMAL;
+- (nullable NSURLRequest *)download:(NSURLDownload *)download
+		      willSendRequest:(NSURLRequest *)request
+		   redirectResponse:(nullable NSURLResponse *)redirectResponse FN_INFORMAL;
+- (void)downloadDidBegin:(NSURLDownload *)download FN_INFORMAL;
+- (void)downloadDidFinish:(NSURLDownload *)download FN_INFORMAL;
+- (BOOL)downloadShouldUseCredentialStorage:(NSURLDownload *)download FN_INFORMAL;
+
+@end
+
 NS_ASSUME_NONNULL_END

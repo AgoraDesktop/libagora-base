@@ -16,10 +16,10 @@
  * forgot to override it would otherwise "succeed" at doing nothing at all, which is the failure a
  * caller cannot see.
  *
- * WHAT IS NOT HERE, named: `-completionBlock`, `-queuePriority`/`-qualityOfService`, `-asynchronous`
- * operations that manage their own completion, and `NSOperation`'s KVO announcements for its own state —
- * the state is readable, but changing it does not notify (F13.9's registry exists; wiring it here is its
- * own step).
+ * WHAT IS NOT HERE, named: `-qualityOfService` (the property, as opposed to the legacy macro aliases below),
+ * ASYNCHRONOUS operations that manage their own completion (`-isConcurrent` answers NO), and `NSOperation`'s KVO
+ * announcements for its own state — the state is readable, but changing it does not notify (F13.9's registry
+ * exists; wiring it here is its own step).
  *
  * AND ONE NAME HAS LEFT THAT LIST RATHER THAN BEEN DELETED FROM IT: `-addOperationWithBlock:` USED TO BE
  * HERE because "this library has no blocks in its public headers". That was true when F13.9 wrote it and
@@ -55,6 +55,19 @@
 #define NSOperationQualityOfServiceUtility		NSQualityOfServiceUtility
 #define NSOperationQualityOfServiceBackground		NSQualityOfServiceBackground
 
+/* HOW URGENT THIS OPERATION IS (2026-09-20). -queuePriority is in this header's
+ * refusal list above, so the type is here ahead of its user — as it is in Cocoa's
+ * own header. Names from Apple's documentation index; values are ours (§11.6.1 D2,
+ * see NSFileManager.h), and what is NOT ours is the ORDER: VeryLow < Low < Normal <
+ * High < VeryHigh is the semantic the enum exists to express, and it is preserved. */
+typedef enum {
+	NSOperationQueuePriorityVeryLow = 0,
+	NSOperationQueuePriorityLow = 1,
+	NSOperationQueuePriorityNormal = 2,
+	NSOperationQueuePriorityHigh = 3,
+	NSOperationQueuePriorityVeryHigh = 4
+} NSOperationQueuePriority;
+
 NS_ASSUME_NONNULL_BEGIN
 NS_SWIFT_NAME(Operation)
 @interface NSOperation : NSObject
@@ -65,6 +78,9 @@ NS_SWIFT_NAME(Operation)
 	BOOL _executing;
 	BOOL _finished;
 	BOOL _started;
+	NSOperationQueuePriority _queuePriority;
+	double _threadPriority;
+	void (^_completionBlock)(void);	/* run once, after the operation stops executing */
 }
 
 /* THE HOOK. The base class raises, on purpose. */
@@ -84,22 +100,23 @@ NS_SWIFT_NAME(Operation)
 - (NSArray *)dependencies;
 - (void)waitUntilFinished;
 
+/*
+ * THE 10.6 STATE DOORS. `-completionBlock` runs once after the operation finishes — including the case where it was
+ * cancelled before it ever started, which is Apple's contract and the reason the block is not called from `-main`.
+ * `-queuePriority` is the queue's ordering hint; `-threadPriority` is the deprecated 0.0–1.0 form of the same idea,
+ * stored and reported so a caller that still sets it is not lied to. `-isConcurrent` is NO because this operation
+ * runs its `-main` on the calling thread and has no asynchronous half.
+ */
+@property (copy, nullable) void (^completionBlock)(void);
+@property NSOperationQueuePriority queuePriority;
+@property double threadPriority;
+- (BOOL)isConcurrent;
+
 - (NSString *)description;
 
 @end
 
-/* HOW URGENT THIS OPERATION IS (2026-09-20). -queuePriority is in this header's
- * refusal list above, so the type is here ahead of its user — as it is in Cocoa's
- * own header. Names from Apple's documentation index; values are ours (§11.6.1 D2,
- * see NSFileManager.h), and what is NOT ours is the ORDER: VeryLow < Low < Normal <
- * High < VeryHigh is the semantic the enum exists to express, and it is preserved. */
-typedef enum {
-	NSOperationQueuePriorityVeryLow = 0,
-	NSOperationQueuePriorityLow = 1,
-	NSOperationQueuePriorityNormal = 2,
-	NSOperationQueuePriorityHigh = 3,
-	NSOperationQueuePriorityVeryHigh = 4
-} NSOperationQueuePriority;
+
 
 NS_ASSUME_NONNULL_END
 

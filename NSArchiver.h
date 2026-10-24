@@ -18,11 +18,12 @@
  * Apple states in words — a keyed archive cannot be read here. The layout is in `FNArchiverWire.h`,
  * internal and documented, because a format nobody can read is a format nobody can test.
  *
+ * CLASS-NAME TRANSLATION IS IMPLEMENTED (§63.247), because the wire is ours and the mapping is part of what an
+ * archiver is FOR: `-encodeClassName:intoClassName:` records the name written in place of a class and
+ * `-classNameEncodedForTrueClassName:` is the door the writer consults. The reader has the mirror pair, so a
+ * renamed class round-trips instead of being a name the reader cannot find.
+ *
  * WHAT IS ABSENT, NAMED AND WITH ITS GROUND:
- *   * class-name translation (`-encodeClassName:intoClassName:` and its three siblings) — NOT DECLARED,
- *     which is the SAME REFUSAL `NSKeyedArchiver.h` already records for its own equivalent
- *     (`-setClassName:forClass:`). Two archivers in one library that both say no to one feature is a
- *     decision; one that says yes while the other says no would be an accident.
  *   * `-versionForClassName:` IS declared (it is on the base) and RAISES here, because this wire records
  *     no class versions — answering a number that was never written would be a fabrication.
  *
@@ -48,6 +49,7 @@ NS_ASSUME_NONNULL_BEGIN
 	id _targets;		/* their replacements, index for index */
 	BOOL _rootEncoded;
 	NSZone *_objectZone;	/* the zone substituted objects are allocated in; default when unset */
+	id _classMap;		/* true class name -> the name written, for -encodeClassName:intoClassName: */
 }
 
 /* ONE ROOT, AND THE DATA COMES BACK. Both write a header before any value, so a reader can tell this
@@ -76,6 +78,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSZone *)objectZone;
 - (void)setObjectZone:(nullable NSZone *)zone;
 
+/* THE CLASS-NAME MAP (10.0). `-encodeClassName:intoClassName:` records that `trueName` is written as
+ * `inArchiveName`; `-classNameEncodedForTrueClassName:` answers the recorded name or the name itself, which is the
+ * question the writer asks for every object. The reader's mirror pair is on NSUnarchiver. */
+- (void)encodeClassName:(NSString *)trueName intoClassName:(NSString *)inArchiveName;
+- (NSString *)classNameEncodedForTrueClassName:(NSString *)trueName;
+
 @end
 
 @interface NSUnarchiver : NSCoder
@@ -87,6 +95,7 @@ NS_ASSUME_NONNULL_BEGIN
 	id _replaced;		/* substitution sources */
 	id _targets;		/* their replacements */
 	NSZone *_objectZone;	/* the zone decoded objects are allocated in; default when unset */
+	id _decodeMap;		/* the name in the archive -> the class name to look up */
 }
 
 /* AN INVALID ARCHIVE ANSWERS nil RATHER THAN RAISING, because "this is not an archive of mine" is a value
@@ -108,6 +117,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSZone *)objectZone;
 - (void)setObjectZone:(nullable NSZone *)zone;
 
+
+@end
+
+/* THE OBJECT-SUBSTITUTION CALLBACK (10.0), on the root class as an informal protocol: an object may answer a
+ * DIFFERENT object to be written in its place. The default substitutes nothing. */
+@interface NSObject (NSArchiverCallback)
+- (nullable id)replacementObjectForArchiver:(NSCoder *)anArchiver;
 @end
 
 /* Reads one object from a coder. APPLE DECLARES THIS IN `NSSerialization.h`, A HEADER THIS LIBRARY DOES

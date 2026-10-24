@@ -137,4 +137,24 @@
 	[super dealloc];
 }
 
+- (id)connection
+{
+	return nil;
+}
+
+@end
+
+@implementation NSObject (NSDistributedObjects)
+
+- (Class)classForPortCoder
+{
+	return [self classForCoder];
+}
+
+- (id)replacementObjectForPortCoder:(NSCoder *)coder
+{
+	(void)coder;
+	return self;
+}
+
 @end

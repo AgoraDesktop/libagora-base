@@ -824,4 +824,20 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend
 	[connection release];
 	[catcher release];
 }
+- (void)scheduleInRunLoop:(NSRunLoop *)aRunLoop forMode:(NSString *)mode
+{
+	(void)aRunLoop; (void)mode;
+	[NSException raise:NSInvalidArgumentException
+		    format:@"NSURLConnection -scheduleInRunLoop:forMode:: this connection delivers through "
+			   "-setDelegateQueue: and has no run-loop source, so there is nothing to schedule"];
+}
+
+- (void)unscheduleFromRunLoop:(NSRunLoop *)aRunLoop forMode:(NSString *)mode
+{
+	(void)aRunLoop; (void)mode;
+	[NSException raise:NSInvalidArgumentException
+		    format:@"NSURLConnection -unscheduleFromRunLoop:forMode:: nothing was scheduled "
+			   "(-scheduleInRunLoop:forMode: refuses)"];
+}
+
 @end

@@ -78,6 +78,7 @@ extern NSString * const NSKeyedArchiveRootObjectKey;
 	NSMutableArray *_stack;		/* the entries being filled, innermost last */
 	id <NSKeyedArchiverDelegate> _delegate;	/* NOT retained: see the note above */
 	NSMutableData *_data;		/* the caller's buffer, which -finishEncoding fills */
+	NSPropertyListFormat _outputFormat;	/* XML unless -setOutputFormat: says otherwise */
 	NSMutableDictionary *_top;	/* the $top keys: what was encoded OUTSIDE -encodeWithCoder: */
 	NSMutableDictionary *_classNameMap;	/* Class -> the name THIS archiver writes for it */
 	/* THE SECURE-CODING FLAG IS NOT DECLARED HERE: the NSCoder base declares it (NSCoder.h), for
@@ -143,7 +144,22 @@ extern NSString * const NSKeyedArchiveRootObjectKey;
 - (instancetype)initRequiringSecureCoding:(BOOL)requiresSecureCoding;
 - (nullable NSData *)encodedData;
 - (NSPropertyListFormat)outputFormat;
+/* THE FORMAT THE ARCHIVE IS WRITTEN IN (10.6): XML by default, binary when asked. The setter stores the choice and
+ * `-finishEncoding` serialises the plist in it; a format this library cannot write raises rather than being
+ * silently replaced by XML, because a caller that asked for binary and got XML has a file it cannot predict. */
+- (void)setOutputFormat:(NSPropertyListFormat)format;
 
+@end
+
+/* THE KEYED-SUBSTITUTION INFORMAL PROTOCOLS (10.2), on NSObject as Apple declares them. */
+@interface NSObject (NSKeyedArchiverObjectSubstitution)
++ (nullable NSArray *)classFallbacksForKeyedArchiver;
++ (Class)classForKeyedArchiver;
+- (nullable id)replacementObjectForKeyedArchiver:(NSCoder *)archiver;
+@end
+
+@interface NSObject (NSKeyedUnarchiverObjectSubstitution)
++ (Class)classForKeyedUnarchiver;
 @end
 
 @interface NSKeyedUnarchiver : NSCoder

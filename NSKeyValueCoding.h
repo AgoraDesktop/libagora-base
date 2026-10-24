@@ -91,6 +91,38 @@ NS_ASSUME_NONNULL_BEGIN
 	       forKey:(NSString *)key
 		error:(NSError * _Nullable * _Nullable)outError;
 
+/*
+ * THE OPENSTEP-ERA SPELLINGS AND THE STORED-ACCESSOR PAIR. `-takeValue:forKey:` is Apple's pre-10.3 name for
+ * `-setValue:forKey:` and is still declared in NSKeyValueCoding.h; the stored pair is the one with different
+ * SEMANTICS rather than a different word: it reads and writes the INSTANCE VARIABLE and never an accessor, which is
+ * what a class needs when it wants to bypass its own validation while decoding.
+ *
+ * `+accessInstanceVariablesDirectly` is the switch that lets KVC touch ivars at all. This tree's KVC searches
+ * `_key`, `_isKey`, `key` and `isKey` after the accessors, so the default is YES — Apple's default too — and a class
+ * that wants to hide its ivars overrides it to answer NO (its KVC then ends in `-valueForUndefinedKey:`).
+ *
+ * THE TWO DICTIONARY DOORS ARE THE BATCH FORM of `-valueForKey:`/`-setValue:forKey:`, and they use NSNull for nil:
+ * a dictionary cannot hold nil, so `-dictionaryWithValuesForKeys:` substitutes NSNull for a nil value and
+ * `-setValuesForKeysWithDictionary:` turns NSNull back into nil. That round trip is the contract, and it is the one
+ * that makes an archive of a properties dictionary possible.
+ */
++ (BOOL)accessInstanceVariablesDirectly;
+- (nullable id)storedValueForKey:(NSString *)key;
+- (void)takeStoredValue:(nullable id)value forKey:(NSString *)key;
+- (void)takeValue:(nullable id)value forKey:(NSString *)key;
+- (void)takeValue:(nullable id)value forKeyPath:(NSString *)keyPath;
+- (void)takeValuesFromDictionary:(NSDictionary *)properties;
+- (NSArray *)valuesForKeys:(NSArray *)keys;
+- (NSDictionary *)dictionaryWithValuesForKeys:(NSArray *)keys;
+- (void)setValuesForKeysWithDictionary:(NSDictionary *)keyedValues;
+- (nullable id)handleQueryWithUnboundKey:(NSString *)key;
+- (void)handleTakeValue:(nullable id)value forUnboundKey:(NSString *)key;
+- (void)unableToSetNilForKey:(NSString *)key;
+- (BOOL)useStoredAccessor;
+- (BOOL)validateValue:(id _Nullable * _Nullable)ioValue
+	    forKeyPath:(NSString *)keyPath
+		 error:(NSError * _Nullable * _Nullable)outError;
+
 @end
 
 /*
@@ -118,6 +150,38 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)validateValue:(id _Nullable * _Nullable)ioValue
 	       forKey:(NSString *)key
 		error:(NSError * _Nullable * _Nullable)outError;
+
+/*
+ * THE OPENSTEP-ERA SPELLINGS AND THE STORED-ACCESSOR PAIR. `-takeValue:forKey:` is Apple's pre-10.3 name for
+ * `-setValue:forKey:` and is still declared in NSKeyValueCoding.h; the stored pair is the one with different
+ * SEMANTICS rather than a different word: it reads and writes the INSTANCE VARIABLE and never an accessor, which is
+ * what a class needs when it wants to bypass its own validation while decoding.
+ *
+ * `+accessInstanceVariablesDirectly` is the switch that lets KVC touch ivars at all. This tree's KVC searches
+ * `_key`, `_isKey`, `key` and `isKey` after the accessors, so the default is YES — Apple's default too — and a class
+ * that wants to hide its ivars overrides it to answer NO (its KVC then ends in `-valueForUndefinedKey:`).
+ *
+ * THE TWO DICTIONARY DOORS ARE THE BATCH FORM of `-valueForKey:`/`-setValue:forKey:`, and they use NSNull for nil:
+ * a dictionary cannot hold nil, so `-dictionaryWithValuesForKeys:` substitutes NSNull for a nil value and
+ * `-setValuesForKeysWithDictionary:` turns NSNull back into nil. That round trip is the contract, and it is the one
+ * that makes an archive of a properties dictionary possible.
+ */
++ (BOOL)accessInstanceVariablesDirectly;
+- (nullable id)storedValueForKey:(NSString *)key;
+- (void)takeStoredValue:(nullable id)value forKey:(NSString *)key;
+- (void)takeValue:(nullable id)value forKey:(NSString *)key;
+- (void)takeValue:(nullable id)value forKeyPath:(NSString *)keyPath;
+- (void)takeValuesFromDictionary:(NSDictionary *)properties;
+- (NSArray *)valuesForKeys:(NSArray *)keys;
+- (NSDictionary *)dictionaryWithValuesForKeys:(NSArray *)keys;
+- (void)setValuesForKeysWithDictionary:(NSDictionary *)keyedValues;
+- (nullable id)handleQueryWithUnboundKey:(NSString *)key;
+- (void)handleTakeValue:(nullable id)value forUnboundKey:(NSString *)key;
+- (void)unableToSetNilForKey:(NSString *)key;
+- (BOOL)useStoredAccessor;
+- (BOOL)validateValue:(id _Nullable * _Nullable)ioValue
+	    forKeyPath:(NSString *)keyPath
+		 error:(NSError * _Nullable * _Nullable)outError;
 
 @end
 

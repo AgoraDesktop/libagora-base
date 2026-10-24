@@ -70,6 +70,26 @@
 					capacity:0] autorelease];
 }
 
++ (instancetype)mapTableWithStrongToStrongObjects
+{
+	return [self strongToStrongObjectsMapTable];
+}
+
++ (instancetype)mapTableWithWeakToStrongObjects
+{
+	return [self weakToStrongObjectsMapTable];
+}
+
++ (instancetype)mapTableWithStrongToWeakObjects
+{
+	return [self strongToWeakObjectsMapTable];
+}
+
++ (instancetype)mapTableWithWeakToWeakObjects
+{
+	return [self weakToWeakObjectsMapTable];
+}
+
 + (instancetype)strongToStrongObjectsMapTable
 {
 	return [self mapTableWithKeyOptions:NSPointerFunctionsObjectPersonality

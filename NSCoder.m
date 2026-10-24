@@ -665,6 +665,34 @@ static void fn_abstract_sequential(Class cls, SEL door)
 	va_end(ap);
 }
 
+- (void)encodeRootObject:(id)rootObject
+{
+	(void)rootObject;
+	[NSException raise:NSInvalidArgumentException
+		    format:@"%@: -encodeRootObject: belongs to the sequential archiver, and this coder does not "
+			   "implement it", [self class]];
+}
+
+- (NSZone *)objectZone
+{
+	return NULL;		/* the base has no zone; NSArchiver/NSUnarchiver store one */
+}
+
+- (void)setObjectZone:(NSZone *)zone
+{
+	(void)zone;		/* ditto: a coder with no allocator requirement has nothing to record */
+}
+
+- (void)encodeNXObject:(id)object
+{
+	[self encodeObject:object];
+}
+
+- (id)decodeNXObject
+{
+	return [self decodeObject];
+}
+
 - (NSInteger)versionForClassName:(NSString *)className
 {
 	(void)className;

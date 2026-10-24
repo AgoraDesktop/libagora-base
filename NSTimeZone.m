@@ -19,6 +19,7 @@
  */
 
 #import <Foundation/NSTimeZone.h>
+#include <pthread.h>
 #import <Foundation/NSData.h>	/* the type of -data and of the data-taking doors */
 #import <Foundation/NSString.h>
 #import <Foundation/NSDate.h>
@@ -78,6 +79,13 @@ static NSInteger fn_tz_offset(NSString *name, double secondsSince1970, BOOL *isD
 	return (NSInteger)((raw + dst) / 1000);
 }
 
+/* THE ABBREVIATION MAP IS BUILT ONCE AND REPLACED BY A CALLER, not rebuilt per ask: the scan walks every zone
+ * name ICU knows (hundreds) and asks each for its abbreviation, which is exactly the kind of thing a getter must
+ * not do on every call. */
+static pthread_mutex_t fn_abbreviation_lock = PTHREAD_MUTEX_INITIALIZER;
+static NSMutableDictionary *fn_abbreviation_map = nil;
+static NSMutableDictionary *fn_custom_abbreviations = nil;
+
 @implementation NSTimeZone
 
 + (NSTimeZone *)timeZoneForSecondsFromGMT:(NSInteger)seconds
@@ -134,6 +142,86 @@ static NSInteger fn_tz_offset(NSString *name, double secondsSince1970, BOOL *isD
 	/* No per-application override ships, so the local zone IS the system zone — and when one
 	 * arrives, this is the one line that changes. */
 	return [self systemTimeZone];
+}
+
++ (NSDictionary *)abbreviationDictionary
+{
+	NSMutableDictionary *answer = [NSMutableDictionary dictionary];
+
+	pthread_mutex_lock(&fn_abbreviation_lock);
+	if (fn_abbreviation_map == nil) {
+		NSArray *names = [self knownTimeZoneNames];
+		NSUInteger i;
+
+		fn_abbreviation_map = [[NSMutableDictionary alloc] init];
+		for (i = 0; i < [names count]; i++) {
+			NSString *name = [names objectAtIndex:i];
+			NSTimeZone *zone = [self timeZoneWithName:name];
+			NSString *abbreviation = [zone abbreviation];
+
+			if (abbreviation != nil && [fn_abbreviation_map objectForKey:abbreviation] == nil) {
+				[fn_abbreviation_map setObject:name forKey:abbreviation];
+			}
+		}
+	}
+	[answer addEntriesFromDictionary:fn_abbreviation_map];
+	if (fn_custom_abbreviations != nil) {
+		[answer addEntriesFromDictionary:fn_custom_abbreviations];
+	}
+	pthread_mutex_unlock(&fn_abbreviation_lock);
+	return answer;
+}
+
++ (void)setAbbreviationDictionary:(NSDictionary *)dictionary
+{
+	pthread_mutex_lock(&fn_abbreviation_lock);
+	if (fn_custom_abbreviations != nil) {
+		[fn_custom_abbreviations release];
+	}
+	fn_custom_abbreviations = (dictionary != nil) ? [dictionary mutableCopy] : nil;
+	pthread_mutex_unlock(&fn_abbreviation_lock);
+}
+
++ (NSTimeZone *)timeZoneWithAbbreviation:(NSString *)abbreviation
+{
+	NSString *name;
+	NSArray *names;
+	NSUInteger i;
+
+	if (abbreviation == nil) {
+		return nil;
+	}
+	pthread_mutex_lock(&fn_abbreviation_lock);
+	name = [fn_custom_abbreviations objectForKey:abbreviation];
+	if (name == nil && fn_abbreviation_map != nil) {
+		name = [fn_abbreviation_map objectForKey:abbreviation];
+	}
+	pthread_mutex_unlock(&fn_abbreviation_lock);
+	if (name == nil) {
+		/* THE FIRST CANDIDATE, for a caller that asked before the map was built: the same first-match-wins
+		 * rule the getter uses, and the reason a MISS is not permanent. */
+		names = [self knownTimeZoneNames];
+		for (i = 0; i < [names count]; i++) {
+			NSTimeZone *candidate = [self timeZoneWithName:[names objectAtIndex:i]];
+
+			if ([[candidate abbreviation] isEqualToString:abbreviation]) {
+				name = [names objectAtIndex:i];
+				break;
+			}
+		}
+	}
+	return (name != nil) ? [self timeZoneWithName:name] : nil;
+}
+
++ (NSString *)timeZoneDataVersion
+{
+	UErrorCode status = U_ZERO_ERROR;
+	const char *version = ucal_getTZDataVersion(&status);
+
+	if (U_FAILURE(status) || version == NULL) {
+		return @"";
+	}
+	return [NSString stringWithUTF8String:version];
 }
 
 + (NSArray *)knownTimeZoneNames
@@ -410,6 +498,11 @@ static NSString *fn_tz_name_for_kind(NSTimeZone *zone, UCalendarDisplayNameType 
 						 (long)(abs / 60), (long)(abs % 60)];
 	}
 	return fn_tz_name_for_kind(self, [self isDaylightSavingTime] ? UCAL_SHORT_DST : UCAL_SHORT_STANDARD, nil);
+}
+
+- (NSTimeInterval)daylightSavingTimeOffset
+{
+	return [self daylightSavingTimeOffsetForDate:[NSDate date]];
 }
 
 - (NSTimeInterval)daylightSavingTimeOffsetForDate:(NSDate *)date

@@ -177,6 +177,7 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	[_calendar release];
 	[_twoDigitStartDate release];
 	[_gregorianStartDate release];
+	[_customSymbols release];
 	[super dealloc];	/* NSObject's -dealloc is what frees the instance */
 }
 
@@ -278,6 +279,16 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 							(UDate)([_gregorianStartDate timeIntervalSince1970] * 1000.0),
 							&knob);
 			}
+		}
+	}
+	/* THE CALLER'S SYMBOLS SURVIVE A REBUILD. Applied after ICU has opened the handle, so the values the setter
+	 * stored are the ones the formatter answers with, whichever setter triggered the rebuild. */
+	if (_customSymbols != nil) {
+		NSEnumerator *keys = [_customSymbols keyEnumerator];
+		NSNumber *key;
+
+		while ((key = [keys nextObject]) != nil) {
+			[self fnApplySymbols:[_customSymbols objectForKey:key] type:(UDateFormatSymbolType)[key intValue]];
 		}
 	}
 }
@@ -574,6 +585,44 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	return out;
 }
 
+/* THE TWENTY SYMBOL SETTERS, each one line of the same two: remember it, then apply it to the open handle. THE
+ * AM/PM PAIR IS THE EXCEPTION because ICU's UDAT_AM_PMS is a two-element table: setting one element means writing
+ * the pair, so the other element is read back from the formatter first. */
+- (void)setEraSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_ERAS]; }
+- (void)setLongEraSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_ERA_NAMES]; }
+- (void)setMonthSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_MONTHS]; }
+- (void)setShortMonthSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_SHORT_MONTHS]; }
+- (void)setVeryShortMonthSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_NARROW_MONTHS]; }
+- (void)setStandaloneMonthSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_STANDALONE_MONTHS]; }
+- (void)setShortStandaloneMonthSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_STANDALONE_SHORT_MONTHS]; }
+- (void)setVeryShortStandaloneMonthSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_STANDALONE_NARROW_MONTHS]; }
+- (void)setWeekdaySymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_WEEKDAYS]; }
+- (void)setShortWeekdaySymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_SHORT_WEEKDAYS]; }
+- (void)setVeryShortWeekdaySymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_NARROW_WEEKDAYS]; }
+- (void)setStandaloneWeekdaySymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_STANDALONE_WEEKDAYS]; }
+- (void)setShortStandaloneWeekdaySymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_STANDALONE_SHORT_WEEKDAYS]; }
+- (void)setVeryShortStandaloneWeekdaySymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_STANDALONE_NARROW_WEEKDAYS]; }
+- (void)setQuarterSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_QUARTERS]; }
+- (void)setShortQuarterSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_SHORT_QUARTERS]; }
+- (void)setStandaloneQuarterSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_STANDALONE_QUARTERS]; }
+- (void)setShortStandaloneQuarterSymbols:(NSArray *)array { [self fnSetSymbols:array type:UDAT_STANDALONE_SHORT_QUARTERS]; }
+
+- (void)setAMSymbol:(NSString *)string
+{
+	NSString *pm = [self PMSymbol];
+
+	[self fnSetSymbols:[NSArray arrayWithObjects:(string != nil ? string : @""), (pm != nil ? pm : @""), nil]
+		       type:UDAT_AM_PMS];
+}
+
+- (void)setPMSymbol:(NSString *)string
+{
+	NSString *am = [self AMSymbol];
+
+	[self fnSetSymbols:[NSArray arrayWithObjects:(am != nil ? am : @""), (string != nil ? string : @""), nil]
+		       type:UDAT_AM_PMS];
+}
+
 - (nullable NSArray *)eraSymbols
 {
 	return [self fnSymbols:UDAT_ERAS first:0 count:2];
@@ -737,6 +786,61 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 	_pattern = fn_df_string(pattern, patternLen);
 }
 
+/* THE SYMBOL MACHINERY. `-fnApplySymbols:type:` writes an array into the open ICU formatter, index by index, and
+ * stores the array so the next rebuild can write it again. `first` is the ICU index the type starts at, which for
+ * the weekday and quarter families is not 0 — that is the whole reason `fnSymbols:first:count:` takes three
+ * arguments, and the setters use the same table. */
+- (void)fnApplySymbols:(NSArray *)symbols type:(UDateFormatSymbolType)type
+{
+	int32_t first = (type == UDAT_WEEKDAYS || type == UDAT_SHORT_WEEKDAYS ||
+			 type == UDAT_NARROW_WEEKDAYS || type == UDAT_STANDALONE_WEEKDAYS ||
+			 type == UDAT_STANDALONE_SHORT_WEEKDAYS || type == UDAT_STANDALONE_NARROW_WEEKDAYS)
+			? UCAL_SUNDAY : 0;
+	NSUInteger i;
+
+	if (_formatter == NULL) {
+		return;
+	}
+	for (i = 0; i < [symbols count]; i++) {
+		NSString *text = [[symbols objectAtIndex:i] description];
+		UChar buffer[64];
+		UErrorCode status = U_ZERO_ERROR;
+		int32_t length = 0;
+
+		u_strFromUTF8(buffer, 64, &length, [text UTF8String], -1, &status);
+		if (U_FAILURE(status)) {
+			continue;
+		}
+		status = U_ZERO_ERROR;
+		udat_setSymbols((UDateFormat *)_formatter, type, (int32_t)(first + i), buffer, length, &status);
+	}
+}
+
+- (void)fnSetSymbols:(nullable NSArray *)symbols type:(UDateFormatSymbolType)type
+{
+	if (symbols == nil) {
+		[_customSymbols removeObjectForKey:[NSNumber numberWithInt:(int)type]];
+		return;
+	}
+	if (_customSymbols == nil) {
+		_customSymbols = [[NSMutableDictionary alloc] init];
+	}
+	[_customSymbols setObject:[[symbols copy] autorelease] forKey:[NSNumber numberWithInt:(int)type]];
+	[self fnApplySymbols:symbols type:type];
+}
+
++ (void)setDefaultFormatterBehavior:(NSDateFormatterBehavior)behavior
+{
+	/* ONE BEHAVIOUR EXISTS. The 10.4 setter is accepted and ignored when it names that one; naming 10.0 is
+	 * refused by -setFormatterBehavior: for the same reason, and the class-side door refuses it here because a
+	 * caller that reaches for the OLD rules should learn that on the call rather than from a wrong format. */
+	if (behavior == NSDateFormatterBehavior10_0) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"+setDefaultFormatterBehavior: takes the modern behaviour: the 10.0 formatter's "
+				   "rules are a different set and do not ship"];
+	}
+}
+
 + (NSDateFormatterBehavior)defaultFormatterBehavior
 {
 	return NSDateFormatterBehavior10_4;
@@ -760,7 +864,12 @@ static NSString *fn_df_string(const UChar *text, int32_t length)
 
 - (BOOL)generatesCalendarDates
 {
-	return NO;
+	return _generatesCalendarDates;
+}
+
+- (void)setGeneratesCalendarDates:(BOOL)flag
+{
+	_generatesCalendarDates = flag;
 }
 
 - (NSFormattingContext)formattingContext

@@ -102,6 +102,10 @@ typedef enum {
 - (nullable NSString *)notationName;
 - (void)setNotationName:(nullable NSString *)notationName;
 
+/* APPLE'S EXTERNALITY QUESTION: a declaration is external when it names a system ID (the external subset's own
+ * entity/notation declaration), and internal otherwise. */
+- (BOOL)isExternal;
+
 @end
 
 /* "A DTD node" - the container, whose CHILDREN are the declarations. */

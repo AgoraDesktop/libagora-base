@@ -61,6 +61,9 @@ extern NSUndoManagerUserInfoKey const NSUndoManagerGroupIsDiscardableKey;
 	BOOL _undoing;
 	BOOL _redoing;
 	BOOL _registrationDisabled;
+	BOOL _groupsByEvent;		/* YES by default: a top-level group closes at the next run loop turn */
+	BOOL _autoClosePending;		/* the one-shot performer is already scheduled */
+	id _runLoopModes;		/* NSArray; the modes that performer runs in */
 }
 
 /* TARGET IS HELD WEAKLY and the object STRONGLY, which is Apple's contract and the reason an undo
@@ -87,6 +90,18 @@ extern NSUndoManagerUserInfoKey const NSUndoManagerGroupIsDiscardableKey;
 
 - (void)undo;
 - (void)redo;
+
+/*
+ * AUTOMATIC GROUPING (10.0). `-groupsByEvent` is YES by default: a top-level group opened by a caller who never
+ * closes it is closed at the END OF THE CURRENT EVENT — which this library implements as a one-shot performer on
+ * the current run loop, the same machinery NSObject's delayed perform uses. The modes say WHERE that performer may
+ * run (`-runLoopModes`, default the default mode). A caller that never runs a run loop sees no automatic close,
+ * which is correct: there is no event to end.
+ */
+- (BOOL)groupsByEvent;
+- (void)setGroupsByEvent:(BOOL)flag;
+- (NSArray *)runLoopModes;
+- (void)setRunLoopModes:(NSArray *)modes;
 
 @property (readonly) BOOL canUndo;
 @property (readonly) BOOL canRedo;
