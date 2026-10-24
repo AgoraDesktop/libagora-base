@@ -32,6 +32,7 @@
 #import <Foundation/NSFileManager.h>
 #import <Foundation/NSLock.h>
 #import <Foundation/NSNotification.h>
+#import <Foundation/NSKeyValueObserving.h>
 #import <Foundation/NSNotificationCenter.h>
 #import <Foundation/NSNumber.h>
 #import <Foundation/NSProcessInfo.h>
@@ -397,6 +398,29 @@ static void fn_make_standard_lock(void)
 	return list;
 }
 
+/* **THE DOMAINS AHEAD OF NSRegistrationDomain, ASKED FOR ONE KEY.** The search list is ordered and the registration
+ * domain is its last entry, so a key any earlier domain supplies is not affected by a registration at all. Asked
+ * BEFORE the merge, because the announcement has to precede the write. */
+- (BOOL)fn_keyComesFromAheadOfRegistration:(NSString *)key
+{
+	NSArray *list = [self fn_searchList];
+	NSUInteger i, n = [list count];
+
+	for (i = 0; i < n; i++) {
+		NSString *name = [list objectAtIndex:i];
+		NSDictionary *domain;
+
+		if ([name isEqualToString:NSRegistrationDomain]) {
+			return NO;	/* the fallback itself: nothing ahead of it supplies the key */
+		}
+		domain = [self fn_dictionaryForDomainName:name];
+		if (domain != nil && [domain objectForKey:key] != nil) {
+			return YES;
+		}
+	}
+	return NO;
+}
+
 - (id)fn_rawObjectForKey:(NSString *)key
 {
 	NSArray *list = [self fn_searchList];
@@ -488,18 +512,29 @@ static void fn_make_standard_lock(void)
 
 /* Every write lands in the APP DOMAIN — Apple's contract, and the reason `-addSuiteNamed:` is a way to READ
  * another domain rather than to write one. */
+/* **THE ANNOUNCEMENT IS OUTSIDE THE LOCK, AND THAT IS NOT AN OPTIMISATION.** `-willChangeValueForKey:` reads the old
+ * value (through `-valueForKey:`) when an observer asked for Old or Prior, and `-objectForKey:` takes `_lock` itself;
+ * announcing while holding it would deadlock against a lock that is NOT recursive. The pair therefore brackets the
+ * locked write from outside: will (old, unlocked) -> lock/write/unlock -> did (new, unlocked). */
 - (void)fn_setRawObject:(id)value forKey:(NSString *)key
 {
 	NSMutableDictionary *file;
 
-	[_lock lock];
+	[self willChangeValueForKey:key];
 	@try {
-		file = [self fn_userFileNamed:_appDomain];
-		[file setObject:value forKey:key];
-		[self fn_writeUserFile:file forDomain:_appDomain];
-		[self fn_noteChange];
+		[_lock lock];
+		@try {
+			file = [self fn_userFileNamed:_appDomain];
+			[file setObject:value forKey:key];
+			[self fn_writeUserFile:file forDomain:_appDomain];
+			[self fn_noteChange];
+		} @finally {
+			[_lock unlock];
+		}
 	} @finally {
-		[_lock unlock];
+		/* THE BRACKET IS CLOSED EVEN WHEN THE WRITE RAISED (a file that cannot be written): an unpaired `will` leaves
+		 * a pending change in the registry for the life of the object, which is the worse failure. */
+		[self didChangeValueForKey:key];
 	}
 }
 
@@ -507,11 +542,41 @@ static void fn_make_standard_lock(void)
 
 - (void)registerDefaults:(NSDictionary *)registrationDictionary
 {
+	NSMutableArray *announced = [NSMutableArray array];
+	NSEnumerator *keys;
+	NSString *key;
+	NSUInteger i;
+
+	/* **ONLY A KEY WHOSE EFFECTIVE VALUE CHANGES IS ANNOUNCED.** The registration domain is the fallback, so a key
+	 * another domain supplies keeps that domain's value; and a key with no other source changes only when the value
+	 * being registered differs from the one already registered. Both halves are asked BEFORE the merge, because the
+	 * `will` half has to precede it. */
+	keys = [registrationDictionary keyEnumerator];
+	while ((key = [keys nextObject]) != nil) {
+		id before;
+		id after;
+
+		if ([self fn_keyComesFromAheadOfRegistration:key]) {
+			continue;
+		}
+		before = [self objectForKey:key];
+		after = [registrationDictionary objectForKey:key];
+		if (before == after || [before isEqual:after]) {
+			continue;
+		}
+		[announced addObject:key];
+	}
+	for (i = 0; i < [announced count]; i++) {
+		[self willChangeValueForKey:[announced objectAtIndex:i]];
+	}
 	[_lock lock];
 	@try {
 		[_registration addEntriesFromDictionary:registrationDictionary];
 	} @finally {
 		[_lock unlock];
+	}
+	for (i = [announced count]; i > 0; i--) {
+		[self didChangeValueForKey:[announced objectAtIndex:i - 1]];
 	}
 }
 
@@ -679,6 +744,22 @@ static void fn_make_standard_lock(void)
 	[self fn_setRawObject:value forKey:defaultName];
 }
 
+/* ---- KVC's two spellings, which are also KVO's two reads ------------------------------------------------ */
+
+/* **KVO FILLS A CHANGE DICTIONARY WITH `-valueForKey:`, SO THIS DOOR IS WHAT MAKES THE ANNOUNCEMENTS WORK.** Apple
+ * documents both of these for NSUserDefaults: a read is the store's lookup for any key, a write is
+ * `-setObject:forKey:` (and nil removes). The write calls the store directly rather than going through `NSObject`'s
+ * KVC wrapper, so a KVC write is announced by the STORE — once — instead of twice. */
+- (id)valueForKey:(NSString *)key
+{
+	return [self objectForKey:key];
+}
+
+- (void)setValue:(id)value forKey:(NSString *)key
+{
+	[self setObject:value forKey:key];
+}
+
 - (void)setBool:(BOOL)value forKey:(NSString *)defaultName
 {
 	[self setObject:[NSNumber numberWithBool:value] forKey:defaultName];
@@ -710,19 +791,34 @@ static void fn_make_standard_lock(void)
 
 - (void)removeObjectForKey:(NSString *)defaultName
 {
+	BOOL present;
+
 	fn_validate_key(defaultName);
+	/* THE PRESENCE CHECK COMES FIRST, OUTSIDE THE ANNOUNCEMENT: removing what was never there is not a change, and
+	 * announcing it would tell an observer to re-read a value that never moved. */
 	[_lock lock];
 	@try {
-		NSMutableDictionary *file = [self fn_userFileNamed:_appDomain];
-
-		if ([file objectForKey:defaultName] == nil) {
-			return;	/* nothing was there, so nothing changed and nothing is announced */
-		}
-		[file removeObjectForKey:defaultName];
-		[self fn_writeUserFile:file forDomain:_appDomain];
-		[self fn_noteChange];
+		present = ([[self fn_userFileNamed:_appDomain] objectForKey:defaultName] != nil);
 	} @finally {
 		[_lock unlock];
+	}
+	if (!present) {
+		return;
+	}
+	[self willChangeValueForKey:defaultName];
+	@try {
+		[_lock lock];
+		@try {
+			NSMutableDictionary *file = [self fn_userFileNamed:_appDomain];
+
+			[file removeObjectForKey:defaultName];
+			[self fn_writeUserFile:file forDomain:_appDomain];
+			[self fn_noteChange];
+		} @finally {
+			[_lock unlock];
+		}
+	} @finally {
+		[self didChangeValueForKey:defaultName];
 	}
 }
 

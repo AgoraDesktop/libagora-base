@@ -181,3 +181,36 @@ setter's argument type, so an `id` property with a perfectly good `-setFoo:` rai
 key" — the message naming a scalar the property was not. The type is now asked first: an object/Class/pointer/block
 setter receives nil, a scalar still goes to `-setNilValueForKey:`. The binding layer's `NSNullPlaceholderBindingOption`
 is the caller that measured it, and `tests/kvo_automatic.m` keeps the case.
+
+### The settings store announces its keys
+
+**A KEY IN `NSUserDefaults` HAS NO SETTER, SO KVO'S AUTOMATIC HALF CANNOT SEE IT.** The store's write door is
+`-setObject:forKey:`, and `fn_install_auto_kvo` wraps a `-setFoo:` that does not exist. The announcement therefore has to
+be the store's own: the per-key doors send `-willChangeValueForKey:`/`-didChangeValueForKey:` around the write. Two
+consequences shaped the code, and both are recorded because each is a trap that a later reader would otherwise undo:
+
+* **The pair is OUTSIDE `_lock`.** The `will` half reads the old value when an observer asked for Old or Prior, and
+  `-objectForKey:` takes `_lock` itself; `_lock` is an `NSLock`, which is not recursive, so announcing while holding it
+  deadlocks. The shape is will (unlocked, old value) → lock/write/unlock → did (unlocked, new value), with the `did`
+  in a `@finally` so a write that raises still closes the bracket — an unpaired `will` leaves a pending change in the
+  registry for the life of the object.
+* **A KVC WRITE MUST NOT BE ANNOUNCED TWICE.** `NSObject`'s `-setValue:forKey:` announces its own writes when the key
+  has no wrapped setter. `NSUserDefaults` therefore implements `-setValue:forKey:` itself, calling the store's write
+  directly, so the store is the only announcer. `-valueForKey:` is its counterpart and is not optional: KVO fills the
+  change dictionary's Old and New values with it, and without it an observation of an arbitrary key would raise from
+  `-valueForUndefinedKey:` while the dictionary was being built.
+
+**ANNOUNCING EXACTLY WHAT CHANGED.** `-removeObjectForKey:` checks presence first, because removing a key that was
+never there is not a change. `-registerDefaults:` announces only the keys whose EFFECTIVE value moves: a key any domain
+ahead of `NSRegistrationDomain` supplies keeps that domain's value (so a registration for it is silent), and a key with
+no other source changes only when the registered value differs from the one already registered. Both halves are asked
+BEFORE the merge, because the `will` half has to precede it, and the merge itself happens under the lock between the two
+halves. **The whole-domain doors do not announce** — `-setPersistentDomain:forName:`, `-removePersistentDomainForName:`,
+the volatile pair and the suite pair — because attributing a key to a domain is a question the store answers internally
+and does not expose; the header says so at the class rather than leaving a caller to discover it.
+
+`tests/user_defaults_kvo.m` is the instrument: **25 cases**, one notification per writing door, the KVC write's single
+announcement, `NSNull` for an absent old value, the removal of an absent key's silence, the registration's
+effective-value rule (new, same, replaced, shadowed), the non-property-list refusal's silence, two observers with one
+removed, and Prior's two-notification bracket. The probe points the store at a scratch root with `FNX_CONFIG_ROOT`, so
+it touches nothing in the image.

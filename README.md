@@ -117,3 +117,21 @@ with a NULL zone. `tests/zones.m` measures the whole contract.
    **And `-setValue:nil forKey:` now reaches an `id` setter with nil** — the argument TYPE is asked before nil is
    refused, which the binding layer's NSNull placeholder needs; a scalar setter still raises through
    `-setNilValueForKey:`. `tests/kvo_automatic.m` holds the case.
+
+6. **The settings store announces its keys.** `NSUserDefaults` writes through `-setObject:forKey:` and its typed
+   spellings, so KVO's automatic setter wrapper — which brackets `-setFoo:` — has nothing to wrap. The per-key doors
+   now send the manual `-willChangeValueForKey:`/`-didChangeValueForKey:` pair themselves, around the locked write and
+   **outside** it (the lock is not recursive and the will half reads the old value through `-objectForKey:`), and
+   `-valueForKey:`/`-setValue:forKey:` are the KVC spellings Apple documents for this class — a read is the store's
+   lookup, a write is `-setObject:forKey:`, so a KVC write is announced by the STORE and not twice. A caller can
+   observe an arbitrary key string, which is what AppKit does with `NSWindow Frame <name>`.
+   **What announces, and what does not, is stated rather than implied.** `-setObject:forKey:`, the six typed setters
+   (they funnel through it), `-removeObjectForKey:` (only when a value was actually there) and `-registerDefaults:`
+   (only for keys whose EFFECTIVE value moves — a key an app domain already supplies is silent, and so is registering
+   the value that is already registered) are the announcing doors, and each write is ONE notification. **The
+   whole-domain doors do not announce** (`-setPersistentDomain:forName:`, `-removePersistentDomainForName:`, the
+   volatile-domain pair and the suite pair): which keys they changed is a question answered by walking domains the
+   store deliberately does not expose. A value that is not a property list is refused BEFORE the announcement, so a
+   rejected write announces nothing. Measured by `tests/user_defaults_kvo.m` (**25 cases**): one notification per
+   door, the KVC write's single announcement, the removed-and-absent removal, the registration's effective-value rule,
+   two observers with one removed, Prior's bracket, and the rejected write's silence.

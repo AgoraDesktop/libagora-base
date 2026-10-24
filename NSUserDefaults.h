@@ -155,6 +155,27 @@ extern NSString *const NSUbiquitousUserDefaultsDidChangeAccountsNotification;
 extern NSString *const NSUbiquitousUserDefaultsNoCloudAccountNotification;
 
 
+/*
+ * **THE STORE ANNOUNCES ITS KEYS, AND THAT IS WHAT A BINDING NEEDS.** A defaults object is not a bag of setters:
+ * the write doors are `-setObject:forKey:` and its typed spellings, so KVO's automatic setter wrapping — which
+ * brackets `-setFoo:` — has nothing to wrap. The per-key doors therefore send the manual
+ * `-willChangeValueForKey:`/`-didChangeValueForKey:` pair themselves, around the locked write, and
+ * `-valueForKey:`/`-setValue:forKey:` are the KVC spellings Apple documents for this class (a read is
+ * `-objectForKey:` and a write is `-setObject:forKey:`). A caller can observe an arbitrary key path:
+ *
+ *     [defaults addObserver:o forKeyPath:@"NSWindow Frame probe" options:NSKeyValueObservingOptionNew
+ *                    context:NULL];
+ *     [defaults setObject:frame forKey:@"NSWindow Frame probe"];      // ONE notification
+ *
+ * **WHAT ANNOUNCES, AND WHAT DOES NOT.** `-setObject:forKey:`, the six typed setters (which funnel through it),
+ * `-removeObjectForKey:` (only when a value was actually there) and `-registerDefaults:` (only for keys whose
+ * EFFECTIVE value changes — a key an app domain already supplies is not announced) are the announcing doors, and
+ * each write is ONE notification. **The whole-domain doors do not announce**: `-setPersistentDomain:forName:`,
+ * `-removePersistentDomainForName:`, the volatile-domain pair and `-addSuiteNamed:`/`-removeSuiteNamed:` change a
+ * domain or the search list, and which keys they changed is a question the store answers by walking domains it
+ * deliberately does not expose. A caller that needs a per-key change observes the per-key door.
+ */
+
 NS_SWIFT_NAME(UserDefaults)
 @interface NSUserDefaults : NSObject
 {
@@ -190,6 +211,10 @@ NS_SWIFT_NAME(UserDefaults)
 /* --- reading, which walks the search list --- */
 
 - (nullable id)objectForKey:(NSString *)defaultName;
+/* **KVC'S READ, WHICH IS ALSO WHAT KVO READS FOR THE OLD AND NEW VALUES.** Apple's NSUserDefaults answers the
+ * store's lookup for any key, and so does this one — without it an observation of `@"some key"` would raise from
+ * `-valueForUndefinedKey:` the moment the change dictionary was filled in. */
+- (nullable id)valueForKey:(NSString *)key;
 - (nullable NSString *)stringForKey:(NSString *)defaultName;
 - (nullable NSArray *)arrayForKey:(NSString *)defaultName;
 - (nullable NSArray *)stringArrayForKey:(NSString *)defaultName;
@@ -212,6 +237,10 @@ NS_SWIFT_NAME(UserDefaults)
 /* --- writing, which lands in the USER scope of the app domain --- */
 
 - (void)setObject:(nullable id)value forKey:(NSString *)defaultName;
+/* **KVC'S WRITE.** A nil value removes the key, which is `-setObject:forKey:`'s own rule. This door calls the
+ * store's write directly rather than letting `NSObject`'s KVC wrapper bracket it, so a write is announced ONCE —
+ * by the store, not by the wrapper. */
+- (void)setValue:(nullable id)value forKey:(NSString *)key;
 - (void)setBool:(BOOL)value forKey:(NSString *)defaultName;
 - (void)setInteger:(NSInteger)value forKey:(NSString *)defaultName;
 - (void)setFloat:(float)value forKey:(NSString *)defaultName;
