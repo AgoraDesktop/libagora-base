@@ -112,7 +112,14 @@ NSString *const NSKeyValueChangeNotificationIsPriorKey = @"NSKeyValueChangeNotif
 @public
 	__unsafe_unretained NSObject *_observed;
 	NSString *_key;
-	__unsafe_unretained id _oldValue;
+	/* ⚠ RETAINED. The setting path captures the OLD value in `-willChangeValueForKey:` — before the write,
+	 * when the property is still the only owner — and reads it back in `-didChangeValueForKey:`, AFTER the
+	 * setter has released it. A property whose old value nothing else held is therefore DEALLOCATED in
+	 * between, and retaining it here is what keeps the OLD side of the change dictionary alive. Measured on
+	 * ubuntu-24.04: `[model setItems:[NSMutableArray array...]]` over a model-owned array freed the array,
+	 * glibc's tcache overwrote its isa, and `-setObject:forKey:` died in `objc_retain` on the freed pointer.
+	 * The to-many arm's `_oldObjects` is retained for exactly the same reason. */
+	id _oldValue;			/* RETAINED, setting changes */
 	BOOL _hasOld;
 	/* THE TO-MANY HALF. `_changeKind` is 0 for a setting change and Insertion/Removal/Replacement otherwise;
 	 * `_indexes` is the array form's affected indexes; `_oldObjects` is RETAINED because the mutation may free the
@@ -129,6 +136,7 @@ NSString *const NSKeyValueChangeNotificationIsPriorKey = @"NSKeyValueChangeNotif
 - (void)dealloc
 {
 	[_key release];
+	[_oldValue release];
 	[_indexes release];
 	[_oldObjects release];
 	[super dealloc];
@@ -746,9 +754,10 @@ static NSArray *fn_objects_at_indexes(NSArray *collection, NSIndexSet *indexes)
 	pending = [[FNKVOPending alloc] init];
 	pending->_observed = self;
 	pending->_key = [key copy];
-	pending->_oldValue = current;
+	pending->_oldValue = [current retain];
 	pending->_hasOld = (wantsOld || wantsPrior);
 	[fn_pendings addObject:pending];
+	[pending release];
 
 	if (wantsPrior) {
 		for (i = 0; i < [fn_registrations count]; i++) {
