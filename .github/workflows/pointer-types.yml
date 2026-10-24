@@ -150,6 +150,13 @@ jobs:
           for c in libagora-objc libagora-dispatch libagora-lcms2 libagora-core libagora-drawing; do
             git clone --depth 1 "https://github.com/AgoraDesktop/${c}.git" "${c}"
           done
+          # ⚠ ONE MORE SIBLING, AND IT IS NOT A DEPENDENCY OF THE BUILD. The 10.6 API census gate
+          # (tests/CMakeLists.txt) reads `../../libagora-app/tools/api-ledger` and
+          # `../../libagora-core/include`, so the ledger has to be there for the gate to run at all —
+          # without it the suite reports `foundation-api-census (Failed)` and the red says nothing about
+          # the surface it exists to measure. It is cloned and NOT built: it is a Python tool, and only
+          # its source is used.
+          git clone --depth 1 "https://github.com/AgoraDesktop/libagora-app.git" libagora-app
           ls -d libagora-*
 
       - name: Build dependencies
