@@ -197,3 +197,10 @@ add_test(NAME foundation_behaviour COMMAND foundation_behaviour)
 add_executable(foundation_behaviour_2 foundation_behaviour_2.m)
 target_link_libraries(foundation_behaviour_2 PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 add_test(NAME foundation_behaviour_2 COMMAND foundation_behaviour_2)
+
+# THE BEHAVIOURAL PASS, FOURTH WAVE: secure coding and allow-lists, defaults written by another process, an HTTP
+# request against a loopback server, socket streams, an NSConnection round-trip, file handles, and a coarse
+# performance smoke test (generous bounds, aimed at accidental quadratics rather than micro-benchmarks).
+add_executable(foundation_behaviour_3 foundation_behaviour_3.m)
+target_link_libraries(foundation_behaviour_3 PRIVATE Foundation CoreFoundation::CoreFoundation objc pthread)
+add_test(NAME foundation_behaviour_3 COMMAND foundation_behaviour_3)

@@ -146,6 +146,14 @@ static NSError *fn_stream_error(int err)
 		return;
 	}
 	if (_path == nil) {
+		/* **A DESCRIPTOR-BACKED STREAM HAS NO PATH, AND THAT IS NOT AN ERROR.** The socket factory
+		 * (`+getStreamsToHostWithName:…`) hands its descriptor to this initialiser; the first version treated
+		 * every path-less stream as a bad descriptor, so `-open` failed EBADF and `-read:` could never answer.
+		 * A path-less, data-less stream WITH a descriptor is open; one with neither really is EBADF. */
+		if (_fd >= 0) {
+			[self fnStreamSetStatus:NSStreamStatusOpen error:nil];
+			return;
+		}
 		[self fnStreamSetStatus:NSStreamStatusError
 				  error:fn_stream_error(EBADF)];
 		return;
