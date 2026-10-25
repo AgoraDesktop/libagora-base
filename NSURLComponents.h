@@ -17,9 +17,8 @@
  *
  * **WHAT IS HERE AND WHAT IS NOT.** Added: `-init` (all components undefined), `-URLRelativeToURL:` (10.9),
  * `-queryItems` (10.10), and the six `percentEncoded…` setters (10.9) — the internal type only ever needed the
- * getters, because it always received raw text. NOT here: the eight `rangeOf…` properties Apple added in 10.11, which
- * need a second pass over the rendered string and are the next slice; they are counted as missing rather than
- * declared and left to raise.
+ * getters, because it always received raw text. The eight `rangeOf…` properties Apple added in 10.11 are here too:
+ * they render once and scan once, in the order the grammar puts the components.
  */
 
 #ifndef FOUNDATION_NSURLCOMPONENTS_H
@@ -53,6 +52,18 @@ NS_CLASS_AVAILABLE_MAC(10_9)
  * gives a name-only item (`?flag`) a nil value. Writing joins the pairs, encoding both halves, and a nil value writes
  * the name alone. */
 @property (nullable, copy) NSArray<NSURLQueryItem *> *queryItems NS_AVAILABLE_MAC(10_10);
+
+/* THE COMPONENT RANGES (10.11). Each is a range in the RENDERED string — `-string` — not in the parsed fields, and
+ * `{NSNotFound, 0}` when the component is absent. Apple added them so a caller can highlight part of a URL without
+ * re-parsing it; this class renders once and scans once, in the order the grammar puts the components. */
+@property (readonly) NSRange rangeOfScheme NS_AVAILABLE_MAC(10_11);
+@property (readonly) NSRange rangeOfUser NS_AVAILABLE_MAC(10_11);
+@property (readonly) NSRange rangeOfPassword NS_AVAILABLE_MAC(10_11);
+@property (readonly) NSRange rangeOfHost NS_AVAILABLE_MAC(10_11);
+@property (readonly) NSRange rangeOfPort NS_AVAILABLE_MAC(10_11);
+@property (readonly) NSRange rangeOfPath NS_AVAILABLE_MAC(10_11);
+@property (readonly) NSRange rangeOfQuery NS_AVAILABLE_MAC(10_11);
+@property (readonly) NSRange rangeOfFragment NS_AVAILABLE_MAC(10_11);
 
 @end
 

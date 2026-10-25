@@ -435,7 +435,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4009
+methods-declared 4017
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -639,7 +639,7 @@ sel:NSTimer 14
 sel:NSURL 80
 sel:NSURLAuthenticationChallenge 8
 sel:NSURLCache 14
-sel:NSURLComponents 38
+sel:NSURLComponents 46
 sel:NSURLConnection 13
 sel:NSURLCredential 12
 sel:NSURLCredentialStorage 9
@@ -669,6 +669,6 @@ sel:NSXMLNode 51
 sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
 sel:NSProgress 31
-selectors-missing 113
+selectors-missing 105
 selectors-offered 3513
-selectors-present 3400
+selectors-present 3408

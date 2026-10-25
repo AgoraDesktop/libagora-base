@@ -272,4 +272,100 @@ static NSString *fn_uc_encodeFragment(NSString *text)
 	[self setPercentEncodedQuery:joined];
 }
 
+
+/* **ONE PASS, IN GRAMMAR ORDER.** The ranges are in `-string`, so the scan walks the rendered text: the scheme up to a
+ * colon that precedes any of `/ ? #`; then `//`; then the authority, which is the userinfo (`@`), the host, and a port
+ * after the LAST colon inside that authority (an IPv6 literal's colons are brackets, so a literal with a port is the
+ * only case where the last colon is the separator — and it is exactly the one Apple's grammar allows); then the path up
+ * to `?`; the query up to `#`; the fragment to the end. A component that is not in the string gets `{NSNotFound, 0}`. */
+- (NSRange)fn_rangeOf:(NSInteger)which
+{
+	NSString *s = [self string];
+	NSUInteger n = [s length], i = 0;
+	NSRange scheme = {NSNotFound, 0}, user = {NSNotFound, 0}, password = {NSNotFound, 0};
+	NSRange host = {NSNotFound, 0}, port = {NSNotFound, 0}, path = {NSNotFound, 0};
+	NSRange query = {NSNotFound, 0}, fragment = {NSNotFound, 0};
+	NSRange colon, firstSlash, firstQuery, firstHash, at, inner;
+	NSUInteger firstDelim = n, authStart, authEnd, pathStart;
+
+	if (n == 0) { goto done; }
+	colon = [s rangeOfString:@":"];
+	firstSlash = [s rangeOfString:@"/"];
+	firstQuery = [s rangeOfString:@"?"];
+	firstHash = [s rangeOfString:@"#"];
+	if (firstSlash.location != NSNotFound && firstSlash.location < firstDelim) firstDelim = firstSlash.location;
+	if (firstQuery.location != NSNotFound && firstQuery.location < firstDelim) firstDelim = firstQuery.location;
+	if (firstHash.location != NSNotFound && firstHash.location < firstDelim) firstDelim = firstHash.location;
+	if (colon.location != NSNotFound && colon.location < firstDelim) {
+		scheme = NSMakeRange(0, colon.location);
+		i = colon.location + 1;
+	}
+	if (i + 1 < n && [s characterAtIndex:i] == '/' && [s characterAtIndex:i + 1] == '/') {
+		i += 2;
+		authStart = i;
+		authEnd = i;
+		while (authEnd < n) {
+			unichar c = [s characterAtIndex:authEnd];
+			if (c == '/' || c == '?' || c == '#') break;
+			authEnd++;
+		}
+		inner = NSMakeRange(authStart, authEnd - authStart);
+		at = [s rangeOfString:@"@" options:0 range:inner];
+		if (at.location != NSNotFound) {
+			NSRange colonInUser = [s rangeOfString:@":" options:0 range:NSMakeRange(authStart, at.location - authStart)];
+			if (colonInUser.location != NSNotFound) {
+				user = NSMakeRange(authStart, colonInUser.location - authStart);
+				password = NSMakeRange(colonInUser.location + 1, at.location - colonInUser.location - 1);
+			} else {
+				user = NSMakeRange(authStart, at.location - authStart);
+			}
+			authStart = at.location + 1;
+		}
+		inner = NSMakeRange(authStart, authEnd - authStart);
+		at = [s rangeOfString:@":" options:NSBackwardsSearch range:inner];
+		if (at.location != NSNotFound && [self port] != nil) {
+			host = NSMakeRange(authStart, at.location - authStart);
+			port = NSMakeRange(at.location + 1, authEnd - at.location - 1);
+		} else if (authEnd > authStart) {
+			host = NSMakeRange(authStart, authEnd - authStart);
+		}
+		i = authEnd;
+	}
+	pathStart = i;
+	while (i < n) {
+		unichar c = [s characterAtIndex:i];
+		if (c == '?' || c == '#') break;
+		i++;
+	}
+	if (i > pathStart) path = NSMakeRange(pathStart, i - pathStart);
+	if (i < n && [s characterAtIndex:i] == '?') {
+		NSUInteger start = ++i;
+		while (i < n && [s characterAtIndex:i] != '#') i++;
+		query = NSMakeRange(start, i - start);
+	}
+	if (i < n && [s characterAtIndex:i] == '#') {
+		fragment = NSMakeRange(i + 1, n - i - 1);
+	}
+done:
+	switch (which) {
+	case 0: return scheme;
+	case 1: return user;
+	case 2: return password;
+	case 3: return host;
+	case 4: return port;
+	case 5: return path;
+	case 6: return query;
+	default: return fragment;
+	}
+}
+
+- (NSRange)rangeOfScheme { return [self fn_rangeOf:0]; }
+- (NSRange)rangeOfUser { return [self fn_rangeOf:1]; }
+- (NSRange)rangeOfPassword { return [self fn_rangeOf:2]; }
+- (NSRange)rangeOfHost { return [self fn_rangeOf:3]; }
+- (NSRange)rangeOfPort { return [self fn_rangeOf:4]; }
+- (NSRange)rangeOfPath { return [self fn_rangeOf:5]; }
+- (NSRange)rangeOfQuery { return [self fn_rangeOf:6]; }
+- (NSRange)rangeOfFragment { return [self fn_rangeOf:7]; }
+
 @end

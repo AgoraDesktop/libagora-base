@@ -19,6 +19,17 @@
 
 static int g_pass, g_fail;
 
+
+static void check(int ok, const char *what)
+{
+	if (ok) {
+		g_pass++;
+		return;
+	}
+	g_fail++;
+	fprintf(stderr, "FAIL: %s\n", what);
+}
+
 static void expect(NSString *got, const char *want, const char *what)
 {
 	const char *text = [got UTF8String];
@@ -111,6 +122,41 @@ int main(void)
 	[c setQueryItems:nil];
 	relative = [c URLRelativeToURL:[NSURL URLWithString:@"http://example.com/dir/"]];
 	expect([relative absoluteString], "http://example.com/dir/child", "URLRelativeToURL resolves the path");
+
+
+	/* THE COMPONENT RANGES (10.11): a range in the RENDERED string, or NSNotFound for what is absent. Each is checked
+	 * by slicing the string, which is what a caller highlighting a URL does with it. */
+	{
+		NSURLComponents *r = [NSURLComponents componentsWithString:@"https://u:p@example.com:8443/a/b?x=1#frag"];
+		NSString *s = [r string];
+		NSRange range;
+
+		range = [r rangeOfScheme];
+		check(range.location != NSNotFound && [[s substringWithRange:range] isEqualToString:@"https"], "range: scheme");
+		range = [r rangeOfUser];
+		check(range.location != NSNotFound && [[s substringWithRange:range] isEqualToString:@"u"], "range: user");
+		range = [r rangeOfPassword];
+		check(range.location != NSNotFound && [[s substringWithRange:range] isEqualToString:@"p"], "range: password");
+		range = [r rangeOfHost];
+		check(range.location != NSNotFound && [[s substringWithRange:range] isEqualToString:@"example.com"], "range: host");
+		range = [r rangeOfPort];
+		check(range.location != NSNotFound && [[s substringWithRange:range] isEqualToString:@"8443"], "range: port");
+		range = [r rangeOfPath];
+		check(range.location != NSNotFound && [[s substringWithRange:range] isEqualToString:@"/a/b"], "range: path");
+		range = [r rangeOfQuery];
+		check(range.location != NSNotFound && [[s substringWithRange:range] isEqualToString:@"x=1"], "range: query");
+		range = [r rangeOfFragment];
+		check(range.location != NSNotFound && [[s substringWithRange:range] isEqualToString:@"frag"], "range: fragment");
+
+		/* ABSENT IS NOT AN EMPTY RANGE AT ZERO. */
+		{
+			NSURLComponents *bare = [NSURLComponents componentsWithString:@"mailto:a@b"];
+			check([bare rangeOfHost].location == NSNotFound, "range: an absent host is NSNotFound");
+			check([bare rangeOfQuery].location == NSNotFound, "range: an absent query is NSNotFound");
+			check([bare rangeOfFragment].location == NSNotFound, "range: an absent fragment is NSNotFound");
+			check([[bare string] substringWithRange:[bare rangeOfScheme]] != nil, "range: the scheme is there");
+		}
+	}
 
 	printf("foundation_10_11_url_components: %d of %d cases passed, %d failed\n", g_pass, g_pass + g_fail, g_fail);
 	[c release];
