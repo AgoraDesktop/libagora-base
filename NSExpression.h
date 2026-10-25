@@ -48,7 +48,8 @@ enum {
 	NSMinusSetExpressionType,
 	NSSubqueryExpressionType = 13,
 	NSAggregateExpressionType,
-	NSBlockExpressionType = 19
+	NSBlockExpressionType = 19,
+	NSConditionalExpressionType = 20	/* 10.11: TERNARY(condition, true, false) */
 };
 
 NS_ASSUME_NONNULL_BEGIN
@@ -67,6 +68,8 @@ NS_CLASS_AVAILABLE_MAC(10_4)
 	NSExpression *_operand;		/* NSFunctionExpressionType target */
 	NSExpression *_left;		/* set expressions */
 	NSExpression *_right;
+	NSExpression *_trueExpression;	/* NSConditionalExpressionType (10.11) */
+	NSExpression *_falseExpression;
 }
 
 /* The eleven constructors are Apple's, including the three set expressions and the subquery. */
@@ -96,6 +99,13 @@ NS_CLASS_AVAILABLE_MAC(10_4)
                            selectorName:(NSString *)name
                               arguments:(NSArray *)parameters NS_AVAILABLE_MAC(10_5);
 
+/* THE CONDITIONAL EXPRESSION (10.11), which is how a format states a choice: `TERNARY(a > 1, 2, 3)`. The condition
+ * is a PREDICATE rather than an expression — it is asked a yes/no question — which is why it answers through
+ * `-predicate` and is parsed by the predicate grammar, while the two branches are expressions. */
++ (NSExpression *)expressionForConditional:(NSPredicate *)predicate
+                            trueExpression:(NSExpression *)trueExpression
+                           falseExpression:(NSExpression *)falseExpression NS_AVAILABLE_MAC(10_11);
+
 /* THE FORMAT DOORS (10.6). Apple declares the variadic form once and the other two beside it; declaring a fixed
  * `+expressionWithFormat:` next to the variadic one makes clang take the first and refuse a second argument at the
  * call site, which reads as a header disagreement and is not one. The grammar is `FNPredicateFormat.m`'s, with
@@ -120,6 +130,12 @@ NS_CLASS_AVAILABLE_MAC(10_4)
 - (nullable NSPredicate *)predicate NS_AVAILABLE_MAC(10_5);
 - (nullable NSExpression *)leftExpression NS_AVAILABLE_MAC(10_5);
 - (nullable NSExpression *)rightExpression NS_AVAILABLE_MAC(10_5);
+
+/* THE CONDITIONAL'S TWO BRANCHES (10.11), and nil for every other expression kind: `-leftExpression` is a SET
+ * expression's left side, not a conditional's true branch, and answering one for the other would be the invented
+ * fact the total-accessor rule exists to prevent. */
+- (nullable NSExpression *)trueExpression NS_AVAILABLE_MAC(10_11);
+- (nullable NSExpression *)falseExpression NS_AVAILABLE_MAC(10_11);
 
 /* THE ONLY DOOR THAT DOES WORK. `object` is the evaluated object (`SELF`); `context` carries the variable
  * bindings and is the same dictionary the predicate evaluates against. */

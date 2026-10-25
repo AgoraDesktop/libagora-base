@@ -169,6 +169,17 @@
 	return [e autorelease];
 }
 
++ (NSExpression *)expressionForConditional:(NSPredicate *)predicate
+                            trueExpression:(NSExpression *)trueExpression
+                           falseExpression:(NSExpression *)falseExpression
+{
+	NSExpression *e = [[self alloc] initWithExpressionType:NSConditionalExpressionType];
+	e->_predicate = [predicate retain];
+	e->_trueExpression = [trueExpression retain];
+	e->_falseExpression = [falseExpression retain];
+	return [e autorelease];
+}
+
 - (id)initWithExpressionType:(NSExpressionType)type
 {
 	self = [super init];
@@ -195,6 +206,8 @@
 	[_operand release];
 	[_left release];
 	[_right release];
+	[_trueExpression release];
+	[_falseExpression release];
 	[super dealloc];
 }
 
@@ -209,6 +222,8 @@
 - (NSPredicate *)predicate { return _predicate; }
 - (NSExpression *)leftExpression { return _left; }
 - (NSExpression *)rightExpression { return _right; }
+- (NSExpression *)trueExpression { return _trueExpression; }
+- (NSExpression *)falseExpression { return _falseExpression; }
 
 - (id)copyWithZone:(NSZone *)zone
 {
@@ -224,6 +239,8 @@
 	e->_operand = [_operand retain];
 	e->_left = [_left retain];
 	e->_right = [_right retain];
+	e->_trueExpression = [_trueExpression retain];
+	e->_falseExpression = [_falseExpression retain];
 	return e;
 }
 
@@ -240,6 +257,8 @@
 	[coder encodeObject:_operand forKey:@"NSOperand"];
 	[coder encodeObject:_left forKey:@"NSLeft"];
 	[coder encodeObject:_right forKey:@"NSRight"];
+	[coder encodeObject:_trueExpression forKey:@"NSTrueExpression"];
+	[coder encodeObject:_falseExpression forKey:@"NSFalseExpression"];
 }
 
 - (id)initWithCoder:(NSCoder *)coder
@@ -257,6 +276,8 @@
 		_operand = [[coder decodeObjectForKey:@"NSOperand"] retain];
 		_left = [[coder decodeObjectForKey:@"NSLeft"] retain];
 		_right = [[coder decodeObjectForKey:@"NSRight"] retain];
+		_trueExpression = [[coder decodeObjectForKey:@"NSTrueExpression"] retain];
+		_falseExpression = [[coder decodeObjectForKey:@"NSFalseExpression"] retain];
 	}
 	return self;
 }
@@ -396,6 +417,16 @@ static id FNAggregate(NSString *function, NSArray *values)
 		}
 		[inner release];
 		return [NSNumber numberWithInteger:(NSInteger)hits];
+	}
+
+	case NSConditionalExpressionType: {
+		/* THE CONDITION IS ASKED THE PREDICATE'S QUESTION against the evaluated object, with the same bindings the
+		 * expression was given; only the branch the answer names is evaluated, which is what `?:` does and why the
+		 * unevaluated branch may name a key the object does not have. */
+		BOOL holds = (_predicate != nil) &&
+		             [_predicate evaluateWithObject:object substitutionVariables:context];
+		NSExpression *chosen = holds ? _trueExpression : _falseExpression;
+		return [chosen expressionValueWithObject:object context:context];
 	}
 
 	case NSFunctionExpressionType: {

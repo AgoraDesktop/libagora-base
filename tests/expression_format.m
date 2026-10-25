@@ -19,6 +19,7 @@
  */
 
 #import <Foundation/Foundation.h>
+#import <Foundation/FNPredicatePrivate.h>	/* -fn_expressionFormat: the renderer this suite round-trips through */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -169,12 +170,13 @@ int main(void)
 	/* A COMPARISON IS A PREDICATE, AND THE REFUSAL NAMES THE DOOR THAT READS ONE. Returning the left side and
 	 * dropping the operator — what a scanner that does not check for trailing text does — would make `a < 2` mean
 	 * `a`, silently. */
-	check(Raises(@"1 < 2", nil, @"predicateWithFormat"),
+	check(Raises(@"1 < 2", [NSArray array], @"predicateWithFormat"),
 	      "a comparison is refused, and the message names +predicateWithFormat:");
-	check(Raises(@"a == b", nil, @"predicateWithFormat"), "equality too");
+	check(Raises(@"a == b", [NSArray array], @"predicateWithFormat"), "equality too");
 	check(Raises(@"%d + %d", [NSArray arrayWithObject:[NSNumber numberWithInt:1]], @"more format conversions"),
 	      "more conversions than arguments is refused, by name");
-	check(Raises(@"1 2", nil, @"unexpected text"), "and so is text the grammar cannot honour");
+	check(Raises(@"1 2", [NSArray array], @"unexpected text"),
+	      "and so is text the grammar cannot honour");
 
 	/* THE PREDICATE GRAMMAR DID NOT MOVE. The parenthesis refusal, and its wording, are still the predicate
 	 * door's — the flag adds a grammar, it does not relax one. */
@@ -188,6 +190,40 @@ int main(void)
 		check(raised, "the predicate grammar still refuses a parenthesised operand, by name");
 	}
 
+	/* THE CONDITIONAL (10.11) CHOOSES BETWEEN TWO EXPRESSIONS WITH A PREDICATE, and only the branch the answer names
+	 * is evaluated — which is why the true branch below may name a key the object does not have. */
+	e = [NSExpression expressionForConditional:[NSPredicate predicateWithFormat:@"a > 1"]
+	                            trueExpression:[NSExpression expressionForKeyPath:@"b"]
+	                           falseExpression:[NSExpression expressionForKeyPath:@"absent"]];
+	check([e expressionType] == NSConditionalExpressionType, "a conditional has its own expression type");
+	check(ValueIn(e, object) == 2.0, "the true branch answers when the condition holds");
+	check([[[e trueExpression] keyPath] isEqualToString:@"b"], "-trueExpression answers the true branch");
+	check([[[e falseExpression] keyPath] isEqualToString:@"absent"], "and -falseExpression the false one");
+	check([[e predicate] evaluateWithObject:object], "and -predicate answers the condition");
+	check([e leftExpression] == nil && [e rightExpression] == nil,
+	      "the set expressions' accessors stay nil on a conditional");
+	check([[NSExpression expressionForUnionSet:[NSExpression expressionForKeyPath:@"a"]
+	                                    with:[NSExpression expressionForKeyPath:@"b"]]
+	       trueExpression] == nil, "and a set expression answers nil for the conditional's branches");
+	check(ValueIn([NSExpression expressionWithFormat:@"TERNARY(a < 1, 10, 20)"], object) == 20.0,
+	      "TERNARY in the format grammar picks the false branch when the condition fails");
+	check(ValueIn([NSExpression expressionWithFormat:@"TERNARY(a > 1, a + b, b ** 2)"], object) == 10.0,
+	      "and its branches are expressions, arithmetic included");
+	{
+		NSArray *args = [NSArray arrayWithObject:[NSNumber numberWithInt:5]];
+		check([[NSPredicate predicateWithFormat:@"TERNARY(a > 1, %d, 0) > 2", 5] evaluateWithObject:object],
+		      "the predicate door reads the same form, because the renderer writes it");
+		check(ValueIn([NSExpression expressionWithFormat:@"TERNARY(a > 1, %d, 0)" argumentArray:args],
+		              object) == 5.0, "with the expression door's substitutions inside it");
+	}
+	{
+		NSData *archive = [NSKeyedArchiver archivedDataWithRootObject:e];
+		NSExpression *restored = [NSKeyedUnarchiver unarchiveObjectWithData:archive];
+		check(restored != nil && [restored expressionType] == NSConditionalExpressionType,
+		      "a conditional archives with its type");
+		check(ValueIn(restored, object) == 2.0, "and unarchives to the same answer");
+	}
+
 	/* THE ROUND TRIP, over every shape above that the renderer writes. */
 	check(RoundTrips(@"a + b", object), "a + b round-trips");
 	check(RoundTrips(@"a + b * 2", object), "a + b * 2 round-trips");
@@ -195,6 +231,7 @@ int main(void)
 	check(RoundTrips(@"a ** b + 1", object), "a ** b + 1 round-trips");
 	check(RoundTrips(@"-(a - b)", object), "-(a - b) round-trips");
 	check(RoundTrips(@"modulus:by:(a, b)", object), "modulus:by:(a, b) round-trips");
+	check(RoundTrips(@"TERNARY(a > 1, a + b, b ** 2)", object), "TERNARY round-trips, condition and branches");
 
 	printf("expression_format: %d of %d cases passed, %d failed\n", g_pass, g_pass + g_fail, g_fail);
 	[pool release];

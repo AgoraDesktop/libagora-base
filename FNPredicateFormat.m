@@ -345,6 +345,24 @@ static NSExpression *FNParsePrimary(FNP *p)
 		if ([name isEqualToString:@"SELF"]) {
 			return [NSExpression expressionForKeyPath:@"SELF"];
 		}
+		/* TERNARY(condition, true, false) IS A FORM, NOT A FUNCTION: its first argument is a PREDICATE and the other
+		 * two are expressions, so it cannot go through the function-argument loop below, which parses every argument as
+		 * an expression. That is also why it is read here in BOTH modes — a conditional expression renders as TERNARY,
+		 * so the predicate door has to be able to read the text its own renderer writes. */
+		if ([name caseInsensitiveCompare:@"TERNARY"] == NSOrderedSame && FNPeek(p, '(')) {
+			NSPredicate *condition;
+			NSExpression *whenTrue, *whenFalse;
+			p->i++;
+			condition = FNParseOr(p);
+			if (!FNEat(p, ',')) { FNFail(p, @"TERNARY takes a condition, a true expression and a false expression"); }
+			whenTrue = FNParseExpression(p);
+			if (!FNEat(p, ',')) { FNFail(p, @"TERNARY takes a condition, a true expression and a false expression"); }
+			whenFalse = FNParseExpression(p);
+			if (!FNEat(p, ')')) { FNFail(p, @"expected `)` closing TERNARY"); }
+			return [NSExpression expressionForConditional:condition
+			                              trueExpression:whenTrue
+			                             falseExpression:whenFalse];
+		}
 		if (FNPeek(p, ':')) {
 			/* A SELECTOR'S TRAILING COLONS ARE PART OF THE SYMBOL. `-fn_expressionFormat` writes a function whose
 			 * name has colons as `modulus:by:(a, b)` — the only spelling that reads back — so the symbol is read as
@@ -867,6 +885,13 @@ static NSString *FNOperandFormat(NSExpression *e)
 	case NSSubqueryExpressionType:
 		return [NSString stringWithFormat:@"SUBQUERY(%@, $%@, %@)",
 		        [[self collection] fn_expressionFormat], [self variable], [[self predicate] predicateFormat]];
+	case NSConditionalExpressionType:
+		/* `TERNARY(condition, true, false)` IS THE FORM APPLE'S FORMAT USES and the form the parser reads back, with
+		 * the condition written as a PREDICATE — which is what it is, and why it is rendered by `-predicateFormat`. */
+		return [NSString stringWithFormat:@"TERNARY(%@, %@, %@)",
+		        [[self predicate] predicateFormat],
+		        [[self trueExpression] fn_expressionFormat],
+		        [[self falseExpression] fn_expressionFormat]];
 	default:
 		return @"SELF";
 	}
