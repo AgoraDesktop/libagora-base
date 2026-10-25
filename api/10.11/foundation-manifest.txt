@@ -218,6 +218,115 @@ class NSXPCConnection : NSObject
 class NSXPCInterface : NSObject
 class NSXPCListener : NSObject
 class NSXPCListenerEndpoint : NSObject
+class-era NSAppleScript 10_2 -
+class-era NSArray 10_6 -
+class-era NSAssertionHandler 10_6 -
+class-era NSAttributedString 10_0 -
+class-era NSBackgroundActivityScheduler 10_10 -
+class-era NSBlockOperation 10_6 -
+class-era NSByteCountFormatter 10_8 -
+class-era NSCache 10_6 -
+class-era NSCharacterSet 10_10 -
+class-era NSCoder 10_10 -
+class-era NSComparisonPredicate 10_4 -
+class-era NSCompoundPredicate 10_4 -
+class-era NSCondition 10_5 -
+class-era NSConditionLock 10_5 -
+class-era NSData 10_9 -
+class-era NSDataDetector 10_7 -
+class-era NSDateComponentsFormatter 10_10 -
+class-era NSDateIntervalFormatter 10_10 -
+class-era NSDictionary 10_6 -
+class-era NSDirectoryEnumerator 10_6 -
+class-era NSEnergyFormatter 10_10 -
+class-era NSExpression 10_4 -
+class-era NSExtensionContext 10_10 -
+class-era NSExtensionItem 10_10 -
+class-era NSFileAccessIntent 10_10 -
+class-era NSFileCoordinator 10_7 -
+class-era NSFileHandle 10_0 10_7
+class-era NSFileManager 10_11 -
+class-era NSFileSecurity 10_7 -
+class-era NSFileVersion 10_7 -
+class-era NSFileWrapper 10_0 -
+class-era NSHTTPCookieStorage 10_7 -
+class-era NSHashTable 10_5 -
+class-era NSInputStream 10_10 -
+class-era NSInvocationOperation 10_5 -
+class-era NSItemProvider 10_10 -
+class-era NSJSONSerialization 10_7 -
+class-era NSKeyedArchiver 10_9 -
+class-era NSKeyedUnarchiver 10_8 -
+class-era NSLengthFormatter 10_10 -
+class-era NSLinguisticTagger 10_7 -
+class-era NSMapTable 10_5 -
+class-era NSMassFormatter 10_10 -
+class-era NSMetadataItem 10_10 -
+class-era NSMetadataQuery 10_4 -
+class-era NSMetadataQueryAttributeValueTuple 10_4 -
+class-era NSMetadataQueryResultGroup 10_4 -
+class-era NSMutableArray 10_6 -
+class-era NSMutableAttributedString 10_0 -
+class-era NSMutableData 10_6 10_9
+class-era NSMutableDictionary 10_8 -
+class-era NSMutableIndexSet 10_7 -
+class-era NSMutableOrderedSet 10_7 -
+class-era NSMutableSet 10_5 -
+class-era NSMutableString 10_10 -
+class-era NSMutableURLRequest 10_7 -
+class-era NSObject 10_5 -
+class-era NSOperation 10_5 -
+class-era NSOperationQueue 10_5 -
+class-era NSOrderedSet 10_5 -
+class-era NSOrthography 10_6 -
+class-era NSOutputStream 10_6 -
+class-era NSPersonNameComponents 10_11 -
+class-era NSPersonNameComponentsFormatter 10_11 -
+class-era NSPointerArray 10_5 -
+class-era NSPointerFunctions 10_5 -
+class-era NSPredicate 10_4 -
+class-era NSProcessInfo 10_10_3 -
+class-era NSProgress 10_9 -
+class-era NSPurgeableData 10_6 -
+class-era NSRecursiveLock 10_5 -
+class-era NSRegularExpression 10_7 -
+class-era NSRunLoop 10_5 -
+class-era NSScriptClassDescription 10_5 -
+class-era NSSet 10_6 -
+class-era NSStream 10_6 -
+class-era NSString 10_9 -
+class-era NSTask 10_10 -
+class-era NSTextCheckingResult 10_7 -
+class-era NSTimeZone 10_5 -
+class-era NSURL 10_0 10_4
+class-era NSURLComponents 10_9 -
+class-era NSURLConnection 10_3 10_11
+class-era NSURLCredential 10_6 -
+class-era NSURLHandle 10_0 10_4
+class-era NSURLProtectionSpace 10_6 -
+class-era NSURLQueryItem 10_10 -
+class-era NSURLRequest 10_8 -
+class-era NSURLSession 10_11 -
+class-era NSURLSessionConfiguration NSURLSESSION_AVAILABLE -
+class-era NSURLSessionDataTask 10_10 -
+class-era NSURLSessionStreamTask 10_11 -
+class-era NSURLSessionTask NSURLSESSION_AVAILABLE -
+class-era NSUUID 10_8 -
+class-era NSUbiquitousKeyValueStore 10_7 -
+class-era NSUndoManager 10_0 -
+class-era NSUserActivity 10_10 -
+class-era NSUserAppleScriptTask 10_8 -
+class-era NSUserAutomatorTask 10_8 -
+class-era NSUserNotification 10_8 -
+class-era NSUserNotificationAction 10_10 -
+class-era NSUserNotificationCenter 10_8 -
+class-era NSUserScriptTask 10_8 -
+class-era NSUserUnixTask 10_8 -
+class-era NSValueTransformer 10_5 -
+class-era NSXPCConnection 10_8 -
+class-era NSXPCInterface 10_8 -
+class-era NSXPCListener 10_8 -
+class-era NSXPCListenerEndpoint 10_8 -
 function NSAllHashTableObjects
 function NSAllMapTableKeys
 function NSAllMapTableValues
@@ -4207,6 +4316,866 @@ selector NSXPCListener resume
 selector NSXPCListener serviceListener
 selector NSXPCListener setDelegate:
 selector NSXPCListener suspend
+selector-era NSAppleEventDescriptor currentProcessDescriptor 10_11 -
+selector-era NSAppleEventDescriptor dateValue 10_11 -
+selector-era NSAppleEventDescriptor descriptorWithApplicationURL: 10_11 -
+selector-era NSAppleEventDescriptor descriptorWithBundleIdentifier: 10_11 -
+selector-era NSAppleEventDescriptor descriptorWithDate: 10_11 -
+selector-era NSAppleEventDescriptor descriptorWithDouble: 10_11 -
+selector-era NSAppleEventDescriptor descriptorWithFileURL: 10_11 -
+selector-era NSAppleEventDescriptor descriptorWithProcessIdentifier: 10_11 -
+selector-era NSAppleEventDescriptor doubleValue 10_11 -
+selector-era NSAppleEventDescriptor fileURLValue 10_11 -
+selector-era NSAppleEventDescriptor isRecordDescriptor 10_11 -
+selector-era NSAppleEventDescriptor sendEventWithOptions:timeout:error: 10_11 -
+selector-era NSArray enumerateObjectsAtIndexes:options:usingBlock: 10_6 -
+selector-era NSArray enumerateObjectsUsingBlock: 10_6 -
+selector-era NSArray enumerateObjectsWithOptions:usingBlock: 10_6 -
+selector-era NSArray firstObject 10_6 -
+selector-era NSArray indexOfObject:inSortedRange:options:usingComparator: 10_6 -
+selector-era NSArray indexOfObjectAtIndexes:options:passingTest: 10_6 -
+selector-era NSArray indexOfObjectPassingTest: 10_6 -
+selector-era NSArray indexOfObjectWithOptions:passingTest: 10_6 -
+selector-era NSArray indexesOfObjectsAtIndexes:options:passingTest: 10_6 -
+selector-era NSArray indexesOfObjectsPassingTest: 10_6 -
+selector-era NSArray indexesOfObjectsWithOptions:passingTest: 10_6 -
+selector-era NSArray objectAtIndexedSubscript: 10_8 -
+selector-era NSArray removeObserver:forKeyPath:context: 10_7 -
+selector-era NSArray removeObserver:fromObjectsAtIndexes:forKeyPath:context: 10_7 -
+selector-era NSArray sortedArrayUsingComparator: 10_6 -
+selector-era NSArray sortedArrayWithOptions:usingComparator: 10_6 -
+selector-era NSAttributedString enumerateAttribute:inRange:options:usingBlock: 10_6 -
+selector-era NSAttributedString enumerateAttributesInRange:options:usingBlock: 10_6 -
+selector-era NSBundle URLForAuxiliaryExecutable: 10_6 -
+selector-era NSBundle URLForResource:withExtension: 10_6 -
+selector-era NSBundle URLForResource:withExtension:subdirectory: 10_6 -
+selector-era NSBundle URLForResource:withExtension:subdirectory:inBundleWithURL: 10_6 -
+selector-era NSBundle URLForResource:withExtension:subdirectory:localization: 10_6 -
+selector-era NSBundle URLsForResourcesWithExtension:subdirectory: 10_6 -
+selector-era NSBundle URLsForResourcesWithExtension:subdirectory:inBundleWithURL: 10_6 -
+selector-era NSBundle URLsForResourcesWithExtension:subdirectory:localization: 10_6 -
+selector-era NSBundle appStoreReceiptURL 10_7 -
+selector-era NSBundle builtInPlugInsURL 10_6 -
+selector-era NSBundle bundleURL 10_6 -
+selector-era NSBundle bundleWithURL: 10_6 -
+selector-era NSBundle executableArchitectures 10_5 -
+selector-era NSBundle executableURL 10_6 -
+selector-era NSBundle initWithURL: 10_6 -
+selector-era NSBundle loadAndReturnError: 10_5 -
+selector-era NSBundle preflightAndReturnError: 10_5 -
+selector-era NSBundle privateFrameworksURL 10_6 -
+selector-era NSBundle resourceURL 10_6 -
+selector-era NSBundle sharedFrameworksURL 10_6 -
+selector-era NSBundle sharedSupportURL 10_6 -
+selector-era NSByteCountFormatter formattingContext 10_10 -
+selector-era NSByteCountFormatter setFormattingContext: 10_10 -
+selector-era NSCalendar AMSymbol 10_7 -
+selector-era NSCalendar PMSymbol 10_7 -
+selector-era NSCalendar autoupdatingCurrentCalendar 10_5 -
+selector-era NSCalendar calendarWithIdentifier: 10_9 -
+selector-era NSCalendar compareDate:toDate:toUnitGranularity: 10_9 -
+selector-era NSCalendar component:fromDate: 10_9 -
+selector-era NSCalendar components:fromDateComponents:toDateComponents:options: 10_9 -
+selector-era NSCalendar componentsInTimeZone:fromDate: 10_9 -
+selector-era NSCalendar date:matchesComponents: 10_9 -
+selector-era NSCalendar dateByAddingUnit:value:toDate:options: 10_9 -
+selector-era NSCalendar dateBySettingHour:minute:second:ofDate:options: 10_9 -
+selector-era NSCalendar dateBySettingUnit:value:ofDate:options: 10_9 -
+selector-era NSCalendar dateWithEra:year:month:day:hour:minute:second:nanosecond: 10_9 -
+selector-era NSCalendar dateWithEra:yearForWeekOfYear:weekOfYear:weekday:hour:minute:second:nanosecond: 10_9 -
+selector-era NSCalendar enumerateDatesStartingAfterDate:matchingComponents:options:usingBlock: 10_9 -
+selector-era NSCalendar eraSymbols 10_7 -
+selector-era NSCalendar getEra:year:month:day:fromDate: 10_9 -
+selector-era NSCalendar getEra:yearForWeekOfYear:weekOfYear:weekday:fromDate: 10_9 -
+selector-era NSCalendar getHour:minute:second:nanosecond:fromDate: 10_9 -
+selector-era NSCalendar isDate:equalToDate:toUnitGranularity: 10_9 -
+selector-era NSCalendar isDate:inSameDayAsDate: 10_9 -
+selector-era NSCalendar isDateInToday: 10_9 -
+selector-era NSCalendar isDateInTomorrow: 10_9 -
+selector-era NSCalendar isDateInWeekend: 10_9 -
+selector-era NSCalendar isDateInYesterday: 10_9 -
+selector-era NSCalendar longEraSymbols 10_7 -
+selector-era NSCalendar monthSymbols 10_7 -
+selector-era NSCalendar nextDateAfterDate:matchingComponents:options: 10_9 -
+selector-era NSCalendar nextDateAfterDate:matchingHour:minute:second:options: 10_9 -
+selector-era NSCalendar nextDateAfterDate:matchingUnit:value:options: 10_9 -
+selector-era NSCalendar nextWeekendStartDate:interval:options:afterDate: 10_9 -
+selector-era NSCalendar quarterSymbols 10_7 -
+selector-era NSCalendar rangeOfUnit:startDate:interval:forDate: 10_5 -
+selector-era NSCalendar rangeOfWeekendStartDate:interval:containingDate: 10_9 -
+selector-era NSCalendar shortMonthSymbols 10_7 -
+selector-era NSCalendar shortQuarterSymbols 10_7 -
+selector-era NSCalendar shortStandaloneMonthSymbols 10_7 -
+selector-era NSCalendar shortStandaloneQuarterSymbols 10_7 -
+selector-era NSCalendar shortStandaloneWeekdaySymbols 10_7 -
+selector-era NSCalendar shortWeekdaySymbols 10_7 -
+selector-era NSCalendar standaloneMonthSymbols 10_7 -
+selector-era NSCalendar standaloneQuarterSymbols 10_7 -
+selector-era NSCalendar standaloneWeekdaySymbols 10_7 -
+selector-era NSCalendar startOfDayForDate: 10_9 -
+selector-era NSCalendar veryShortMonthSymbols 10_7 -
+selector-era NSCalendar veryShortStandaloneMonthSymbols 10_7 -
+selector-era NSCalendar veryShortStandaloneWeekdaySymbols 10_7 -
+selector-era NSCalendar veryShortWeekdaySymbols 10_7 -
+selector-era NSCalendar weekdaySymbols 10_7 -
+selector-era NSCharacterSet URLFragmentAllowedCharacterSet 10_9 -
+selector-era NSCharacterSet URLHostAllowedCharacterSet 10_9 -
+selector-era NSCharacterSet URLPasswordAllowedCharacterSet 10_9 -
+selector-era NSCharacterSet URLPathAllowedCharacterSet 10_9 -
+selector-era NSCharacterSet URLQueryAllowedCharacterSet 10_9 -
+selector-era NSCharacterSet URLUserAllowedCharacterSet 10_9 -
+selector-era NSCharacterSet newlineCharacterSet 10_5 -
+selector-era NSCoder allowedClasses 10_8 -
+selector-era NSCoder decodeIntegerForKey: 10_5 -
+selector-era NSCoder decodeNXObject 10_0 10_5
+selector-era NSCoder decodeObjectOfClass:forKey: 10_8 -
+selector-era NSCoder decodeObjectOfClasses:forKey: 10_8 -
+selector-era NSCoder decodePropertyListForKey: 10_8 -
+selector-era NSCoder decodeTopLevelObjectAndReturnError: 10_11 -
+selector-era NSCoder decodeTopLevelObjectForKey:error: 10_11 -
+selector-era NSCoder decodeTopLevelObjectOfClass:forKey:error: 10_11 -
+selector-era NSCoder decodeTopLevelObjectOfClasses:forKey:error: 10_11 -
+selector-era NSCoder encodeInteger:forKey: 10_5 -
+selector-era NSCoder encodeNXObject: 10_0 10_5
+selector-era NSCoder failWithError: 10_11 -
+selector-era NSCoder requiresSecureCoding 10_8 -
+selector-era NSCondition name 10_5 -
+selector-era NSCondition setName: 10_5 -
+selector-era NSConditionLock name 10_5 -
+selector-era NSConditionLock setName: 10_5 -
+selector-era NSConnection defaultConnection 10_0 10_6
+selector-era NSConnection dispatchWithComponents: 10_7 -
+selector-era NSConnection serviceConnectionWithName:rootObject: 10_5 -
+selector-era NSConnection serviceConnectionWithName:rootObject:usingNameServer: 10_5 -
+selector-era NSData base64EncodedDataWithOptions: 10_9 -
+selector-era NSData base64EncodedStringWithOptions: 10_9 -
+selector-era NSData base64Encoding 10_6 10_9
+selector-era NSData dataWithContentsOfMappedFile: 10_0 10_10
+selector-era NSData enumerateByteRangesUsingBlock: 10_9 -
+selector-era NSData getBytes: 10_0 10_10
+selector-era NSData initWithBase64EncodedData:options: 10_9 -
+selector-era NSData initWithBase64EncodedString:options: 10_9 -
+selector-era NSData initWithBase64Encoding: 10_6 10_9
+selector-era NSData initWithBytesNoCopy:length:deallocator: 10_9 -
+selector-era NSData initWithContentsOfMappedFile: 10_0 10_10
+selector-era NSData rangeOfData:options:range: 10_6 -
+selector-era NSDate addTimeInterval: 10_0 10_6
+selector-era NSDate dateByAddingTimeInterval: 10_6 -
+selector-era NSDateComponents calendar 10_7 -
+selector-era NSDateComponents date 10_7 -
+selector-era NSDateComponents isLeapMonth 10_8 -
+selector-era NSDateComponents isValidDate 10_9 -
+selector-era NSDateComponents isValidDateInCalendar: 10_9 -
+selector-era NSDateComponents nanosecond 10_7 -
+selector-era NSDateComponents quarter 10_6 -
+selector-era NSDateComponents setCalendar: 10_7 -
+selector-era NSDateComponents setLeapMonth: 10_8 -
+selector-era NSDateComponents setNanosecond: 10_7 -
+selector-era NSDateComponents setQuarter: 10_6 -
+selector-era NSDateComponents setTimeZone: 10_7 -
+selector-era NSDateComponents setValue:forComponent: 10_9 -
+selector-era NSDateComponents setWeekOfMonth: 10_7 -
+selector-era NSDateComponents setWeekOfYear: 10_7 -
+selector-era NSDateComponents setYearForWeekOfYear: 10_7 -
+selector-era NSDateComponents timeZone 10_7 -
+selector-era NSDateComponents valueForComponent: 10_9 -
+selector-era NSDateComponents weekOfMonth 10_7 -
+selector-era NSDateComponents weekOfYear 10_7 -
+selector-era NSDateComponents yearForWeekOfYear 10_7 -
+selector-era NSDateFormatter dateFormatFromTemplate:options:locale: 10_6 -
+selector-era NSDateFormatter doesRelativeDateFormatting 10_6 -
+selector-era NSDateFormatter formattingContext 10_10 -
+selector-era NSDateFormatter gregorianStartDate 10_5 -
+selector-era NSDateFormatter localizedStringFromDate:dateStyle:timeStyle: 10_6 -
+selector-era NSDateFormatter longEraSymbols 10_5 -
+selector-era NSDateFormatter quarterSymbols 10_5 -
+selector-era NSDateFormatter setDoesRelativeDateFormatting: 10_6 -
+selector-era NSDateFormatter setFormattingContext: 10_10 -
+selector-era NSDateFormatter setGregorianStartDate: 10_5 -
+selector-era NSDateFormatter setLocalizedDateFormatFromTemplate: 10_10 -
+selector-era NSDateFormatter setLongEraSymbols: 10_5 -
+selector-era NSDateFormatter setQuarterSymbols: 10_5 -
+selector-era NSDateFormatter setShortQuarterSymbols: 10_5 -
+selector-era NSDateFormatter setShortStandaloneMonthSymbols: 10_5 -
+selector-era NSDateFormatter setShortStandaloneQuarterSymbols: 10_5 -
+selector-era NSDateFormatter setShortStandaloneWeekdaySymbols: 10_5 -
+selector-era NSDateFormatter setStandaloneMonthSymbols: 10_5 -
+selector-era NSDateFormatter setStandaloneQuarterSymbols: 10_5 -
+selector-era NSDateFormatter setStandaloneWeekdaySymbols: 10_5 -
+selector-era NSDateFormatter setVeryShortMonthSymbols: 10_5 -
+selector-era NSDateFormatter setVeryShortStandaloneMonthSymbols: 10_5 -
+selector-era NSDateFormatter setVeryShortStandaloneWeekdaySymbols: 10_5 -
+selector-era NSDateFormatter setVeryShortWeekdaySymbols: 10_5 -
+selector-era NSDateFormatter shortQuarterSymbols 10_5 -
+selector-era NSDateFormatter shortStandaloneMonthSymbols 10_5 -
+selector-era NSDateFormatter shortStandaloneQuarterSymbols 10_5 -
+selector-era NSDateFormatter shortStandaloneWeekdaySymbols 10_5 -
+selector-era NSDateFormatter standaloneMonthSymbols 10_5 -
+selector-era NSDateFormatter standaloneQuarterSymbols 10_5 -
+selector-era NSDateFormatter standaloneWeekdaySymbols 10_5 -
+selector-era NSDateFormatter veryShortMonthSymbols 10_5 -
+selector-era NSDateFormatter veryShortStandaloneMonthSymbols 10_5 -
+selector-era NSDateFormatter veryShortStandaloneWeekdaySymbols 10_5 -
+selector-era NSDateFormatter veryShortWeekdaySymbols 10_5 -
+selector-era NSDictionary enumerateKeysAndObjectsUsingBlock: 10_6 -
+selector-era NSDictionary enumerateKeysAndObjectsWithOptions:usingBlock: 10_6 -
+selector-era NSDictionary getObjects:andKeys:count: 10_7 -
+selector-era NSDictionary keysOfEntriesPassingTest: 10_6 -
+selector-era NSDictionary keysOfEntriesWithOptions:passingTest: 10_6 -
+selector-era NSDictionary keysSortedByValueUsingComparator: 10_6 -
+selector-era NSDictionary keysSortedByValueWithOptions:usingComparator: 10_6 -
+selector-era NSDictionary objectForKeyedSubscript: 10_8 -
+selector-era NSDictionary sharedKeySetForKeys: 10_8 -
+selector-era NSDirectoryEnumerator level 10_6 -
+selector-era NSDirectoryEnumerator skipDescendants 10_6 -
+selector-era NSError setUserInfoValueProviderForDomain:provider: 10_11 -
+selector-era NSError userInfoValueProviderForDomain: 10_11 -
+selector-era NSException callStackReturnAddresses 10_5 -
+selector-era NSException callStackSymbols 10_6 -
+selector-era NSExpression allowEvaluation 10_9 -
+selector-era NSExpression collection 10_5 -
+selector-era NSExpression expressionForAggregate: 10_5 -
+selector-era NSExpression expressionForAnyKey 10_9 -
+selector-era NSExpression expressionForBlock:arguments: 10_6 -
+selector-era NSExpression expressionForConditional:trueExpression:falseExpression: 10_11 -
+selector-era NSExpression expressionForFunction:selectorName:arguments: 10_5 -
+selector-era NSExpression expressionForIntersectSet:with: 10_5 -
+selector-era NSExpression expressionForMinusSet:with: 10_5 -
+selector-era NSExpression expressionForSubquery:usingIteratorVariable:predicate: 10_5 -
+selector-era NSExpression expressionForUnionSet:with: 10_5 -
+selector-era NSExpression expressionWithFormat: 10_6 -
+selector-era NSExpression expressionWithFormat:argumentArray: 10_6 -
+selector-era NSExpression expressionWithFormat:arguments: 10_6 -
+selector-era NSExpression falseExpression 10_11 -
+selector-era NSExpression leftExpression 10_5 -
+selector-era NSExpression predicate 10_5 -
+selector-era NSExpression rightExpression 10_5 -
+selector-era NSExpression trueExpression 10_11 -
+selector-era NSFileCoordinator coordinateAccessWithIntents:queue:byAccessor: 10_10 -
+selector-era NSFileCoordinator itemAtURL:willMoveToURL: 10_8 -
+selector-era NSFileCoordinator purposeIdentifier 10_7 -
+selector-era NSFileCoordinator setPurposeIdentifier: 10_7 -
+selector-era NSFileHandle fileHandleForReadingFromURL:error: 10_6 -
+selector-era NSFileHandle fileHandleForUpdatingURL:error: 10_6 -
+selector-era NSFileHandle fileHandleForWritingToURL:error: 10_6 -
+selector-era NSFileManager URLForDirectory:inDomain:appropriateForURL:create:error: 10_6 -
+selector-era NSFileManager URLForPublishingUbiquitousItemAtURL:expirationDate:error: 10_7 -
+selector-era NSFileManager URLForUbiquityContainerIdentifier: 10_7 -
+selector-era NSFileManager URLsForDirectory:inDomains: 10_6 -
+selector-era NSFileManager attributesOfFileSystemForPath:error: 10_5 -
+selector-era NSFileManager attributesOfItemAtPath:error: 10_5 -
+selector-era NSFileManager changeFileAttributes:atPath: 10_0 10_5
+selector-era NSFileManager containerURLForSecurityApplicationGroupIdentifier: 10_8 -
+selector-era NSFileManager contentsOfDirectoryAtPath:error: 10_5 -
+selector-era NSFileManager contentsOfDirectoryAtURL:includingPropertiesForKeys:options:error: 10_6 -
+selector-era NSFileManager copyItemAtPath:toPath:error: 10_5 -
+selector-era NSFileManager copyItemAtURL:toURL:error: 10_6 -
+selector-era NSFileManager copyPath:toPath:handler: 10_0 10_5
+selector-era NSFileManager createDirectoryAtPath:attributes: 10_0 10_5
+selector-era NSFileManager createDirectoryAtPath:withIntermediateDirectories:attributes:error: 10_5 -
+selector-era NSFileManager createDirectoryAtURL:withIntermediateDirectories:attributes:error: 10_7 -
+selector-era NSFileManager createSymbolicLinkAtPath:pathContent: 10_0 10_5
+selector-era NSFileManager createSymbolicLinkAtPath:withDestinationPath:error: 10_5 -
+selector-era NSFileManager createSymbolicLinkAtURL:withDestinationURL:error: 10_7 -
+selector-era NSFileManager delegate 10_5 -
+selector-era NSFileManager destinationOfSymbolicLinkAtPath:error: 10_5 -
+selector-era NSFileManager directoryContentsAtPath: 10_0 10_5
+selector-era NSFileManager enumeratorAtURL:includingPropertiesForKeys:options:errorHandler: 10_6 -
+selector-era NSFileManager evictUbiquitousItemAtURL:error: 10_7 -
+selector-era NSFileManager fileAttributesAtPath:traverseLink: 10_0 10_5
+selector-era NSFileManager fileSystemAttributesAtPath: 10_0 10_5
+selector-era NSFileManager getRelationship:ofDirectory:inDomain:toItemAtURL:error: 10_10 -
+selector-era NSFileManager getRelationship:ofDirectoryAtURL:toItemAtURL:error: 10_10 -
+selector-era NSFileManager isUbiquitousItemAtURL: 10_7 -
+selector-era NSFileManager linkItemAtPath:toPath:error: 10_5 -
+selector-era NSFileManager linkItemAtURL:toURL:error: 10_6 -
+selector-era NSFileManager linkPath:toPath:handler: 10_0 10_5
+selector-era NSFileManager mountedVolumeURLsIncludingResourceValuesForKeys:options: 10_6 -
+selector-era NSFileManager moveItemAtPath:toPath:error: 10_5 -
+selector-era NSFileManager moveItemAtURL:toURL:error: 10_6 -
+selector-era NSFileManager movePath:toPath:handler: 10_0 10_5
+selector-era NSFileManager pathContentOfSymbolicLinkAtPath: 10_0 10_5
+selector-era NSFileManager removeFileAtPath:handler: 10_0 10_5
+selector-era NSFileManager removeItemAtPath:error: 10_5 -
+selector-era NSFileManager removeItemAtURL:error: 10_6 -
+selector-era NSFileManager replaceItemAtURL:withItemAtURL:backupItemName:options:resultingItemURL:error: 10_6 -
+selector-era NSFileManager setAttributes:ofItemAtPath:error: 10_5 -
+selector-era NSFileManager setDelegate: 10_5 -
+selector-era NSFileManager setUbiquitous:itemAtURL:destinationURL:error: 10_7 -
+selector-era NSFileManager startDownloadingUbiquitousItemAtURL:error: 10_7 -
+selector-era NSFileManager subpathsOfDirectoryAtPath:error: 10_5 -
+selector-era NSFileManager trashItemAtURL:resultingItemURL:error: 10_8 -
+selector-era NSFileManager ubiquityIdentityToken 10_8 -
+selector-era NSFileManager unmountVolumeAtURL:options:completionHandler: 10_11 -
+selector-era NSFileVersion addVersionOfItemAtURL:withContentsOfURL:options:error: 10_7 -
+selector-era NSFileVersion getNonlocalVersionsOfItemAtURL:completionHandler: 10_10 -
+selector-era NSFileVersion hasLocalContents 10_10 -
+selector-era NSFileVersion hasThumbnail 10_10 -
+selector-era NSFileVersion isDiscardable 10_7 -
+selector-era NSFileVersion setDiscardable: 10_7 -
+selector-era NSFileVersion temporaryDirectoryURLForNewVersionOfItemAtURL: 10_7 -
+selector-era NSFileWrapper addFileWithPath: 10_0 10_10
+selector-era NSFileWrapper addSymbolicLinkWithDestination:preferredFilename: 10_0 10_10
+selector-era NSFileWrapper initSymbolicLinkWithDestination: 10_0 10_10
+selector-era NSFileWrapper initSymbolicLinkWithDestinationURL: 10_6 -
+selector-era NSFileWrapper initWithPath: 10_0 10_10
+selector-era NSFileWrapper initWithURL:options:error: 10_6 -
+selector-era NSFileWrapper matchesContentsOfURL: 10_6 -
+selector-era NSFileWrapper needsToBeUpdatedFromPath: 10_0 10_10
+selector-era NSFileWrapper readFromURL:options:error: 10_6 -
+selector-era NSFileWrapper symbolicLinkDestination 10_0 10_10
+selector-era NSFileWrapper symbolicLinkDestinationURL 10_6 -
+selector-era NSFileWrapper updateFromPath: 10_0 10_10
+selector-era NSFileWrapper writeToFile:atomically:updateFilenames: 10_0 10_10
+selector-era NSFileWrapper writeToURL:options:originalContentsURL:error: 10_6 -
+selector-era NSGarbageCollector isCollecting 10_0 10_6
+selector-era NSHTTPCookieStorage getCookiesForTask:completionHandler: 10_10 -
+selector-era NSHTTPCookieStorage removeCookiesSinceDate: 10_10 -
+selector-era NSHTTPCookieStorage sharedCookieStorageForGroupContainerIdentifier: 10_11 -
+selector-era NSHTTPCookieStorage sortedCookiesUsingDescriptors: 10_7 -
+selector-era NSHTTPCookieStorage storeCookies:forTask: 10_10 -
+selector-era NSHTTPURLResponse initWithURL:statusCode:HTTPVersion:headerFields: 10_7 -
+selector-era NSHashTable hashTableWithWeakObjects 10_5 10_8
+selector-era NSHashTable weakObjectsHashTable 10_8 -
+selector-era NSHost flushHostCache 10_0 10_7
+selector-era NSHost isHostCacheEnabled 10_0 10_7
+selector-era NSHost localizedName 10_6 -
+selector-era NSHost setHostCacheEnabled: 10_0 10_7
+selector-era NSIndexPath getIndexes:range: 10_9 -
+selector-era NSIndexSet countOfIndexesInRange: 10_5 -
+selector-era NSIndexSet enumerateIndexesInRange:options:usingBlock: 10_6 -
+selector-era NSIndexSet enumerateIndexesUsingBlock: 10_6 -
+selector-era NSIndexSet enumerateIndexesWithOptions:usingBlock: 10_6 -
+selector-era NSIndexSet enumerateRangesInRange:options:usingBlock: 10_7 -
+selector-era NSIndexSet enumerateRangesUsingBlock: 10_7 -
+selector-era NSIndexSet enumerateRangesWithOptions:usingBlock: 10_7 -
+selector-era NSIndexSet indexInRange:options:passingTest: 10_6 -
+selector-era NSIndexSet indexPassingTest: 10_6 -
+selector-era NSIndexSet indexWithOptions:passingTest: 10_6 -
+selector-era NSIndexSet indexesInRange:options:passingTest: 10_6 -
+selector-era NSIndexSet indexesPassingTest: 10_6 -
+selector-era NSIndexSet indexesWithOptions:passingTest: 10_6 -
+selector-era NSInputStream initWithURL: 10_6 -
+selector-era NSInputStream inputStreamWithURL: 10_6 -
+selector-era NSItemProvider loadPreviewImageWithOptions:completionHandler: 10_10 -
+selector-era NSItemProvider previewImageHandler 10_10 -
+selector-era NSItemProvider setPreviewImageHandler: 10_10 -
+selector-era NSKeyedArchiver requiresSecureCoding 10_8 -
+selector-era NSKeyedArchiver setRequiresSecureCoding: 10_8 -
+selector-era NSKeyedUnarchiver requiresSecureCoding 10_8 -
+selector-era NSKeyedUnarchiver setRequiresSecureCoding: 10_8 -
+selector-era NSKeyedUnarchiver unarchiveTopLevelObjectWithData:error: 10_11 -
+selector-era NSLinguisticTagger availableTagSchemesForLanguage: 10_7 -
+selector-era NSLinguisticTagger enumerateTagsInRange:scheme:options:usingBlock: 10_7 -
+selector-era NSLinguisticTagger initWithTagSchemes:options: 10_7 -
+selector-era NSLinguisticTagger orthographyAtIndex:effectiveRange: 10_7 -
+selector-era NSLinguisticTagger possibleTagsAtIndex:scheme:tokenRange:sentenceRange:scores: 10_7 -
+selector-era NSLinguisticTagger sentenceRangeForRange: 10_7 -
+selector-era NSLinguisticTagger setOrthography:range: 10_7 -
+selector-era NSLinguisticTagger setString: 10_7 -
+selector-era NSLinguisticTagger string 10_7 -
+selector-era NSLinguisticTagger stringEditedInRange:changeInLength: 10_7 -
+selector-era NSLinguisticTagger tagAtIndex:scheme:tokenRange:sentenceRange: 10_7 -
+selector-era NSLinguisticTagger tagSchemes 10_7 -
+selector-era NSLinguisticTagger tagsInRange:scheme:options:tokenRanges: 10_7 -
+selector-era NSLocale autoupdatingCurrentLocale 10_5 -
+selector-era NSLocale characterDirectionForLanguage: 10_6 -
+selector-era NSLocale commonISOCurrencyCodes 10_5 -
+selector-era NSLocale lineDirectionForLanguage: 10_6 -
+selector-era NSLocale localeIdentifierFromWindowsLocaleCode: 10_6 -
+selector-era NSLocale localeWithLocaleIdentifier: 10_6 -
+selector-era NSLocale preferredLanguages 10_5 -
+selector-era NSLocale windowsLocaleCodeFromLocaleIdentifier: 10_6 -
+selector-era NSLock name 10_5 -
+selector-era NSLock setName: 10_5 -
+selector-era NSMachBootstrapServer servicePortWithName: 10_5 -
+selector-era NSMachPort initWithMachPort:options: 10_5 -
+selector-era NSMachPort portWithMachPort:options: 10_5 -
+selector-era NSMapTable mapTableWithStrongToStrongObjects 10_5 10_8
+selector-era NSMapTable mapTableWithStrongToWeakObjects 10_5 10_8
+selector-era NSMapTable mapTableWithWeakToStrongObjects 10_5 10_8
+selector-era NSMapTable mapTableWithWeakToWeakObjects 10_5 10_8
+selector-era NSMapTable strongToStrongObjectsMapTable 10_8 -
+selector-era NSMapTable strongToWeakObjectsMapTable 10_8 -
+selector-era NSMapTable weakToStrongObjectsMapTable 10_8 -
+selector-era NSMapTable weakToWeakObjectsMapTable 10_8 -
+selector-era NSMetadataItem initWithURL: 10_9 -
+selector-era NSMetadataQuery enumerateResultsUsingBlock: 10_9 -
+selector-era NSMetadataQuery enumerateResultsWithOptions:usingBlock: 10_9 -
+selector-era NSMetadataQuery operationQueue 10_9 -
+selector-era NSMetadataQuery searchItems 10_9 -
+selector-era NSMetadataQuery setOperationQueue: 10_9 -
+selector-era NSMetadataQuery setSearchItems: 10_9 -
+selector-era NSMutableArray removeObjectsFromIndices:numIndices: 10_0 10_6
+selector-era NSMutableArray setObject:atIndexedSubscript: 10_8 -
+selector-era NSMutableArray sortUsingComparator: 10_6 -
+selector-era NSMutableArray sortWithOptions:usingComparator: 10_6 -
+selector-era NSMutableCharacterSet newlineCharacterSet 10_5 -
+selector-era NSMutableDictionary dictionaryWithSharedKeySet: 10_8 -
+selector-era NSMutableDictionary setObject:forKeyedSubscript: 10_8 -
+selector-era NSMutableOrderedSet filterUsingPredicate: 10_7 -
+selector-era NSMutableOrderedSet setObject:atIndexedSubscript: 10_8 -
+selector-era NSMutableOrderedSet sortUsingDescriptors: 10_7 -
+selector-era NSMutableSet filterUsingPredicate: 10_5 -
+selector-era NSMutableString applyTransform:reverse:range:updatedRange: 10_11 -
+selector-era NSMutableURLRequest HTTPShouldUsePipelining 10_7 -
+selector-era NSMutableURLRequest allowsCellularAccess 10_8 -
+selector-era NSMutableURLRequest networkServiceType 10_7 -
+selector-era NSMutableURLRequest setAllowsCellularAccess: 10_8 -
+selector-era NSMutableURLRequest setHTTPShouldUsePipelining: 10_7 -
+selector-era NSMutableURLRequest setNetworkServiceType: 10_7 -
+selector-era NSNetService includesPeerToPeer 10_10 -
+selector-era NSNetService port 10_5 -
+selector-era NSNetService publishWithOptions: 10_5 -
+selector-era NSNetService resolve 10_2 10_4
+selector-era NSNetService setIncludesPeerToPeer: 10_10 -
+selector-era NSNetServiceBrowser includesPeerToPeer 10_10 -
+selector-era NSNetServiceBrowser setIncludesPeerToPeer: 10_10 -
+selector-era NSNotification initWithName:object:userInfo: 10_6 -
+selector-era NSNotificationCenter addObserverForName:object:queue:usingBlock: 10_6 -
+selector-era NSNumber initWithInteger: 10_5 -
+selector-era NSNumber initWithUnsignedInteger: 10_5 -
+selector-era NSNumber integerValue 10_5 -
+selector-era NSNumber numberWithInteger: 10_5 -
+selector-era NSNumber numberWithUnsignedInteger: 10_5 -
+selector-era NSNumber unsignedIntegerValue 10_5 -
+selector-era NSNumberFormatter currencyGroupingSeparator 10_5 -
+selector-era NSNumberFormatter formattingContext 10_10 -
+selector-era NSNumberFormatter isLenient 10_5 -
+selector-era NSNumberFormatter isPartialStringValidationEnabled 10_5 -
+selector-era NSNumberFormatter localizedStringFromNumber:numberStyle: 10_6 -
+selector-era NSNumberFormatter maximumSignificantDigits 10_5 -
+selector-era NSNumberFormatter minimumSignificantDigits 10_5 -
+selector-era NSNumberFormatter setCurrencyGroupingSeparator: 10_5 -
+selector-era NSNumberFormatter setFormattingContext: 10_10 -
+selector-era NSNumberFormatter setLenient: 10_5 -
+selector-era NSNumberFormatter setMaximumSignificantDigits: 10_5 -
+selector-era NSNumberFormatter setMinimumSignificantDigits: 10_5 -
+selector-era NSNumberFormatter setPartialStringValidationEnabled: 10_5 -
+selector-era NSNumberFormatter setUsesSignificantDigits: 10_5 -
+selector-era NSNumberFormatter usesSignificantDigits 10_5 -
+selector-era NSObject URL:resourceDataDidBecomeAvailable: 10_0 10_4
+selector-era NSObject URL:resourceDidFailLoadingWithReason: 10_0 10_4
+selector-era NSObject URLResourceDidCancelLoading: 10_0 10_4
+selector-era NSObject URLResourceDidFinishLoading: 10_0 10_4
+selector-era NSObject autoContentAccessingProxy 10_6 -
+selector-era NSObject copyScriptingValue:forKey:withProperties: 10_5 -
+selector-era NSObject fileManager:shouldProceedAfterError: 10_0 10_5
+selector-era NSObject fileManager:willProcessPath: 10_0 10_5
+selector-era NSObject handleQueryWithUnboundKey: 10_0 10_3
+selector-era NSObject handleTakeValue:forUnboundKey: 10_0 10_3
+selector-era NSObject keyPathsForValuesAffectingValueForKey: 10_5 -
+selector-era NSObject mutableOrderedSetValueForKey: 10_7 -
+selector-era NSObject mutableOrderedSetValueForKeyPath: 10_7 -
+selector-era NSObject newScriptingObjectOfClass:forValueForKey:withContentsValue:properties: 10_5 -
+selector-era NSObject performSelector:onThread:withObject:waitUntilDone: 10_5 -
+selector-era NSObject performSelector:onThread:withObject:waitUntilDone:modes: 10_5 -
+selector-era NSObject performSelectorInBackground:withObject: 10_5 -
+selector-era NSObject poseAsClass: 10_0 10_5
+selector-era NSObject removeObserver:forKeyPath:context: 10_7 -
+selector-era NSObject scriptingValueForSpecifier: 10_5 -
+selector-era NSObject setKeys:triggerChangeNotificationsForDependentKey: 10_0 10_5
+selector-era NSObject storedValueForKey: 10_0 10_4
+selector-era NSObject takeStoredValue:forKey: 10_0 10_4
+selector-era NSObject takeValue:forKey: 10_0 10_3
+selector-era NSObject takeValue:forKeyPath: 10_0 10_3
+selector-era NSObject takeValuesFromDictionary: 10_0 10_3
+selector-era NSObject unableToSetNilForKey: 10_0 10_3
+selector-era NSObject useStoredAccessor 10_0 10_4
+selector-era NSObject valuesForKeys: 10_0 10_3
+selector-era NSOperation isAsynchronous 10_8 -
+selector-era NSOperation name 10_10 -
+selector-era NSOperation qualityOfService 10_10 -
+selector-era NSOperation setName: 10_10 -
+selector-era NSOperation setQualityOfService: 10_10 -
+selector-era NSOperation setThreadPriority: 10_6 10_10
+selector-era NSOperation threadPriority 10_6 10_10
+selector-era NSOperation waitUntilFinished 10_6 -
+selector-era NSOperationQueue addOperationWithBlock: 10_6 -
+selector-era NSOperationQueue addOperations:waitUntilFinished: 10_6 -
+selector-era NSOperationQueue currentQueue 10_6 -
+selector-era NSOperationQueue mainQueue 10_6 -
+selector-era NSOperationQueue name 10_6 -
+selector-era NSOperationQueue operationCount 10_6 -
+selector-era NSOperationQueue qualityOfService 10_10 -
+selector-era NSOperationQueue setName: 10_6 -
+selector-era NSOperationQueue setQualityOfService: 10_10 -
+selector-era NSOperationQueue setUnderlyingQueue: 10_10 -
+selector-era NSOperationQueue underlyingQueue 10_10 -
+selector-era NSOrderedSet filteredOrderedSetUsingPredicate: 10_7 -
+selector-era NSOrderedSet objectAtIndexedSubscript: 10_8 -
+selector-era NSOrderedSet removeObserver:forKeyPath:context: 10_7 -
+selector-era NSOrderedSet setValue:forKey: 10_7 -
+selector-era NSOrderedSet sortedArrayUsingDescriptors: 10_7 -
+selector-era NSOrderedSet valueForKey: 10_7 -
+selector-era NSOrthography allLanguages 10_6 -
+selector-era NSOrthography allScripts 10_6 -
+selector-era NSOrthography dominantLanguage 10_6 -
+selector-era NSOrthography dominantLanguageForScript: 10_6 -
+selector-era NSOrthography initWithDominantScript:languageMap: 10_6 -
+selector-era NSOrthography languagesForScript: 10_6 -
+selector-era NSOrthography orthographyWithDominantScript:languageMap: 10_6 -
+selector-era NSOutputStream initWithURL:append: 10_6 -
+selector-era NSOutputStream outputStreamWithURL:append: 10_6 -
+selector-era NSPointerArray pointerArrayWithStrongObjects 10_5 10_8
+selector-era NSPointerArray pointerArrayWithWeakObjects 10_5 10_8
+selector-era NSPointerArray strongObjectsPointerArray 10_8 -
+selector-era NSPointerArray weakObjectsPointerArray 10_8 -
+selector-era NSPortCoder connection 10_0 10_7
+selector-era NSPortCoder dispatch 10_0 10_7
+selector-era NSPortCoder initWithReceivePort:sendPort:components: 10_0 10_7
+selector-era NSPortCoder portCoderWithReceivePort:sendPort:components: 10_0 10_7
+selector-era NSPositionalSpecifier objectSpecifier 10_5 -
+selector-era NSPositionalSpecifier position 10_5 -
+selector-era NSPredicate allowEvaluation 10_9 -
+selector-era NSPredicate evaluateWithObject:substitutionVariables: 10_5 -
+selector-era NSPredicate predicateFromMetadataQueryString: 10_9 -
+selector-era NSPredicate predicateWithBlock: 10_6 -
+selector-era NSProcessInfo activeProcessorCount 10_5 -
+selector-era NSProcessInfo automaticTerminationSupportEnabled 10_7 -
+selector-era NSProcessInfo beginActivityWithOptions:reason: 10_9 -
+selector-era NSProcessInfo disableAutomaticTermination: 10_7 -
+selector-era NSProcessInfo disableSuddenTermination 10_6 -
+selector-era NSProcessInfo enableAutomaticTermination: 10_7 -
+selector-era NSProcessInfo enableSuddenTermination 10_6 -
+selector-era NSProcessInfo endActivity: 10_9 -
+selector-era NSProcessInfo isOperatingSystemAtLeastVersion: 10_10 -
+selector-era NSProcessInfo operatingSystem 10_0 10_10
+selector-era NSProcessInfo operatingSystemName 10_0 10_10
+selector-era NSProcessInfo operatingSystemVersion 10_10 -
+selector-era NSProcessInfo performActivityWithOptions:reason:usingBlock: 10_9 -
+selector-era NSProcessInfo physicalMemory 10_5 -
+selector-era NSProcessInfo processorCount 10_5 -
+selector-era NSProcessInfo setAutomaticTerminationSupportEnabled: 10_7 -
+selector-era NSProcessInfo systemUptime 10_6 -
+selector-era NSProcessInfo thermalState 10_10_3 -
+selector-era NSProgress addChild:withPendingUnitCount: 10_11 -
+selector-era NSProgress addSubscriberForFileURL:withPublishingHandler: 10_9 -
+selector-era NSProgress discreteProgressWithTotalUnitCount: 10_11 -
+selector-era NSProgress isOld 10_9 -
+selector-era NSProgress progressWithTotalUnitCount:parent:pendingUnitCount: 10_11 -
+selector-era NSProgress publish 10_9 -
+selector-era NSProgress removeSubscriber: 10_9 -
+selector-era NSProgress resume 10_11 -
+selector-era NSProgress unpublish 10_9 -
+selector-era NSPropertyListSerialization dataFromPropertyList:format:errorDescription: 10_0 10_10
+selector-era NSPropertyListSerialization dataWithPropertyList:format:options:error: 10_6 -
+selector-era NSPropertyListSerialization propertyListFromData:mutabilityOption:format:errorDescription: 10_0 10_10
+selector-era NSPropertyListSerialization propertyListWithData:options:format:error: 10_6 -
+selector-era NSPropertyListSerialization propertyListWithStream:options:format:error: 10_6 -
+selector-era NSPropertyListSerialization writePropertyList:toStream:format:options:error: 10_6 -
+selector-era NSRecursiveLock name 10_5 -
+selector-era NSRecursiveLock setName: 10_5 -
+selector-era NSRunLoop configureAsServer 10_0 10_5
+selector-era NSRunLoop mainRunLoop 10_5 -
+selector-era NSScanner scanHexDouble: 10_5 -
+selector-era NSScanner scanHexFloat: 10_5 -
+selector-era NSScanner scanHexLongLong: 10_5 -
+selector-era NSScanner scanInteger: 10_5 -
+selector-era NSScanner scanUnsignedLongLong: 10_9 -
+selector-era NSScriptClassDescription hasOrderedToManyRelationshipForKey: 10_5 -
+selector-era NSScriptClassDescription hasPropertyForKey: 10_5 -
+selector-era NSScriptClassDescription hasReadablePropertyForKey: 10_5 -
+selector-era NSScriptClassDescription hasWritablePropertyForKey: 10_5 -
+selector-era NSScriptClassDescription isReadOnlyKey: 10_0 10_5
+selector-era NSScriptCommand scriptErrorExpectedTypeDescriptor 10_5 -
+selector-era NSScriptCommand scriptErrorOffendingObjectDescriptor 10_5 -
+selector-era NSScriptCommand setScriptErrorExpectedTypeDescriptor: 10_5 -
+selector-era NSScriptCommand setScriptErrorOffendingObjectDescriptor: 10_5 -
+selector-era NSScriptObjectSpecifier descriptor 10_5 -
+selector-era NSScriptObjectSpecifier objectSpecifierWithDescriptor: 10_5 -
+selector-era NSSet enumerateObjectsUsingBlock: 10_6 -
+selector-era NSSet enumerateObjectsWithOptions:usingBlock: 10_6 -
+selector-era NSSet filteredSetUsingPredicate: 10_5 -
+selector-era NSSet objectsPassingTest: 10_6 -
+selector-era NSSet objectsWithOptions:passingTest: 10_6 -
+selector-era NSSet removeObserver:forKeyPath:context: 10_7 -
+selector-era NSSet setByAddingObject: 10_5 -
+selector-era NSSet setByAddingObjectsFromArray: 10_5 -
+selector-era NSSet setByAddingObjectsFromSet: 10_5 -
+selector-era NSSet sortedArrayUsingDescriptors: 10_6 -
+selector-era NSSortDescriptor allowEvaluation 10_9 -
+selector-era NSSortDescriptor comparator 10_6 -
+selector-era NSSortDescriptor initWithKey:ascending:comparator: 10_6 -
+selector-era NSSortDescriptor sortDescriptorWithKey:ascending: 10_6 -
+selector-era NSSortDescriptor sortDescriptorWithKey:ascending:comparator: 10_6 -
+selector-era NSSortDescriptor sortDescriptorWithKey:ascending:selector: 10_6 -
+selector-era NSStream getBoundStreamsWithBufferSize:inputStream:outputStream: 10_10 -
+selector-era NSStream getStreamsToHost:port:inputStream:outputStream: 10_3 10_10
+selector-era NSStream getStreamsToHostWithName:port:inputStream:outputStream: 10_10 -
+selector-era NSString boolValue 10_5 -
+selector-era NSString cString 10_0 10_4
+selector-era NSString cStringLength 10_0 10_4
+selector-era NSString capitalizedStringWithLocale: 10_8 -
+selector-era NSString componentsSeparatedByCharactersInSet: 10_5 -
+selector-era NSString containsString: 10_10 -
+selector-era NSString enumerateLinesUsingBlock: 10_6 -
+selector-era NSString enumerateLinguisticTagsInRange:scheme:options:orthography:usingBlock: 10_7 -
+selector-era NSString enumerateSubstringsInRange:options:usingBlock: 10_6 -
+selector-era NSString getCString: 10_0 10_4
+selector-era NSString getCString:maxLength: 10_0 10_4
+selector-era NSString getCString:maxLength:range:remainingRange: 10_0 10_4
+selector-era NSString initWithCString: 10_0 10_4
+selector-era NSString initWithCString:length: 10_0 10_4
+selector-era NSString initWithCStringNoCopy:length:freeWhenDone: 10_0 10_4
+selector-era NSString initWithContentsOfFile: 10_0 10_4
+selector-era NSString initWithContentsOfURL: 10_0 10_4
+selector-era NSString integerValue 10_5 -
+selector-era NSString linguisticTagsInRange:scheme:options:orthography:tokenRanges: 10_7 -
+selector-era NSString localizedCapitalizedString 10_11 -
+selector-era NSString localizedCaseInsensitiveContainsString: 10_10 -
+selector-era NSString localizedLowercaseString 10_11 -
+selector-era NSString localizedStandardCompare: 10_6 -
+selector-era NSString localizedStandardContainsString: 10_11 -
+selector-era NSString localizedStandardRangeOfString: 10_11 -
+selector-era NSString localizedUppercaseString 10_11 -
+selector-era NSString longLongValue 10_5 -
+selector-era NSString lossyCString 10_0 10_4
+selector-era NSString lowercaseStringWithLocale: 10_8 -
+selector-era NSString rangeOfComposedCharacterSequencesForRange: 10_5 -
+selector-era NSString rangeOfString:options:range:locale: 10_5 -
+selector-era NSString stringByAddingPercentEncodingWithAllowedCharacters: 10_9 -
+selector-era NSString stringByAddingPercentEscapesUsingEncoding: 10_0 10_11
+selector-era NSString stringByApplyingTransform:reverse: 10_11 -
+selector-era NSString stringByFoldingWithOptions:locale: 10_5 -
+selector-era NSString stringByRemovingPercentEncoding 10_9 -
+selector-era NSString stringByReplacingCharactersInRange:withString: 10_5 -
+selector-era NSString stringByReplacingOccurrencesOfString:withString: 10_5 -
+selector-era NSString stringByReplacingOccurrencesOfString:withString:options:range: 10_5 -
+selector-era NSString stringByReplacingPercentEscapesUsingEncoding: 10_0 10_11
+selector-era NSString stringEncodingForData:encodingOptions:convertedString:usedLossyConversion: 10_10 -
+selector-era NSString stringWithCString: 10_0 10_4
+selector-era NSString stringWithCString:length: 10_0 10_4
+selector-era NSString stringWithContentsOfFile: 10_0 10_4
+selector-era NSString stringWithContentsOfURL: 10_0 10_4
+selector-era NSString uppercaseStringWithLocale: 10_8 -
+selector-era NSString variantFittingPresentationWidth: 10_11 -
+selector-era NSString writeToFile:atomically: 10_0 10_4
+selector-era NSString writeToURL:atomically: 10_0 10_4
+selector-era NSTask qualityOfService 10_10 -
+selector-era NSTask setQualityOfService: 10_10 -
+selector-era NSTask terminationReason 10_6 -
+selector-era NSTextCheckingResult alternativeStrings 10_9 -
+selector-era NSTextCheckingResult components 10_7 -
+selector-era NSTextCheckingResult correctionCheckingResultWithRange:replacementString:alternativeStrings: 10_9 -
+selector-era NSTextCheckingResult numberOfRanges 10_7 -
+selector-era NSTextCheckingResult phoneNumber 10_7 -
+selector-era NSTextCheckingResult phoneNumberCheckingResultWithRange:phoneNumber: 10_7 -
+selector-era NSTextCheckingResult rangeAtIndex: 10_7 -
+selector-era NSTextCheckingResult regularExpression 10_7 -
+selector-era NSTextCheckingResult regularExpressionCheckingResultWithRanges:count:regularExpression: 10_7 -
+selector-era NSTextCheckingResult resultByAdjustingRangesWithOffset: 10_7 -
+selector-era NSTextCheckingResult transitInformationCheckingResultWithRange:components: 10_7 -
+selector-era NSThread callStackReturnAddresses 10_5 -
+selector-era NSThread callStackSymbols 10_6 -
+selector-era NSThread cancel 10_5 -
+selector-era NSThread init 10_5 -
+selector-era NSThread initWithTarget:selector:object: 10_5 -
+selector-era NSThread isCancelled 10_5 -
+selector-era NSThread isExecuting 10_5 -
+selector-era NSThread isFinished 10_5 -
+selector-era NSThread isMainThread 10_5 -
+selector-era NSThread main 10_5 -
+selector-era NSThread mainThread 10_5 -
+selector-era NSThread name 10_5 -
+selector-era NSThread qualityOfService 10_10 -
+selector-era NSThread setName: 10_5 -
+selector-era NSThread setQualityOfService: 10_10 -
+selector-era NSThread setStackSize: 10_5 -
+selector-era NSThread setThreadPriority: 10_6 -
+selector-era NSThread stackSize 10_5 -
+selector-era NSThread start 10_5 -
+selector-era NSThread threadPriority 10_6 -
+selector-era NSTimeZone daylightSavingTimeOffset 10_5 -
+selector-era NSTimeZone daylightSavingTimeOffsetForDate: 10_5 -
+selector-era NSTimeZone localizedName:locale: 10_5 -
+selector-era NSTimeZone nextDaylightSavingTimeTransition 10_5 -
+selector-era NSTimeZone nextDaylightSavingTimeTransitionAfterDate: 10_5 -
+selector-era NSTimeZone setAbbreviationDictionary: 10_6 -
+selector-era NSTimeZone timeZoneDataVersion 10_6 -
+selector-era NSTimer setTolerance: 10_9 -
+selector-era NSTimer tolerance 10_9 -
+selector-era NSURL URLByAppendingPathComponent: 10_6 -
+selector-era NSURL URLByAppendingPathComponent:isDirectory: 10_7 -
+selector-era NSURL URLByAppendingPathExtension: 10_6 -
+selector-era NSURL URLByDeletingLastPathComponent 10_6 -
+selector-era NSURL URLByDeletingPathExtension 10_6 -
+selector-era NSURL URLByResolvingAliasFileAtURL:options:error: 10_10 -
+selector-era NSURL URLByResolvingBookmarkData:options:relativeToURL:bookmarkDataIsStale:error: 10_6 -
+selector-era NSURL URLByResolvingSymlinksInPath 10_6 -
+selector-era NSURL URLByStandardizingPath 10_6 -
+selector-era NSURL URLHandleUsingCache: 10_0 10_4
+selector-era NSURL URLWithDataRepresentation:relativeToURL: 10_11 -
+selector-era NSURL absoluteURLWithDataRepresentation:relativeToURL: 10_11 -
+selector-era NSURL bookmarkDataWithContentsOfURL:error: 10_6 -
+selector-era NSURL bookmarkDataWithOptions:includingResourceValuesForKeys:relativeToURL:error: 10_6 -
+selector-era NSURL checkPromisedItemIsReachableAndReturnError: 10_10 -
+selector-era NSURL checkResourceIsReachableAndReturnError: 10_6 -
+selector-era NSURL dataRepresentation 10_11 -
+selector-era NSURL filePathURL 10_6 -
+selector-era NSURL fileReferenceURL 10_6 -
+selector-era NSURL fileSystemRepresentation 10_9 -
+selector-era NSURL fileURLWithFileSystemRepresentation:isDirectory:relativeToURL: 10_9 -
+selector-era NSURL fileURLWithPath:isDirectory: 10_5 -
+selector-era NSURL fileURLWithPath:isDirectory:relativeToURL: 10_11 -
+selector-era NSURL fileURLWithPath:relativeToURL: 10_11 -
+selector-era NSURL fileURLWithPathComponents: 10_6 -
+selector-era NSURL getFileSystemRepresentation:maxLength: 10_9 -
+selector-era NSURL getPromisedItemResourceValue:forKey:error: 10_10 -
+selector-era NSURL getResourceValue:forKey:error: 10_6 -
+selector-era NSURL hasDirectoryPath 10_11 -
+selector-era NSURL initAbsoluteURLWithDataRepresentation:relativeToURL: 10_11 -
+selector-era NSURL initByResolvingBookmarkData:options:relativeToURL:bookmarkDataIsStale:error: 10_6 -
+selector-era NSURL initFileURLWithFileSystemRepresentation:isDirectory:relativeToURL: 10_9 -
+selector-era NSURL initFileURLWithPath:isDirectory: 10_5 -
+selector-era NSURL initFileURLWithPath:isDirectory:relativeToURL: 10_11 -
+selector-era NSURL initFileURLWithPath:relativeToURL: 10_11 -
+selector-era NSURL initWithDataRepresentation:relativeToURL: 10_11 -
+selector-era NSURL initWithScheme:host:path: 10_0 10_11
+selector-era NSURL isFileReferenceURL 10_6 -
+selector-era NSURL lastPathComponent 10_6 -
+selector-era NSURL loadResourceDataNotifyingClient:usingCache: 10_0 10_4
+selector-era NSURL pathComponents 10_6 -
+selector-era NSURL pathExtension 10_6 -
+selector-era NSURL promisedItemResourceValuesForKeys:error: 10_10 -
+selector-era NSURL propertyForKey: 10_0 10_4
+selector-era NSURL removeAllCachedResourceValues 10_9 -
+selector-era NSURL removeCachedResourceValueForKey: 10_9 -
+selector-era NSURL resourceDataUsingCache: 10_0 10_4
+selector-era NSURL resourceValuesForKeys:error: 10_6 -
+selector-era NSURL resourceValuesForKeys:fromBookmarkData: 10_6 -
+selector-era NSURL setProperty:forKey: 10_0 10_4
+selector-era NSURL setResourceData: 10_0 10_4
+selector-era NSURL setResourceValue:forKey:error: 10_6 -
+selector-era NSURL setResourceValues:error: 10_6 -
+selector-era NSURL setTemporaryResourceValue:forKey: 10_9 -
+selector-era NSURL startAccessingSecurityScopedResource 10_7 -
+selector-era NSURL stopAccessingSecurityScopedResource 10_7 -
+selector-era NSURL writeBookmarkData:toURL:options:error: 10_6 -
+selector-era NSURLCache getCachedResponseForDataTask:completionHandler: 10_10 -
+selector-era NSURLCache removeCachedResponseForDataTask: 10_10 -
+selector-era NSURLCache removeCachedResponsesSinceDate: 10_10 -
+selector-era NSURLCache storeCachedResponse:forDataTask: 10_10 -
+selector-era NSURLComponents queryItems 10_10 -
+selector-era NSURLComponents rangeOfFragment 10_11 -
+selector-era NSURLComponents rangeOfHost 10_11 -
+selector-era NSURLComponents rangeOfPassword 10_11 -
+selector-era NSURLComponents rangeOfPath 10_11 -
+selector-era NSURLComponents rangeOfPort 10_11 -
+selector-era NSURLComponents rangeOfQuery 10_11 -
+selector-era NSURLComponents rangeOfScheme 10_11 -
+selector-era NSURLComponents rangeOfUser 10_11 -
+selector-era NSURLComponents setQueryItems: 10_10 -
+selector-era NSURLComponents string 10_10 -
+selector-era NSURLConnection connectionWithRequest:delegate: 10_3 10_11
+selector-era NSURLConnection currentRequest 10_8 -
+selector-era NSURLConnection initWithRequest:delegate: 10_3 10_11
+selector-era NSURLConnection initWithRequest:delegate:startImmediately: 10_5 10_11
+selector-era NSURLConnection originalRequest 10_8 -
+selector-era NSURLConnection scheduleInRunLoop:forMode: 10_5 -
+selector-era NSURLConnection sendAsynchronousRequest:queue:completionHandler: 10_7 10_11
+selector-era NSURLConnection sendSynchronousRequest:returningResponse:error: 10_3 10_11
+selector-era NSURLConnection setDelegateQueue: 10_7 -
+selector-era NSURLConnection start 10_5 -
+selector-era NSURLConnection unscheduleFromRunLoop:forMode: 10_5 -
+selector-era NSURLCredential certificates 10_6 -
+selector-era NSURLCredential credentialForTrust: 10_6 -
+selector-era NSURLCredential credentialWithIdentity:certificates:persistence: 10_6 -
+selector-era NSURLCredential initWithIdentity:certificates:persistence: 10_6 -
+selector-era NSURLCredential initWithTrust: 10_6 -
+selector-era NSURLCredentialStorage getCredentialsForProtectionSpace:task:completionHandler: 10_10 -
+selector-era NSURLCredentialStorage getDefaultCredentialForProtectionSpace:task:completionHandler: 10_10 -
+selector-era NSURLCredentialStorage removeCredential:forProtectionSpace:options: 10_9 -
+selector-era NSURLCredentialStorage removeCredential:forProtectionSpace:options:task: 10_10 -
+selector-era NSURLCredentialStorage setCredential:forProtectionSpace:task: 10_10 -
+selector-era NSURLCredentialStorage setDefaultCredential:forProtectionSpace:task: 10_10 -
+selector-era NSURLDownload initWithRequest:delegate: 10_3 10_11
+selector-era NSURLDownload initWithResumeData:delegate:path: 10_3 10_11
+selector-era NSURLHandle URLHandleClassForURL: 10_0 10_4
+selector-era NSURLHandle addClient: 10_0 10_4
+selector-era NSURLHandle availableResourceData 10_0 10_4
+selector-era NSURLHandle backgroundLoadDidFailWithReason: 10_0 10_4
+selector-era NSURLHandle beginLoadInBackground 10_0 10_4
+selector-era NSURLHandle cachedHandleForURL: 10_0 10_4
+selector-era NSURLHandle canInitWithURL: 10_0 10_4
+selector-era NSURLHandle cancelLoadInBackground 10_0 10_4
+selector-era NSURLHandle didLoadBytes:loadComplete: 10_0 10_4
+selector-era NSURLHandle endLoadInBackground 10_0 10_4
+selector-era NSURLHandle expectedResourceDataSize 10_3 10_4
+selector-era NSURLHandle failureReason 10_0 10_4
+selector-era NSURLHandle flushCachedData 10_0 10_4
+selector-era NSURLHandle loadInBackground 10_0 10_4
+selector-era NSURLHandle loadInForeground 10_0 10_4
+selector-era NSURLHandle propertyForKey: 10_0 10_4
+selector-era NSURLHandle propertyForKeyIfAvailable: 10_0 10_4
+selector-era NSURLHandle registerURLHandleClass: 10_0 10_4
+selector-era NSURLHandle removeClient: 10_0 10_4
+selector-era NSURLHandle resourceData 10_0 10_4
+selector-era NSURLHandle status 10_0 10_4
+selector-era NSURLHandle writeData: 10_0 10_4
+selector-era NSURLHandle writeProperty:forKey: 10_0 10_4
+selector-era NSURLProtectionSpace distinguishedNames 10_6 -
+selector-era NSURLProtectionSpace serverTrust 10_6 -
+selector-era NSURLProtocol canInitWithTask: 10_10 -
+selector-era NSURLProtocol initWithTask:cachedResponse:client: 10_10 -
+selector-era NSURLProtocol task 10_10 -
+selector-era NSURLRequest HTTPShouldUsePipelining 10_7 -
+selector-era NSURLRequest allowsCellularAccess 10_8 -
+selector-era NSURLRequest networkServiceType 10_7 -
+selector-era NSURLSession getAllTasksWithCompletionHandler: 10_11 -
+selector-era NSURLSession streamTaskWithHostName:port: 10_11 -
+selector-era NSURLSession streamTaskWithNetService: 10_11 -
+selector-era NSURLSessionConfiguration backgroundSessionConfiguration: NSURLSESSION_AVAILABLE 10_10
+selector-era NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier: 10_10 -
+selector-era NSURLSessionConfiguration isDiscretionary 10_10 -
+selector-era NSURLSessionConfiguration setDiscretionary: 10_10 -
+selector-era NSURLSessionConfiguration setSharedContainerIdentifier: 10_10 -
+selector-era NSURLSessionConfiguration setShouldUseExtendedBackgroundIdleMode: 10_11 -
+selector-era NSURLSessionConfiguration sharedContainerIdentifier 10_10 -
+selector-era NSURLSessionConfiguration shouldUseExtendedBackgroundIdleMode 10_11 -
+selector-era NSURLSessionTask priority 10_10 -
+selector-era NSURLSessionTask setPriority: 10_10 -
+selector-era NSUndoManager redoActionIsDiscardable 10_7 -
+selector-era NSUndoManager registerUndoWithTarget:handler: 10_11 -
+selector-era NSUndoManager setActionIsDiscardable: 10_7 -
+selector-era NSUndoManager undoActionIsDiscardable 10_7 -
+selector-era NSUserActivity expirationDate 10_11 -
+selector-era NSUserActivity isEligibleForHandoff 10_11 -
+selector-era NSUserActivity isEligibleForPublicIndexing 10_11 -
+selector-era NSUserActivity isEligibleForSearch 10_11 -
+selector-era NSUserActivity keywords 10_11 -
+selector-era NSUserActivity requiredUserInfoKeys 10_11 -
+selector-era NSUserActivity resignCurrent 10_11 -
+selector-era NSUserActivity setEligibleForHandoff: 10_11 -
+selector-era NSUserActivity setEligibleForPublicIndexing: 10_11 -
+selector-era NSUserActivity setEligibleForSearch: 10_11 -
+selector-era NSUserActivity setExpirationDate: 10_11 -
+selector-era NSUserActivity setKeywords: 10_11 -
+selector-era NSUserActivity setRequiredUserInfoKeys: 10_11 -
+selector-era NSUserDefaults URLForKey: 10_6 -
+selector-era NSUserDefaults initWithSuiteName: 10_9 -
+selector-era NSUserDefaults initWithUser: 10_0 10_9
+selector-era NSUserDefaults persistentDomainNames 10_0 10_9
+selector-era NSUserDefaults setURL:forKey: 10_6 -
+selector-era NSUserNotification additionalActions 10_10 -
+selector-era NSUserNotification additionalActivationAction 10_10 -
+selector-era NSUserNotification contentImage 10_9 -
+selector-era NSUserNotification hasReplyButton 10_9 -
+selector-era NSUserNotification identifier 10_9 -
+selector-era NSUserNotification response 10_9 -
+selector-era NSUserNotification responsePlaceholder 10_9 -
+selector-era NSUserNotification setAdditionalActions: 10_10 -
+selector-era NSUserNotification setContentImage: 10_9 -
+selector-era NSUserNotification setHasReplyButton: 10_9 -
+selector-era NSUserNotification setIdentifier: 10_9 -
+selector-era NSUserNotification setResponsePlaceholder: 10_9 -
+selector-era NSValue edgeInsetsValue 10_10 -
+selector-era NSValue valueWithEdgeInsets: 10_10 -
+selector-era NSXMLParser allowedExternalEntityURLs 10_9 -
+selector-era NSXMLParser externalEntityResolvingPolicy 10_9 -
+selector-era NSXMLParser initWithStream: 10_7 -
+selector-era NSXMLParser setAllowedExternalEntityURLs: 10_9 -
+selector-era NSXMLParser setExternalEntityResolvingPolicy: 10_9 -
 unavailable-selector NSBundleResourceRequest init
 unavailable-selector NSCalendar init
 unavailable-selector NSDistributedLock init

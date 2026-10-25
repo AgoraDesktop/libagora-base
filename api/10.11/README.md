@@ -7,8 +7,9 @@ That is the arrangement `COCOA-10.11-SURFACE-PLAN.md` §2.1 commits to ("the rec
 which is a list of facts (names, versions, selectors), not Apple's expression of them"). No declaration, comment,
 availability annotation, nullability or line of Apple's prose is copied into this directory.
 
-`foundation-manifest.txt` — 220 classes, 40 protocols, 185 C functions, 3,763 declared selectors, 1 iOS-only class and
-9 `NS_UNAVAILABLE` selectors. 4,218 lines.
+`foundation-manifest.txt` — 220 classes, 40 protocols, 185 C functions, 3,763 declared selectors, 1 iOS-only class,
+9 `NS_UNAVAILABLE` selectors, and **969 availability facts** (109 class-level, 860 selector-level) carrying Apple's
+introduction and deprecation tokens verbatim.
 
 ## Why 10.11
 
@@ -33,13 +34,14 @@ protocol <Name>
 function <Name>                      a C function; inline doors are exempt from being symbols
 ios-class <Name>                     declared by this SDK, but NS_CLASS_AVAILABLE(NA, …) on macOS
 unavailable-selector <Class> <sel>    declared with NS_UNAVAILABLE — a door a caller must not send
+class-era <Name> <introduced> <deprecated>        Apple's tokens, `-` for no deprecation
+selector-era <Class> <sel> <introduced> <deprecated>
 ```
 
-**The last two exist because a disposal is not an omission.** `NSBundleResourceRequest` is iOS-only in this SDK, and
-`NSProxy`'s `-allowsWeakReference`/`-retainWeakReference` are `NS_UNAVAILABLE` on macOS (as are six `-init` doors and
-`NSXMLDTD`'s `-initWithKind:options:`). Charged as missing, they made the first pass read one phantom class and two
-phantom selectors. `api-ledger` removes them from the denominator and the census reports them as exempt, so the
-manifest has to say so on a line a reader can grep rather than leaving the subtraction implicit in a tool.
+**The last four exist because a name list is not the surface.** `ios-class` and `unavailable-selector` are disposals
+that would otherwise be charged as gaps. The two `era` kinds are the S2 tier: the version tokens `10_6` and `-` are
+facts of the same kind as a name, and committing them is what lets the availability gate run without an SDK checkout —
+the alternative, a sweep annotated from memory, is the drift `FOUNDATION-10.11-PLAN.md` §4.12 forbids.
 
 Protocols carry no availability fact: the 10.11 headers do not annotate protocols — Apple annotates the classes and
 lets conformance inherit the era.
@@ -97,6 +99,11 @@ Pinned 2026-10-25, the first pin that does not contain the extractor's faults:
 | protocols | 40 | 30 | **10** |
 | selectors on classes the tree has | 3,407 | 3,296 | **111** |
 | C functions | 182 | 182 | **0** |
+| annotated declarations (S2) | 802 | 0 | **802** |
+
+The annotation row is its own census (`tests/api-10.11-annotations.txt`, gate `foundation-api-availability`): the
+macros became real in the same slice that made the row measurable. A declaration stating a version Apple does not
+fails the gate outright; the 802 is the sweep's work list and may only fall.
 
 **Everything missing is 10.8–10.11** — 0 owed from 10.6. The remaining work is staged in `FOUNDATION-10.11-PLAN.md`;
 the 111 selectors are 11 `-initWithCoder:` doors (one `NSCoding` conformance decision) and 100 individual doors

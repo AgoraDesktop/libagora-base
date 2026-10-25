@@ -289,39 +289,78 @@ extern double NSFoundationVersionNumber;
 #define NS_HEADER_AUDIT_BEGIN(...)
 #define NS_HEADER_AUDIT_END(...)
 
-/* --- the availability and deprecation spellings (INERT here: D12) --- */
-#define NS_AVAILABLE(_mac, _ios)
-#define NS_AVAILABLE_MAC(_mac)
-#define NS_AVAILABLE_IOS(_ios)
-#define NS_AVAILABLE_IPHONE(_ios)
-#define NS_CLASS_AVAILABLE(_mac, _ios)
-#define NS_CLASS_AVAILABLE_MAC(_mac)
-#define NS_CLASS_AVAILABLE_IOS(_ios)
-#define NS_ENUM_AVAILABLE(_mac, _ios)
-#define NS_ENUM_AVAILABLE_MAC(_mac)
-#define NS_ENUM_AVAILABLE_IOS(_ios)
+/* --- the availability and deprecation spellings (REAL, as of 10.11 parity) ---
+ *
+ * **THEY WERE INERT BY DECISION (D12) AND THIS IS THAT DECISION REVERSED.** With no reference version, an empty body
+ * cost nothing: every door was equally "available". At 10.11 it is no longer defensible - a client cannot tell a 10.0
+ * door from a 10.11 one, `-Wdeprecated-declarations` can never fire on this tree, and the Swift importer sees no
+ * availability at all. 10.11 is also the last SDK whose headers carry these facts in this spelling, which is what
+ * makes them a *reference* rather than a convention.
+ *
+ * **THE BODIES ARE `libagora-core`'s, NOT INVENTED HERE.** `CFAvailability.h` already spells them as clang's
+ * availability attribute (behind `__has_feature(attribute_availability_with_version_underscores)`, with the
+ * `__MAC_##_mac` fallback and an empty branch for a compiler that has neither), and Apple's own NSObjCRuntime.h is a
+ * set of aliases onto exactly those names. Measured on this host: clang 19 records the attribute in the AST
+ * (`AvailabilityAttr ... macosx 10_6 ... Unavailable`) and emits no diagnostic, so the facts are checkable without a
+ * Darwin toolchain - see the plan's S2 tier.
+ *
+ * `NS_CLASS_AVAILABLE` keeps Apple's `visibility("default")`: it is part of the spelling, and the weak-import guard
+ * Apple wraps around it exists for a binary-compatibility feature this tree does not have (Agora is source
+ * compatible, not ABI compatible - COCOA-10.11-SURFACE-PLAN.md section 1).
+ *
+ * `NS_EXTENSION_UNAVAILABLE` names the `macosx_app_extension` platform. It is NOT the same as marking a door
+ * unavailable on macOS: an app-extension-unavailable API is callable from an application and not from an extension,
+ * and collapsing the two would hide working doors. clang 19 accepts and records it (probed), so it is spelled rather
+ * than left empty.
+ */
+#define NS_AVAILABLE(_mac, _ios)	CF_AVAILABLE(_mac, _ios)
+#define NS_AVAILABLE_MAC(_mac)	CF_AVAILABLE_MAC(_mac)
+#define NS_AVAILABLE_IOS(_ios)	CF_AVAILABLE_IOS(_ios)
+#define NS_AVAILABLE_IPHONE(_ios)	CF_AVAILABLE_IOS(_ios)
+#define NS_CLASS_AVAILABLE(_mac, _ios)	__attribute__((visibility("default"))) NS_AVAILABLE(_mac, _ios)
+#define NS_CLASS_AVAILABLE_MAC(_mac)	NS_CLASS_AVAILABLE(_mac, NA)
+#define NS_CLASS_AVAILABLE_IOS(_ios)	NS_CLASS_AVAILABLE(NA, _ios)
+#define NS_ENUM_AVAILABLE(_mac, _ios)	CF_ENUM_AVAILABLE(_mac, _ios)
+#define NS_ENUM_AVAILABLE_MAC(_mac)	CF_ENUM_AVAILABLE_MAC(_mac)
+#define NS_ENUM_AVAILABLE_IOS(_ios)	CF_ENUM_AVAILABLE_IOS(_ios)
 #define NS_BLOCKS_AVAILABLE
-#define NS_NONATOMIC_IOSONLY		nonatomic
-#define NS_NONATOMIC_IPHONEONLY		nonatomic
-#define NSURLSESSION_AVAILABLE
-#define NS_UNAVAILABLE
-#define NS_DEPRECATED(_macIntro, _macDep, _iosIntro, _iosDep, ...)
-#define NS_DEPRECATED_MAC(_macIntro, _macDep, ...)
-#define NS_DEPRECATED_IOS(_iosIntro, _iosDep, ...)
-#define NS_DEPRECATED_IPHONE(_iosIntro, _iosDep)
-#define NS_DEPRECATED_WITH_REPLACEMENT_MAC(_rep, _macIntroduced, _macDeprecated)
-#define NS_CLASS_DEPRECATED(_mac, _macDep, _ios, _iosDep, ...)
-#define NS_CLASS_DEPRECATED_MAC(_macIntro, _macDep, ...)
-#define NS_CLASS_DEPRECATED_IOS(_iosIntro, _iosDep, ...)
-#define NS_ENUM_DEPRECATED(_macIntro, _macDep, _iosIntro, _iosDep, ...)
-#define NS_ENUM_DEPRECATED_MAC(_macIntro, _macDep, ...)
-#define NS_ENUM_DEPRECATED_IOS(_iosIntro, _iosDep, ...)
-#define NS_EXTENSION_UNAVAILABLE(_msg)
-#define NS_EXTENSION_UNAVAILABLE_MAC(_msg)
-#define NS_EXTENSION_UNAVAILABLE_IOS(_msg)
-#define NS_CALENDAR_DEPRECATED(A, B, C, D, ...)
-#define NS_CALENDAR_DEPRECATED_MAC(A, B, ...)
-#define NS_CALENDAR_ENUM_DEPRECATED(A, B, C, D, ...)
+#define NS_NONATOMIC_IOSONLY	nonatomic
+#define NS_NONATOMIC_IPHONEONLY	nonatomic
+/* NSURLSession is 10.9 for the 64-bit runtime and 10.10 for the legacy one; this library is __OBJC2__ only, so
+ * the value Apple conditions on `__OBJC2__` is the one spelled here. It is a version token used as the macOS
+ * slot of NS_CLASS_AVAILABLE, not a declaration. */
+#define NSURLSESSION_AVAILABLE	10_9
+#define NS_UNAVAILABLE	__attribute__((unavailable))
+#define NS_DEPRECATED(_macIntro, _macDep, _iosIntro, _iosDep, ...) \
+	CF_DEPRECATED(_macIntro, _macDep, _iosIntro, _iosDep, __VA_ARGS__)
+#define NS_DEPRECATED_MAC(_macIntro, _macDep, ...) \
+	CF_DEPRECATED_MAC(_macIntro, _macDep, __VA_ARGS__)
+#define NS_DEPRECATED_IOS(_iosIntro, _iosDep, ...) \
+	CF_DEPRECATED_IOS(_iosIntro, _iosDep, __VA_ARGS__)
+#define NS_DEPRECATED_IPHONE(_iosIntro, _iosDep)	CF_DEPRECATED_IOS(_iosIntro, _iosDep)
+/* "deprecated, use X instead" in one attribute: clang takes the replacement as the availability MESSAGE,
+ * which is what Apple's own spelling does. */
+#define NS_DEPRECATED_WITH_REPLACEMENT_MAC(_rep, _macIntroduced, _macDeprecated) \
+	CF_DEPRECATED_MAC(_macIntroduced, _macDeprecated, _rep)
+#define NS_CLASS_DEPRECATED(_mac, _macDep, _ios, _iosDep, ...) \
+	__attribute__((visibility("default"))) NS_DEPRECATED(_mac, _macDep, _ios, _iosDep, __VA_ARGS__)
+#define NS_CLASS_DEPRECATED_MAC(_macIntro, _macDep, ...)	NS_CLASS_DEPRECATED(_macIntro, _macDep, NA, NA, __VA_ARGS__)
+#define NS_CLASS_DEPRECATED_IOS(_iosIntro, _iosDep, ...)	NS_CLASS_DEPRECATED(NA, NA, _iosIntro, _iosDep, __VA_ARGS__)
+#define NS_ENUM_DEPRECATED(_macIntro, _macDep, _iosIntro, _iosDep, ...) \
+	CF_ENUM_DEPRECATED(_macIntro, _macDep, _iosIntro, _iosDep, __VA_ARGS__)
+#define NS_ENUM_DEPRECATED_MAC(_macIntro, _macDep, ...)	CF_ENUM_DEPRECATED_MAC(_macIntro, _macDep, __VA_ARGS__)
+#define NS_ENUM_DEPRECATED_IOS(_iosIntro, _iosDep, ...)	CF_ENUM_DEPRECATED_IOS(_iosIntro, _iosDep, __VA_ARGS__)
+#define NS_EXTENSION_UNAVAILABLE(_msg) \
+	__attribute__((availability(macosx_app_extension, unavailable, message=_msg)))
+#define NS_EXTENSION_UNAVAILABLE_MAC(_msg) \
+	__attribute__((availability(macosx_app_extension, unavailable, message=_msg)))
+#define NS_EXTENSION_UNAVAILABLE_IOS(_msg) \
+	__attribute__((availability(ios_app_extension, unavailable, message=_msg)))
+/* NSCalendar.h defines these for its own deprecations: a calendar door is deprecated on macOS and merely
+ * available on iOS, which is the pair of facts the two spellings carry. */
+#define NS_CALENDAR_DEPRECATED(A, B, C, D, ...)	NS_DEPRECATED(A, B, C, D, __VA_ARGS__)
+#define NS_CALENDAR_DEPRECATED_MAC(A, B, ...)	NS_DEPRECATED_MAC(A, B, __VA_ARGS__)
+#define NS_CALENDAR_ENUM_DEPRECATED(A, B, C, D, ...)	NS_ENUM_DEPRECATED(A, B, C, D, __VA_ARGS__)
 
 /*
  * --- THE LEGACY EXCEPTION MACROS (2026-09-20) ---

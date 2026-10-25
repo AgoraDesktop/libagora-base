@@ -1,0 +1,46 @@
+# THE 10.11 ANNOTATION CENSUS — how much of Apple's availability this tree states, and how much of it is wrong, pinned.
+#
+# Copyright © 2026 Kyle J. Cardoza.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#
+# COCOA-10.11-SURFACE-PLAN.md's S2 tier says availability and deprecation annotations ARE part of the surface, for a
+# reason that is not pedantry: 10.11 is the last classic-Objective-C SDK, its headers carry the facts that make the
+# surface usable, and a client cannot tell a 10.0 door from a 10.11 one without them. This tree's macros were INERT BY
+# DECISION (NSObjCRuntime.h, D12) until this slice; they now expand to clang's availability attribute through
+# `libagora-core`'s CFAvailability.h, and this file pins what that made measurable.
+#
+# THE REFERENCE IS THE SAME 10.11 MANIFEST, and the versions are committed beside the names: `class-era` and
+# `selector-era` lines in api/10.11/foundation-manifest.txt carry Apple's introduction and deprecation tokens verbatim
+# (`10_6`, and `-` for no deprecation). That is what lets this gate run WITHOUT an SDK checkout — the alternative, a
+# sweep annotated from memory, is exactly the drift the plan's S2 tier forbids.
+#
+# THE DENOMINATOR IS WHAT THE TREE ACTUALLY DECLARES. A declaration this tree does not have cannot be annotated, so
+# the candidates are the declarations both sides have: 802 of them — 109 class-level and 693 selector-level. The rest
+# of Apple's annotated surface is on classes this tree has yet to write (the 26 in FOUNDATION-10.11-PLAN.md §3.1) or
+# in spellings this reader does not attribute (an `NS_ENUM` constant is not a selector).
+#
+# **TWO OF THESE NUMBERS MEAN DIFFERENT THINGS, AND THAT IS THE WHOLE DESIGN.**
+#
+#   * `annotations-wrong` is a FAILURE, in either mode, and is not a number this file can raise. A declaration that
+#     states a version Apple does not is worse than one that states none: it looks finished. The command exits
+#     non-zero on it and names the first twenty, reference and local side by side.
+#   * `annotations-missing` is the SWEEP'S WORK LIST, and pinning it is what makes progress a deliberate act. The
+#     802 is the position at the start of W1: the macros are real and nothing uses them yet. Every wave that
+#     annotates a header edits this line in the same commit, and the number may only fall.
+#
+# `annotations-extra` counts declarations this tree annotates that Apple does not. It is not a failure: the tree ships
+# API that postdates 10.11 (`NSDateInterval`, a `NSRelativeDateTimeFormatter`) and FOUNDATION-10.11-PLAN.md §4.13 says
+# such a door is annotated with the version it really arrived in. The count is here so that it is a number rather than
+# a surprise.
+#
+# A DECLARATION IS MATCHED WHERE IT IS WRITTEN. Inheriting `-bytes` from `NSData` is not a declaration site, so the
+# comparison uses each class's OWN selector set rather than its inheritance closure — the opposite of the surface
+# census, which resolves inheritance because that is what `respondsToSelector:` answers. Two questions, two rules.
+#
+# THE GATE is `foundation-api-availability` in tests/CMakeLists.txt, which runs `api-ledger availability` with `--pin`
+# and fails on drift in either direction as well as on a wrong version.
+annotations-candidates 802
+annotations-extra 0
+annotations-missing 802
+annotations-present 0
+annotations-wrong 0

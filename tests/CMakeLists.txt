@@ -178,6 +178,17 @@ if(Python3_Interpreter_FOUND)
   # so a future edit to that parser fails in the build rather than in a census six waves later.
   add_test(NAME api-ledger-selftest
     COMMAND "${Python3_EXECUTABLE}" "${AGORA_LEDGER}" selftest)
+
+  # **S2: THE ANNOTATION GATE.** COCOA-10.11-SURFACE-PLAN.md's second tier is not declared names but the availability
+  # facts on them, and this is where they are measured: the reference's versions are committed in the manifest as
+  # `class-era`/`selector-era` facts, so the check needs no SDK checkout. It fails on a declaration that states a
+  # WRONG version (which looks finished and is not) and on drift in `api-10.11-annotations.txt`, whose
+  # `annotations-missing` line is the sweep's work list.
+  add_test(NAME foundation-api-availability
+    COMMAND "${Python3_EXECUTABLE}" "${AGORA_LEDGER}" availability
+            "${CMAKE_CURRENT_SOURCE_DIR}/../api/10.11/foundation-manifest.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/.."
+            --pin "${CMAKE_CURRENT_SOURCE_DIR}/api-10.11-annotations.txt")
 else()
   message(STATUS
     "libagora-base: no Python3 interpreter, so the API census gates (10.6 and 10.11) and the ledger selftest are not "
