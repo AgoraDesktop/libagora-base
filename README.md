@@ -190,3 +190,14 @@ Five waves closed the surface, and three of them are **refusals by name rather t
 The census measures 10.6 because that is the reference; `Foundation.h`'s 10.2 baseline (§11.0) governs what may be
 removed, and the difference between a door the baseline cut and a door nobody finished is exactly what this pin made
 visible.
+
+## The 10.11 surface, measured too
+
+10.6 is this library's reference, not the surface the Cocoa plan promises. `api/10.11/foundation-manifest.txt` holds
+the facts of Apple's 10.11 Foundation (220 classes, 40 protocols, 185 functions, 3,763 selectors, plus the iOS-only
+class and the `NS_UNAVAILABLE` doors the census must not charge as gaps), and `tests/api-10.11-census.txt` pins what
+this tree answers of it — the second `foundation-api-10.11-census` gate runs the same instrument with a different
+denominator. **193 of 219 classes, 3,296 of 3,407 selectors, 30 of 40 protocols, 182 of 182 functions**, and every name
+still missing is 10.8–10.11: the 10.6 debt is closed. `FOUNDATION-10.11-PLAN.md` at the workspace root stages what
+remains, and `../libagora-app/tools/api-ledger selftest` holds the extractor's own regressions (three faults in that
+reader had undercounted this surface by 299 property accessors and invented two doors).

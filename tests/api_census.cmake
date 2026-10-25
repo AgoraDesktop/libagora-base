@@ -1,4 +1,4 @@
-# The 10.6 API census, checked in both directions.
+# The API census, checked in both directions.
 #
 # Copyright © 2026 Kyle J. Cardoza.
 # SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
@@ -205,12 +205,14 @@ if(problems)
   list(LENGTH problems problem_count)
   string(REPLACE ";" "\n" problem_text "${problems}")
   message(FATAL_ERROR
-    "The 10.6 API census has drifted, in ${problem_count} place(s).\n"
+    "The API census has drifted, in ${problem_count} place(s).\n"
+    "  reference: ${MANIFEST}\n"
+    "  pin:       ${CENSUS}\n"
     "${problem_text}\n"
     "\n"
-    "This census is the MEASURED answer to how much of the 10.6 AppKit this tree reaches, so changing\n"
-    "it is a deliberate act rather than a side effect. If the movement is intended, edit\n"
-    "tests/api-10.6-census.txt in the same commit and say in the message what landed. If it is not\n"
+    "This census is the MEASURED answer to how much of that reference this tree reaches, so changing\n"
+    "it is a deliberate act rather than a side effect. If the movement is intended, edit the pin in the\n"
+    "same commit and say in the message what landed. If it is not\n"
     "intended, something was removed or renamed. `tools/api-ledger missing` names what is absent.")
 endif()
 

@@ -75,5 +75,14 @@ It says how many names a caller can reach, with inheritance resolved and `@prope
 plan's M2 tier, and `tests/bridges.m` plus the rest of this suite is where behaviour is measured.
 
 A **refusal in prose is not a door.** `NSAffineTransform.h` and `NSXMLNode.h` say what they do not do, and the census
-counts those selectors absent until a body answers them (by raising, if that is the honest answer). That is why
-`methods-declared-not-implemented` is pinned at 5 rather than 0: the pin records the refusals that still owe a body.
+counts those selectors absent until a body answers them (by raising, if that is the honest answer). The pin is
+`methods-declared-not-implemented` **0**: the refusals that used to owe a body now raise by name (`NSXMLNode`), or are
+implemented by the companion framework and counted in `methods-external` (`NSAffineTransform`'s three). When this
+paragraph was first written it said 5, and 5 was the number of doors that still owed one.
+
+## The 10.11 sibling
+
+This directory is one of two denominators. `../10.11/` holds the facts of Apple's 10.11 Foundation and
+`../../tests/api-10.11-census.txt` pins what the tree answers of the surface `COCOA-10.11-SURFACE-PLAN.md` commits to.
+The 10.6 pin stays because it answers a different question — a 10.6 door that disappears — and neither supersedes the
+other; `Foundation.h`'s 10.2 baseline (§11.0) is a third rule, about what may be removed.

@@ -155,10 +155,33 @@ if(Python3_Interpreter_FOUND)
             "-DCENSUS=${CMAKE_CURRENT_SOURCE_DIR}/api-10.6-census.txt"
             "-DINCLUDES=${AGORA_CORE_INCLUDE_DIR}"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/api_census.cmake")
+
+  # **THE SECOND DENOMINATOR — THE ONE COCOA-10.11-SURFACE-PLAN.md COMMITS TO.** The gate script is the same file:
+  # it takes a manifest, a pin and the built library, so the 10.11 surface needs a registration rather than a second
+  # implementation. The two pins measure different questions (a 10.6 door disappearing; a 10.11 door never arriving)
+  # and both run on every build, because a plan that cannot be recomputed is a claim.
+  add_test(NAME foundation-api-10.11-census
+    COMMAND "${CMAKE_COMMAND}"
+            "-DPYTHON=${Python3_EXECUTABLE}"
+            "-DLEDGER=${AGORA_LEDGER}"
+            "-DMANIFEST=${CMAKE_CURRENT_SOURCE_DIR}/../api/10.11/foundation-manifest.txt"
+            "-DLIBRARY=$<TARGET_FILE:Foundation>"
+            "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/.."
+            "-DCENSUS=${CMAKE_CURRENT_SOURCE_DIR}/api-10.11-census.txt"
+            "-DINCLUDES=${AGORA_CORE_INCLUDE_DIR}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/api_census.cmake")
+
+  # **THE INSTRUMENT'S OWN REGRESSION CASES.** Three extractor faults were found by pointing the ledger at the 10.11
+  # headers, and each one produced a plausible wrong number: a property's trailing annotation read as its name (or
+  # making the property vanish), a deprecation message's sentence read as a selector, and availability not being a
+  # fact at all. They are fixed in a sibling component's tool, which no test here compiled; this registers the cases
+  # so a future edit to that parser fails in the build rather than in a census six waves later.
+  add_test(NAME api-ledger-selftest
+    COMMAND "${Python3_EXECUTABLE}" "${AGORA_LEDGER}" selftest)
 else()
   message(STATUS
-    "libagora-base: no Python3 interpreter, so the 10.6 API census gate is not registered — install python3, or the "
-    "Foundation surface goes unmeasured.")
+    "libagora-base: no Python3 interpreter, so the API census gates (10.6 and 10.11) and the ledger selftest are not "
+    "registered — install python3, or the Foundation surface goes unmeasured.")
 endif()
 
 # THE 10.6 ROOT-CLASS DOORS, MEASURED BY A CALLER RATHER THAN BY THE CENSUS. The census finds a body; this probe is
