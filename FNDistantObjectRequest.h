@@ -16,12 +16,15 @@
 /* THE CATEGORY BELOW NAMES `NSConnection`, AND A CATEGORY NEEDS THE CLASS ITSELF — a forward declaration
  * defines no category (§62.91's first compile said so). No cycle: NSConnection.h does not import this. */
 #import <Foundation/NSConnection.h>
+/* AND THE CATEGORY'S OWN CLASS IS THE SAME CASE, ONE LINE LOWER: `@class NSDistantObjectRequest;` compiles the
+ * declaration and then fails at `@interface NSDistantObjectRequest (FNPrivate)` with "cannot define category for
+ * undefined class". The header-compile gate found it. */
+#import <Foundation/NSDistantObjectRequest.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 @class NSException;
 @class NSInvocation;
-@class NSDistantObjectRequest;
 
 @interface NSDistantObjectRequest (FNPrivate)
 

@@ -27,6 +27,11 @@
 #ifndef FOUNDATION_NSFASTENUMERATION_H
 #define FOUNDATION_NSFASTENUMERATION_H
 
+/* **THIS HEADER USED TO IMPORT NOTHING AT ALL**, and it declares the struct a `for (x in y)` loop is built on: the
+ * nullability macros and the integer types are NSObjCRuntime.h's. It compiled only because every other header in the
+ * umbrella happened to import that first. The header-compile gate compiles each header alone and said so. */
+#import <Foundation/NSObjCRuntime.h>
+
 typedef struct {
 	unsigned long state;		/* the collection's cursor; opaque to the loop */
 	id __unsafe_unretained _Nonnull * _Nullable itemsPtr;	/* a batch of elements, valid until the next call */

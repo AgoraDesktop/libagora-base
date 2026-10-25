@@ -127,7 +127,7 @@ enum {
 
 /* THE CARBON HANDLE, WHICH THIS LIBRARY DOES NOT HAVE. The descriptor is not an AEDesc, so the door answers NULL and
  * says so; a caller that needs the Carbon struct is on the other side of a transport this library does not ship. */
-- (nullable const void *)aeDesc;
+- (nullable const void *)aeDesc NS_RETURNS_INNER_POINTER;
 
 @end
 

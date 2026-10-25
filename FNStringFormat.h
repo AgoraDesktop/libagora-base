@@ -28,6 +28,10 @@
 #include <stdarg.h>
 
 #import <Foundation/NSObjCRuntime.h>
+/* THE PROTOCOL BELOW CONFORMS TO `NSObject`, and a conforming protocol needs that protocol's declaration —
+ * NSObjCRuntime.h does not carry it. A forward `@class NSObject;` would not do: this is the PROTOCOL. Found by the
+ * header-compile gate. */
+#import <Foundation/NSObject.h>
 
 @class NSString;
 @class NSMutableString;

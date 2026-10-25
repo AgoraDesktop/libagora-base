@@ -27,6 +27,10 @@
 #ifndef FOUNDATION_FNKEYEDWIRE_H
 #define FOUNDATION_FNKEYEDWIRE_H
 
+/* The constants below are `NSString *`, so the INTERFACE is needed and not a forward declaration: a forward-declared
+ * class cannot be the type of an object literal in a file-scope initializer. The header-compile gate found this one. */
+#import <Foundation/NSString.h>
+
 /* The members of a collection, in order where the collection has one. */
 static NSString *const FNKeyedObjectsKey = @"NS.objects";
 

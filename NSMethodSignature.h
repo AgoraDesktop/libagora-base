@@ -63,8 +63,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (nullable NSMethodSignature *)signatureWithObjCTypes:(const char *)types;
 
 - (NSUInteger)numberOfArguments;	/* self and _cmd included, as Cocoa counts them */
-- (const char *)getArgumentTypeAtIndex:(NSUInteger)index;
-- (const char *)methodReturnType;
+- (const char *)getArgumentTypeAtIndex:(NSUInteger)index NS_RETURNS_INNER_POINTER;
+- (const char *)methodReturnType NS_RETURNS_INNER_POINTER;
 - (NSUInteger)methodReturnLength;	/* 0 for void */
 - (NSUInteger)frameLength;		/* our definition: word-aligned argument bytes */
 - (BOOL)isOneway;

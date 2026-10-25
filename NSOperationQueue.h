@@ -27,7 +27,10 @@
 
 #import <Foundation/NSObject.h>
 
-@class NSArray;
+/* THE INTERFACE, NOT A FORWARD DECLARATION: `NSArray<__kindof NSOperation *>` is a LIGHTWEIGHT GENERIC, and clang
+ * rejects type arguments on a class it has only seen forward-declared ("non-parameterized class 'NSArray'"). */
+#import <Foundation/NSArray.h>
+@class NSMutableArray;	/* the two queues the ivars hold: a pointer ivar needs the NAME, not the interface */
 @class FNCondition;	/* §63.170 re-homed this; see the note in NSOperation.h */
 @class NSOperation;
 @class NSString;
@@ -61,7 +64,7 @@ NS_CLASS_AVAILABLE_MAC(10_5)
  * is -waitUntilAllOperationsAreFinished's contract rather than a wait per operation: a later operation may depend
  * on an earlier one, and waiting for each in turn would still be right but would do it in the wrong order. */
 - (void)addOperations:(NSArray *)operations waitUntilFinished:(BOOL)wait NS_AVAILABLE_MAC(10_6);
-- (NSArray *)operations;
+- (NSArray<__kindof NSOperation *> *)operations;
 - (NSUInteger)operationCount NS_AVAILABLE_MAC(10_6);
 
 - (NSInteger)maxConcurrentOperationCount;

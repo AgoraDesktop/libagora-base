@@ -189,6 +189,18 @@ if(Python3_Interpreter_FOUND)
             "${CMAKE_CURRENT_SOURCE_DIR}/../api/10.11/foundation-manifest.txt"
             "${CMAKE_CURRENT_SOURCE_DIR}/.."
             --pin "${CMAKE_CURRENT_SOURCE_DIR}/api-10.11-annotations.txt")
+
+  # **S5: EVERY PUBLIC HEADER STANDS ALONE.** The library build proves the umbrella works for its own sources; this
+  # asks the client's question instead — import ONE header — in the three client modes, and compiles the umbrella
+  # once per mode as well. It found five headers that had never been asked: two that imported nothing, a category
+  # whose class was only forward-declared, an ivar type nobody declared, and a protocol conformance with no protocol.
+  add_test(NAME foundation-header-compile
+    COMMAND "${CMAKE_COMMAND}"
+            "-DCLANG=${CMAKE_OBJC_COMPILER}"
+            "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/.."
+            "-DINCLUDE=${_agora_include_dir};${CMAKE_INSTALL_PREFIX}/include"
+            "-DWORK=${CMAKE_CURRENT_BINARY_DIR}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/header_compile.cmake")
 else()
   message(STATUS
     "libagora-base: no Python3 interpreter, so the API census gates (10.6 and 10.11) and the ledger selftest are not "

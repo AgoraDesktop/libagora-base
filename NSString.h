@@ -330,7 +330,7 @@ __attribute__((swift_bridge("Swift.String")))
 				  error:(NSError * _Nullable * _Nullable)errorPtr;
 
 /* The primitives every concrete subclass implements. */
-@property (readonly) const char *UTF8String;
+@property (readonly) const char *UTF8String NS_RETURNS_INNER_POINTER;
 @property (readonly) size_t length;		/* UTF-16 CODE UNITS — Apple's contract (W1 slice 3) */
 - (unsigned char)byteAtIndex:(size_t)index;		/* a UTF-8 BYTE — the house door */
 - (unsigned short)characterAtIndex:(size_t)index;	/* the UNIT at a unit index */

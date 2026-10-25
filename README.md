@@ -201,3 +201,9 @@ denominator. **193 of 219 classes, 3,296 of 3,407 selectors, 30 of 40 protocols,
 still missing is 10.8–10.11: the 10.6 debt is closed. `FOUNDATION-10.11-PLAN.md` at the workspace root stages what
 remains, and `../libagora-app/tools/api-ledger selftest` holds the extractor's own regressions (three faults in that
 reader had undercounted this surface by 299 property accessors and invented two doors).
+
+The second tier of that surface is measured too. The availability macros used to be inert by decision; they now expand
+to clang's availability attribute, and every declaration this tree shares with Apple carries Apple's own version —
+`foundation-api-availability` pins 767 of 767, with a wrong version failing outright. `foundation-header-compile`
+compiles each of the 196 public headers ALONE as Objective-C, Objective-C++ and under ARC (plus the umbrella in each),
+which is the client's question rather than the library's.

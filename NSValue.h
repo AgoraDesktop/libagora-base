@@ -145,7 +145,7 @@ NS_ASSUME_NONNULL_BEGIN
  * buffer of a size it computed itself. */
 - (void)getValue:(void *)value size:(NSUInteger)size;
 
-@property (readonly) const char *objCType;
+@property (readonly) const char *objCType NS_RETURNS_INNER_POINTER;
 - (nullable void *)pointerValue;
 /* The BORROWED object back — a +0 reference, so ownership never moves to the caller. */
 - (nullable id)nonretainedObjectValue;

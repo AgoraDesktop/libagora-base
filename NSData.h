@@ -196,7 +196,11 @@ enum {
 - (nullable id)initWithBase64EncodedData:(NSData *)base64Data options:(NSDataBase64DecodingOptions)options NS_AVAILABLE_MAC(10_9);
 
 @property (readonly) size_t length;
-@property (nullable, readonly) const void *bytes;
+/* THE INNER-POINTER FAMILY (S2). Apple marks these `NS_RETURNS_INNER_POINTER`: the pointer borrows storage from the
+ * receiver and dies with it, which is what lets ARC avoid a retain/release pair on a buffer it must not own. The
+ * attribute is a fact about the CONTRACT, and a client reading the header cannot infer it — the earlier manifest even
+ * recorded the macro as a selector name, which is how the family was found. */
+@property (nullable, readonly) const void *bytes NS_RETURNS_INNER_POINTER;
 - (void)getBytes:(void *)buffer length:(size_t)length;
 - (void)getBytes:(void *)buffer range:(NSRange)range;
 
@@ -300,7 +304,7 @@ enum {
 - (void)appendData:(NSData *)other;
 - (void)setLength:(size_t)length;
 - (void)increaseLengthBy:(size_t)extraLength;
-- (nullable void *)mutableBytes;
+- (nullable void *)mutableBytes NS_RETURNS_INNER_POINTER;
 - (void)replaceBytesInRange:(NSRange)range withBytes:(const void *)bytes;
 - (void)replaceBytesInRange:(NSRange)range
 		  withBytes:(const void *)bytes

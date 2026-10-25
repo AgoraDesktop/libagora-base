@@ -37,7 +37,7 @@
 
 #import <Foundation/NSObject.h>
 
-@class NSArray;
+#import <Foundation/NSArray.h>	/* generics need the interface; see NSOperationQueue.h */
 @class NSDictionary;
 @class NSError;
 @class NSMutableArray;
@@ -228,7 +228,7 @@ typedef enum {
 /* THE XPATH AND XQUERY DOORS (10.2), DECLARED AND REFUSED BY NAME. Query evaluation needs an XPath engine and
  * XQuery needs a query processor; this library's tree is its own, so each door sets the error it was given and
  * answers nil rather than returning a guessed node set. */
-- (nullable NSArray *)nodesForXPath:(NSString *)xpath error:(NSError ** _Nullable)error;
+- (nullable NSArray<__kindof NSXMLNode *> *)nodesForXPath:(NSString *)xpath error:(NSError ** _Nullable)error;
 - (nullable NSArray *)objectsForXQuery:(NSString *)xquery
 			    constants:(nullable NSDictionary *)constants
 				error:(NSError ** _Nullable)error;
