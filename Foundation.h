@@ -135,6 +135,7 @@
 #import <Foundation/NSNetServices.h>
 #import <Foundation/NSCompoundPredicate.h>
 #import <Foundation/NSFormatter.h>
+#import <Foundation/NSByteCountFormatter.h>
 #import <Foundation/NSLengthFormatter.h>
 #import <Foundation/NSMassFormatter.h>
 #import <Foundation/NSEnergyFormatter.h>

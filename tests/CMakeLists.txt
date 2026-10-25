@@ -47,6 +47,12 @@ target_link_libraries(foundation_10_11_progress PRIVATE Foundation CoreFoundatio
 
 add_test(NAME foundation_10_11_progress COMMAND foundation_10_11_progress)
 
+# THE BYTE-COUNT FORMATTER (10.8): both bases, the unit a magnitude picks, and each of the seven switches.
+add_executable(foundation_10_11_byte_count foundation_10_11_byte_count.m)
+target_link_libraries(foundation_10_11_byte_count PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_byte_count COMMAND foundation_10_11_byte_count)
+
 # Core Foundation's Unicode normalization, against Unicode's own test suite. A separate suite from the
 # bridge because it is a separate concern, and because it is a CONFORMANCE run first: `NormalizationTest.txt`
 # is 19,129 cases with six invariants each, and nothing else in the tree asks `CFStringNormalize` anything.
