@@ -67,8 +67,24 @@ typedef enum {
 
 + (nullable NSPort *)portWithMachPort:(uint32_t)machPort;
 + (nullable NSPort *)portWithMachPort:(uint32_t)machPort options:(NSMachPortOptions)options NS_AVAILABLE_MAC(10_5);
-- (nullable instancetype)initWithMachPort:(uint32_t)machPort;
-- (nullable instancetype)initWithMachPort:(uint32_t)machPort options:(NSMachPortOptions)options NS_AVAILABLE_MAC(10_5);
+/* THE INHERITED SOCKET DOORS, RESTATED. A Mach port IS a socket port on this system, and a class that marks
+ * designated doors of its own has to say what the inherited ones mean — Apple states these three only on
+ * NSSocketPort, so marking them here is a tree-local fact and is counted as `designated-extra`. */
+- (instancetype)initWithProtocolFamily:(int)family
+                            socketType:(int)type
+                              protocol:(int)protocol
+                               address:(NSData *)address NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithProtocolFamily:(int)family
+                            socketType:(int)type
+                              protocol:(int)protocol
+                                socket:(NSSocketNativeHandle)socket NS_DESIGNATED_INITIALIZER;
+- (instancetype)initRemoteWithProtocolFamily:(int)family
+                                 socketType:(int)type
+                                   protocol:(int)protocol
+                                    address:(NSData *)address NS_DESIGNATED_INITIALIZER;
+
+- (nullable instancetype)initWithMachPort:(uint32_t)machPort NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithMachPort:(uint32_t)machPort options:(NSMachPortOptions)options NS_AVAILABLE_MAC(10_5) NS_DESIGNATED_INITIALIZER;
 
 /* This system's handle for this port: the descriptor of its own end of the pair. */
 - (uint32_t)machPort;

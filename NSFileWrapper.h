@@ -103,13 +103,18 @@ NS_CLASS_AVAILABLE_MAC(10_0)
  * error, which is why this one has an error channel and `-initWithPath:` does not (Apple's own shape). */
 - (nullable instancetype)initWithURL:(NSURL *)url
 			     options:(NSFileWrapperReadingOptions)options
-			       error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
+			       error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6) NS_DESIGNATED_INITIALIZER;
 - (nullable instancetype)initWithPath:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_10);
 
-- (instancetype)initDirectoryWithFileWrappers:(nullable NSDictionary *)childrenByPreferredName;
-- (instancetype)initRegularFileWithContents:(NSData *)contents;
+- (instancetype)initDirectoryWithFileWrappers:(nullable NSDictionary *)childrenByPreferredName NS_DESIGNATED_INITIALIZER;
+- (instancetype)initRegularFileWithContents:(NSData *)contents NS_DESIGNATED_INITIALIZER;
+
+/* THE CODER DOOR IS A DESIGNATED INITIALIZER (Apple marks it) and it is declared HERE because an inherited
+ * `-initWithCoder:` is not a declaration site: without this line the fact had nowhere to go and the door's body read as
+ * a convenience initializer. */
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 - (instancetype)initSymbolicLinkWithDestination:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_10);
-- (instancetype)initSymbolicLinkWithDestinationURL:(NSURL *)url NS_AVAILABLE_MAC(10_6);
+- (instancetype)initSymbolicLinkWithDestinationURL:(NSURL *)url NS_AVAILABLE_MAC(10_6) NS_DESIGNATED_INITIALIZER;
 
 /* ---- WHAT IT IS --------------------------------------------------------------------------------- */
 
@@ -199,7 +204,7 @@ originalContentsURL:(nullable NSURL *)originalContentsURL
  * undocumented); what IS asserted is that a whole tree survives a round trip through it, and that the
  * data really is a property list - which is the half Apple does state. */
 - (nullable NSData *)serializedRepresentation;
-- (nullable instancetype)initWithSerializedRepresentation:(NSData *)data;
+- (nullable instancetype)initWithSerializedRepresentation:(NSData *)data NS_DESIGNATED_INITIALIZER;
 
 
 /* §63.214: the REVERSE lookup — the key a child is stored under, by IDENTITY, which is what this class keys children by anyway. */

@@ -176,11 +176,9 @@ static NSString *fn_wrapper_free_key(NSDictionary *taken, NSString *preferred)
 
 - (instancetype)init
 {
-	self = [super init];
-	if (self != nil) {
-		_kind = FNWrapperRegular;
-	}
-	return self;
+	/* A CONVENIENCE door (Apple marks the six specific constructors instead), so it routes to one: a wrapper with no
+	 * contents IS a regular-file wrapper with nil contents, which is what this used to build by hand. */
+	return [self initRegularFileWithContents:nil];
 }
 
 - (void)dealloc
@@ -216,7 +214,7 @@ static NSString *fn_wrapper_free_key(NSDictionary *taken, NSString *preferred)
 
 - (instancetype)initRegularFileWithContents:(NSData *)contents
 {
-	self = [self init];
+	self = [super init];
 	if (self != nil) {
 		_kind = FNWrapperRegular;
 		_contents = [contents copy];
@@ -226,7 +224,7 @@ static NSString *fn_wrapper_free_key(NSDictionary *taken, NSString *preferred)
 
 - (instancetype)initDirectoryWithFileWrappers:(nullable NSDictionary *)childrenByPreferredName
 {
-	self = [self init];
+	self = [super init];
 	if (self != nil) {
 		_kind = FNWrapperDirectory;
 		_fileWrappers = [[NSMutableDictionary alloc] init];
@@ -255,12 +253,9 @@ static NSString *fn_wrapper_free_key(NSDictionary *taken, NSString *preferred)
 
 - (instancetype)initSymbolicLinkWithDestination:(NSString *)path
 {
-	self = [self init];
-	if (self != nil) {
-		_kind = FNWrapperSymbolicLink;
-		_linkDestination = [path copy];
-	}
-	return self;
+	/* A CONVENIENCE door (Apple's designated spelling is the URL one), so it routes there rather than building the
+	 * same state a second time. */
+	return [self initSymbolicLinkWithDestinationURL:[NSURL fileURLWithPath:path]];
 }
 
 - (instancetype)initSymbolicLinkWithDestinationURL:(NSURL *)url
@@ -280,7 +275,7 @@ static NSString *fn_wrapper_free_key(NSDictionary *taken, NSString *preferred)
 {
 	NSString *path = [url isKindOfClass:[NSURL class]] ? [(NSURL *)url path] : nil;
 
-	self = [self init];
+	self = [super init];
 	if (self == nil) {
 		return nil;
 	}
@@ -832,6 +827,7 @@ static NSString *const FNWrapperTypeSymbolicLink = @"SymbolicLink";
 		[self release];
 		return nil;
 	}
+	/* A CONVENIENCE door (an internal one), so it starts from `-init`. */
 	self = [self init];
 	if (self == nil) {
 		return nil;

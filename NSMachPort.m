@@ -34,7 +34,9 @@
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) != 0) {
 		return nil;
 	}
-	self = [super initWithProtocolFamily:AF_UNIX socketType:SOCK_STREAM protocol:0 socket:pair[0]];
+	/* A CONVENIENCE door, so it routes to the DESIGNATED socket door this class inherits — the same call, one
+	 * receiver further up. */
+	self = [self initWithProtocolFamily:AF_UNIX socketType:SOCK_STREAM protocol:0 socket:pair[0]];
 	if (self == nil) {
 		close(pair[0]);
 		close(pair[1]);
@@ -49,10 +51,16 @@
 
 /* ---- the doors that cannot be honest here, and refuse instead ---------------- */
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-designated-initializers"
 - (instancetype)initWithMachPort:(uint32_t)machPort
 {
 	/* A NUMBER IS NOT A PORT ON THIS SYSTEM. Mach port rights are what make a number name something, and there
-	 * are none here — so a port cannot be rebuilt from one, and answering nil says so where a caller asks. */
+	 * are none here — so a port cannot be rebuilt from one, and answering nil says so where a caller asks.
+	 *
+	 * THE REFUSAL IS NOT A CONSTRUCTION: this door's whole body releases the receiver and answers nil, so there is no
+	 * initializer to chain to and the checker's rule cannot be honoured. Suppressed HERE, for this door only (the same
+	 * note NSURL's bookmark door and NSXMLNode's string door carry). */
 	(void)machPort;
 	[self release];
 	return nil;
@@ -64,6 +72,35 @@
 	(void)options;
 	[self release];
 	return nil;
+}
+#pragma clang diagnostic pop
+
+/* THE THREE OVERRIDES A SUBCLASS OWES ITS SUPER'S DESIGNATED DOORS. A Mach port IS a socket port on this system
+ * (NSSocketPort's own `-init` says so), so each of these is the super's constructor with nothing added — stated
+ * rather than inherited, because a class that marks designated doors of its own has to say what the inherited ones
+ * mean. */
+- (instancetype)initWithProtocolFamily:(int)family
+			   socketType:(int)type
+			     protocol:(int)protocol
+			      address:(NSData *)address
+{
+	return [super initWithProtocolFamily:family socketType:type protocol:protocol address:address];
+}
+
+- (instancetype)initWithProtocolFamily:(int)family
+			   socketType:(int)type
+			     protocol:(int)protocol
+			       socket:(NSSocketNativeHandle)socket
+{
+	return [super initWithProtocolFamily:family socketType:type protocol:protocol socket:socket];
+}
+
+- (instancetype)initRemoteWithProtocolFamily:(int)family
+				  socketType:(int)type
+				    protocol:(int)protocol
+				     address:(NSData *)address
+{
+	return [super initRemoteWithProtocolFamily:family socketType:type protocol:protocol address:address];
 }
 
 + (NSPort *)portWithMachPort:(uint32_t)machPort
