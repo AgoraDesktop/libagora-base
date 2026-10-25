@@ -325,15 +325,42 @@ NSURLResourceKey NSURLVolumeSupportsZeroRunsKey = @"NSURLVolumeSupportsZeroRunsK
 NSURLResourceKey NSURLVolumeURLForRemountingKey = @"NSURLVolumeURLForRemountingKey";
 NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 
-/* THE ONE CONSTRUCTOR THE OTHERS GO THROUGH. It is deliberately private-ish
- * (declared here, not in the header): a URL is made from a string or from a
- * path, and both go through the same parse so they cannot disagree. */
-- (nullable id)initWithPartsFromString:(NSString *)string
+/* THE `file://` SPELLING OF A PATH, or nil when the path is not one this system can name: the FSH rule in one place,
+ * because five doors state it and a rule written five times is a rule that can come to disagree with itself. */
+static NSString *FNURLFileSpelling(NSString *path, BOOL isDirectory)
 {
-	self = [super init];
-	if (self == nil) {
+	NSString *usable;
+
+	if (path == nil || [path length] == 0 || ![path hasPrefix:@"/"]) {
 		return nil;
 	}
+	usable = isDirectory ? fn_ensure_trailing_slash(path) : path;
+	return [NSString stringWithFormat:@"file://%@", fn_encode(usable)];
+}
+
+/* ONE CONSTRUCTOR TAIL, WRITTEN ONCE: super, the parse, and a RELEASE on failure. It is a macro because
+ * `self = [super init]` cannot be expressed in a function, and it is NOT a helper initializer because a designated
+ * initializer may not chain to one (FOUNDATION-10.11-PLAN.md §4.15). A nil spelling fails the parse, so a door whose
+ * own rules rejected its input answers nil after releasing — which is the leak the old funnel had. */
+#define FN_URL_FINISH(spelling) \
+	do { \
+		NSString *fn_spelling = (spelling); \
+		BOOL fn_ok; \
+		self = [super init]; \
+		if (self == nil) { return nil; } \
+		fn_ok = (fn_spelling != nil) && [self fn_takePartsFromString:fn_spelling]; \
+		if (!fn_ok) { [self release]; return nil; } \
+		return self; \
+	} while (0)
+
+/* THE PARSE, AS A METHOD RATHER THAN AN INITIALIZER. Apple marks eight of this class's constructors designated, and a
+ * designated initializer may not chain to ANY initializer on `self` (measured against clang 19; the plan's §4.15), so a
+ * funnel that is itself an initializer is exactly what the marks cannot express. Two facts worth keeping: this door is
+ * where a URL's storage is established (so a subclass that wants to establish storage goes through HERE, not through a
+ * second copy of the parser), and it now answers YES/NO rather than an object, because only a constructor may own the
+ * allocation. */
+- (BOOL)fn_takePartsFromString:(NSString *)string
+{
 	{
 		const char *bytes = [string UTF8String];
 		size_t length;
@@ -341,12 +368,12 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 		size_t at;
 
 		if (bytes == NULL) {
-			return nil;
+			return NO;
 		}
 		length = strlen(bytes);
 		schemeRange = fn_scheme_range(bytes, length);
 		if (schemeRange.location == NSNotFound) {
-			return nil;
+			return NO;
 		}
 		_absoluteString = [string copy];
 		/* OWNED LIKE EVERY OTHER PART: `-lowercaseString` answers an AUTORELEASED string, and a URL that
@@ -438,7 +465,28 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 			_fragment = [[string substringFromIndex:(NSUInteger)at + 1] copy];
 		}
 	}
-	return self;
+	return YES;
+}
+
+/* THE PARSE ALONE (NSURL.h). `+alloc` and NSObject's `-init`, then the parts: this is the one place a URL is built
+ * without going through a constructor, and it exists because RESOLVING must not re-enter the door that resolves —
+ * `FNURLResolveRelative` is what `-initWithString:relativeToURL:` calls, so its own answer cannot come from there. */
+NSURL *FNURLWithSpelling(NSString *spelling)
+{
+	NSURL *url;
+
+	if (spelling == nil) {
+		return nil;
+	}
+	url = [[NSURL alloc] init];
+	if (url == nil) {
+		return nil;
+	}
+	if (![url fn_takePartsFromString:spelling]) {
+		[url release];
+		return nil;
+	}
+	return [url autorelease];
 }
 
 + (nullable NSURL *)URLWithString:(NSString *)string
@@ -460,10 +508,11 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
 	return [[self alloc] initFileURLWithPath:path];
 }
 
-/* nil when the string is not an absolute URL with a valid scheme. */
+/* nil when the string is not an absolute URL with a valid scheme. A CONVENIENCE DOOR: it routes to the designated
+ * constructor instead of parsing, which is what Apple's own `-initWithString:` does. */
 - (nullable id)initWithString:(NSString *)string
 {
-	return [self initWithPartsFromString:string];
+	return [self initWithString:string relativeToURL:nil];
 }
 
 /* THE FSH RULE: a path is slash-separated and absolute. Anything else is not a
@@ -472,16 +521,7 @@ NSURLResourceKey NSURLVolumeUUIDStringKey = @"NSURLVolumeUUIDStringKey";
  * authority — which is why "/System/Temporary Files" comes out with %20 in it. */
 - (nullable id)initFileURLWithPath:(NSString *)path
 {
-	NSString *spelling;
-
-	if (path == nil || [path length] == 0) {
-		return nil;
-	}
-	if (![path hasPrefix:@"/"]) {
-		return nil;
-	}
-	spelling = [NSString stringWithFormat:@"file://%@", fn_encode(path)];
-	return [self initWithPartsFromString:spelling];
+	FN_URL_FINISH(FNURLFileSpelling(path, NO));
 }
 
 /* ===================================================================================================
@@ -1697,23 +1737,20 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 
 - (nullable id)initWithString:(NSString *)string relativeToURL:(nullable NSURL *)baseURL
 {
+	/* RE-PARSE THE RESOLVED SPELLING so THIS object owns its parts rather than borrowing the resolver's autoreleased
+	 * answer, and so the object is an NSURL and not whatever the resolver returned. */
 	NSURL *resolved = FNURLResolveRelative(string, baseURL != nil ? [baseURL absoluteString] : nil);
 
-	if (resolved == nil) {
-		return nil;
-	}
-	/* RE-PARSE THE RESOLVED SPELLING so THIS object owns its parts (+1 for an init) rather than
-	 * borrowing the resolver's autoreleased answer, and so the object is an NSURL and not whatever the
-	 * resolver returned. */
-	return [self initWithPartsFromString:[resolved absoluteString]];
+	FN_URL_FINISH(resolved != nil ? [resolved absoluteString] : nil);
 }
 
 - (nullable id)initWithString:(NSString *)string encodingInvalidCharacters:(BOOL)encodingInvalidCharacters
 {
 	/* THE FLAG IS THE WHOLE DOOR: NO is the strict parse (parsing is the refusal, the class's rule);
 	 * YES REPAIRS a typed string by percent-encoding what is illegal while leaving the URL's structure
-	 * intact, so "http://h/a b" becomes "http://h/a%20b" and nothing else moves. */
-	return [self initWithPartsFromString:encodingInvalidCharacters ? fn_encode_url(string) : string];
+	 * intact, so "http://h/a b" becomes "http://h/a%20b" and nothing else moves. A CONVENIENCE DOOR: the repair is a
+	 * change to the SPELLING, and the parse itself is the designated door's. */
+	return [self initWithString:(encodingInvalidCharacters ? fn_encode_url(string) : string) relativeToURL:nil];
 }
 
 + (nullable NSURL *)URLWithString:(NSString *)string encodingInvalidCharacters:(BOOL)encodingInvalidCharacters
@@ -1724,16 +1761,15 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 - (nullable id)initWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL
 {
 	/* THE DATA IS THE UTF-8 SPELLING OF THE URL'S STRING, which is what -dataRepresentation answers - a
-	 * round trip the probe asserts. Data that is not valid UTF-8 is REFUSED (nil), not repaired. */
+	 * round trip the probe asserts. Data that is not valid UTF-8 is REFUSED (nil), not repaired. The decode happens
+	 * before super, so a refusal holds nothing to release. */
 	NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-	id answer;
+	NSURL *resolved = (string != nil)
+		? FNURLResolveRelative(string, baseURL != nil ? [baseURL absoluteString] : nil) : nil;
+	NSString *spelling = (resolved != nil) ? [resolved absoluteString] : nil;
 
-	if (string == nil) {
-		return nil;
-	}
-	answer = [self initWithString:string relativeToURL:baseURL];
 	[string release];
-	return answer;
+	FN_URL_FINISH(spelling);
 }
 
 + (nullable NSURL *)URLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL
@@ -1743,9 +1779,16 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 
 - (nullable id)initAbsoluteURLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL
 {
-	/* The result of resolution is an ABSOLUTE URL (or nil), so the "absolute" spelling and the plain
-	 * one are the same door over the same algorithm; the name is Apple's and is honoured by delegation. */
-	return [self initWithDataRepresentation:data relativeToURL:baseURL];
+	/* The result of resolution is an ABSOLUTE URL (or nil), so the "absolute" spelling and the plain one are the same
+	 * door over the same algorithm. It DECODES AND RESOLVES ITSELF rather than calling the sibling constructor: both are
+	 * designated, and a designated initializer may not chain to another one on `self`. */
+	NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+	NSURL *resolved = (string != nil)
+		? FNURLResolveRelative(string, baseURL != nil ? [baseURL absoluteString] : nil) : nil;
+	NSString *spelling = (resolved != nil) ? [resolved absoluteString] : nil;
+
+	[string release];
+	FN_URL_FINISH(spelling);
 }
 
 + (nullable NSURL *)absoluteURLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL
@@ -1760,7 +1803,7 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 
 - (nullable id)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory
 {
-	return [self initFileURLWithPath:(isDirectory ? fn_ensure_trailing_slash(path) : path)];
+	FN_URL_FINISH(FNURLFileSpelling(path, isDirectory));
 }
 
 - (nullable id)initFileURLWithPath:(NSString *)path relativeToURL:(nullable NSURL *)baseURL
@@ -1768,18 +1811,12 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 	/* THE BASE IS IGNORED FOR AN ABSOLUTE PATH (Apple's own rule) AND A RELATIVE PATH IS REFUSED: the
 	 * FSH has no relative paths to resolve, which is this class's standing rule for file URLs (see the
 	 * header). So this door is the base-less one for every path this system can name. */
-	if (path == nil || ![path hasPrefix:@"/"]) {
-		return nil;
-	}
-	return [self initFileURLWithPath:path];
+	FN_URL_FINISH(FNURLFileSpelling(path, NO));
 }
 
 - (nullable id)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL
 {
-	if (path == nil || ![path hasPrefix:@"/"]) {
-		return nil;
-	}
-	return [self initFileURLWithPath:path isDirectory:isDirectory];
+	FN_URL_FINISH(FNURLFileSpelling(path, isDirectory));
 }
 
 + (nullable NSURL *)fileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory
@@ -1810,16 +1847,9 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 
 - (nullable id)initFileURLWithFileSystemRepresentation:(const char *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL
 {
-	NSString *string;
+	NSString *string = (path != NULL) ? [NSString stringWithUTF8String:path] : nil;
 
-	if (path == NULL) {
-		return nil;
-	}
-	string = [NSString stringWithUTF8String:path];
-	if (string == nil) {
-		return nil;
-	}
-	return [self initFileURLWithPath:string isDirectory:isDirectory relativeToURL:baseURL];
+	FN_URL_FINISH(FNURLFileSpelling(string, isDirectory));
 }
 
 + (nullable NSURL *)fileURLWithFileSystemRepresentation:(const char *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL
@@ -1930,8 +1960,10 @@ static BOOL fn_url_answers_key(NSURLResourceKey key)
 	}
 	/* NOTHING IS ENCODED HERE, deliberately: this door is deprecated and Apple's own took the caller's
 	 * spelling literally, so a path with a space is the caller's to encode - a documented DIVERGENCE
-	 * from the file doors, which do encode. */
-	made = [self initWithPartsFromString:spelling];
+	 * from the file doors, which do encode. It ROUTES through the designated string door rather than
+	 * parsing, because a convenience initializer may not parse on its own; the one behaviour that comes
+	 * with that is the resolver's dot-segment removal, which this deprecated door inherits. */
+	made = [self initWithString:spelling relativeToURL:nil];
 	[spelling release];
 	return made;
 }
@@ -2129,6 +2161,12 @@ static void fn_url_bookmark_unsupported(const char *selector)
 	return nil;
 }
 
+/* A REFUSAL IS NOT A CONSTRUCTION, AND THE CHECKER HAS NO WAY TO SAY THAT. `fn_url_bookmark_unsupported` raises, so
+ * this door has no initializer to chain to and no object to hand back — and the alternative that would satisfy clang
+ * (parsing something first, only to satisfy it) would be a lie about what the door does. Suppressed HERE, for this one
+ * door; the rest of the class's constructors are checked. */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-designated-initializers"
 - (instancetype)initByResolvingBookmarkData:(NSData *)bookmarkData options:(NSURLBookmarkResolutionOptions)options
 			      relativeToURL:(NSURL *)relativeURL bookmarkDataIsStale:(BOOL *)isStale
 				      error:(NSError **)error
@@ -2136,6 +2174,7 @@ static void fn_url_bookmark_unsupported(const char *selector)
 	fn_url_bookmark_unsupported("-[NSURL initByResolvingBookmarkData:options:relativeToURL:bookmarkDataIsStale:error:]");
 	return nil;
 }
+#pragma clang diagnostic pop
 
 @end
 

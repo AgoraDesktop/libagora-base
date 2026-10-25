@@ -50,7 +50,10 @@
 # comparison uses each class's OWN selector set rather than its inheritance closure — the opposite of the surface
 # census, which resolves inheritance because that is what `respondsToSelector:` answers. Two questions, two rules.
 #
-# **THE DESIGNATED-INITIALIZER FACTS ARE COUNTED HERE TOO, AND DELIBERATELY NOT YET SWEPT.** `designated-init` is a
+# **THE DESIGNATED-INITIALIZER FACTS ARE COUNTED HERE TOO, AND THE SWEEP IS UNDER WAY BY CLASS.** `NSURL` is the first
+# class done: its eight doors are marked, its parse became a plain method so each door could be its own constructor
+# (the rule in §4.15 of the plan), and this file moved from 135/2 to 127/10 in that commit. The residue waits for the
+# same pass, class by class, for the reason the note below gives. `designated-init` is a
 # different kind of fact from an era: it carries no version, it says which initializer defines the class's state. Apple
 # marks 182 in the 10.11 Foundation; 178 reach the manifest after ownership and availability filtering, and 135 of them
 # are on declarations this tree makes. Sweeping them was ATTEMPTED and the result is recorded rather than hidden: with
@@ -70,6 +73,6 @@ annotations-present 800
 annotations-wrong 0
 designated-candidates 137
 designated-extra 0
-designated-missing 135
-designated-present 2
+designated-missing 127
+designated-present 10
 

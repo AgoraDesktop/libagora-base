@@ -97,7 +97,7 @@ typedef NSString *NSURLFileResourceType;
 + (nullable NSURL *)fileURLWithPath:(NSString *)path;
 
 - (nullable id)initWithString:(NSString *)string;
-- (nullable id)initFileURLWithPath:(NSString *)path;
+- (nullable id)initFileURLWithPath:(NSString *)path NS_DESIGNATED_INITIALIZER;
 
 /* The RFC 3986 parts. `scheme` and `path` are never nil (a scheme is required,
  * and a path is empty rather than absent); the rest are nil when the URL has no
@@ -164,22 +164,22 @@ typedef NSString *NSURLFileResourceType;
  * answers); the file doors add the FSH's directory slash and a C-string spelling. NONE of the
  * relativeToURL: file doors RESOLVES a relative path, because the FSH has none - the base is ignored
  * for an absolute path (Apple's own rule) and a relative one is refused (see NSURL.m). */
-- (nullable instancetype)initWithString:(NSString *)string relativeToURL:(nullable NSURL *)baseURL;
+- (nullable instancetype)initWithString:(NSString *)string relativeToURL:(nullable NSURL *)baseURL NS_DESIGNATED_INITIALIZER;
 - (nullable instancetype)initWithString:(NSString *)string encodingInvalidCharacters:(BOOL)encodingInvalidCharacters;
 + (nullable instancetype)URLWithString:(NSString *)string encodingInvalidCharacters:(BOOL)encodingInvalidCharacters;
-- (nullable instancetype)initWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
+- (nullable instancetype)initWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11) NS_DESIGNATED_INITIALIZER;
 + (nullable instancetype)URLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
-- (nullable instancetype)initAbsoluteURLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
+- (nullable instancetype)initAbsoluteURLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11) NS_DESIGNATED_INITIALIZER;
 + (nullable instancetype)absoluteURLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
 - (nullable NSData *)dataRepresentation NS_AVAILABLE_MAC(10_11);
-- (nullable instancetype)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory NS_AVAILABLE_MAC(10_5);
-- (nullable instancetype)initFileURLWithPath:(NSString *)path relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
-- (nullable instancetype)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
+- (nullable instancetype)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory NS_AVAILABLE_MAC(10_5) NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initFileURLWithPath:(NSString *)path relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11) NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11) NS_DESIGNATED_INITIALIZER;
 + (nullable instancetype)fileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory NS_AVAILABLE_MAC(10_5);
 + (nullable instancetype)fileURLWithPath:(NSString *)path relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
 + (nullable instancetype)fileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
 + (nullable instancetype)fileURLWithPathComponents:(NSArray *)components NS_AVAILABLE_MAC(10_6);
-- (nullable instancetype)initFileURLWithFileSystemRepresentation:(const char *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_9);
+- (nullable instancetype)initFileURLWithFileSystemRepresentation:(const char *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_9) NS_DESIGNATED_INITIALIZER;
 + (nullable instancetype)fileURLWithFileSystemRepresentation:(const char *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_9);
 - (BOOL)getFileSystemRepresentation:(char *)buffer maxLength:(NSUInteger)maxLength NS_AVAILABLE_MAC(10_9);
 
@@ -448,6 +448,11 @@ extern NSURLFileResourceType const NSURLFileResourceTypeUnknown;
  * already absolute comes back as itself (normalised); one with no base to resolve against is
  * answered as far as it can be, which is the same algorithm with the base's fields absent. */
 NSURL * _Nullable FNURLResolveRelative(NSString *reference, NSString * _Nullable base);
+
+/* THE PARSE ALONE, with no resolution — the door `FNURLResolveRelative` finishes with. It exists because resolving
+ * a reference must not go back through the door that resolves (that is a recursion, not a resolution), and it is a
+ * C function rather than a class method because it needs no state beyond the spelling. */
+NSURL * _Nullable FNURLWithSpelling(NSString *spelling);
 
 
 /* THE BOOKMARK TYPES (2026-09-20). The METHODS that take them are in this header's

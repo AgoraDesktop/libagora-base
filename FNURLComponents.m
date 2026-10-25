@@ -223,7 +223,10 @@ NSURL * _Nullable FNURLResolveRelative(NSString *reference, NSString * _Nullable
 		return nil;
 	}
 	target = [ref fnResolveAgainst:bas];
-	return [target URL];
+	/* THE RESOLVED SPELLING IS PARSED WITHOUT RE-ENTERING THE PUBLIC DOOR. `-URL` on a components object calls
+	 * `+URLWithString:`, which RESOLVES — and this function is what that resolution calls, so going through it here
+	 * would recurse until the stack died. `FNURLWithSpelling` is the parse alone, which is all this needs. */
+	return FNURLWithSpelling([target string]);
 }
 
 
