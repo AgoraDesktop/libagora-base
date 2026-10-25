@@ -32,7 +32,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (nullable instancetype)initWithSuiteName:(NSString *)suiteName
 				 className:(NSString *)className
-				dictionary:(nullable NSDictionary *)classDeclaration;
+				dictionary:(nullable NSDictionary *)classDeclaration NS_DESIGNATED_INITIALIZER;
 
 @property (readonly, copy) NSString *suiteName;
 @property (readonly, copy) NSString *className;

@@ -76,29 +76,50 @@
 
 @implementation NSLogicalTest
 
+/* THE STORAGE, AS A METHOD, because the three DESIGNATED constructors below each establish it and a designated
+ * initializer may not chain to another one on `self` (FOUNDATION-10.11-PLAN.md §4.15). */
+- (void)fnSetLogicalType:(NSInteger)type tests:(NSArray *)subtests
+{
+	_logicalType = type;
+	_subtests = [subtests copy];
+}
+
+/* A CONVENIENCE door (Apple marks the three specialisations, not this one), so it starts from `-init`. */
 - (instancetype)initWithType:(NSInteger)type tests:(NSArray *)subtests
 {
-	self = [super init];
+	self = [self init];
 	if (self != nil) {
-		_logicalType = type;
-		_subtests = [subtests copy];
+		[self fnSetLogicalType:type tests:subtests];
 	}
 	return self;
 }
 
+/* THE THREE DESIGNATED DOORS: super, then the storage. Each names its own logical type, which is what the class is. */
 - (instancetype)initAndTestWithTests:(NSArray *)subtests
 {
-	return [self initWithType:0 tests:subtests];
+	self = [super init];
+	if (self != nil) {
+		[self fnSetLogicalType:0 tests:subtests];
+	}
+	return self;
 }
 
 - (instancetype)initOrTestWithTests:(NSArray *)subtests
 {
-	return [self initWithType:1 tests:subtests];
+	self = [super init];
+	if (self != nil) {
+		[self fnSetLogicalType:1 tests:subtests];
+	}
+	return self;
 }
 
 - (instancetype)initNotTestWithTest:(NSScriptWhoseTest *)subtest
 {
-	return [self initWithType:2 tests:[NSArray arrayWithObject:subtest]];
+	self = [super init];
+	if (self != nil) {
+		[self fnSetLogicalType:2 tests:[NSArray arrayWithObject:subtest]];
+	}
+	return self;
 }
 
 - (void)dealloc

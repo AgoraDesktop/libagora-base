@@ -48,7 +48,7 @@ typedef NS_ENUM(NSUInteger, NSSaveOptions) {
 	NSString *_scriptErrorString;
 }
 
-- (instancetype)initWithCommandDescription:(NSScriptCommandDescription *)commandDescription;
+- (instancetype)initWithCommandDescription:(NSScriptCommandDescription *)commandDescription NS_DESIGNATED_INITIALIZER;
 
 + (nullable NSScriptCommand *)currentCommand;
 
@@ -156,7 +156,7 @@ typedef NS_ENUM(NSUInteger, NSSaveOptions) {
 }
 - (nullable instancetype)initWithSuiteName:(NSString *)suiteName
 			       commandName:(NSString *)commandName
-				dictionary:(nullable NSDictionary *)commandDeclaration;
+				dictionary:(nullable NSDictionary *)commandDeclaration NS_DESIGNATED_INITIALIZER;
 @property (readonly, copy) NSString *suiteName;
 @property (readonly, copy) NSString *commandName;
 @property (readonly, copy) NSString *commandClassName;

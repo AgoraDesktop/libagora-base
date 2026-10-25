@@ -285,6 +285,20 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 
 @implementation NSIndexSpecifier
 
+/* THE OVERRIDE A SUBCLASS OWES THE BASE'S DESIGNATED DOOR (`initWithContainerClassDescription:containerSpecifier:key:`):
+ * a class that marks a designated initializer of its own has to say what the inherited one means here. It is a
+ * CONVENIENCE override — it routes to THIS class's designated door — which is why it adds no mark of its own:
+ * no index yet, and NSNotFound is this family's spelling of that. */
+- (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
+                              containerSpecifier:(NSScriptObjectSpecifier *)container
+                                             key:(NSString *)property
+{
+	return [self initWithContainerClassDescription:classDescription
+	                          containerSpecifier:container
+	                                         key:property
+	                                        index:NSNotFound];
+}
+
 - (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
 			       containerSpecifier:(NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
@@ -315,6 +329,20 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 @end
 
 @implementation NSNameSpecifier
+
+/* THE OVERRIDE A SUBCLASS OWES THE BASE'S DESIGNATED DOOR (`initWithContainerClassDescription:containerSpecifier:key:`):
+ * a class that marks a designated initializer of its own has to say what the inherited one means here. It is a
+ * CONVENIENCE override — it routes to THIS class's designated door — which is why it adds no mark of its own:
+ * no name yet, and nil is the same "not present" the components use. */
+- (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
+                              containerSpecifier:(NSScriptObjectSpecifier *)container
+                                             key:(NSString *)property
+{
+	return [self initWithContainerClassDescription:classDescription
+	                          containerSpecifier:container
+	                                         key:property
+	                                        name:nil];
+}
 
 - (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
 			       containerSpecifier:(NSScriptObjectSpecifier *)container
@@ -356,6 +384,20 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 @end
 
 @implementation NSUniqueIDSpecifier
+
+/* THE OVERRIDE A SUBCLASS OWES THE BASE'S DESIGNATED DOOR (`initWithContainerClassDescription:containerSpecifier:key:`):
+ * a class that marks a designated initializer of its own has to say what the inherited one means here. It is a
+ * CONVENIENCE override — it routes to THIS class's designated door — which is why it adds no mark of its own:
+ * no unique ID yet, and nil says so. */
+- (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
+                              containerSpecifier:(NSScriptObjectSpecifier *)container
+                                             key:(NSString *)property
+{
+	return [self initWithContainerClassDescription:classDescription
+	                          containerSpecifier:container
+	                                         key:property
+	                                        uniqueID:nil];
+}
 
 - (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
 			       containerSpecifier:(NSScriptObjectSpecifier *)container
@@ -457,9 +499,36 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 	return indices;
 }
 
+
+/* THE OVERRIDE A SUBCLASS OWES THE BASE'S DESIGNATED DOOR: a CONVENIENCE one that routes to this class's own
+ * designated door, with neither bound set — the range door is the only way to state one. */
+- (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
+                              containerSpecifier:(NSScriptObjectSpecifier *)container
+                                             key:(NSString *)property
+{
+	return [self initWithContainerClassDescription:classDescription
+	                          containerSpecifier:container
+	                                         key:property
+	                              startSpecifier:nil
+	                                endSpecifier:nil];
+}
 @end
 
 @implementation NSRelativeSpecifier
+
+/* THE OVERRIDE A SUBCLASS OWES THE BASE'S DESIGNATED DOOR (`initWithContainerClassDescription:containerSpecifier:key:`):
+ * a class that marks a designated initializer of its own has to say what the inherited one means here. It is a
+ * CONVENIENCE override — it routes to THIS class's designated door — which is why it adds no mark of its own:
+ * no position and no base yet — NSRelativeAfter is the enum's zero. */
+- (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
+                              containerSpecifier:(NSScriptObjectSpecifier *)container
+                                             key:(NSString *)property
+{
+	return [self initWithContainerClassDescription:classDescription
+	                          containerSpecifier:container
+	                                         key:property
+	                                        relativePosition:NSRelativeAfter baseSpecifier:nil];
+}
 
 - (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
 			       containerSpecifier:(NSScriptObjectSpecifier *)container
@@ -526,6 +595,20 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 @end
 
 @implementation NSWhoseSpecifier
+
+/* THE OVERRIDE A SUBCLASS OWES THE BASE'S DESIGNATED DOOR (`initWithContainerClassDescription:containerSpecifier:key:`):
+ * a class that marks a designated initializer of its own has to say what the inherited one means here. It is a
+ * CONVENIENCE override — it routes to THIS class's designated door — which is why it adds no mark of its own:
+ * no test yet. */
+- (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
+                              containerSpecifier:(NSScriptObjectSpecifier *)container
+                                             key:(NSString *)property
+{
+	return [self initWithContainerClassDescription:classDescription
+	                          containerSpecifier:container
+	                                         key:property
+	                                        test:nil];
+}
 
 - (instancetype)initWithContainerClassDescription:(NSScriptClassDescription *)classDescription
 			       containerSpecifier:(NSScriptObjectSpecifier *)container

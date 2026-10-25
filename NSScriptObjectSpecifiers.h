@@ -66,7 +66,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 
 - (instancetype)initWithContainerClassDescription:(nullable NSScriptClassDescription *)classDescription
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
-					    key:(NSString *)property;
+					    key:(NSString *)property NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithContainerSpecifier:(nullable NSScriptObjectSpecifier *)container
 				       key:(NSString *)property;
 
@@ -105,7 +105,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 - (instancetype)initWithContainerClassDescription:(nullable NSScriptClassDescription *)classDescription
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
-					  index:(NSInteger)index;
+					  index:(NSInteger)index NS_DESIGNATED_INITIALIZER;
 @property NSInteger index;
 @end
 
@@ -117,7 +117,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 - (instancetype)initWithContainerClassDescription:(nullable NSScriptClassDescription *)classDescription
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
-					   name:(NSString *)name;
+					   name:(NSString *)name NS_DESIGNATED_INITIALIZER;
 @property (copy) NSString *name;
 @end
 
@@ -129,7 +129,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 - (instancetype)initWithContainerClassDescription:(nullable NSScriptClassDescription *)classDescription
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
-				       uniqueID:(id)uniqueID;
+				       uniqueID:(id)uniqueID NS_DESIGNATED_INITIALIZER;
 @property (strong) id uniqueID;
 @end
 
@@ -143,7 +143,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
 				 startSpecifier:(nullable NSScriptObjectSpecifier *)startSpecifier
-				   endSpecifier:(nullable NSScriptObjectSpecifier *)endSpecifier;
+				   endSpecifier:(nullable NSScriptObjectSpecifier *)endSpecifier NS_DESIGNATED_INITIALIZER;
 @property (nullable, strong) NSScriptObjectSpecifier *startSpecifier;
 @property (nullable, strong) NSScriptObjectSpecifier *endSpecifier;
 @end
@@ -158,7 +158,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
 			       relativePosition:(NSRelativePosition)relPos
-				  baseSpecifier:(nullable NSScriptObjectSpecifier *)baseSpecifier;
+				  baseSpecifier:(nullable NSScriptObjectSpecifier *)baseSpecifier NS_DESIGNATED_INITIALIZER;
 @property NSRelativePosition relativePosition;
 @property (nullable, strong) NSScriptObjectSpecifier *baseSpecifier;
 @end
@@ -183,7 +183,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 - (instancetype)initWithContainerClassDescription:(nullable NSScriptClassDescription *)classDescription
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
-					   test:(NSScriptWhoseTest *)test;
+					   test:(NSScriptWhoseTest *)test NS_DESIGNATED_INITIALIZER;
 @property (strong) NSScriptWhoseTest *test;
 @property NSWhoseSubelementIdentifier startSubelementIdentifier;
 @property NSInteger startSubelementIndex;
@@ -205,7 +205,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 	BOOL _insertionReplaces;
 }
 - (instancetype)initWithPosition:(NSPositioning)position
-		objectSpecifier:(NSScriptObjectSpecifier *)specifier;
+		objectSpecifier:(NSScriptObjectSpecifier *)specifier NS_DESIGNATED_INITIALIZER;
 @property (readonly) NSPositioning position NS_AVAILABLE_MAC(10_5);
 @property (readonly, strong) NSScriptObjectSpecifier *objectSpecifier NS_AVAILABLE_MAC(10_5);
 @property (nullable, strong) NSScriptClassDescription *insertionClassDescription;

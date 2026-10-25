@@ -87,7 +87,7 @@ typedef NS_ENUM(NSUInteger, NSTestComparisonOperation) {
 }
 - (instancetype)initWithObjectSpecifier:(nullable NSScriptObjectSpecifier *)objectSpecifier
 		     comparisonOperator:(NSTestComparisonOperation)comparisonOperator
-			     testObject:(nullable id)testObject;
+			     testObject:(nullable id)testObject NS_DESIGNATED_INITIALIZER;
 @end
 
 @interface NSLogicalTest : NSScriptWhoseTest
@@ -96,9 +96,9 @@ typedef NS_ENUM(NSUInteger, NSTestComparisonOperation) {
 	NSInteger _logicalType;		/* 0 = and, 1 = or, 2 = not */
 	NSArray *_subtests;
 }
-- (instancetype)initAndTestWithTests:(NSArray *)subtests;
-- (instancetype)initOrTestWithTests:(NSArray *)subtests;
-- (instancetype)initNotTestWithTest:(NSScriptWhoseTest *)subtest;
+- (instancetype)initAndTestWithTests:(NSArray *)subtests NS_DESIGNATED_INITIALIZER;
+- (instancetype)initOrTestWithTests:(NSArray *)subtests NS_DESIGNATED_INITIALIZER;
+- (instancetype)initNotTestWithTest:(NSScriptWhoseTest *)subtest NS_DESIGNATED_INITIALIZER;
 @end
 
 NS_ASSUME_NONNULL_END
