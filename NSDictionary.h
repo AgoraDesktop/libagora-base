@@ -103,7 +103,7 @@ __attribute__((swift_bridge("Swift.Dictionary")))
  * same two KEYS with a different PAYLOAD SHAPE — an inline array of slots rather than a second array entry.
  * The names are shared so the two spellings cannot drift; the shapes are each path's own, and neither path
  * reads the other's. They exist for a caller who names them, and for `-conformsToProtocol:`. */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 - (void)encodeWithCoder:(NSCoder *)coder;
 
 + (NSDictionary *)dictionary;
@@ -119,7 +119,7 @@ __attribute__((swift_bridge("Swift.Dictionary")))
 - (id)initWithDictionary:(NSDictionary<KeyType, ObjectType> *)other;
 - (id)initWithObjects:(const ObjectType _Nonnull * _Nonnull)values
 	      forKeys:(const KeyType _Nonnull * _Nonnull)keys
-		count:(NSUInteger)count;
+		count:(NSUInteger)count NS_DESIGNATED_INITIALIZER;
 - (id)initWithObjectsAndKeys:(id)firstObject, ... NS_REQUIRES_NIL_TERMINATION;
 
 @property (readonly) NSUInteger count;
@@ -198,12 +198,12 @@ __attribute__((swift_bridge("Swift.Dictionary")))
 
 + (NSMutableDictionary *)dictionary;
 + (NSMutableDictionary *)dictionaryWithCapacity:(NSUInteger)capacity;
-- (id)initWithCapacity:(NSUInteger)capacity;
+- (id)initWithCapacity:(NSUInteger)capacity NS_DESIGNATED_INITIALIZER;
 /* APPLE DECLARES THIS ON THE MUTABLE CLASS TOO (§63.13), so it is redeclared here rather than left to
  * inheritance — the ledger's shipped test is a declaration in the owner's own block — and its implementation
  * lives in this class's own `@implementation`, because `--unimplemented` counts an implementation in the class
  * or a SUBCLASS, so the front's body does not satisfy this. */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
 - (void)addEntriesFromDictionary:(NSDictionary<KeyType, ObjectType> *)other;
 - (void)setDictionary:(NSDictionary<KeyType, ObjectType> *)other;

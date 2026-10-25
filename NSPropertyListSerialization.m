@@ -536,7 +536,15 @@ static NSData *fn_plist_data_from_object(id object)
 
 - (id)initWithContentsOfURL:(NSURL *)url
 {
-	return fn_array_from_plist_data([NSData dataWithContentsOfURL:url]);
+	NSArray *parsed = fn_array_from_plist_data([NSData dataWithContentsOfURL:url]);
+
+	/* A CONVENIENCE door, so it routes through one of the class's own initializers rather than answering a
+	 * substitute object from `self` (§4.15); the parse is the same call it always was. */
+	if (parsed == nil) {
+		[self release];
+		return nil;
+	}
+	return [self initWithArray:parsed];
 }
 
 - (BOOL)writeToURL:(NSURL *)url atomically:(BOOL)useAuxiliaryFile
@@ -594,7 +602,13 @@ static NSData *fn_plist_data_from_object(id object)
 
 - (id)initWithContentsOfURL:(NSURL *)url
 {
-	return fn_dictionary_from_plist_data([NSData dataWithContentsOfURL:url]);
+	NSDictionary *parsed = fn_dictionary_from_plist_data([NSData dataWithContentsOfURL:url]);
+
+	if (parsed == nil) {
+		[self release];
+		return nil;
+	}
+	return [self initWithDictionary:parsed];
 }
 
 - (BOOL)writeToURL:(NSURL *)url atomically:(BOOL)useAuxiliaryFile

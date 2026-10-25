@@ -200,7 +200,9 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 		[self release];
 		return (id)[AGDictionaryEmpty emptyDictionary];
 	}
-	self = [super init];
+	/* A CONVENIENCE door (Apple marks only -initWithObjects:forKeys:count: and -initWithCoder:), so it starts from
+	 * `-init` and stores through the same internal setter every other construction uses. */
+	self = [self init];
 	if (self == nil) {
 		return nil;
 	}
@@ -228,7 +230,8 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 		[self release];	/* never initialized: the storage was never built */
 		return (id)[AGDictionaryEmpty emptyDictionary];
 	}
-	self = [super init];
+	/* A CONVENIENCE door, like the pair form above: `-init` then the primitive setters. */
+	self = [self init];
 	if (self == nil) {
 		return nil;
 	}
@@ -495,7 +498,11 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 		 * count zero neither is ever dereferenced, and the annotation means what it says for every count that
 		 * is not zero. */
 		(void)nothing;
-		return [self initWithObjects:nothing forKeys:nothing count:0];
+		/* A DESIGNATED door, so the empty payload is answered HERE rather than by chaining to the canonical
+		 * constructor: an empty decoded dictionary is a plain instance, not the shared empty one (the
+		 * class-choosing rule belongs to the constructor, and a decoder has data). */
+		self = [super init];
+		return self;
 	}
 	built = [NSMutableDictionary dictionaryWithCapacity:n];
 	for (i = 0; i < n; i++) {
@@ -505,7 +512,22 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 			[built setObject:[values objectAtIndex:i] forKey:key];
 		}
 	}
-	return [self initWithDictionary:built];
+	/* SUPER AND THE PRIMITIVE SETTERS, not `-initWithDictionary:` — a designated initializer may not chain to
+	 * another initializer on `self` (§4.15). */
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	{
+		NSEnumerator *enumerator = [built keyEnumerator];
+		id key;
+
+		while ((key = [enumerator nextObject]) != nil) {
+			[self setObjectInternal:[built objectForKey:key] forKey:key];
+		}
+	}
+	(void)built;
+	return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)coder
@@ -1278,8 +1300,31 @@ static void fn_append_strings_escaped(NSMutableString *out, NSString *s)
 
 - (id)initWithCapacity:(NSUInteger)capacity
 {
+	id nothing[1] = { nil };
+
+	/* A DESIGNATED door of this class, so it calls a DESIGNATED door of the super: the canonical constructor with a
+	 * count of zero. The empty substitution it contains fires only for the IMMUTABLE concrete class
+	 * (`isMemberOfClass:`), so a mutable answer stays mutable. */
 	(void)capacity;
-	return [super init];
+	return [super initWithObjects:nothing forKeys:nothing count:0];
+}
+
+- (id)initWithObjects:(const id *)values forKeys:(const id *)keys count:(NSUInteger)count
+{
+	NSUInteger i;
+
+	/* THE OVERRIDE A SUBCLASS OWES A DESIGNATED SUPER DOOR, as a CONVENIENCE one: this class's own designated door is
+	 * -initWithCapacity:, so it starts there and stores the pairs through the same internal setter. */
+	self = [self initWithCapacity:count];
+	if (self == nil) {
+		return nil;
+	}
+	for (i = 0; i < count; i++) {
+		if (values[i] != nil && keys[i] != nil) {
+			[self setObjectInternal:values[i] forKey:keys[i]];
+		}
+	}
+	return self;
 }
 
 /* THE SAME DOOR ON THE MUTABLE CLASS (§63.13), declared in its own block and therefore needing its own body:
