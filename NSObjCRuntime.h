@@ -266,6 +266,12 @@ extern double NSFoundationVersionNumber;
 #define NS_RETURNS_NOT_RETAINED		__attribute__((ns_returns_not_retained))
 #define NS_RETURNS_INNER_POINTER	__attribute__((objc_returns_inner_pointer))
 #define NS_REQUIRES_SUPER		__attribute__((objc_requires_super))
+/* **`NS_DESIGNATED_INITIALIZER` WAS NEVER DEFINED HERE, AND THE FIRST SWEEP THAT USED IT SAID SO.** The plan's table
+ * called it "a macro that exists and is never used"; it did not exist, and 135 inserted marks failed to compile with
+ * "expected ':'" at the mark's own column. The attribute makes clang enforce Apple's rule — a designated initializer
+ * must chain to a designated initializer of its superclass, not to `-init` by habit — which is a fact a subclass's
+ * author needs from the header. */
+#define NS_DESIGNATED_INITIALIZER	__attribute__((objc_designated_initializer))
 #define NS_REQUIRES_PROPERTY_DEFINITIONS
 /* MEASURED 2026-09-20: clang 19 accepts the attribute in NEITHER documented position -
  * on the @protocol it swallows the member list ("expected identifier or '('") and on a

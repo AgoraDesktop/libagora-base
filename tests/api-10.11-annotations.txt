@@ -50,6 +50,17 @@
 # comparison uses each class's OWN selector set rather than its inheritance closure — the opposite of the surface
 # census, which resolves inheritance because that is what `respondsToSelector:` answers. Two questions, two rules.
 #
+# **THE DESIGNATED-INITIALIZER FACTS ARE COUNTED HERE TOO, AND DELIBERATELY NOT YET SWEPT.** `designated-init` is a
+# different kind of fact from an era: it carries no version, it says which initializer defines the class's state. Apple
+# marks 182 in the 10.11 Foundation; 178 reach the manifest after ownership and availability filtering, and 135 of them
+# are on declarations this tree makes. Sweeping them was ATTEMPTED and the result is recorded rather than hidden: with
+# the marks in place the library still builds, but clang emits **208 distinct `-Wobjc-designated-initializers` warnings**
+# — "designated initializer should only invoke a designated initializer on 'super'", "convenience initializer missing a
+# 'self' call to another initializer", and so on. Those warnings are TRUE: this tree's initializers do not follow the
+# graph Apple's marks describe, and marking the header without fixing the bodies would state a contract the
+# implementations break in 208 places. The facts are committed and the count is pinned; the sweep waits for the
+# implementation pass, which is its own slice.
+#
 # THE GATE is `foundation-api-availability` in tests/CMakeLists.txt, which runs `api-ledger availability` with `--pin`
 # and fails on drift in either direction as well as on a wrong version.
 annotations-candidates 767
@@ -57,3 +68,7 @@ annotations-extra 0
 annotations-missing 0
 annotations-present 767
 annotations-wrong 0
+designated-candidates 135
+designated-extra 0
+designated-missing 135
+designated-present 0

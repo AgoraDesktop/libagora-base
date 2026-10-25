@@ -36,6 +36,7 @@ ios-class <Name>                     declared by this SDK, but NS_CLASS_AVAILABL
 unavailable-selector <Class> <sel>    declared with NS_UNAVAILABLE — a door a caller must not send
 class-era <Name> <introduced> <deprecated>        Apple's tokens, `-` for no deprecation
 selector-era <Class> <sel> <introduced> <deprecated>
+designated-init <Class> <sel>            Apple marks this initializer as the class's designated one
 ```
 
 **The last four exist because a name list is not the surface.** `ios-class` and `unavailable-selector` are disposals
@@ -99,7 +100,8 @@ Pinned 2026-10-25, the first pin that does not contain the extractor's faults:
 | protocols | 40 | 30 | **10** |
 | selectors on classes the tree has | 3,407 | 3,296 | **111** |
 | C functions | 182 | 182 | **0** |
-| annotated declarations (S2) | 767 | 767 | **0** |
+| annotated declarations (S2, availability) | 767 | 767 | **0** |
+| designated initializers (S2, marker) | 135 | 0 | **135** |
 
 The annotation row is its own census (`tests/api-10.11-annotations.txt`, gate `foundation-api-availability`): the
 macros became real in the slice that made the row measurable, and the sweep (`api-ledger annotate`) then annotated 761
