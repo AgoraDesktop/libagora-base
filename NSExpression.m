@@ -24,6 +24,7 @@
 
 #import <Foundation/NSExpression.h>
 #import <Foundation/NSPredicate.h>
+#import <Foundation/FNPredicatePrivate.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSSet.h>
@@ -128,6 +129,31 @@
 	e->_function = [name retain];
 	e->_arguments = [parameters retain];
 	return [e autorelease];
+}
+
+/* THE FORMAT DOORS (10.6). The three forms are one door with three ways in — Apple declares the variadic one,
+ * the `va_list` one and the array one, and they must agree or a caller can get a different expression from the
+ * same text depending on how it was passed. So the two fixed forms hand their arguments to the same collector and
+ * the same parser as the variadic form, which is the only version that reads the format twice. */
++ (NSExpression *)expressionWithFormat:(NSString *)format, ...
+{
+	va_list ap;
+	NSExpression *e;
+
+	va_start(ap, format);
+	e = [self expressionWithFormat:format arguments:ap];
+	va_end(ap);
+	return e;
+}
+
++ (NSExpression *)expressionWithFormat:(NSString *)format arguments:(va_list)arguments
+{
+	return FNParseExpressionFormat(format, FNArgumentsFromFormat(format, arguments));
+}
+
++ (NSExpression *)expressionWithFormat:(NSString *)format argumentArray:(NSArray *)arguments
+{
+	return FNParseExpressionFormat(format, arguments);
 }
 
 + (NSExpression *)expressionForBlock:(id (^)(id, NSArray *, NSMutableDictionary *))block
@@ -437,7 +463,7 @@ static id FNAggregate(NSString *function, NSArray *values)
 		}
 		if ([_function isEqualToString:@"add:to:"] || [_function isEqualToString:@"multiply:by:"] ||
 		    [_function isEqualToString:@"from:subtract:"] || [_function isEqualToString:@"divide:by:"] ||
-		    [_function isEqualToString:@"modulus:by:"]) {
+		    [_function isEqualToString:@"modulus:by:"] || [_function isEqualToString:@"raise:toPower:"]) {
 			double a = [[self _valueOfArgument:0 object:object context:context] doubleValue];
 			double b = [[self _valueOfArgument:1 object:object context:context] doubleValue];
 			double r = a;
@@ -445,6 +471,7 @@ static id FNAggregate(NSString *function, NSArray *values)
 			else if ([_function isEqualToString:@"multiply:by:"]) { r = a * b; }
 			else if ([_function isEqualToString:@"from:subtract:"]) { r = a - b; }
 			else if ([_function isEqualToString:@"divide:by:"]) { r = (b == 0.0) ? 0.0 : a / b; }
+			else if ([_function isEqualToString:@"raise:toPower:"]) { r = pow(a, b); }
 			else { r = (b == 0.0) ? 0.0 : fmod(a, b); }
 			return [NSNumber numberWithDouble:r];
 		}

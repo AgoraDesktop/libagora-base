@@ -18,6 +18,13 @@
  * group), `FUNCTION()` over a target expression (`obj.func(arg)`), and `%` conversions other than `%@`, `%K`,
  * `%d`, `%i`, `%f`, `%g`, `%e`.
  *
+ * TWO GRAMMARS, ONE PARSER AND ONE FLAG. `+predicateWithFormat:` reads the predicate grammar above;
+ * `+expressionWithFormat:` reads Apple's EXPRESSION grammar, which is that grammar plus arithmetic (`+ - * / **`,
+ * over Apple's own `add:to:`/`raise:toPower:` function names) and grouping parentheses, and MINUS the comparison
+ * operators — a comparison is a predicate, so the expression door refuses one BY NAME instead of returning its
+ * left side and dropping the rest. The flag is the whole difference: everything a predicate can already say
+ * about an operand, an expression says identically, which is why the two doors cannot drift apart.
+ *
  * THE OPERATOR IS FOUND BY LONGEST MATCH, which matters for exactly one case: `<>` and `!=` are both
  * "not equal" and a single-character scan would read `<>` as `<` and then choke on `>`.
  */
@@ -33,6 +40,7 @@
 #import <Foundation/NSNull.h>
 #import <Foundation/NSException.h>
 #include <stdlib.h>
+#include <stdarg.h>	/* va_list: the argument list the two format doors hand over unread */
 
 typedef struct {
 	unichar *s;
@@ -40,6 +48,7 @@ typedef struct {
 	NSUInteger i;
 	NSArray *args;
 	NSUInteger arg;
+	BOOL expression;		/* YES: the expression grammar; NO: the predicate grammar (see the note above) */
 } FNP;
 
 static NSString *FNChars(const unichar *buf, NSUInteger len)
@@ -191,12 +200,29 @@ static NSArray *FNOne(id object)
 	return [a autorelease];
 }
 
+/* ONE BINARY FUNCTION EXPRESSION. Every arithmetic operator becomes one of these, which is why the parser can
+ * promise that `a + b` and `+[NSExpression expressionForFunction:@"add:to:" arguments:…]` are the same tree. */
+static NSExpression *FNBinary(NSString *function, NSExpression *left, NSExpression *right)
+{
+	NSMutableArray *args = [[NSMutableArray alloc] init];
+	NSExpression *e;
+	[args addObject:left];
+	[args addObject:right];
+	e = [NSExpression expressionForFunction:function arguments:args];
+	[args release];
+	return e;
+}
+
 static NSPredicate *FNParseOr(FNP *p);
 static NSPredicate *FNParseAnd(FNP *p);
 static NSPredicate *FNParseUnary(FNP *p);
 static NSPredicate *FNParseComparison(FNP *p);
 static NSExpression *FNParseExpression(FNP *p);
 static NSExpression *FNParsePrimary(FNP *p);
+static NSExpression *FNParseSuffix(FNP *p);
+static NSExpression *FNParseArithmetic(FNP *p);
+static NSExpression *FNParseTerm(FNP *p);
+static NSExpression *FNParsePower(FNP *p);
 
 static NSExpression *FNParsePrimary(FNP *p)
 {
@@ -270,11 +296,32 @@ static NSExpression *FNParsePrimary(FNP *p)
 	}
 	case '(':
 		/* A PARENTHESIS IN OPERAND POSITION IS A PREDICATE GROUP, and saying so is better than a diagnostic
-		 * about arithmetic: `(a) == b` is not Cocoa, and this tree refuses it in the caller's own terms. */
+		 * about arithmetic: `(a) == b` is not Cocoa, and this tree refuses it in the caller's own terms. In the
+		 * EXPRESSION grammar a parenthesis groups an arithmetic operand, which is the one thing
+		 * `+expressionWithFormat:` needs that the predicate grammar here must keep refusing. */
+		if (p->expression) {
+			NSExpression *inner;
+			p->i++;
+			inner = FNParseArithmetic(p);
+			if (!FNEat(p, ')')) { FNFail(p, @"expected `)` closing a group"); }
+			return inner;
+		}
 		FNFail(p, @"a parenthesised expression is not supported in operand position; use a key path");
 		return nil;
 	default:
 		break;
+	}
+
+	/* A SIGN IN OPERAND POSITION (expression mode only): `-(a + b)`, `2 * -x`. A sign the NUMBER READER can use is
+	 * left to it, so `-1` stays one constant instead of becoming a subtraction from zero. */
+	if (p->expression && (p->s[p->i] == '-' || p->s[p->i] == '+') && !FNIsDigit(FNPeekCharAt(p, 1))) {
+		BOOL negative = (p->s[p->i] == '-');
+		NSExpression *operand;
+		p->i++;
+		operand = FNParseSuffix(p);
+		if (!negative) { return operand; }
+		return FNBinary(@"from:subtract:",
+		                [NSExpression expressionForConstantValue:[NSNumber numberWithInteger:0]], operand);
 	}
 
 	if (FNIsDigit(p->s[p->i]) ||
@@ -284,6 +331,7 @@ static NSExpression *FNParsePrimary(FNP *p)
 
 	if (FNIsIdentStart(p->s[p->i])) {
 		NSString *name = FNReadIdentifier(p);
+		BOOL selectorColons = NO;
 
 		if ([name isEqualToString:@"YES"] || [name isEqualToString:@"TRUE"]) {
 			return [NSExpression expressionForConstantValue:[NSNumber numberWithBool:YES]];
@@ -296,6 +344,30 @@ static NSExpression *FNParsePrimary(FNP *p)
 		}
 		if ([name isEqualToString:@"SELF"]) {
 			return [NSExpression expressionForKeyPath:@"SELF"];
+		}
+		if (FNPeek(p, ':')) {
+			/* A SELECTOR'S TRAILING COLONS ARE PART OF THE SYMBOL. `-fn_expressionFormat` writes a function whose
+			 * name has colons as `modulus:by:(a, b)` — the only spelling that reads back — so the symbol is read as
+			 * Apple's grammar states it (`uppercase:(name)` and `modulus:by:(a, b)` alike). The colons are COMMITTED
+			 * only when the symbol ends at `(`, so `a : b` stays the syntax error it was rather than becoming a key
+			 * path nobody wrote. */
+			NSUInteger save = p->i;
+			NSMutableString *symbol = [[NSMutableString alloc] init];
+			[symbol appendString:name];
+			while (FNPeek(p, ':')) {
+				p->i++;
+				[symbol appendString:@":"];
+				if (FNIsIdentStart(FNPeekChar(p))) {
+					[symbol appendString:FNReadIdentifier(p)];
+				}
+			}
+			if (FNPeek(p, '(')) {
+				name = [symbol autorelease];
+				selectorColons = YES;
+			} else {
+				[symbol release];
+				p->i = save;
+			}
 		}
 		if (FNPeek(p, '(')) {
 			NSMutableArray *args = [[NSMutableArray alloc] init];
@@ -313,7 +385,8 @@ static NSExpression *FNParsePrimary(FNP *p)
 			 * parser used to read it as a function named `FUNCTION:` and evaluation refused it by that name, which
 			 * is how this gap was found (§0.15). Apple's grammar puts the receiver first and the selector as a
 			 * STRING second, with any arguments after it. */
-			if ([name caseInsensitiveCompare:@"FUNCTION"] == NSOrderedSame && [args count] >= 2) {
+			if (([name caseInsensitiveCompare:@"FUNCTION"] == NSOrderedSame ||
+			     [name caseInsensitiveCompare:@"FUNCTION:"] == NSOrderedSame) && [args count] >= 2) {
 				id receiver = [args objectAtIndex:0];
 				/* THE SELECTOR ARRIVES AS A CONSTANT EXPRESSION, not as a string: every argument is parsed as an
 				 * expression, and a quoted string parses to `expressionForConstantValue:`. */
@@ -334,7 +407,7 @@ static NSExpression *FNParsePrimary(FNP *p)
 				[args release];
 				return e;
 			}
-			e = [NSExpression expressionForFunction:[name stringByAppendingString:@":"]
+			e = [NSExpression expressionForFunction:(selectorColons ? name : [name stringByAppendingString:@":"])
 			                             arguments:args];
 			[args release];
 			return e;
@@ -353,7 +426,16 @@ static NSExpression *FNParsePrimary(FNP *p)
 	return nil;
 }
 
+/* ONE NAME, TWO GRAMMARS. Every predicate production that takes an operand calls this, so the predicate grammar
+ * must not move: in predicate mode it is a primary and its dotted tail, exactly as it was before expressions had
+ * a door of their own. In expression mode it is Apple's arithmetic grammar, and that is the whole difference. */
 static NSExpression *FNParseExpression(FNP *p)
+{
+	if (p->expression) { return FNParseArithmetic(p); }
+	return FNParseSuffix(p);
+}
+
+static NSExpression *FNParseSuffix(FNP *p)
 {
 	NSExpression *e = FNParsePrimary(p);
 	while (FNPeek(p, '.')) {
@@ -366,6 +448,54 @@ static NSExpression *FNParseExpression(FNP *p)
 		     [NSString stringWithFormat:@"%@.%@", [[[e keyPath] copy] autorelease], next]];
 	}
 	return e;
+}
+
+/* THE ARITHMETIC OPERATORS ARE APPLE'S FUNCTION NAMES, not this tree's invention: a parsed `a + b` answers
+ * `-function` == `add:to:`, which is what a keyed archive of it holds and what code building such an expression
+ * names. `**` is `raise:toPower:`. `modulus:by:` has an evaluation but no operator, so it has none here — the
+ * grammar refuses what a caller cannot write back, and `%` is not in Apple's operator set. */
+static NSExpression *FNParsePower(FNP *p)
+{
+	NSExpression *left = FNParseSuffix(p);
+	while (FNPeek(p, '*') && FNPeekCharAt(p, 1) == '*') {
+		p->i += 2;
+		left = FNBinary(@"raise:toPower:", left, FNParseSuffix(p));
+	}
+	return left;
+}
+
+static NSExpression *FNParseTerm(FNP *p)
+{
+	NSExpression *left = FNParsePower(p);
+	for (;;) {
+		/* `**` IS TESTED BEFORE `*`: reading `a ** b` as a multiplication would leave the second `*` in operand
+		 * position, and the diagnostic would name arithmetic the caller did write correctly. */
+		if (FNPeek(p, '*') && FNPeekCharAt(p, 1) != '*') {
+			p->i++;
+			left = FNBinary(@"multiply:by:", left, FNParsePower(p));
+		} else if (FNPeek(p, '/')) {
+			p->i++;
+			left = FNBinary(@"divide:by:", left, FNParsePower(p));
+		} else {
+			return left;
+		}
+	}
+}
+
+static NSExpression *FNParseArithmetic(FNP *p)
+{
+	NSExpression *left = FNParseTerm(p);
+	for (;;) {
+		if (FNPeek(p, '+')) {
+			p->i++;
+			left = FNBinary(@"add:to:", left, FNParseTerm(p));
+		} else if (FNPeek(p, '-')) {
+			p->i++;
+			left = FNBinary(@"from:subtract:", left, FNParseTerm(p));
+		} else {
+			return left;
+		}
+	}
 }
 
 static NSUInteger FNParseOptions(FNP *p)
@@ -521,25 +651,33 @@ static NSPredicate *FNParseOr(FNP *p)
 	return [result autorelease];
 }
 
+/* ONE SET-UP FOR BOTH DOORS: the format is copied into a unichar buffer once, because every scan below walks it
+ * by index and `-characterAtIndex:` in a loop is the one thing a parser may not do. `expression` is the flag that
+ * chooses grammar; nothing else about the text changes. */
+static BOOL FNPBegin(FNP *p, NSString *format, NSArray *arguments, BOOL expression)
+{
+	NSUInteger k;
+
+	p->n = [format length];
+	p->i = 0;
+	p->args = arguments;
+	p->arg = 0;
+	p->expression = expression;
+	p->s = (unichar *)malloc(sizeof(unichar) * (p->n + 1));
+	if (p->s == NULL) { return NO; }
+	for (k = 0; k < p->n; k++) { p->s[k] = [format characterAtIndex:k]; }
+	FNSkip(p);
+	return YES;
+}
+
 NSPredicate *FNParsePredicateFormat(NSString *format, NSArray *arguments)
 {
 	FNP p;
 	NSPredicate *result;
 
 	if (format == nil) { return nil; }
+	if (!FNPBegin(&p, format, arguments, NO)) { return nil; }
 
-	p.n = [format length];
-	p.i = 0;
-	p.args = arguments;
-	p.arg = 0;
-	p.s = (unichar *)malloc(sizeof(unichar) * (p.n + 1));
-	if (p.s == NULL) { return nil; }
-	{
-		NSUInteger k;
-		for (k = 0; k < p.n; k++) { p.s[k] = [format characterAtIndex:k]; }
-	}
-
-	FNSkip(&p);
 	if (FNEatKeyword(&p, "TRUEPREDICATE")) { free(p.s); return [NSPredicate predicateWithValue:YES]; }
 	if (FNEatKeyword(&p, "FALSEPREDICATE")) { free(p.s); return [NSPredicate predicateWithValue:NO]; }
 
@@ -552,7 +690,100 @@ NSPredicate *FNParsePredicateFormat(NSString *format, NSArray *arguments)
 	return result;
 }
 
+NSExpression *FNParseExpressionFormat(NSString *format, NSArray *arguments)
+{
+	FNP p;
+	NSExpression *result;
+
+	if (format == nil) { return nil; }
+	if (!FNPBegin(&p, format, arguments, YES)) { return nil; }
+
+	result = FNParseArithmetic(&p);
+	FNSkip(&p);
+	if (p.i < p.n) {
+		/* A COMPARISON IS A PREDICATE, AND THE REFUSAL NAMES THE DOOR THAT READS ONE. Returning the left side and
+		 * dropping ` < 2` — which is what a scanner that does not check for trailing text does — would make
+		 * `+expressionWithFormat:@"a < 2"` mean `a`, silently. */
+		unichar c = p.s[p.i];
+		if (c == '<' || c == '>' || c == '=' || c == '!') {
+			FNFail(&p, @"a comparison is a predicate, not an expression; +predicateWithFormat: is the door that reads one");
+		}
+		FNFail(&p, @"unexpected text after the expression");
+	}
+	free(p.s);
+	return result;
+}
+
+/* THE ARGUMENTS ARE COLLECTED, NOT POSITIONALLY INTERPRETED HERE: `%K` and `%@` are interchangeable in position, so
+ * the parser has to see the format and the values together to know which door a given value came through. The list
+ * is walked once, here, into the array the parser reads. Two callers share it — the predicate door and the
+ * expression door — because which conversions a format has is a property of the FORMAT, not of the caller. */
+NSArray *FNArgumentsFromFormat(NSString *format, va_list arguments)
+{
+	NSMutableArray *values;
+	unichar *buf = NULL;
+	NSUInteger i, n;
+
+	if (format == nil) { return nil; }
+	values = [[NSMutableArray alloc] init];
+	n = [format length];
+	buf = (unichar *)malloc(sizeof(unichar) * (n + 1));
+	if (buf == NULL) {
+		[values release];
+		return nil;
+	}
+	for (i = 0; i < n; i++) { buf[i] = [format characterAtIndex:i]; }
+
+	i = 0;
+	while (i < n) {
+		if (buf[i] == '%' && i + 1 < n) {
+			unichar c = buf[i + 1];
+			if (c == '@' || c == 'K') {
+				id obj = va_arg(arguments, id);
+				[values addObject:(obj != nil) ? obj : (id)[NSNull null]];
+			} else if (c == 'd' || c == 'i') {
+				[values addObject:[NSNumber numberWithInteger:(NSInteger)va_arg(arguments, int)]];
+			} else if (c == 'f' || c == 'g' || c == 'e') {
+				[values addObject:[NSNumber numberWithDouble:va_arg(arguments, double)]];
+			}
+			i += 2;
+			continue;
+		}
+		i++;
+	}
+	free(buf);
+	return [values autorelease];
+}
+
 /* ---- rendering: the other half of the round trip -------------------------------------------------- */
+
+/* THE SIX ARITHMETIC SYMBOLS HAVE AN OPERATOR SPELLING AND THE PARSER READS IT BACK. Rendering them as
+ * `add:to:(a, b)` would be a string this grammar cannot parse (an identifier stops at `:`), so a predicate or
+ * expression that came from arithmetic must be written as arithmetic — otherwise `-predicateFormat` would produce
+ * text that means nothing to the door that produced it. `modulus:by:` has no operator; it renders as the
+ * selector-shaped call the parser now reads. */
+static NSString *FNOperatorForFunction(NSString *function)
+{
+	if ([function isEqualToString:@"add:to:"]) { return @"+"; }
+	if ([function isEqualToString:@"from:subtract:"]) { return @"-"; }
+	if ([function isEqualToString:@"multiply:by:"]) { return @"*"; }
+	if ([function isEqualToString:@"divide:by:"]) { return @"/"; }
+	if ([function isEqualToString:@"raise:toPower:"]) { return @"**"; }
+	return nil;
+}
+
+/* AN OPERAND OF A BINARY OPERATOR IS PARENTHESISED WHEN IT IS ONE TOO, so the text re-parses to the same tree:
+ * `a + b * 2` is written `a + (b * 2)`, and `(a + b) * 2` keeps the parentheses that changed the answer. */
+static NSString *FNOperandFormat(NSExpression *e)
+{
+	NSString *text = [e fn_expressionFormat];
+
+	if ([e expressionType] == NSFunctionExpressionType && [e operand] == nil &&
+	    [e arguments] != nil && [[e arguments] count] == 2 && FNOperatorForFunction([e function]) != nil) {
+		return [NSString stringWithFormat:@"(%@)", text];
+	}
+	return text;
+}
 
 @implementation NSExpression (FNPrivate)
 
@@ -598,6 +829,13 @@ NSPredicate *FNParsePredicateFormat(NSString *format, NSArray *arguments)
 		NSArray *items = [self arguments];
 		NSMutableString *out = [[NSMutableString alloc] init];
 		NSUInteger i, n = [items count];
+		NSString *op = ([self operand] == nil && n == 2) ? FNOperatorForFunction([self function]) : nil;
+
+		if (op != nil) {
+			[out appendFormat:@"%@ %@ %@",
+			 FNOperandFormat([items objectAtIndex:0]), op, FNOperandFormat([items objectAtIndex:1])];
+			return [out autorelease];
+		}
 
 		if ([self operand] != nil) {
 			/* FUNCTION(receiver, "selector" [, args…]) — the form the parser reads back. */

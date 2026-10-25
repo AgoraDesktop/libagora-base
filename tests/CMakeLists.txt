@@ -138,6 +138,15 @@ target_link_libraries(predicate PRIVATE Foundation CoreFoundation::CoreFoundatio
 
 add_test(NAME predicate COMMAND predicate)
 
+# **THE EXPRESSION DOOR (10.6), WHICH IS THE PREDICATE GRAMMAR PLUS ARITHMETIC.** `+expressionWithFormat:` reads the
+# same substitutions and refuses with the same offsets, then evaluates what it built: Apple's function names, two
+# precedences, grouping, a sign in operand position, and the `-fn_expressionFormat` round trip — because the reason
+# the predicate family exists is that saved text means the same thing when it is read again.
+add_executable(expression_format expression_format.m)
+target_link_libraries(expression_format PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME expression_format COMMAND expression_format)
+
 # **ZONES AND THE COPYING PROTOCOL, MEASURED TOGETHER.** The zone API was removed once and
 # `-copyWithZone:` went with it; this suite pins the restored contract: zone names and identity,
 # zone memory from every allocator, an object reporting the zone it was allocated in, the raw-copy

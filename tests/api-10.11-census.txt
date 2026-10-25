@@ -24,16 +24,16 @@
 #     on NSXMLDTD, and NSProxy's `-allowsWeakReference` / `-retainWeakReference`. A door a caller must not send is not
 #     a gap; charging them made the first pass read two phantom selectors and one phantom class.
 #
-# THE MEASURED POSITION WHEN THIS FILE WAS LAST PINNED: 193 of 219 classes, 3,302 of 3,407 selectors, 30 of 40
-# protocols, 182 of 182 functions, 0 declarations without bodies. **The whole remaining gap is 10.8–10.11** — 26
-# classes, 10 protocols, 111 selectors, no C functions — which is the finding that turned the Cocoa plan's Foundation
+# THE MEASURED POSITION WHEN THIS FILE WAS LAST PINNED: 197 of 219 classes, 3,411 of 3,513 selectors, 31 of 40
+# protocols, 182 of 182 functions, 0 declarations without bodies. **The whole remaining gap is 10.8–10.11** — 22
+# classes, 9 protocols, 102 selectors, no C functions — which is the finding that turned the Cocoa plan's Foundation
 # sizing from a debt into a delta.
 #
-# **THE ARITHMETIC, SO A READER CAN CHECK IT WITHOUT THE SDK.** 220 classes − 1 iOS-only = 219 offered; 193 present +
-# 26 missing = 219. 3,763 selector facts − 9 `NS_UNAVAILABLE` = 3,754 in scope; of those, 3,407 belong to the 193
-# classes this tree already has and 347 to the 26 it does not (337 to the 26 here, 10 to the exempt iOS-only class);
-# 3,296 present + 111 missing = 3,407. The 111 is 11 `-initWithCoder:` doors that are ONE `NSCoding` conformance
-# decision plus 100 individual doors (FOUNDATION-10.11-PLAN.md appendix C).
+# **THE ARITHMETIC, SO A READER CAN CHECK IT WITHOUT THE SDK.** 220 classes − 1 iOS-only = 219 offered; 197 present +
+# 22 missing = 219. The 197 classes own 3,513 of the manifest's 3,763 selector facts — 3,411 present + 102 missing —
+# and the 250 left over belong to the classes this tree has yet to write plus the exempt iOS-only one. The 102 is
+# FOUNDATION-10.11-PLAN.md appendix C's tail: eleven `-initWithCoder:` doors that are ONE `NSCoding` conformance
+# decision, plus 91 individual doors.
 #
 # **THREE INSTRUMENT FAULTS WERE FOUND BY POINTING THE LEDGER AT THESE HEADERS, AND THIS FILE IS THE FIRST PIN THAT
 # DOES NOT CONTAIN THEM.** Each produced a plausible wrong answer, and each has a regression case in
@@ -435,7 +435,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4017
+methods-declared 4021
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -530,7 +530,7 @@ sel:NSEnergyFormatter 11
 sel:NSEnumerator 2
 sel:NSError 13
 sel:NSException 10
-sel:NSExpression 28
+sel:NSExpression 31
 sel:NSFileCoordinator 14
 sel:NSFileHandle 32
 sel:NSFileManager 67
@@ -669,6 +669,6 @@ sel:NSXMLNode 51
 sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
 sel:NSProgress 31
-selectors-missing 105
+selectors-missing 102
 selectors-offered 3513
-selectors-present 3408
+selectors-present 3411

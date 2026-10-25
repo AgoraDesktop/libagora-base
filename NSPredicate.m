@@ -128,44 +128,9 @@
 
 + (NSPredicate *)predicateWithFormat:(NSString *)predicateFormat arguments:(va_list)argList
 {
-	/* THE ARGUMENTS ARE COLLECTED, NOT POSITIONALLY INTERPRETED HERE: `%K` and `%@` are interchangeable in
-	 * position, so the parser has to see the format and the values together to know which door a given value
-	 * came through. The list is walked once, here, into the array the parser reads. */
-	NSMutableArray *values = [[NSMutableArray alloc] init];
-	unichar *buf = NULL;
-	NSUInteger i = 0, n = [predicateFormat length];
-
-	buf = (unichar *)malloc(sizeof(unichar) * (n + 1));
-	if (buf == NULL) {
-		[values release];
-		return nil;
-	}
-	for (i = 0; i < n; i++) { buf[i] = [predicateFormat characterAtIndex:i]; }
-
-	i = 0;
-	while (i < n) {
-		if (buf[i] == '%' && i + 1 < n) {
-			unichar c = buf[i + 1];
-			if (c == '@' || c == 'K') {
-				id obj = va_arg(argList, id);
-				[values addObject:(obj != nil) ? obj : (id)[NSNull null]];
-			} else if (c == 'd' || c == 'i') {
-				[values addObject:[NSNumber numberWithInteger:(NSInteger)va_arg(argList, int)]];
-			} else if (c == 'f' || c == 'g' || c == 'e') {
-				[values addObject:[NSNumber numberWithDouble:va_arg(argList, double)]];
-			}
-			i += 2;
-			continue;
-		}
-		i++;
-	}
-	free(buf);
-
-	{
-		NSPredicate *p = FNParsePredicateFormat(predicateFormat, values);
-		[values release];
-		return p;
-	}
+	/* THE ARGUMENTS ARE COLLECTED BY THE PARSER'S FILE, because `+expressionWithFormat:` reads the same conversions out
+	 * of the same formats and two walks of one list is how the two doors would come to disagree. */
+	return FNParsePredicateFormat(predicateFormat, FNArgumentsFromFormat(predicateFormat, argList));
 }
 
 + (NSPredicate *)predicateWithValue:(BOOL)value

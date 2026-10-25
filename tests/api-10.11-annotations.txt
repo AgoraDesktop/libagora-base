@@ -15,7 +15,7 @@
 # sweep annotated from memory, is exactly the drift the plan's S2 tier forbids.
 #
 # THE DENOMINATOR IS WHAT THE TREE ACTUALLY DECLARES. A declaration this tree does not have cannot be annotated, so
-# the candidates are the declarations both sides have: 767 of them. The rest of Apple's annotated surface is on classes
+# the candidates are the declarations both sides have: 796 of them. The rest of Apple's annotated surface is on classes
 # this tree has yet to write (the 26 in FOUNDATION-10.11-PLAN.md §3.1) or in spellings this reader does not attribute
 # (an `NS_ENUM` constant is not a selector).
 #
@@ -63,10 +63,10 @@
 #
 # THE GATE is `foundation-api-availability` in tests/CMakeLists.txt, which runs `api-ledger availability` with `--pin`
 # and fails on drift in either direction as well as on a wrong version.
-annotations-candidates 792
+annotations-candidates 796
 annotations-extra 0
 annotations-missing 0
-annotations-present 792
+annotations-present 796
 annotations-wrong 0
 designated-candidates 137
 designated-extra 0

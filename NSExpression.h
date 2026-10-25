@@ -96,6 +96,17 @@ NS_CLASS_AVAILABLE_MAC(10_4)
                            selectorName:(NSString *)name
                               arguments:(NSArray *)parameters NS_AVAILABLE_MAC(10_5);
 
+/* THE FORMAT DOORS (10.6). Apple declares the variadic form once and the other two beside it; declaring a fixed
+ * `+expressionWithFormat:` next to the variadic one makes clang take the first and refuse a second argument at the
+ * call site, which reads as a header disagreement and is not one. The grammar is `FNPredicateFormat.m`'s, with
+ * arithmetic and grouping added and comparisons refused: `1 + 1` is `add:to:(1, 1)`, `2 * (3 + 4)` is
+ * `multiply:by:(2, add:to:(3, 4))`, and `1 < 2` raises naming `+predicateWithFormat:`. */
++ (NSExpression *)expressionWithFormat:(NSString *)format, ... NS_AVAILABLE_MAC(10_6);
++ (NSExpression *)expressionWithFormat:(NSString *)format
+                            arguments:(va_list)arguments NS_AVAILABLE_MAC(10_6);
++ (NSExpression *)expressionWithFormat:(NSString *)format
+                        argumentArray:(NSArray *)arguments NS_AVAILABLE_MAC(10_6);
+
 - (id)initWithExpressionType:(NSExpressionType)type;
 
 - (NSExpressionType)expressionType;
@@ -116,7 +127,10 @@ NS_CLASS_AVAILABLE_MAC(10_4)
                                  context:(nullable NSMutableDictionary *)context;
 
 /* THE BLOCK PAYLOAD (10.6). `+expressionForBlock:arguments:` stores a copied block; this answers it, and nil for
- * every other expression kind — the same total-accessor rule the other payload doors follow. */
+ * every other expression kind — the same total-accessor rule the other payload doors follow. The class method is
+ * Apple's and was implemented before it was declared; a door a caller cannot name is not a door. */
++ (NSExpression *)expressionForBlock:(id (^)(id, NSArray *, NSMutableDictionary *))block
+                          arguments:(NSArray *)arguments NS_AVAILABLE_MAC(10_6);
 @property (nullable, readonly) id (^expressionBlock)(id, NSArray *, NSMutableDictionary *);
 
 @end
