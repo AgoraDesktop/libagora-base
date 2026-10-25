@@ -339,7 +339,29 @@ static NSArray *array_from_varargs(Class cls, id firstObject, va_list args)
  * =================================================================================================== */
 - (nullable instancetype)initWithCoder:(NSCoder *)coder
 {
-	return [self initWithArray:[coder decodeObjectForKey:FNKeyedObjectsKey]];
+	NSArray *decoded = [coder decodeObjectForKey:FNKeyedObjectsKey];
+	NSUInteger i, n = [decoded count];
+
+	/* A DESIGNATED door, so it calls super and makes the storage itself — it may not chain to `-initWithArray:`
+	 * (§4.15). The class-choosing rule belongs to `-initWithObjects:count:`, so a decoded array is a plain instance;
+	 * that is said here rather than inherited silently. */
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	_count = n;
+	_capacity = n;
+	_items = (n > 0) ? (id *)calloc(n, sizeof(id)) : NULL;
+	if (n > 0 && _items == NULL) {
+		_count = 0;
+		_capacity = 0;
+		[self release];
+		return nil;
+	}
+	for (i = 0; i < n; i++) {
+		_items[i] = objc_retain([decoded objectAtIndex:i]);
+	}
+	return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)coder
@@ -1425,6 +1447,24 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 	return &_mutations;
 }
 
+- (id)initWithObjects:(const id *)objects count:(unsigned long)count
+{
+	unsigned long i;
+
+	/* THE OVERRIDE A SUBCLASS OWES A DESIGNATED SUPER DOOR, as a CONVENIENCE one: this class's designated door is
+	 * `-initWithCapacity:`, so it starts there and appends. */
+	self = [self initWithCapacity:count];
+	if (self == nil) {
+		return nil;
+	}
+	for (i = 0; i < count; i++) {
+		if (objects[i] != nil) {
+			[self addObject:objects[i]];
+		}
+	}
+	return self;
+}
+
 + (NSMutableArray *)array
 {
 	return [[self alloc] init];
@@ -1437,7 +1477,11 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 
 - (id)initWithCapacity:(unsigned long)capacity
 {
-	self = [super init];
+	/* A DESIGNATED door of this class, so it calls a DESIGNATED door of the super: the canonical constructor with an
+	 * empty list, whose class-choosing rule cannot fire here because it is keyed on the IMMUTABLE concrete class. */
+	void *nothing = NULL;
+
+	self = [super initWithObjects:nothing count:0];
 	if (self != nil && capacity > 0) {
 		_items = (id *)calloc(capacity, sizeof(id));
 		if (_items == NULL) {
@@ -1986,7 +2030,9 @@ static NSArray *array_sorted_with_comparator(NSArray *source, NSComparator compa
 {
 	unsigned long i;
 
-	self = [super init];
+	/* A DESIGNATED override, so the super's designated constructor starts the (empty) base storage and this class
+	 * fills its own inline array. */
+	self = [super initWithObjects:NULL count:0];
 	if (self == nil) {
 		return nil;
 	}

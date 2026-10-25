@@ -25,13 +25,13 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSMutableOrderedSet<ObjectType> : NSOrderedSet<ObjectType>
 
 + (instancetype)orderedSetWithCapacity:(NSUInteger)capacity;
-- (instancetype)initWithCapacity:(NSUInteger)capacity;
+- (instancetype)initWithCapacity:(NSUInteger)capacity NS_DESIGNATED_INITIALIZER;
 /* APPLE DECLARES THIS ON THE MUTABLE CLASS TOO, so it is redeclared here rather than left to inheritance: a
  * source-compatible caller reading THIS header must find it, and the ledger's shipped test is a declaration
  * in the owner's own block. The implementation is not inherited either — it lives in this class's own
  * `@implementation`, where `[super initWithCoder:]` reaches the front's and still answers a MUTABLE set,
  * because the class-choosing rule only sends the IMMUTABLE concrete class to the shared empty instance. */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
 - (void)addObject:(ObjectType)object;
 - (void)addObjectsFromArray:(NSArray<ObjectType> *)array;

@@ -134,43 +134,23 @@
 
 - (instancetype)initWithArray:(NSArray *)array
 {
-	NSMutableArray *members;
-	NSUInteger i;
+	NSUInteger i, n = [array count];
+	id *objects;
+	id result;
 
-	/* THE CLASS IS CHOSEN BY THE DATA (§C.3 item 2), for this family's general class only: a
-	 * mutable receiver inherits this implementation and must keep it. Both constructions are
-	 * COMPLETE - the member array is assigned at the END - which is what makes answering the
-	 * shared empty instance safe. */
-	if ([self isMemberOfClass:[AGOrderedSetItems class]] && [array count] == 0) {
-		[self release];	/* never initialized: the storage was never built */
-		return (id)[AGOrderedSetEmpty emptyOrderedSet];
-	}
-	self = [super init];
-	if (self == nil) {
+	/* A CONVENIENCE door: the order, the dedup rule and the class-choosing rule stay the designated constructor's, and
+	 * this only turns the array into the C list it takes (§4.15). */
+	objects = (id *)calloc(n + 1, sizeof(id));
+	if (objects == NULL) {
+		[self release];
 		return nil;
 	}
-	members = [NSMutableArray arrayWithCapacity:[array count]];
-	for (i = 0; i < [array count]; i++) {
-		id object = [array objectAtIndex:i];
-		BOOL seen = NO;
-		NSUInteger j;
-
-		if (object == nil) {
-			continue;
-		}
-		for (j = 0; j < [members count]; j++) {
-			if ([[members objectAtIndex:j] isEqual:object]) {
-				seen = YES;
-				break;
-			}
-		}
-		if (!seen) {
-			[members addObject:object];
-		}
+	for (i = 0; i < n; i++) {
+		objects[i] = [array objectAtIndex:i];
 	}
-	_members = [members copy];
-	_mutations = 0;
-	return self;
+	result = [self initWithObjects:objects count:n];
+	free(objects);
+	return result;
 }
 
 - (instancetype)initWithOrderedSet:(NSOrderedSet *)set
@@ -398,7 +378,17 @@ static NSArray *fn_from_varargs(id firstObject, va_list args)
  * =================================================================================================== */
 - (nullable instancetype)initWithCoder:(NSCoder *)coder
 {
-	return [self initWithArray:[coder decodeObjectForKey:FNKeyedObjectsKey]];
+	NSArray *decoded = [coder decodeObjectForKey:FNKeyedObjectsKey];
+
+	/* A DESIGNATED door: super, then the member snapshot itself — it may not chain to `-initWithArray:` (§4.15). An
+	 * empty decoded ordered set is a plain instance, because the class-choosing rule belongs to the constructor. */
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	_members = [decoded copy];
+	_mutations = 0;
+	return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)coder
@@ -804,8 +794,27 @@ static NSArray *fn_from_varargs(id firstObject, va_list args)
 
 - (instancetype)initWithCapacity:(NSUInteger)capacity
 {
+	/* A DESIGNATED door of this class, so it calls the super's designated constructor rather than chaining. */
 	(void)capacity;
-	return [self initWithObjects:NULL count:0];
+	return [super initWithObjects:NULL count:0];
+}
+
+- (instancetype)initWithObjects:(const id _Nonnull * _Nullable)objects count:(NSUInteger)count
+{
+	NSUInteger i;
+
+	/* THE OVERRIDE A SUBCLASS OWES A DESIGNATED SUPER DOOR, as a CONVENIENCE one: this class's designated door is
+	 * `-initWithCapacity:`, so it starts there and appends in order. */
+	self = [self initWithCapacity:count];
+	if (self == nil) {
+		return nil;
+	}
+	for (i = 0; i < count; i++) {
+		if (objects[i] != nil) {
+			[self addObject:objects[i]];
+		}
+	}
+	return self;
 }
 
 /* THE SAME DOOR ON THE MUTABLE CLASS, which Apple declares here too and which therefore needs an

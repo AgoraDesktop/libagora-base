@@ -73,6 +73,6 @@ annotations-present 800
 annotations-wrong 0
 designated-candidates 142
 designated-extra 2
-designated-missing 110
-designated-present 32
+designated-missing 102
+designated-present 40
 

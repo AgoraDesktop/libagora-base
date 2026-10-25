@@ -98,7 +98,7 @@ __attribute__((swift_bridge("Swift.Array")))
  * through `-initWithArray:` — so the class-choosing rule and the layout stay the INITIALIZER's — and the
  * ARCHIVER never calls either, because its structural branch recognises an array by KIND. They exist for a
  * caller who names them, and for `-conformsToProtocol:`. */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 - (void)encodeWithCoder:(NSCoder *)coder;
 
 + (instancetype)array;
@@ -108,7 +108,7 @@ __attribute__((swift_bridge("Swift.Array")))
 + (instancetype)arrayWithObjects:(ObjectType)firstObject, ... NS_REQUIRES_NIL_TERMINATION;
 
 - (id)initWithObject:(id)object;
-- (id)initWithObjects:(const ObjectType _Nonnull * _Nullable)objects count:(NSUInteger)count;
+- (id)initWithObjects:(const ObjectType _Nonnull * _Nullable)objects count:(NSUInteger)count NS_DESIGNATED_INITIALIZER;
 - (id)initWithArray:(NSArray<ObjectType> *)other;
 /* `copyItems` COPIES each member with `-copy` (which reaches `-copyWithZone:` with a NULL zone), so the
  * new array does not share them with `array`; NO means the members are RETAINED like any other element. */
@@ -255,12 +255,12 @@ __attribute__((swift_bridge("Swift.Array")))
 
 + (instancetype)array;
 + (instancetype)arrayWithCapacity:(NSUInteger)capacity;
-- (id)initWithCapacity:(NSUInteger)capacity;
+- (id)initWithCapacity:(NSUInteger)capacity NS_DESIGNATED_INITIALIZER;
 /* APPLE DECLARES THIS ON THE MUTABLE CLASS TOO (§63.12), so it is redeclared here rather than left to
  * inheritance — the ledger's shipped test is a declaration in the owner's own block — and its implementation
  * lives in this class's own `@implementation`, because `--unimplemented` counts an implementation in the class
  * or a SUBCLASS, so the front's body does not satisfy this. */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
 - (void)addObject:(ObjectType)object;
 - (void)insertObject:(ObjectType)object atIndex:(NSUInteger)index;

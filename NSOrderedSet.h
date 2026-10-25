@@ -54,7 +54,7 @@ NS_CLASS_AVAILABLE_MAC(10_7)
  * WHEN EACH IS REACHED, stated because it is not obvious: the ARCHIVER never calls these for an ordered set —
  * its structural branch recognises one by kind and writes it directly — so these doors exist for a caller who
  * names them, and for the `-conformsToProtocol:` answer a source-compatible program can ask for. */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 - (void)encodeWithCoder:(NSCoder *)coder;
 
 + (instancetype)orderedSet;
@@ -76,7 +76,7 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 + (instancetype)orderedSetWithSet:(NSSet<ObjectType> *)set copyItems:(BOOL)flag;
 
 - (instancetype)initWithObject:(ObjectType)object;
-- (instancetype)initWithObjects:(const ObjectType _Nonnull * _Nullable)objects count:(NSUInteger)count;
+- (instancetype)initWithObjects:(const ObjectType _Nonnull * _Nullable)objects count:(NSUInteger)count NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithObjects:(ObjectType)firstObject, ... NS_REQUIRES_NIL_TERMINATION;
 - (instancetype)initWithArray:(NSArray<ObjectType> *)array;
 - (instancetype)initWithArray:(NSArray<ObjectType> *)array copyItems:(BOOL)flag;
