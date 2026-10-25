@@ -62,9 +62,9 @@
 # **A SURFACE IS NOT A BEHAVIOURAL CLAIM.** This file says every name a caller can reach has a body or a disposition;
 # what the bodies DO is measured by callers, in the suites `FOUNDATION-10.11-PLAN.md` §7 schedules.
 #
-classes-missing 25
+classes-missing 24
 classes-offered 219
-classes-present 194
+classes-present 195
 fn:NSAllHashTableObjects 1
 fn:NSAllMapTableKeys 1
 fn:NSAllMapTableValues 1
@@ -435,7 +435,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 3943
+methods-declared 3953
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -639,6 +639,7 @@ sel:NSTimer 14
 sel:NSURL 80
 sel:NSURLAuthenticationChallenge 8
 sel:NSURLCache 14
+sel:NSURLComponents 38
 sel:NSURLConnection 13
 sel:NSURLCredential 12
 sel:NSURLCredentialStorage 9
@@ -666,6 +667,6 @@ sel:NSXMLDocument 32
 sel:NSXMLElement 29
 sel:NSXMLNode 51
 sel:NSXMLParser 18
-selectors-missing 105
-selectors-offered 3411
-selectors-present 3306
+selectors-missing 113
+selectors-offered 3457
+selectors-present 3344

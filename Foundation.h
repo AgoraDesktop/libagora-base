@@ -102,6 +102,7 @@
 #import <Foundation/NSFileWrapper.h>
 #import <Foundation/NSPropertyListSerialization.h>
 #import <Foundation/NSURL.h>
+#import <Foundation/NSURLComponents.h>
 #import <Foundation/NSURLQueryItem.h>
 #import <Foundation/NSKeyValueCoding.h>
 #import <Foundation/NSSortDescriptor.h>

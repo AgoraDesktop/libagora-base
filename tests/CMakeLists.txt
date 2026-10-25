@@ -34,6 +34,12 @@ target_link_libraries(foundation_10_11_url_query_item PRIVATE Foundation CoreFou
 
 add_test(NAME foundation_10_11_url_query_item COMMAND foundation_10_11_url_query_item)
 
+# THE PUBLIC PARSER (10.9) THROUGH ITS OWN NAME: the encoded/decoded split, queryItems both ways, and relative resolution.
+add_executable(foundation_10_11_url_components foundation_10_11_url_components.m)
+target_link_libraries(foundation_10_11_url_components PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_url_components COMMAND foundation_10_11_url_components)
+
 # Core Foundation's Unicode normalization, against Unicode's own test suite. A separate suite from the
 # bridge because it is a separate concern, and because it is a CONFORMANCE run first: `NormalizationTest.txt`
 # is 19,129 cases with six invariants each, and nothing else in the tree asks `CFStringNormalize` anything.
