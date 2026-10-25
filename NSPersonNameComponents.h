@@ -23,9 +23,10 @@
  * meaning is Apple's own wording for it, kept because a name component is exactly the kind of thing
  * where the one-line gloss IS the specification.
  *
- * WHAT IS NOT HERE, named: `NSPersonNameComponentsFormatter` — the class that renders these
- * components — is a DIFFERENT class in the ledger, and this one lands first because the formatter's
- * input type has to exist before the formatter has anything to format.
+ * THE FORMATTER IS A DIFFERENT CLASS AND A DIFFERENT HEADER (`NSPersonNameComponentsFormatter.h`), because Apple
+ * splits them and because its policy is its own: this class holds a name, and the formatter decides an ORDER for it
+ * from a written table of languages plus a documented default (FOUNDATION-10.11-PLAN.md §4.14). Nothing in this file
+ * knows what a locale is.
  */
 
 #ifndef FOUNDATION_NSPERSONNAMECOMPONENTS_H

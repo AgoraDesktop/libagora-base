@@ -142,6 +142,7 @@
 #import <Foundation/NSDateFormatter.h>
 #import <Foundation/NSNumberFormatter.h>
 #import <Foundation/NSPersonNameComponents.h>
+#import <Foundation/NSPersonNameComponentsFormatter.h>
 #import <Foundation/NSISO8601DateFormatter.h>
 #import <Foundation/NSDateIntervalFormatter.h>
 #import <Foundation/NSRelativeDateTimeFormatter.h>
