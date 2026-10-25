@@ -122,6 +122,7 @@ extern NSTextCheckingKey const NSTextCheckingFlightKey;
 /* ONE OCCURRENCE. Every factory sets `resultType` to the kind it builds, so the class of a result is readable
  * from the object rather than from the door it came through — and a result that answers a payload of the wrong
  * kind answers NIL for it rather than a stray pointer, which is what the ivar table is for. */
+NS_CLASS_AVAILABLE_MAC(10_6)
 @interface NSTextCheckingResult : NSObject <NSCopying>
 {
 	NSRange *_ranges;
@@ -149,8 +150,8 @@ extern NSTextCheckingKey const NSTextCheckingFlightKey;
 
 @property (readonly) NSTextCheckingType resultType;
 @property (readonly) NSRange range;
-@property (readonly) NSUInteger numberOfRanges;
-- (NSRange)rangeAtIndex:(NSUInteger)idx;
+@property (readonly) NSUInteger numberOfRanges NS_AVAILABLE_MAC(10_7);
+- (NSRange)rangeAtIndex:(NSUInteger)idx NS_AVAILABLE_MAC(10_7);
 - (NSRange)rangeWithName:(NSString *)name;
 
 /* ---- THE FACTORIES, ONE PER KIND. Which type each one sets is the API's own definition (the section it is
@@ -165,14 +166,14 @@ extern NSTextCheckingKey const NSTextCheckingFlightKey;
 					    replacementString:(NSString *)replacementString;
 + (NSTextCheckingResult *)regularExpressionCheckingResultWithRanges:(NSRangePointer)ranges
 							      count:(NSUInteger)count
-						   regularExpression:(NSRegularExpression *)regularExpression;
+						   regularExpression:(NSRegularExpression *)regularExpression NS_AVAILABLE_MAC(10_7);
 + (NSTextCheckingResult *)linkCheckingResultWithRange:(NSRange)range URL:(NSURL *)url;
 + (NSTextCheckingResult *)addressCheckingResultWithRange:(NSRange)range
 					      components:(NSDictionary *)components;
 + (NSTextCheckingResult *)transitInformationCheckingResultWithRange:(NSRange)range
-							 components:(NSDictionary *)components;
+							 components:(NSDictionary *)components NS_AVAILABLE_MAC(10_7);
 + (NSTextCheckingResult *)phoneNumberCheckingResultWithRange:(NSRange)range
-						 phoneNumber:(NSString *)phoneNumber;
+						 phoneNumber:(NSString *)phoneNumber NS_AVAILABLE_MAC(10_7);
 + (NSTextCheckingResult *)dateCheckingResultWithRange:(NSRange)range date:(NSDate *)date;
 + (NSTextCheckingResult *)dateCheckingResultWithRange:(NSRange)range
 						 date:(NSDate *)date
@@ -187,7 +188,7 @@ extern NSTextCheckingKey const NSTextCheckingFlightKey;
 					    replacementString:(NSString *)replacementString;
 + (NSTextCheckingResult *)correctionCheckingResultWithRange:(NSRange)range
 					    replacementString:(NSString *)replacementString
-					   alternativeStrings:(NSArray *)alternativeStrings;
+					   alternativeStrings:(NSArray *)alternativeStrings NS_AVAILABLE_MAC(10_9);
 + (NSTextCheckingResult *)orthographyCheckingResultWithRange:(NSRange)range
 						 orthography:(NSOrthography *)orthography;
 + (NSTextCheckingResult *)grammarCheckingResultWithRange:(NSRange)range
@@ -195,19 +196,19 @@ extern NSTextCheckingKey const NSTextCheckingFlightKey;
 
 /* ---- THE PAYLOADS, one accessor per kind. A result answers nil (or 0) for the payloads it does not carry. */
 @property (readonly, copy, nullable) NSString *replacementString;
-@property (readonly, copy, nullable) NSArray *alternativeStrings;
-@property (readonly, copy, nullable) NSRegularExpression *regularExpression;
-@property (readonly, copy, nullable) NSDictionary *components;
+@property (readonly, copy, nullable) NSArray *alternativeStrings NS_AVAILABLE_MAC(10_9);
+@property (readonly, copy, nullable) NSRegularExpression *regularExpression NS_AVAILABLE_MAC(10_7);
+@property (readonly, copy, nullable) NSDictionary *components NS_AVAILABLE_MAC(10_7);
 @property (readonly, copy, nullable) NSURL *URL;
 @property (readonly, copy, nullable) NSDictionary *addressComponents;
-@property (readonly, copy, nullable) NSString *phoneNumber;
+@property (readonly, copy, nullable) NSString *phoneNumber NS_AVAILABLE_MAC(10_7);
 @property (readonly, copy, nullable) NSDate *date;
 @property (readonly, copy, nullable) NSTimeZone *timeZone;
 @property (readonly) NSTimeInterval duration;
 @property (readonly, copy, nullable) NSOrthography *orthography;
 @property (readonly, copy, nullable) NSArray *grammarDetails;
 
-- (NSTextCheckingResult *)resultByAdjustingRangesWithOffset:(NSInteger)offset;
+- (NSTextCheckingResult *)resultByAdjustingRangesWithOffset:(NSInteger)offset NS_AVAILABLE_MAC(10_7);
 
 - (BOOL)isEqual:(nullable id)other;
 - (NSUInteger)hash;

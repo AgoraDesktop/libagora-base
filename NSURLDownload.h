@@ -128,12 +128,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 /* BEGIN. The request is copied, the delegate is not retained, and the download starts before this returns. */
 - (instancetype)initWithRequest:(NSURLRequest *)request
-		       delegate:(nullable id <NSURLDownloadDelegate>)delegate;
+		       delegate:(nullable id <NSURLDownloadDelegate>)delegate NS_DEPRECATED_MAC(10_3, 10_11);
 
 /* BEGIN FROM RESUME DATA, with the destination the resumed download is to land in. */
 - (nullable instancetype)initWithResumeData:(NSData *)resumeData
 				   delegate:(nullable id <NSURLDownloadDelegate>)delegate
-				       path:(NSString *)path;
+				       path:(NSString *)path NS_DEPRECATED_MAC(10_3, 10_11);
 
 /* WHERE IT LANDS. A destination set here wins over the delegate's decision, and setting one AFTER the bytes have
  * arrived moves the file then - which is what makes Apple's asynchronous answer expressible. */

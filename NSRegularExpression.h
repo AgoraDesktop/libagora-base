@@ -95,6 +95,7 @@ enum {
  * `NSTextCheckingTypeRegularExpression`, so a caller that matches and then reads the result has one class to
  * learn rather than two. */
 
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSRegularExpression : NSObject <NSCopying>
 {
 	void *_compiled;		/* a regex_t, owned here so POSIX stays out of this header */

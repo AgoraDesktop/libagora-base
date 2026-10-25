@@ -50,7 +50,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly) NSUInteger lastIndex;
 - (NSUInteger)indexGreaterThanIndex:(NSUInteger)value;	/* NSNotFound when none */
 - (NSUInteger)indexLessThanIndex:(NSUInteger)value;
-- (void)enumerateIndexesUsingBlock:(void (^)(NSUInteger index, BOOL *stop))block;
+- (void)enumerateIndexesUsingBlock:(void (^)(NSUInteger index, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 - (BOOL)isEqualToIndexSet:(NSIndexSet *)other;
 
 
@@ -63,7 +63,7 @@ NS_ASSUME_NONNULL_BEGIN
  * -lastIndexInRange: appear on no documented NSIndexSet page; the documented neighbours are -firstIndex
  * / -lastIndex and -indexInRange:options:passingTest:. Refusing to invent them was right — the CLAIM was
  * what was wrong, and it has been removed from the probe's list. */
-- (NSUInteger)countOfIndexesInRange:(NSRange)range NS_SWIFT_NAME(count(in:));
+- (NSUInteger)countOfIndexesInRange:(NSRange)range NS_SWIFT_NAME(count(in:)) NS_AVAILABLE_MAC(10_5);
 - (NSUInteger)indexGreaterThanOrEqualToIndex:(NSUInteger)index;
 - (NSUInteger)indexLessThanOrEqualToIndex:(NSUInteger)index;
 
@@ -86,12 +86,12 @@ typedef NS_OPTIONS(NSUInteger, NSEnumerationOptions) {
 /* THE RANGE ENUMERATORS: the block receives each of the receiver's ranges — the INTERSECTION with
  * `range` for the third form — ascending unless NSEnumerationReverse, and may stop by writing YES
  * through `stop`. */
-- (void)enumerateRangesUsingBlock:(void (^)(NSRange range, BOOL *stop))block;
+- (void)enumerateRangesUsingBlock:(void (^)(NSRange range, BOOL *stop))block NS_AVAILABLE_MAC(10_7);
 - (void)enumerateRangesWithOptions:(NSEnumerationOptions)options
-			usingBlock:(void (^)(NSRange range, BOOL *stop))block;
+			usingBlock:(void (^)(NSRange range, BOOL *stop))block NS_AVAILABLE_MAC(10_7);
 - (void)enumerateRangesInRange:(NSRange)range
 		       options:(NSEnumerationOptions)options
-		    usingBlock:(void (^)(NSRange range, BOOL *stop))block;
+		    usingBlock:(void (^)(NSRange range, BOOL *stop))block NS_AVAILABLE_MAC(10_7);
 
 /* THE TEST SCAN, THE INDEX ENUMERATORS AND THE SET RELATIONS (D7). One arithmetic under them all: a
  * clip over the range list, walked ascending or descending. NSEnumerationReverse is honoured; the
@@ -105,25 +105,25 @@ typedef NS_OPTIONS(NSUInteger, NSEnumerationOptions) {
 - (BOOL)containsIndexes:(NSIndexSet *)other;
 - (BOOL)intersectsIndexesInRange:(NSRange)range;
 
-- (NSUInteger)indexPassingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate;
+- (NSUInteger)indexPassingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSUInteger)indexWithOptions:(NSEnumerationOptions)options
-		   passingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate;
+		   passingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSUInteger)indexInRange:(NSRange)range
 		   options:(NSEnumerationOptions)options
-	       passingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate;
+	       passingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 
-- (NSIndexSet *)indexesPassingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate;
+- (NSIndexSet *)indexesPassingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSIndexSet *)indexesWithOptions:(NSEnumerationOptions)options
-		       passingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate;
+		       passingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSIndexSet *)indexesInRange:(NSRange)range
 		       options:(NSEnumerationOptions)options
-		   passingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate;
+		   passingTest:(BOOL (^)(NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 
 - (void)enumerateIndexesWithOptions:(NSEnumerationOptions)options
-			 usingBlock:(void (^)(NSUInteger index, BOOL *stop))block;
+			 usingBlock:(void (^)(NSUInteger index, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 - (void)enumerateIndexesInRange:(NSRange)range
 			options:(NSEnumerationOptions)options
-		     usingBlock:(void (^)(NSUInteger index, BOOL *stop))block;
+		     usingBlock:(void (^)(NSUInteger index, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 @end
 
 @interface NSMutableIndexSet : NSIndexSet

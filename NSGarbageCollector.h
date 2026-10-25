@@ -31,7 +31,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)disable;
 - (void)enable;
 - (BOOL)isEnabled;
-- (BOOL)isCollecting;
+- (BOOL)isCollecting NS_DEPRECATED_MAC(10_0, 10_6);
 
 - (void)collectIfNeeded;
 - (void)collectExhaustively;

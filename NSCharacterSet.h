@@ -109,7 +109,7 @@ NS_ASSUME_NONNULL_BEGIN
 /* The built-ins the string methods and ordinary callers reach for. */
 + (nullable NSCharacterSet *)whitespaceCharacterSet;
 + (nullable NSCharacterSet *)whitespaceAndNewlineCharacterSet;
-+ (nullable NSCharacterSet *)newlineCharacterSet;
++ (nullable NSCharacterSet *)newlineCharacterSet NS_AVAILABLE_MAC(10_5);
 + (nullable NSCharacterSet *)decimalDigitCharacterSet;
 + (nullable NSCharacterSet *)letterCharacterSet;
 /* THE RULE-SHAPED ONE OF THE FIVE (D7's kind (D)), and the first to land: a DEFINITION from the
@@ -142,12 +142,12 @@ NS_ASSUME_NONNULL_BEGIN
  * question.
  * AND THE ONE THING NONE OF THEM CONTAINS: "%" itself. Percent-encoded octets are produced by the escaping
  * door rather than by being "allowed", which is why it appears in no set. */
-@property (class, readonly, copy) NSCharacterSet *URLUserAllowedCharacterSet;
-@property (class, readonly, copy) NSCharacterSet *URLPasswordAllowedCharacterSet;
-@property (class, readonly, copy) NSCharacterSet *URLHostAllowedCharacterSet;
-@property (class, readonly, copy) NSCharacterSet *URLPathAllowedCharacterSet;
-@property (class, readonly, copy) NSCharacterSet *URLQueryAllowedCharacterSet;
-@property (class, readonly, copy) NSCharacterSet *URLFragmentAllowedCharacterSet;
+@property (class, readonly, copy) NSCharacterSet *URLUserAllowedCharacterSet NS_AVAILABLE_MAC(10_9);
+@property (class, readonly, copy) NSCharacterSet *URLPasswordAllowedCharacterSet NS_AVAILABLE_MAC(10_9);
+@property (class, readonly, copy) NSCharacterSet *URLHostAllowedCharacterSet NS_AVAILABLE_MAC(10_9);
+@property (class, readonly, copy) NSCharacterSet *URLPathAllowedCharacterSet NS_AVAILABLE_MAC(10_9);
+@property (class, readonly, copy) NSCharacterSet *URLQueryAllowedCharacterSet NS_AVAILABLE_MAC(10_9);
+@property (class, readonly, copy) NSCharacterSet *URLFragmentAllowedCharacterSet NS_AVAILABLE_MAC(10_9);
 
 - (BOOL)characterIsMember:(unichar)character;
 - (NSCharacterSet *)invertedSet;

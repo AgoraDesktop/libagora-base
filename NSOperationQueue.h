@@ -35,6 +35,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 NS_SWIFT_NAME(OperationQueue)
+NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSOperationQueue : NSObject
 {
 	NSMutableArray *_operations;
@@ -52,16 +53,16 @@ NS_SWIFT_NAME(OperationQueue)
 }
 
 /* THE QUEUE AN OPERATION IS RUNNING IN, from inside it, and the process's serial main queue. */
-+ (nullable NSOperationQueue *)currentQueue;
-+ (NSOperationQueue *)mainQueue;
++ (nullable NSOperationQueue *)currentQueue NS_AVAILABLE_MAC(10_6);
++ (NSOperationQueue *)mainQueue NS_AVAILABLE_MAC(10_6);
 
 - (void)addOperation:(NSOperation *)operation;
 /* THE BATCH FORM (10.5). `waitUntilFinished:YES` adds every operation and then waits for the QUEUE to drain, which
  * is -waitUntilAllOperationsAreFinished's contract rather than a wait per operation: a later operation may depend
  * on an earlier one, and waiting for each in turn would still be right but would do it in the wrong order. */
-- (void)addOperations:(NSArray *)operations waitUntilFinished:(BOOL)wait;
+- (void)addOperations:(NSArray *)operations waitUntilFinished:(BOOL)wait NS_AVAILABLE_MAC(10_6);
 - (NSArray *)operations;
-- (NSUInteger)operationCount;
+- (NSUInteger)operationCount NS_AVAILABLE_MAC(10_6);
 
 - (NSInteger)maxConcurrentOperationCount;
 - (void)setMaxConcurrentOperationCount:(NSInteger)count;
@@ -76,8 +77,8 @@ extern const NSInteger NSOperationQueueDefaultMaxConcurrentOperationCount;
 - (BOOL)isSuspended;
 - (void)setSuspended:(BOOL)suspended;
 
-- (nullable NSString *)name;
-- (void)setName:(nullable NSString *)name;
+- (nullable NSString *)name NS_AVAILABLE_MAC(10_6);
+- (void)setName:(nullable NSString *)name NS_AVAILABLE_MAC(10_6);
 
 
 /* THE BLOCK DOOR: the same act as -addOperation:, for a caller holding a block rather than an operation.
@@ -85,7 +86,7 @@ extern const NSInteger NSOperationQueueDefaultMaxConcurrentOperationCount;
  * object to own, because -copy is a MESSAGE SEND and the runtime reads the block's isa to find its class.
  *
  * THE QUEUE IS EXPECTED TO BE SERIAL WHEN THE ORDER OF WHAT IT RUNS MATTERS. */
-- (void)addOperationWithBlock:(void (^)(void))block;
+- (void)addOperationWithBlock:(void (^)(void))block NS_AVAILABLE_MAC(10_6);
 @end
 
 NS_ASSUME_NONNULL_END

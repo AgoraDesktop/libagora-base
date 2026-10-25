@@ -129,14 +129,14 @@ __attribute__((swift_bridge("Swift.Dictionary")))
 - (NSArray<KeyType> *)allKeysForObject:(ObjectType)object;
 - (NSArray<ObjectType> *)objectsForKeys:(NSArray<KeyType> *)keys notFoundMarker:(ObjectType)marker;
 - (NSArray<KeyType> *)keysSortedByValueUsingSelector:(SEL)comparator;
-- (NSArray<KeyType> *)keysSortedByValueUsingComparator:(NSComparator)comparator;
-- (void)enumerateKeysAndObjectsUsingBlock:(void (^)(KeyType key, ObjectType obj, BOOL *stop))block;
+- (NSArray<KeyType> *)keysSortedByValueUsingComparator:(NSComparator)comparator NS_AVAILABLE_MAC(10_6);
+- (void)enumerateKeysAndObjectsUsingBlock:(void (^)(KeyType key, ObjectType obj, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 - (NSEnumerator<KeyType> *)keyEnumerator;
 - (NSEnumerator<ObjectType> *)objectEnumerator;
 - (void)getObjects:(ObjectType __unsafe_unretained _Nonnull * _Nonnull)objects
 	   andKeys:(KeyType __unsafe_unretained _Nonnull * _Nonnull)keys;
 /* Cocoa's subscript: `dict[k]` lowers to this. */
-- (nullable ObjectType)objectForKeyedSubscript:(KeyType)key;
+- (nullable ObjectType)objectForKeyedSubscript:(KeyType)key NS_AVAILABLE_MAC(10_8);
 
 /* THE TWO-ARRAY AND COPY-ITEMS CONSTRUCTORS (F3 audit), and the COUNTED buffer form. */
 - (id)initWithObjects:(NSArray<ObjectType> *)objects forKeys:(NSArray<KeyType> *)keys;
@@ -144,17 +144,17 @@ __attribute__((swift_bridge("Swift.Dictionary")))
 
 - (void)getObjects:(ObjectType __unsafe_unretained _Nonnull * _Nonnull)objects
 	   andKeys:(KeyType __unsafe_unretained _Nonnull * _Nonnull)keys
-	     count:(NSUInteger)count;
+	     count:(NSUInteger)count NS_AVAILABLE_MAC(10_7);
 
 /* THE OPTIONS-ENUMERATION AND ENTRY-FILTER DOORS (F3 audit): the reverse walk, the stop flag, the
  * predicate filter and the options sort. */
 - (void)enumerateKeysAndObjectsWithOptions:(NSEnumerationOptions)opts
-				usingBlock:(void (^)(KeyType key, ObjectType obj, BOOL *stop))block;
-- (NSArray<KeyType> *)keysOfEntriesPassingTest:(BOOL (^)(KeyType key, ObjectType obj, BOOL *stop))predicate;
+				usingBlock:(void (^)(KeyType key, ObjectType obj, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
+- (NSArray<KeyType> *)keysOfEntriesPassingTest:(BOOL (^)(KeyType key, ObjectType obj, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSArray<KeyType> *)keysOfEntriesWithOptions:(NSEnumerationOptions)opts
-				    passingTest:(BOOL (^)(KeyType key, ObjectType obj, BOOL *stop))predicate;
+				    passingTest:(BOOL (^)(KeyType key, ObjectType obj, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSArray<KeyType> *)keysSortedByValueWithOptions:(NSSortOptions)opts
-				   usingComparator:(NSComparator)comparator;
+				   usingComparator:(NSComparator)comparator NS_AVAILABLE_MAC(10_6);
 
 /* THE URL/ERROR DOORS (F3 audit): the plist forms with an NSError out-parameter, beside the path forms the
  * skin already publishes. Declared here, implemented here, so the ledger's owner (NSDictionary) matches.
@@ -215,7 +215,7 @@ __attribute__((swift_bridge("Swift.Dictionary")))
 
 /* `dict[k] = v` lowers to this, and `dict[k] = nil` REMOVES the key (Cocoa's
  * rule) — which is why it cannot simply forward to -setObject:forKey:. */
-- (void)setObject:(nullable ObjectType)object forKeyedSubscript:(KeyType)key;
+- (void)setObject:(nullable ObjectType)object forKeyedSubscript:(KeyType)key NS_AVAILABLE_MAC(10_8);
 
 NS_ASSUME_NONNULL_END
 
@@ -241,11 +241,11 @@ NS_ASSUME_NONNULL_BEGIN
  * rather than left to be discovered. */
 
 @interface NSDictionary<KeyType, ObjectType> (NSSharedKeySetDictionary)
-+ (id)sharedKeySetForKeys:(NSArray<KeyType <NSCopying>> *)keys;
++ (id)sharedKeySetForKeys:(NSArray<KeyType <NSCopying>> *)keys NS_AVAILABLE_MAC(10_8);
 @end
 
 @interface NSMutableDictionary<KeyType, ObjectType> (NSSharedKeySetDictionary)
-+ (NSMutableDictionary<KeyType, ObjectType> *)dictionaryWithSharedKeySet:(id)keyset;
++ (NSMutableDictionary<KeyType, ObjectType> *)dictionaryWithSharedKeySet:(id)keyset NS_AVAILABLE_MAC(10_8);
 @end
 
 @interface NSDictionary (NSFileAttributes)

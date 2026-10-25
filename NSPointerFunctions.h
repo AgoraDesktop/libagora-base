@@ -87,6 +87,7 @@ typedef void (*NSPointerFunctionsRelinquishFunction)(const void *item,
 						     NSUInteger (*size)(const void *item));
 typedef NSUInteger (*NSPointerFunctionsSizeFunction)(const void *item);
 
+NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSPointerFunctions : NSObject <NSCopying>
 {
 	NSPointerFunctionsOptions _options;
@@ -139,6 +140,7 @@ typedef NSUInteger (*NSPointerFunctionsSizeFunction)(const void *item);
  * and the CopyIn flag TOGETHER, which is the point of gathering the callouts into an object: no collection
  * has to know which personality it holds, or whether it copies.
  */
+NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSPointerFunctions (FNInternal)
 - (void *)fnAcquire:(const void *)item;
 - (void)fnRelinquish:(const void *)item;

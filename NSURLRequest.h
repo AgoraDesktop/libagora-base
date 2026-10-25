@@ -135,7 +135,7 @@ typedef NS_ENUM(NSUInteger, NSURLRequestAttribution) {
 @property (readonly) NSURLRequestCachePolicy cachePolicy;
 @property (readonly) NSTimeInterval timeoutInterval;
 @property (nullable, readonly, copy) NSURL *mainDocumentURL;
-@property (readonly) NSURLRequestNetworkServiceType networkServiceType;
+@property (readonly) NSURLRequestNetworkServiceType networkServiceType NS_AVAILABLE_MAC(10_7);
 @property (readonly) NSURLRequestAttribution attribution;
 
 /* THE HTTP BAGGAGE. `HTTPMethod` is never nil — GET is the default Apple documents — and the rest are nil
@@ -146,8 +146,8 @@ typedef NS_ENUM(NSUInteger, NSURLRequestAttribution) {
 @property (nullable, readonly, copy) NSData *HTTPBody;
 @property (nullable, readonly, retain) NSInputStream *HTTPBodyStream;
 @property (readonly) BOOL HTTPShouldHandleCookies;
-@property (readonly) BOOL HTTPShouldUsePipelining;
-@property (readonly) BOOL allowsCellularAccess;
+@property (readonly) BOOL HTTPShouldUsePipelining NS_AVAILABLE_MAC(10_7);
+@property (readonly) BOOL allowsCellularAccess NS_AVAILABLE_MAC(10_8);
 
 /* THE NETWORK-POLICY AND DNS SURFACE (§63.192). THE DEFAULTS ARE PART OF THE CONTRACT and are pinned by the
  * probe: the three `allows…Access` doors default YES — the same default `allowsCellularAccess` has — and the
@@ -182,15 +182,15 @@ typedef NS_ENUM(NSUInteger, NSURLRequestAttribution) {
 - (void)setCachePolicy:(NSURLRequestCachePolicy)cachePolicy;
 - (void)setTimeoutInterval:(NSTimeInterval)timeoutInterval;
 - (void)setMainDocumentURL:(nullable NSURL *)mainDocumentURL;
-- (void)setNetworkServiceType:(NSURLRequestNetworkServiceType)networkServiceType;
+- (void)setNetworkServiceType:(NSURLRequestNetworkServiceType)networkServiceType NS_AVAILABLE_MAC(10_7);
 - (void)setAttribution:(NSURLRequestAttribution)attribution;
 - (void)setHTTPMethod:(NSString *)HTTPMethod;
 - (void)setAllHTTPHeaderFields:(nullable NSDictionary *)allHTTPHeaderFields;
 - (void)setHTTPBody:(nullable NSData *)HTTPBody;
 - (void)setHTTPBodyStream:(nullable NSInputStream *)HTTPBodyStream;
 - (void)setHTTPShouldHandleCookies:(BOOL)HTTPShouldHandleCookies;
-- (void)setHTTPShouldUsePipelining:(BOOL)HTTPShouldUsePipelining;
-- (void)setAllowsCellularAccess:(BOOL)allowsCellularAccess;
+- (void)setHTTPShouldUsePipelining:(BOOL)HTTPShouldUsePipelining NS_AVAILABLE_MAC(10_7);
+- (void)setAllowsCellularAccess:(BOOL)allowsCellularAccess NS_AVAILABLE_MAC(10_8);
 /* THE SAME SEVEN, SETTABLE — Apple's shape: the immutable class reads them, the mutable one writes. */
 @property (readwrite) BOOL allowsConstrainedNetworkAccess;
 @property (readwrite) BOOL allowsExpensiveNetworkAccess;

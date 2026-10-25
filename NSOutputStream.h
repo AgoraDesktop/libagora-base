@@ -53,12 +53,12 @@ NS_SWIFT_NAME(OutputStream)
 + (nullable instancetype)outputStreamToMemory;
 + (nullable instancetype)outputStreamToBuffer:(uint8_t *)buffer capacity:(NSUInteger)capacity;
 + (nullable instancetype)outputStreamToFileAtPath:(NSString *)path append:(BOOL)shouldAppend;
-+ (nullable instancetype)outputStreamWithURL:(NSURL *)url append:(BOOL)shouldAppend;
++ (nullable instancetype)outputStreamWithURL:(NSURL *)url append:(BOOL)shouldAppend NS_AVAILABLE_MAC(10_6);
 
 - (nullable instancetype)initToMemory;
 - (nullable instancetype)initToBuffer:(uint8_t *)buffer capacity:(NSUInteger)capacity;
 - (nullable instancetype)initToFileAtPath:(NSString *)path append:(BOOL)shouldAppend;
-- (nullable instancetype)initWithURL:(NSURL *)url append:(BOOL)shouldAppend;
+- (nullable instancetype)initWithURL:(NSURL *)url append:(BOOL)shouldAppend NS_AVAILABLE_MAC(10_6);
 
 /* THE PRIMITIVE: the number of bytes TAKEN, which may be fewer than asked for, and -1 for an error. A full
  * caller's buffer answers 0. */

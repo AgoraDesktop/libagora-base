@@ -25,6 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 typedef NSString *NSValueTransformerName;
 
+NS_CLASS_AVAILABLE_MAC(10_3)
 @interface NSValueTransformer : NSObject
 
 /* NAME -> INSTANCE, and nil UNREGISTERS: Apple's contract, and the reason the registry holds

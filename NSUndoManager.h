@@ -50,6 +50,7 @@ extern NSUndoManagerUserInfoKey const NSUndoManagerGroupIsDiscardableKey;
  * named here only so the ivar below can be typed; its definition is private to the implementation. */
 @class FnUndoGroup;
 
+NS_CLASS_AVAILABLE_MAC(10_0)
 @interface NSUndoManager : NSObject
 {
 	NSMutableArray *_undoStack;		/* of FnUndoGroup objects */
@@ -77,7 +78,7 @@ extern NSUndoManagerUserInfoKey const NSUndoManagerGroupIsDiscardableKey;
  * when it is registered (a block literal is a STACK object, and this one outlives the call), and the
  * target is held unowned, as always.
  */
-- (void)registerUndoWithTarget:(id)target handler:(void (^)(id target))handler;
+- (void)registerUndoWithTarget:(id)target handler:(void (^)(id target))handler NS_AVAILABLE_MAC(10_11);
 
 /*
  * THE PROXY FORM: the message sent to the returned object BECOMES the undo action, captured with the
@@ -141,9 +142,9 @@ extern NSUndoManagerUserInfoKey const NSUndoManagerGroupIsDiscardableKey;
 
 /* AND WHETHER THE GROUP MAY BE DISCARDED, which is the surface the discardable-actions half names: mark
  * the group being built, and ask about the group at the top of either stack. */
-- (void)setActionIsDiscardable:(BOOL)discardable;
-@property (readonly) BOOL undoActionIsDiscardable;
-@property (readonly) BOOL redoActionIsDiscardable;
+- (void)setActionIsDiscardable:(BOOL)discardable NS_AVAILABLE_MAC(10_7);
+@property (readonly) BOOL undoActionIsDiscardable NS_AVAILABLE_MAC(10_7);
+@property (readonly) BOOL redoActionIsDiscardable NS_AVAILABLE_MAC(10_7);
 
 /*
  * THE EIGHT NOTIFICATIONS (W4's centre, §22). THEY GO TO THE DEFAULT CENTRE, their OBJECT IS THE

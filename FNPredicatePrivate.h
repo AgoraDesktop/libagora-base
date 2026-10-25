@@ -18,6 +18,7 @@
 @class NSArray;
 @class NSString;
 
+NS_CLASS_AVAILABLE_MAC(10_4)
 @interface NSExpression (FNPrivate)
 - (NSString *)fn_expressionFormat;
 @end

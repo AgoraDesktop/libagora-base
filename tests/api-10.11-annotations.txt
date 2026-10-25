@@ -15,18 +15,31 @@
 # sweep annotated from memory, is exactly the drift the plan's S2 tier forbids.
 #
 # THE DENOMINATOR IS WHAT THE TREE ACTUALLY DECLARES. A declaration this tree does not have cannot be annotated, so
-# the candidates are the declarations both sides have: 802 of them — 109 class-level and 693 selector-level. The rest
-# of Apple's annotated surface is on classes this tree has yet to write (the 26 in FOUNDATION-10.11-PLAN.md §3.1) or
-# in spellings this reader does not attribute (an `NS_ENUM` constant is not a selector).
+# the candidates are the declarations both sides have: 767 of them. The rest of Apple's annotated surface is on classes
+# this tree has yet to write (the 26 in FOUNDATION-10.11-PLAN.md §3.1) or in spellings this reader does not attribute
+# (an `NS_ENUM` constant is not a selector).
+#
+# **THE SWEEP IS COMPLETE, AND IT WAS 761 DECLARATIONS IN 108 HEADERS.** The first pin of this file read 802
+# candidates / 0 present / 802 missing; the sweep then turned every candidate into a stated fact, and the 35-candidate
+# difference is two attribution faults it exposed: a category's availability was being recorded as its CLASS's era
+# (NSArray is not a 10.6 class — Apple annotates the `NSExtendedArray` category), and a forward `@protocol X;` was
+# being read as a block, which attributed NSXMLParser's doors to its DELEGATE. Both were in the instrument, both were
+# fixed before the sweep was applied, and the manifest regenerated between.
+#
+# **THE SPELLING IS `NS_AVAILABLE_MAC` / `NS_DEPRECATED_MAC` / `NS_CLASS_AVAILABLE_MAC`, NOT THE TWO-ARG FORM.** The
+# manifest commits the macOS token; the iOS one is a fact this reference records but this tree has no use for, and
+# writing it from memory would be the invented annotation the plan forbids. The tree targets one platform, so the
+# Mac-only spelling states exactly the fact that is known.
 #
 # **TWO OF THESE NUMBERS MEAN DIFFERENT THINGS, AND THAT IS THE WHOLE DESIGN.**
 #
 #   * `annotations-wrong` is a FAILURE, in either mode, and is not a number this file can raise. A declaration that
 #     states a version Apple does not is worse than one that states none: it looks finished. The command exits
 #     non-zero on it and names the first twenty, reference and local side by side.
-#   * `annotations-missing` is the SWEEP'S WORK LIST, and pinning it is what makes progress a deliberate act. The
-#     802 is the position at the start of W1: the macros are real and nothing uses them yet. Every wave that
-#     annotates a header edits this line in the same commit, and the number may only fall.
+#   * `annotations-missing` is the SWEEP'S WORK LIST, and pinning it is what makes progress a deliberate act. It read
+#     802 at the start of W1 (the macros real, nothing using them) and 0 after the sweep. It may only FALL, and a new
+#     declaration for an annotated Apple door raises it again — which is the gate doing its job on the wave that added
+#     the declaration, not a false alarm.
 #
 # `annotations-extra` counts declarations this tree annotates that Apple does not. It is not a failure: the tree ships
 # API that postdates 10.11 (`NSDateInterval`, a `NSRelativeDateTimeFormatter`) and FOUNDATION-10.11-PLAN.md §4.13 says
@@ -39,8 +52,8 @@
 #
 # THE GATE is `foundation-api-availability` in tests/CMakeLists.txt, which runs `api-ledger availability` with `--pin`
 # and fails on drift in either direction as well as on a wrong version.
-annotations-candidates 802
+annotations-candidates 767
 annotations-extra 0
-annotations-missing 802
-annotations-present 0
+annotations-missing 0
+annotations-present 767
 annotations-wrong 0

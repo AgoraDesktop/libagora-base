@@ -128,9 +128,9 @@ NS_SWIFT_NAME(FileHandle)
 + (nullable instancetype)fileHandleForUpdatingAtPath:(NSString *)path;
 
 /* The URL forms pair an open with a REAL error, which is what the path forms above cannot do. */
-+ (nullable instancetype)fileHandleForReadingFromURL:(NSURL *)url error:(NSError **)errorPtr;
-+ (nullable instancetype)fileHandleForWritingToURL:(NSURL *)url error:(NSError **)errorPtr;
-+ (nullable instancetype)fileHandleForUpdatingURL:(NSURL *)url error:(NSError **)errorPtr;
++ (nullable instancetype)fileHandleForReadingFromURL:(NSURL *)url error:(NSError **)errorPtr NS_AVAILABLE_MAC(10_6);
++ (nullable instancetype)fileHandleForWritingToURL:(NSURL *)url error:(NSError **)errorPtr NS_AVAILABLE_MAC(10_6);
++ (nullable instancetype)fileHandleForUpdatingURL:(NSURL *)url error:(NSError **)errorPtr NS_AVAILABLE_MAC(10_6);
 
 /* --- the standard ones --------------------------------------------------- */
 

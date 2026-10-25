@@ -58,7 +58,7 @@ NS_SWIFT_NAME(NotificationCenter)
 - (id)addObserverForName:(nullable NSString *)name
 		  object:(nullable id)object
 		   queue:(nullable NSOperationQueue *)queue
-	      usingBlock:(void (^)(NSNotification *notification))block;
+	      usingBlock:(void (^)(NSNotification *notification))block NS_AVAILABLE_MAC(10_6);
 
 /* POSTING. -postNotification: is the general door; the two name-taking forms build the notification for
  * a caller that has no other use for it, which is the common case. */

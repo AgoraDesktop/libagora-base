@@ -53,6 +53,7 @@ enum {
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_CLASS_AVAILABLE_MAC(10_4)
 @interface NSExpression : NSObject <NSCoding, NSCopying>
 {
 	NSExpressionType _type;
@@ -74,16 +75,16 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSExpression *)expressionForVariable:(NSString *)string;
 + (NSExpression *)expressionForKeyPath:(NSString *)keyPath;
 + (NSExpression *)expressionForFunction:(NSString *)name arguments:(NSArray *)parameters;
-+ (NSExpression *)expressionForAggregate:(NSArray *)subexpressions;
-+ (NSExpression *)expressionForUnionSet:(NSExpression *)left with:(NSExpression *)right;
-+ (NSExpression *)expressionForIntersectSet:(NSExpression *)left with:(NSExpression *)right;
-+ (NSExpression *)expressionForMinusSet:(NSExpression *)left with:(NSExpression *)right;
++ (NSExpression *)expressionForAggregate:(NSArray *)subexpressions NS_AVAILABLE_MAC(10_5);
++ (NSExpression *)expressionForUnionSet:(NSExpression *)left with:(NSExpression *)right NS_AVAILABLE_MAC(10_5);
++ (NSExpression *)expressionForIntersectSet:(NSExpression *)left with:(NSExpression *)right NS_AVAILABLE_MAC(10_5);
++ (NSExpression *)expressionForMinusSet:(NSExpression *)left with:(NSExpression *)right NS_AVAILABLE_MAC(10_5);
 + (NSExpression *)expressionForSubquery:(NSExpression *)expression
                  usingIteratorVariable:(NSString *)variable
-                             predicate:(id)predicate;
+                             predicate:(id)predicate NS_AVAILABLE_MAC(10_5);
 + (NSExpression *)expressionForFunction:(NSExpression *)target
                            selectorName:(NSString *)name
-                              arguments:(NSArray *)parameters;
+                              arguments:(NSArray *)parameters NS_AVAILABLE_MAC(10_5);
 
 - (id)initWithExpressionType:(NSExpressionType)type;
 
@@ -94,10 +95,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable NSString *)variable;
 - (nullable NSExpression *)operand;
 - (nullable NSArray *)arguments;
-- (nullable id)collection;
-- (nullable NSPredicate *)predicate;
-- (nullable NSExpression *)leftExpression;
-- (nullable NSExpression *)rightExpression;
+- (nullable id)collection NS_AVAILABLE_MAC(10_5);
+- (nullable NSPredicate *)predicate NS_AVAILABLE_MAC(10_5);
+- (nullable NSExpression *)leftExpression NS_AVAILABLE_MAC(10_5);
+- (nullable NSExpression *)rightExpression NS_AVAILABLE_MAC(10_5);
 
 /* THE ONLY DOOR THAT DOES WORK. `object` is the evaluated object (`SELF`); `context` carries the variable
  * bindings and is the same dictionary the predicate evaluates against. */

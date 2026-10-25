@@ -204,7 +204,7 @@ typedef enum {
 
 
 /* §63.213: READ TO THE END, THEN PARSE — the parser's whole scan is over a buffer, so this door reads the stream rather than growing a second incremental reader. */
-- (instancetype)initWithStream:(NSInputStream *)stream;
+- (instancetype)initWithStream:(NSInputStream *)stream NS_AVAILABLE_MAC(10_7);
 @end
 
 /* "The interface an XML parser uses to inform its delegate about the content of the parsed document" - the

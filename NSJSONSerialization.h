@@ -107,6 +107,7 @@ enum {
 };
 
 NS_SWIFT_NAME(JSONSerialization)
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSJSONSerialization : NSObject
 
 + (nullable id)JSONObjectWithData:(NSData *)data

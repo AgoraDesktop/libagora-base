@@ -142,7 +142,7 @@ NS_SWIFT_NAME(NumberFormatter)
 
 /* One number, one call, no formatter to keep — Apple's convenience. */
 + (nullable NSString *)localizedStringFromNumber:(NSNumber *)number
-				     numberStyle:(NSNumberFormatterStyle)style;
+				     numberStyle:(NSNumberFormatterStyle)style NS_AVAILABLE_MAC(10_6);
 
 /* BOTH DIRECTIONS. `-numberFromString:` answers nil for text that is not a number, and honours
  * -isLenient and -allowsFloats the way Cocoa describes. */
@@ -176,8 +176,8 @@ NS_SWIFT_NAME(NumberFormatter)
 
 /* LENIENCY is about PARSING, as in NSDateFormatter. ALLOWS FLOATS is the other half of it: with
  * NO, a string with a fraction is refused rather than rounded into an integer. */
-- (BOOL)isLenient;
-- (void)setLenient:(BOOL)flag;
+- (BOOL)isLenient NS_AVAILABLE_MAC(10_5);
+- (void)setLenient:(BOOL)flag NS_AVAILABLE_MAC(10_5);
 - (BOOL)allowsFloats;
 - (void)setAllowsFloats:(BOOL)flag;
 
@@ -266,12 +266,12 @@ NS_SWIFT_NAME(NumberFormatter)
 
 /* SIGNIFICANT DIGITS. `usesSignificantDigits` switches ICU's digit policy from the fraction-digit
  * limits above to the significant-digit limits below; the two limits are the min/max count. */
-- (BOOL)usesSignificantDigits;
-- (void)setUsesSignificantDigits:(BOOL)flag;
-- (NSUInteger)minimumSignificantDigits;
-- (void)setMinimumSignificantDigits:(NSUInteger)digits;
-- (NSUInteger)maximumSignificantDigits;
-- (void)setMaximumSignificantDigits:(NSUInteger)digits;
+- (BOOL)usesSignificantDigits NS_AVAILABLE_MAC(10_5);
+- (void)setUsesSignificantDigits:(BOOL)flag NS_AVAILABLE_MAC(10_5);
+- (NSUInteger)minimumSignificantDigits NS_AVAILABLE_MAC(10_5);
+- (void)setMinimumSignificantDigits:(NSUInteger)digits NS_AVAILABLE_MAC(10_5);
+- (NSUInteger)maximumSignificantDigits NS_AVAILABLE_MAC(10_5);
+- (void)setMaximumSignificantDigits:(NSUInteger)digits NS_AVAILABLE_MAC(10_5);
 
 /* ROUNDING INCREMENT is ICU's only DOUBLE-valued number attribute, so it goes through the
  * double-attribute door rather than the int one the rest of this file's attributes use. A nil (or
@@ -286,8 +286,8 @@ NS_SWIFT_NAME(NumberFormatter)
 - (void)setPerMillSymbol:(nullable NSString *)string;
 - (nullable NSString *)currencyDecimalSeparator;
 - (void)setCurrencyDecimalSeparator:(nullable NSString *)string;
-- (nullable NSString *)currencyGroupingSeparator;
-- (void)setCurrencyGroupingSeparator:(nullable NSString *)string;
+- (nullable NSString *)currencyGroupingSeparator NS_AVAILABLE_MAC(10_5);
+- (void)setCurrencyGroupingSeparator:(nullable NSString *)string NS_AVAILABLE_MAC(10_5);
 
 /* THE DEPRECATED SPELLINGS Cocoa kept. Each is an ALIAS of the modern door beside it — setting one is
  * seen by the other, which is exactly how a deprecated alias has to behave. */
@@ -348,8 +348,8 @@ NS_SWIFT_NAME(NumberFormatter)
 @property (copy) NSString *positiveInfinitySymbol;
 @property (copy) NSString *negativeInfinitySymbol;
 @property BOOL localizesFormat;
-@property (getter=isPartialStringValidationEnabled) BOOL partialStringValidationEnabled;
-@property NSFormattingContext formattingContext;
+@property (getter=isPartialStringValidationEnabled) BOOL partialStringValidationEnabled NS_AVAILABLE_MAC(10_5);
+@property NSFormattingContext formattingContext NS_AVAILABLE_MAC(10_10);
 /* ================== THE LAST TWO DOORS (§63.80) ==================
  * ⚠ `-roundingBehavior` IS MORE THAN STORAGE, which is what its deferral doubted: an NSDecimalNumberHandler's
  * `-roundingMode` and `-scale` ARE ICU's `UNUM_ROUNDING_MODE` and `UNUM_MAX_FRACTION_DIGITS`, so a policy set

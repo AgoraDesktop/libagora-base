@@ -139,6 +139,7 @@ typedef enum {
  * family's mutable class is.
  * =================================================================================================== */
 
+NS_CLASS_AVAILABLE_MAC(10_0)
 @interface NSAttributedString : NSObject <NSCopying, NSMutableCopying, NSCoding, NSSecureCoding>
 {
 @protected		/* the mutable subclass works on the same store, which is the whole point of the split */
@@ -247,11 +248,11 @@ extern void _NSAttributedStringSetRTFDWriter(NSAttributedStringRTFDWriter writer
 
 - (void)enumerateAttributesInRange:(NSRange)enumerationRange
 			   options:(NSAttributedStringEnumerationOptions)opts
-			usingBlock:(void (^)(NSDictionary *attrs, NSRange range, BOOL *stop))block;
+			usingBlock:(void (^)(NSDictionary *attrs, NSRange range, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 - (void)enumerateAttribute:(NSAttributedStringKey)attrName
 		   inRange:(NSRange)enumerationRange
 		   options:(NSAttributedStringEnumerationOptions)opts
-		usingBlock:(void (^)(_Nullable id value, NSRange range, BOOL *stop))block;
+		usingBlock:(void (^)(_Nullable id value, NSRange range, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 
 /* ---- THE WORD AND LINE-BREAK QUESTIONS (2026-09-30, plan §61) --------------------------------------
  *
@@ -317,6 +318,7 @@ extern void _NSAttributedStringSetRTFDWriter(NSAttributedStringRTFDWriter writer
 
 
 
+NS_CLASS_AVAILABLE_MAC(10_0)
 @interface NSMutableAttributedString : NSAttributedString
 
 - (instancetype)initWithString:(NSString *)str;
@@ -354,6 +356,7 @@ extern void _NSAttributedStringSetRTFDWriter(NSAttributedStringRTFDWriter writer
  * MUTATION IS THIS LIBRARY'S OWN `-replaceCharactersInRange:withString:`**, so the proxy's writes go through the
  * SAME splice every other mutation uses and inherit its rules — including §63.93's “the replacement takes the
  * attributes in force at the start of the range”. */
+NS_CLASS_AVAILABLE_MAC(10_0)
 @interface NSMutableAttributedString (NSExtendedMutableAttributedString)
 @property (readonly, retain) NSMutableString *mutableString;
 @end

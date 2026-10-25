@@ -88,8 +88,8 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 
 /* THE APPLE-EVENT FORM. This library's descriptor is a data type, so the specifier travels as a typeObjectSpecifier
  * descriptor whose data is a small textual path; the class method reads it back as a property specifier. */
-- (nullable NSAppleEventDescriptor *)descriptor;
-+ (nullable NSScriptObjectSpecifier *)objectSpecifierWithDescriptor:(NSAppleEventDescriptor *)descriptor;
+- (nullable NSAppleEventDescriptor *)descriptor NS_AVAILABLE_MAC(10_5);
++ (nullable NSScriptObjectSpecifier *)objectSpecifierWithDescriptor:(NSAppleEventDescriptor *)descriptor NS_AVAILABLE_MAC(10_5);
 
 @end
 
@@ -206,8 +206,8 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 }
 - (instancetype)initWithPosition:(NSPositioning)position
 		objectSpecifier:(NSScriptObjectSpecifier *)specifier;
-@property (readonly) NSPositioning position;
-@property (readonly, strong) NSScriptObjectSpecifier *objectSpecifier;
+@property (readonly) NSPositioning position NS_AVAILABLE_MAC(10_5);
+@property (readonly, strong) NSScriptObjectSpecifier *objectSpecifier NS_AVAILABLE_MAC(10_5);
 @property (nullable, strong) NSScriptClassDescription *insertionClassDescription;
 - (void)evaluate;
 @property (nullable, readonly) id insertionContainer;
@@ -260,7 +260,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 - (nullable id)valueWithName:(NSString *)name inPropertyWithKey:(NSString *)key;
 - (nullable id)valueWithUniqueID:(id)uniqueID inPropertyWithKey:(NSString *)key;
 
-- (nullable id)scriptingValueForSpecifier:(NSScriptObjectSpecifier *)specifier;
+- (nullable id)scriptingValueForSpecifier:(NSScriptObjectSpecifier *)specifier NS_AVAILABLE_MAC(10_5);
 
 @end
 
@@ -268,11 +268,11 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 
 @property (nullable, copy) NSDictionary *scriptingProperties;
 
-- (nullable id)copyScriptingValue:(id)value forKey:(NSString *)key withProperties:(nullable NSDictionary *)properties;
+- (nullable id)copyScriptingValue:(id)value forKey:(NSString *)key withProperties:(nullable NSDictionary *)properties NS_AVAILABLE_MAC(10_5);
 - (nullable id)newScriptingObjectOfClass:(Class)objectClass
 			  forValueForKey:(NSString *)key
 		       withContentsValue:(nullable id)contentsValue
-			      properties:(nullable NSDictionary *)properties;
+			      properties:(nullable NSDictionary *)properties NS_AVAILABLE_MAC(10_5);
 - (nullable id)coerceValue:(id)value forKey:(NSString *)key;
 
 @end

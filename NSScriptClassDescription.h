@@ -41,11 +41,11 @@ NS_ASSUME_NONNULL_BEGIN
 + (nullable NSScriptClassDescription *)classDescriptionForClass:(Class)aClass;
 - (nullable NSScriptClassDescription *)superclassDescription;
 
-- (BOOL)hasPropertyForKey:(NSString *)key;
-- (BOOL)hasReadablePropertyForKey:(NSString *)key;
-- (BOOL)hasWritablePropertyForKey:(NSString *)key;
-- (BOOL)hasOrderedToManyRelationshipForKey:(NSString *)key;
-- (BOOL)isReadOnlyKey:(NSString *)key;
+- (BOOL)hasPropertyForKey:(NSString *)key NS_AVAILABLE_MAC(10_5);
+- (BOOL)hasReadablePropertyForKey:(NSString *)key NS_AVAILABLE_MAC(10_5);
+- (BOOL)hasWritablePropertyForKey:(NSString *)key NS_AVAILABLE_MAC(10_5);
+- (BOOL)hasOrderedToManyRelationshipForKey:(NSString *)key NS_AVAILABLE_MAC(10_5);
+- (BOOL)isReadOnlyKey:(NSString *)key NS_DEPRECATED_MAC(10_0, 10_5);
 - (BOOL)isLocationRequiredToCreateForKey:(NSString *)key;
 
 - (nullable NSString *)typeForKey:(NSString *)key;

@@ -83,13 +83,13 @@ NS_SWIFT_NAME(PropertyListSerialization)
 + (nullable id)propertyListWithData:(NSData *)data
 		   options:(NSPropertyListReadOptions)options
 		    format:(NSPropertyListFormat * _Nullable)format
-		     error:(NSError * _Nullable * _Nullable)errorPtr;
+		     error:(NSError * _Nullable * _Nullable)errorPtr NS_AVAILABLE_MAC(10_6);
 
 /* Serialise `plist` (strings, numbers, dates, data, arrays and dictionaries). */
 + (nullable NSData *)dataWithPropertyList:(id)plist
 			  format:(NSPropertyListFormat)format
 			 options:(NSPropertyListWriteOptions)options
-			   error:(NSError * _Nullable * _Nullable)errorPtr;
+			   error:(NSError * _Nullable * _Nullable)errorPtr NS_AVAILABLE_MAC(10_6);
 
 /* Whether every object in the tree is one this serialiser can write, and whether
  * every integer/real/boolean/dictionary KEY can be spelled in the format. */
@@ -99,19 +99,19 @@ NS_SWIFT_NAME(PropertyListSerialization)
 + (nullable id)propertyListFromData:(NSData *)data
 		    mutabilityOption:(NSPropertyListMutabilityOptions)opt
 			      format:(nullable NSPropertyListFormat *)format
-		    errorDescription:(NSString * _Nullable * _Nullable)errorString;
+		    errorDescription:(NSString * _Nullable * _Nullable)errorString NS_DEPRECATED_MAC(10_0, 10_10);
 + (nullable NSData *)dataFromPropertyList:(id)plist
 				   format:(NSPropertyListFormat)format
-			 errorDescription:(NSString * _Nullable * _Nullable)errorString;
+			 errorDescription:(NSString * _Nullable * _Nullable)errorString NS_DEPRECATED_MAC(10_0, 10_10);
 + (nullable id)propertyListWithStream:(NSInputStream *)stream
 		     options:(NSPropertyListReadOptions)options
 		      format:(nullable NSPropertyListFormat *)format
-		       error:(NSError * _Nullable * _Nullable)error;
+		       error:(NSError * _Nullable * _Nullable)error NS_AVAILABLE_MAC(10_6);
 + (NSInteger)writePropertyList:(id)plist
 		      toStream:(NSOutputStream *)stream
 			format:(NSPropertyListFormat)format
 		       options:(NSPropertyListWriteOptions)options
-			 error:(NSError * _Nullable * _Nullable)error;
+			 error:(NSError * _Nullable * _Nullable)error NS_AVAILABLE_MAC(10_6);
 @end
 
 /*

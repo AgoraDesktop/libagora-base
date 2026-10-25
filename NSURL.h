@@ -118,7 +118,7 @@ typedef NSString *NSURLFileResourceType;
 /* THE FILE-REFERENCE SPELLING (10.6). A reference URL tracks the ITEM rather than the path, which needs an inode
  * the file system resolves; this library's NSURL is a parsed path, so the door refuses by name instead of returning
  * `self` and claiming a durability it does not have. */
-- (nullable NSURL *)fileReferenceURL;
+- (nullable NSURL *)fileReferenceURL NS_AVAILABLE_MAC(10_6);
 
 /* Always self: there is nothing to resolve against, so every URL here is already
  * absolute (see +URLWithString:relativeToURL: in the refusal list). */
@@ -127,10 +127,10 @@ typedef NSString *NSURLFileResourceType;
 /* THE PATH ARITHMETIC, and each one is a rule over the path this URL already
  * has. -URLByAppendingPathExtension: answers nil when there is no path to extend,
  * which is Cocoa's contract as well. */
-- (NSURL *)URLByAppendingPathComponent:(NSString *)component;
-- (nullable NSURL *)URLByAppendingPathExtension:(NSString *)extension;
-- (NSURL *)URLByDeletingLastPathComponent;
-- (NSURL *)URLByDeletingPathExtension;
+- (NSURL *)URLByAppendingPathComponent:(NSString *)component NS_AVAILABLE_MAC(10_6);
+- (nullable NSURL *)URLByAppendingPathExtension:(NSString *)extension NS_AVAILABLE_MAC(10_6);
+- (NSURL *)URLByDeletingLastPathComponent NS_AVAILABLE_MAC(10_6);
+- (NSURL *)URLByDeletingPathExtension NS_AVAILABLE_MAC(10_6);
 
 /* ---- THE REST OF THE URL AS A VALUE (2026-09-30) ------------------------------------------------
  *
@@ -154,11 +154,11 @@ typedef NSString *NSURLFileResourceType;
 - (nullable NSString *)password;
 - (nullable NSString *)relativePath;
 - (NSString *)resourceSpecifier;
-- (nullable NSString *)lastPathComponent;
-- (nullable NSString *)pathExtension;
-- (nullable NSArray *)pathComponents;
+- (nullable NSString *)lastPathComponent NS_AVAILABLE_MAC(10_6);
+- (nullable NSString *)pathExtension NS_AVAILABLE_MAC(10_6);
+- (nullable NSArray *)pathComponents NS_AVAILABLE_MAC(10_6);
 - (NSURL *)standardizedURL;
-- (const char * _Nullable)fileSystemRepresentation;
+- (const char * _Nullable)fileSystemRepresentation NS_AVAILABLE_MAC(10_9);
 
 /* CREATING. The data doors carry the UTF-8 SPELLING of the string (what -dataRepresentation
  * answers); the file doors add the FSH's directory slash and a C-string spelling. NONE of the
@@ -167,33 +167,33 @@ typedef NSString *NSURLFileResourceType;
 - (nullable instancetype)initWithString:(NSString *)string relativeToURL:(nullable NSURL *)baseURL;
 - (nullable instancetype)initWithString:(NSString *)string encodingInvalidCharacters:(BOOL)encodingInvalidCharacters;
 + (nullable instancetype)URLWithString:(NSString *)string encodingInvalidCharacters:(BOOL)encodingInvalidCharacters;
-- (nullable instancetype)initWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL;
-+ (nullable instancetype)URLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL;
-- (nullable instancetype)initAbsoluteURLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL;
-+ (nullable instancetype)absoluteURLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL;
-- (nullable NSData *)dataRepresentation;
-- (nullable instancetype)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory;
-- (nullable instancetype)initFileURLWithPath:(NSString *)path relativeToURL:(nullable NSURL *)baseURL;
-- (nullable instancetype)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL;
-+ (nullable instancetype)fileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory;
-+ (nullable instancetype)fileURLWithPath:(NSString *)path relativeToURL:(nullable NSURL *)baseURL;
-+ (nullable instancetype)fileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL;
-+ (nullable instancetype)fileURLWithPathComponents:(NSArray *)components;
-- (nullable instancetype)initFileURLWithFileSystemRepresentation:(const char *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL;
-+ (nullable instancetype)fileURLWithFileSystemRepresentation:(const char *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL;
-- (BOOL)getFileSystemRepresentation:(char *)buffer maxLength:(NSUInteger)maxLength;
+- (nullable instancetype)initWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
++ (nullable instancetype)URLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
+- (nullable instancetype)initAbsoluteURLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
++ (nullable instancetype)absoluteURLWithDataRepresentation:(NSData *)data relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
+- (nullable NSData *)dataRepresentation NS_AVAILABLE_MAC(10_11);
+- (nullable instancetype)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory NS_AVAILABLE_MAC(10_5);
+- (nullable instancetype)initFileURLWithPath:(NSString *)path relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
+- (nullable instancetype)initFileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
++ (nullable instancetype)fileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory NS_AVAILABLE_MAC(10_5);
++ (nullable instancetype)fileURLWithPath:(NSString *)path relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
++ (nullable instancetype)fileURLWithPath:(NSString *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_11);
++ (nullable instancetype)fileURLWithPathComponents:(NSArray *)components NS_AVAILABLE_MAC(10_6);
+- (nullable instancetype)initFileURLWithFileSystemRepresentation:(const char *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_9);
++ (nullable instancetype)fileURLWithFileSystemRepresentation:(const char *)path isDirectory:(BOOL)isDirectory relativeToURL:(nullable NSURL *)baseURL NS_AVAILABLE_MAC(10_9);
+- (BOOL)getFileSystemRepresentation:(char *)buffer maxLength:(NSUInteger)maxLength NS_AVAILABLE_MAC(10_9);
 
 /* MODIFYING AND CONVERTING. -URLByAppendingPathComponent:isDirectory: is the slash-aware form of the
  * appending door above; the "file" doors below are the spellings a PATH URL has. */
-- (NSURL *)URLByAppendingPathComponent:(NSString *)component isDirectory:(BOOL)isDirectory;
-- (nullable NSURL *)filePathURL;
-- (BOOL)hasDirectoryPath;
-- (NSURL *)URLByResolvingSymlinksInPath;
-- (NSURL *)URLByStandardizingPath;
+- (NSURL *)URLByAppendingPathComponent:(NSString *)component isDirectory:(BOOL)isDirectory NS_AVAILABLE_MAC(10_7);
+- (nullable NSURL *)filePathURL NS_AVAILABLE_MAC(10_6);
+- (BOOL)hasDirectoryPath NS_AVAILABLE_MAC(10_11);
+- (NSURL *)URLByResolvingSymlinksInPath NS_AVAILABLE_MAC(10_6);
+- (NSURL *)URLByStandardizingPath NS_AVAILABLE_MAC(10_6);
 
 /* QUERYING. This system has NO file-REFERENCE namespace (Apple's `file:/.file/id=…`), so a URL here is
  * never one and -isFileReferenceURL answers NO rather than pretending (the ground is at NSURL.m). */
-- (BOOL)isFileReferenceURL;
+- (BOOL)isFileReferenceURL NS_AVAILABLE_MAC(10_6);
 - (nullable NSURL *)fileURL;
 
 /* DEPRECATED (Apple 10.4). `-initWithScheme:host:path:` is PURE - it builds a spelling and parses it,
@@ -203,10 +203,10 @@ typedef NSString *NSURLFileResourceType;
  * that was SET reads back from the bag BEFORE NSURLHandle would load. `-resourceDataUsingCache:`,
  * `-loadResourceDataNotifyingClient:usingCache:` and `-setResourceData:` stay OPEN: observing the first two
  * needs a load (a live fetch), and the third writes a body no door of this class reads back. */
-- (nullable instancetype)initWithScheme:(NSString *)scheme host:(nullable NSString *)host path:(NSString *)path;
-- (nullable NSURLHandle *)URLHandleUsingCache:(BOOL)shouldUseCache;
-- (nullable id)propertyForKey:(NSString *)propertyKey;
-- (void)setProperty:(nullable id)propertyValue forKey:(NSString *)propertyKey;
+- (nullable instancetype)initWithScheme:(NSString *)scheme host:(nullable NSString *)host path:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_11);
+- (nullable NSURLHandle *)URLHandleUsingCache:(BOOL)shouldUseCache NS_DEPRECATED_MAC(10_0, 10_4);
+- (nullable id)propertyForKey:(NSString *)propertyKey NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)setProperty:(nullable id)propertyValue forKey:(NSString *)propertyKey NS_DEPRECATED_MAC(10_0, 10_4);
 /* DEPRECATED (Apple 10.4), AND PURE: the path's `;`-separated parameter string (RFC 2396 §3.3's `segment`
  * tail), taken RAW from the parse exactly as -query/-fragment take theirs. nil when the path has no ';'. */
 - (nullable NSString *)parameterString;
@@ -238,11 +238,11 @@ typedef NSString *NSURLFileResourceType;
  */
 - (BOOL)getResourceValue:(id _Nullable * _Nullable)value
 		  forKey:(NSURLResourceKey)key
-		   error:(NSError ** _Nullable)error;
+		   error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
 /* THE COLLECTIONS ARE THIS LIBRARY'S OWN AND CARRY NO GENERIC PARAMETERS (measured: `NSArray` here has
  * no type argument), so the shape is Cocoa's door with this tree's container spelling. */
 - (nullable NSDictionary *)resourceValuesForKeys:(NSArray *)keys
-					   error:(NSError ** _Nullable)error;
+					   error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
 /* ---- SETTING RESOURCE VALUES, WHERE A REFUSAL IS A NO-OP AND NOT AN ERROR (W8 slice 6b) ---------
  *
  * APPLE'S OWN SENTENCE FOR BOTH SETTERS, AND IT DECIDES THE DESIGN: "Attempts to set a read-only
@@ -270,13 +270,13 @@ typedef NSString *NSURLFileResourceType;
  */
 - (BOOL)setResourceValue:(nullable id)value
 		  forKey:(NSURLResourceKey)key
-		   error:(NSError ** _Nullable)error;
-- (BOOL)setResourceValues:(NSDictionary *)keyedValues error:(NSError ** _Nullable)error;
+		   error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
+- (BOOL)setResourceValues:(NSDictionary *)keyedValues error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
 
-- (BOOL)checkResourceIsReachableAndReturnError:(NSError ** _Nullable)error;
-- (void)removeCachedResourceValueForKey:(NSURLResourceKey)key;
-- (void)removeAllCachedResourceValues;
-- (void)setTemporaryResourceValue:(nullable id)value forKey:(NSURLResourceKey)key;
+- (BOOL)checkResourceIsReachableAndReturnError:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
+- (void)removeCachedResourceValueForKey:(NSURLResourceKey)key NS_AVAILABLE_MAC(10_9);
+- (void)removeAllCachedResourceValues NS_AVAILABLE_MAC(10_9);
+- (void)setTemporaryResourceValue:(nullable id)value forKey:(NSURLResourceKey)key NS_AVAILABLE_MAC(10_9);
 
 /* ⚠⚠ THE SECURITY-SCOPED PAIR, DECLARED ON THE CLASS BECAUSE THAT IS WHERE THE CORPUS HAS THEM, AND WITH THEIR
  * CONTRACT READ RATHER THAN GUESSED (§63.96's instrument, first applied in §63.103):
@@ -290,8 +290,8 @@ typedef NSString *NSURLFileResourceType;
  * NOT A REFUSAL** (§63.99's shape: `+canInflectLanguage:` answers NO rather than raising). And
  * `-stopAccessingSecurityScopedResource` "removes one 'accessing' reference… When all references are removed, it
  * revokes the access" — with none ever granted there is nothing to remove and nothing to revoke. */
-- (BOOL)startAccessingSecurityScopedResource;
-- (void)stopAccessingSecurityScopedResource;
+- (BOOL)startAccessingSecurityScopedResource NS_AVAILABLE_MAC(10_7);
+- (void)stopAccessingSecurityScopedResource NS_AVAILABLE_MAC(10_7);
 /* ⚠⚠ TWO OF THE DEPRECATED RESOURCE-DATA TRIO, AND THEY ARE **OWED** RATHER THAN SKIPPED: the user's policy of
  * 2026-09-26 un-deprecated everything Apple had deprecated, so an `API_DEPRECATED` on the other side changes what a row
  * means here and not whether it is ours.
@@ -307,8 +307,8 @@ typedef NSString *NSURLFileResourceType;
  * ASYNCHRONOUS load that registers a CLIENT for an informal protocol's notifications, and "only one such background
  * load can proceed at a time". **That needs the client-notification path measured before it is written, rather than
  * assumed — which is the mistake this campaign has paid for six times.** */
-- (nullable NSData *)resourceDataUsingCache:(BOOL)shouldUseCache;
-- (BOOL)setResourceData:(NSData *)data;
+- (nullable NSData *)resourceDataUsingCache:(BOOL)shouldUseCache NS_DEPRECATED_MAC(10_0, 10_4);
+- (BOOL)setResourceData:(NSData *)data NS_DEPRECATED_MAC(10_0, 10_4);
 /* ⚠⚠ THE LAST OF THE DEPRECATED RESOURCE-DATA TRIO, AND IT IS IMPLEMENTED RATHER THAN REFUSED, ON A MEASUREMENT
  * THAT CHANGED THE ANSWER (§63.110's instrument, taken before a line was written):
  *
@@ -326,7 +326,7 @@ typedef NSString *NSURLFileResourceType;
  * when the notification arrives — including “only one such background load at a time”, which is trivially true for
  * a load that does not outlive the call (§11.6.1 D2: our reading, written down). **A REFUSAL WOULD HAVE BEEN THE
  * WRONG SHAPE HERE: it is what a MISSING CAPABILITY gets, and this is a missing THREAD.** */
-- (void)loadResourceDataNotifyingClient:(id)client usingCache:(BOOL)shouldUseCache;
+- (void)loadResourceDataNotifyingClient:(id)client usingCache:(BOOL)shouldUseCache NS_DEPRECATED_MAC(10_0, 10_4);
 @end
 
 extern NSURLResourceKey const NSURLNameKey;
@@ -674,27 +674,27 @@ extern NSURLResourceKey NSURLVolumeUUIDStringKey;
 @interface NSURL (NSURLBookmarks)
 + (nullable instancetype)URLByResolvingAliasFileAtURL:(NSURL *)url
 					      options:(NSURLBookmarkResolutionOptions)options
-						error:(NSError **)error;
+						error:(NSError **)error NS_AVAILABLE_MAC(10_10);
 + (nullable NSURL *)URLByResolvingBookmarkData:(NSData *)bookmarkData
 				       options:(NSURLBookmarkResolutionOptions)options
 				 relativeToURL:(nullable NSURL *)relativeURL
 			   bookmarkDataIsStale:(nullable BOOL *)isStale
-					 error:(NSError **)error;
-+ (nullable NSData *)bookmarkDataWithContentsOfURL:(NSURL *)bookmarkFileURL error:(NSError **)error;
-+ (nullable NSArray *)resourceValuesForKeys:(NSArray *)keys fromBookmarkData:(NSData *)data;
+					 error:(NSError **)error NS_AVAILABLE_MAC(10_6);
++ (nullable NSData *)bookmarkDataWithContentsOfURL:(NSURL *)bookmarkFileURL error:(NSError **)error NS_AVAILABLE_MAC(10_6);
++ (nullable NSArray *)resourceValuesForKeys:(NSArray *)keys fromBookmarkData:(NSData *)data NS_AVAILABLE_MAC(10_6);
 + (BOOL)writeBookmarkData:(NSData *)bookmarkData
 		    toURL:(NSURL *)bookmarkFileURL
 		  options:(NSURLBookmarkCreationOptions)options
-		    error:(NSError **)error;
+		    error:(NSError **)error NS_AVAILABLE_MAC(10_6);
 - (nullable NSData *)bookmarkDataWithOptions:(NSURLBookmarkCreationOptions)options
 	       includingResourceValuesForKeys:(nullable NSArray *)keys
 				relativeToURL:(nullable NSURL *)relativeURL
-					error:(NSError **)error;
+					error:(NSError **)error NS_AVAILABLE_MAC(10_6);
 - (nullable instancetype)initByResolvingBookmarkData:(NSData *)bookmarkData
 					    options:(NSURLBookmarkResolutionOptions)options
 				      relativeToURL:(nullable NSURL *)relativeURL
 				bookmarkDataIsStale:(nullable BOOL *)isStale
-					      error:(NSError **)error;
+					      error:(NSError **)error NS_AVAILABLE_MAC(10_6);
 @end
 
 /* ⚠⚠ THE PROMISED-ITEM TRIO, AND APPLE'S OWN COMMENTS FULLY SPECIFY THEM (§63.96's instrument, read from the
@@ -714,10 +714,10 @@ extern NSURLResourceKey NSURLVolumeUUIDStringKey;
 @interface NSURL (NSURLPromisedItems)
 - (BOOL)getPromisedItemResourceValue:(id _Nullable * _Nonnull)value
 			      forKey:(NSURLResourceKey)key
-			       error:(NSError **)error;
+			       error:(NSError **)error NS_AVAILABLE_MAC(10_10);
 - (nullable NSDictionary *)promisedItemResourceValuesForKeys:(NSArray *)keys
-									    error:(NSError **)error;
-- (BOOL)checkPromisedItemIsReachableAndReturnError:(NSError **)error;
+									    error:(NSError **)error NS_AVAILABLE_MAC(10_10);
+- (BOOL)checkPromisedItemIsReachableAndReturnError:(NSError **)error NS_AVAILABLE_MAC(10_10);
 @end
 
 NS_ASSUME_NONNULL_END

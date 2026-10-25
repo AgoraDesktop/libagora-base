@@ -70,14 +70,14 @@ typedef NS_ENUM(NSUInteger, NSURLCredentialPersistence) {
  */
 + (instancetype)credentialWithIdentity:(void *)identity
 			  certificates:(nullable NSArray *)certArray
-			   persistence:(NSURLCredentialPersistence)persistence;
+			   persistence:(NSURLCredentialPersistence)persistence NS_AVAILABLE_MAC(10_6);
 - (instancetype)initWithIdentity:(void *)identity
 		    certificates:(nullable NSArray *)certArray
-		     persistence:(NSURLCredentialPersistence)persistence;
-+ (instancetype)credentialForTrust:(void *)trust;
-- (instancetype)initWithTrust:(void *)trust;
+		     persistence:(NSURLCredentialPersistence)persistence NS_AVAILABLE_MAC(10_6);
++ (instancetype)credentialForTrust:(void *)trust NS_AVAILABLE_MAC(10_6);
+- (instancetype)initWithTrust:(void *)trust NS_AVAILABLE_MAC(10_6);
 - (nullable void *)identity;
-- (nullable NSArray *)certificates;
+- (nullable NSArray *)certificates NS_AVAILABLE_MAC(10_6);
 
 @end
 

@@ -138,7 +138,7 @@ NS_ASSUME_NONNULL_BEGIN
  *   `NSEdgeInsets` — its encoding is "{NSEdgeInsets=dddd}". The LAYOUT is identical (four CGFloat, 32 bytes)
  *   but -objCType EXPOSES the string, so a value boxed here differs from Apple's in that string and in
  *   -isEqualToValue: against an Apple-built one. Retagging the struct is NSGeometry.h's, not this file's. */
-+ (NSValue *)valueWithEdgeInsets:(NSEdgeInsets)insets;
++ (NSValue *)valueWithEdgeInsets:(NSEdgeInsets)insets NS_AVAILABLE_MAC(10_10);
 
 - (void)getValue:(void *)value;
 /* Copies at most `size` bytes, and the encoding must fit: Cocoa's own door, for a caller with a
@@ -153,7 +153,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSPoint)pointValue;
 - (NSSize)sizeValue;
 - (NSRect)rectValue;
-- (NSEdgeInsets)edgeInsetsValue;
+- (NSEdgeInsets)edgeInsetsValue NS_AVAILABLE_MAC(10_10);
 
 - (BOOL)isEqualToValue:(NSValue *)value;
 - (BOOL)isEqual:(nullable id)other;

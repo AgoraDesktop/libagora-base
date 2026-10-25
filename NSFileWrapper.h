@@ -81,6 +81,7 @@ typedef enum {
 	NSFileWrapperWritingWithNameUpdating = 1 << 1
 } NSFileWrapperWritingOptions;
 
+NS_CLASS_AVAILABLE_MAC(10_0)
 @interface NSFileWrapper : NSObject <NSSecureCoding>
 {
 	NSUInteger _kind;			/* regular, directory or symbolic link */
@@ -102,13 +103,13 @@ typedef enum {
  * error, which is why this one has an error channel and `-initWithPath:` does not (Apple's own shape). */
 - (nullable instancetype)initWithURL:(NSURL *)url
 			     options:(NSFileWrapperReadingOptions)options
-			       error:(NSError ** _Nullable)error;
-- (nullable instancetype)initWithPath:(NSString *)path;
+			       error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
+- (nullable instancetype)initWithPath:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_10);
 
 - (instancetype)initDirectoryWithFileWrappers:(nullable NSDictionary *)childrenByPreferredName;
 - (instancetype)initRegularFileWithContents:(NSData *)contents;
-- (instancetype)initSymbolicLinkWithDestination:(NSString *)path;
-- (instancetype)initSymbolicLinkWithDestinationURL:(NSURL *)url;
+- (instancetype)initSymbolicLinkWithDestination:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_10);
+- (instancetype)initSymbolicLinkWithDestinationURL:(NSURL *)url NS_AVAILABLE_MAC(10_6);
 
 /* ---- WHAT IT IS --------------------------------------------------------------------------------- */
 
@@ -126,18 +127,18 @@ typedef enum {
  * RAISES, and so does a child with no preferred name to offer — Apple's own two sentences. */
 - (NSString *)addFileWrapper:(NSFileWrapper *)child;
 - (void)removeFileWrapper:(NSFileWrapper *)child;
-- (NSString *)addFileWithPath:(NSString *)path;
+- (NSString *)addFileWithPath:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_10);
 - (NSString *)addRegularFileWithContents:(NSData *)contents
 		       preferredFilename:(NSString *)preferredFilename;
 - (NSString *)addSymbolicLinkWithDestination:(NSString *)path
-			   preferredFilename:(NSString *)preferredFilename;
+			   preferredFilename:(NSString *)preferredFilename NS_DEPRECATED_MAC(10_0, 10_10);
 
 - (nullable NSString *)keyForChildFileWrapper:(NSFileWrapper *)child;
 
 /* ---- A LINK'S TARGET ---------------------------------------------------------------------------- */
 
-- (nullable NSString *)symbolicLinkDestination;
-- (nullable NSURL *)symbolicLinkDestinationURL;
+- (nullable NSString *)symbolicLinkDestination NS_DEPRECATED_MAC(10_0, 10_10);
+- (nullable NSURL *)symbolicLinkDestinationURL NS_AVAILABLE_MAC(10_6);
 
 /* ---- READING AND WRITING THE TREE ---------------------------------------------------------------- */
 
@@ -146,13 +147,13 @@ typedef enum {
  * receiver held rather than merging into it. */
 - (BOOL)readFromURL:(NSURL *)url
 	    options:(NSFileWrapperReadingOptions)options
-	      error:(NSError ** _Nullable)error;
+	      error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
 
 /* "Indicates whether the file wrapper needs to be updated to match a given file-system node" - the
  * question a document asks before paying for a reread. */
-- (BOOL)needsToBeUpdatedFromPath:(NSString *)path;
-- (BOOL)matchesContentsOfURL:(NSURL *)url;
-- (BOOL)updateFromPath:(NSString *)path;
+- (BOOL)needsToBeUpdatedFromPath:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_10);
+- (BOOL)matchesContentsOfURL:(NSURL *)url NS_AVAILABLE_MAC(10_6);
+- (BOOL)updateFromPath:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_10);
 
 /* TO DISK, RECURSIVELY. `originalContentsURL` is the location this wrapper was read from, and Apple's
  * purpose for it is to avoid rewriting what did not change: a regular file whose bytes are identical to
@@ -160,7 +161,7 @@ typedef enum {
 - (BOOL)writeToURL:(NSURL *)url
 	   options:(NSFileWrapperWritingOptions)options
 originalContentsURL:(nullable NSURL *)originalContentsURL
-	     error:(NSError ** _Nullable)error;
+	     error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
 
 /* ---- WHAT IT IS CALLED, AND WHAT WAS READ ABOUT IT ---------------------------------------------- */
 
@@ -207,7 +208,7 @@ originalContentsURL:(nullable NSURL *)originalContentsURL
 /* §63.214: the pre-10.6 write door, which delegates to the modern writer rather than growing a second one. */
 - (BOOL)writeToFile:(NSString *)path
 	 atomically:(BOOL)useAuxiliaryFile
-    updateFilenames:(BOOL)updateFilenamesFlag;
+    updateFilenames:(BOOL)updateFilenamesFlag NS_DEPRECATED_MAC(10_0, 10_10);
 @end
 
 NS_ASSUME_NONNULL_END

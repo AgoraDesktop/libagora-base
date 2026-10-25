@@ -68,8 +68,8 @@ typedef NS_ENUM(NSUInteger, NSSaveOptions) {
 
 @property NSInteger scriptErrorNumber;
 @property (nullable, copy) NSString *scriptErrorString;
-@property (nullable, strong) NSAppleEventDescriptor *scriptErrorExpectedTypeDescriptor;
-@property (nullable, strong) id scriptErrorOffendingObjectDescriptor;
+@property (nullable, strong) NSAppleEventDescriptor *scriptErrorExpectedTypeDescriptor NS_AVAILABLE_MAC(10_5);
+@property (nullable, strong) id scriptErrorOffendingObjectDescriptor NS_AVAILABLE_MAC(10_5);
 
 - (BOOL)suspendExecution;
 - (void)resumeExecutionWithResult:(nullable id)result;

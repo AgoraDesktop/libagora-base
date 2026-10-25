@@ -54,6 +54,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /* The class's ONE published method: Apple lists `init?(coder:)` under Initializers and nothing else, so
  * it is declared here rather than left to the protocol - the published surface is the specification. */
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSFileSecurity : NSObject <NSCopying, NSSecureCoding>
 
 - (nullable instancetype)initWithCoder:(NSCoder *)coder;

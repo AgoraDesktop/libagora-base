@@ -93,6 +93,7 @@ typedef unsigned long NSDateComponentsFormatterZeroFormattingBehavior;
 	 NSDateComponentsFormatterZeroFormattingBehaviorDropTrailing)
 #define NSDateComponentsFormatterZeroFormattingBehaviorPad		(1UL << 16)
 
+NS_CLASS_AVAILABLE_MAC(10_10)
 @interface NSDateComponentsFormatter : NSFormatter
 {
 	NSCalendarUnit _allowedUnits;

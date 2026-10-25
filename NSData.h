@@ -192,8 +192,8 @@ enum {
 - (nullable id)initWithContentsOfFile:(NSString *)path;
 - (nullable id)initWithContentsOfFile:(NSString *)path options:(NSDataReadingOptions)options error:(NSError * _Nullable * _Nullable)errorPtr;
 - (nullable id)initWithBase64EncodedString:(NSString *)string
-			  options:(NSDataBase64DecodingOptions)options;
-- (nullable id)initWithBase64EncodedData:(NSData *)base64Data options:(NSDataBase64DecodingOptions)options;
+			  options:(NSDataBase64DecodingOptions)options NS_AVAILABLE_MAC(10_9);
+- (nullable id)initWithBase64EncodedData:(NSData *)base64Data options:(NSDataBase64DecodingOptions)options NS_AVAILABLE_MAC(10_9);
 
 @property (readonly) size_t length;
 @property (nullable, readonly) const void *bytes;
@@ -203,17 +203,17 @@ enum {
 /* THE DEPRECATED PAIR AND THE LEGACY VOID BYTE DOOR (§63.191). They stand on the doors above: the pair is
  * `-base64EncodedStringWithOptions:` and `-initWithBase64EncodedString:options:` with default options, and
  * the void form copies the whole length into a buffer the caller already sized. */
-- (nullable NSString *)base64Encoding;				/* ⚠ deprecated: use the options doors above */
-- (nullable id)initWithBase64Encoding:(NSString *)base64String;	/* ⚠ deprecated */
-- (void)getBytes:(void *)buffer;				/* ⚠ legacy: no length, so the caller must know it */
+- (nullable NSString *)base64Encoding NS_DEPRECATED_MAC(10_6, 10_9);				/* ⚠ deprecated: use the options doors above */
+- (nullable id)initWithBase64Encoding:(NSString *)base64String NS_DEPRECATED_MAC(10_6, 10_9);	/* ⚠ deprecated */
+- (void)getBytes:(void *)buffer NS_DEPRECATED_MAC(10_0, 10_10);				/* ⚠ legacy: no length, so the caller must know it */
 
 /* THE MAPPED FILE PAIR. ⚠ A NAMED DEVIATION, MEASURED RATHER THAN CHOSEN: on this system a MAP_SHARED
  * mapping of a file answers the right LENGTH and ZERO BYTES (the probe's own check read `[]` for a ten-byte
  * file), so these doors read the file instead of mapping it. What they must not do is claim a sharing
  * property the platform does not provide: the bytes are the file's, and nothing observes a later write.
  * ⚠ Also deprecated in Apple's SDKs, in favour of the options forms. */
-+ (nullable instancetype)dataWithContentsOfMappedFile:(NSString *)path;	/* ⚠ deprecated */
-- (nullable id)initWithContentsOfMappedFile:(NSString *)path;		/* ⚠ deprecated */
++ (nullable instancetype)dataWithContentsOfMappedFile:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_10);	/* ⚠ deprecated */
+- (nullable id)initWithContentsOfMappedFile:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_10);		/* ⚠ deprecated */
 
 /* THE OWNERSHIP-TRANSFERRING FORM. ⚠ THIS LIBRARY'S STORAGE IS ONE OWNED BLOCK, so the bytes are copied —
  * the same reason -initWithBytesNoCopy:length:freeWhenDone: copies — and the transfer is honoured where it
@@ -222,17 +222,17 @@ enum {
  * being used in place would not. */
 - (nullable id)initWithBytesNoCopy:(void *)bytes
 			    length:(size_t)length
-		       deallocator:(void (^)(void *bytes, size_t length))deallocator;
+		       deallocator:(void (^)(void *bytes, size_t length))deallocator NS_AVAILABLE_MAC(10_9);
 - (NSData *)subdataWithRange:(NSRange)range;
 - (NSRange)rangeOfData:(NSData *)other
 	       options:(NSDataSearchOptions)options
-		 range:(NSRange)range;
+		 range:(NSRange)range NS_AVAILABLE_MAC(10_6);
 
-- (NSString *)base64EncodedStringWithOptions:(NSDataBase64EncodingOptions)options;
-- (NSData *)base64EncodedDataWithOptions:(NSDataBase64EncodingOptions)options;
+- (NSString *)base64EncodedStringWithOptions:(NSDataBase64EncodingOptions)options NS_AVAILABLE_MAC(10_9);
+- (NSData *)base64EncodedDataWithOptions:(NSDataBase64EncodingOptions)options NS_AVAILABLE_MAC(10_9);
 - (BOOL)writeToFile:(NSString *)path atomically:(BOOL)useAuxiliaryFile;
 - (BOOL)writeToFile:(NSString *)path options:(NSDataWritingOptions)options error:(NSError * _Nullable * _Nullable)errorPtr;
-- (void)enumerateByteRangesUsingBlock:(void (^)(const void *bytes, NSRange byteRange, BOOL *stop))block;
+- (void)enumerateByteRangesUsingBlock:(void (^)(const void *bytes, NSRange byteRange, BOOL *stop))block NS_AVAILABLE_MAC(10_9);
 
 /*
  * THE COMPRESSION FORMS (F12). This is a BINDING and not a rule: DEFLATE is a table of Huffman

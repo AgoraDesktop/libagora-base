@@ -60,6 +60,7 @@ NS_ASSUME_NONNULL_BEGIN
  * pointer read for the others.
  * =================================================================================================== */
 
+NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSPointerArray : NSObject <NSCopying, NSFastEnumeration, NSSecureCoding>
 {
 	void **_items;			/* the slots */
@@ -72,8 +73,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithOptions:(NSPointerFunctionsOptions)options;
 - (instancetype)initWithPointerFunctions:(NSPointerFunctions *)functions;
 
-+ (instancetype)strongObjectsPointerArray;
-+ (instancetype)weakObjectsPointerArray;
++ (instancetype)strongObjectsPointerArray NS_AVAILABLE_MAC(10_8);
++ (instancetype)weakObjectsPointerArray NS_AVAILABLE_MAC(10_8);
 
 /* The functions in use. It is the object the caller passed, or the one the options built. */
 - (NSPointerFunctions *)pointerFunctions;

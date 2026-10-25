@@ -66,6 +66,7 @@ typedef enum {
 	NSFileVersionReplacingByMoving = 1 << 0,
 } NSFileVersionReplacingOptions;
 
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSFileVersion : NSObject
 {
 	NSURL *_url;			/* the item this version describes (retained) */
@@ -99,10 +100,10 @@ typedef enum {
 + (nullable NSFileVersion *)addVersionOfItemAtURL:(NSURL *)url
 				   withContentsOfURL:(NSURL *)contentsURL
 					   options:(NSFileVersionAddingOptions)options
-					     error:(NSError ** _Nullable)error;
-+ (nullable NSURL *)temporaryDirectoryURLForNewVersionOfItemAtURL:(NSURL *)url;
+					     error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_7);
++ (nullable NSURL *)temporaryDirectoryURLForNewVersionOfItemAtURL:(NSURL *)url NS_AVAILABLE_MAC(10_7);
 + (void)getNonlocalVersionsOfItemAtURL:(NSURL *)url
-		     completionHandler:(void (^)(NSArray * _Nullable nonlocalVersions, NSError * _Nullable error))completionHandler;
+		     completionHandler:(void (^)(NSArray * _Nullable nonlocalVersions, NSError * _Nullable error))completionHandler NS_AVAILABLE_MAC(10_10);
 
 /* "The URL of the version of the file or directory" */
 - (NSURL *)URL;
@@ -116,9 +117,9 @@ typedef enum {
  * nothing for a conflict to be between. */
 - (BOOL)isConflict;
 /* "Whether the version's contents are available locally" */
-- (BOOL)hasLocalContents;
+- (BOOL)hasLocalContents NS_AVAILABLE_MAC(10_10);
 /* "Whether the version has a thumbnail" - there is no thumbnail machinery here, so never. */
-- (BOOL)hasThumbnail;
+- (BOOL)hasThumbnail NS_AVAILABLE_MAC(10_10);
 /* "Removes this version from the store" - REFUSED, and the current version is why: the store cannot lose
  * the version that IS the file. */
 - (BOOL)removeAndReturnError:(NSError ** _Nullable)outError;

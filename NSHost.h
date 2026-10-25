@@ -74,16 +74,16 @@ NS_SWIFT_NAME(Host)
 @property (readonly) NSArray *names;
 /* "The name used by default when publishing the receiver via NSNetServices" — the first of the names here, and
  * nil when the host has none. */
-@property (nullable, readonly) NSString *localizedName;
+@property (nullable, readonly) NSString *localizedName NS_AVAILABLE_MAC(10_6);
 
 /* TWO HOSTS ARE ONE HOST WHEN THEY SHARE AN ADDRESS — the only identity question that means anything when the
  * names are aliases and the addresses are what a connection is actually made to. */
 - (BOOL)isEqualToHost:(NSHost *)aHost;
 
 /* THE CACHE DOORS, ANSWERING AS APPLE DOCUMENTS THAT THERE IS NO CACHE (above). */
-+ (BOOL)isHostCacheEnabled;
-+ (void)setHostCacheEnabled:(BOOL)flag;
-+ (void)flushHostCache;
++ (BOOL)isHostCacheEnabled NS_DEPRECATED_MAC(10_0, 10_7);
++ (void)setHostCacheEnabled:(BOOL)flag NS_DEPRECATED_MAC(10_0, 10_7);
++ (void)flushHostCache NS_DEPRECATED_MAC(10_0, 10_7);
 
 @end
 

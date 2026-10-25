@@ -118,9 +118,9 @@ __attribute__((swift_bridge("Swift.Array")))
 @property (readonly) NSUInteger count;
 - (ObjectType)objectAtIndex:(NSUInteger)index;
 /* Cocoa's subscript: `array[0]` lowers to this. */
-- (ObjectType)objectAtIndexedSubscript:(NSUInteger)index;
+- (ObjectType)objectAtIndexedSubscript:(NSUInteger)index NS_AVAILABLE_MAC(10_8);
 
-@property (nullable, readonly) ObjectType firstObject;
+@property (nullable, readonly) ObjectType firstObject NS_AVAILABLE_MAC(10_6);
 @property (nullable, readonly) ObjectType lastObject;
 /* NSNotFound for a missing element — NOT (NSUInteger)-1, which is what this
  * answered before the audit and which never equals NSNotFound. */
@@ -142,15 +142,15 @@ __attribute__((swift_bridge("Swift.Array")))
 - (NSUInteger)indexOfObject:(ObjectType)object
 		   inSortedRange:(NSRange)range
 			   options:(NSBinarySearchingOptions)options
-		   usingComparator:(NSComparator)comparator;
+		   usingComparator:(NSComparator)comparator NS_AVAILABLE_MAC(10_6);
 
 - (NSString *)componentsJoinedByString:(NSString *)separator;
 - (NSArray<ObjectType> *)sortedArrayUsingSelector:(SEL)comparator;
-- (NSArray<ObjectType> *)sortedArrayUsingComparator:(NSComparator)comparator;
+- (NSArray<ObjectType> *)sortedArrayUsingComparator:(NSComparator)comparator NS_AVAILABLE_MAC(10_6);
 /* THE OPTIONS FORM (§62.104). `NSSortStable` is honoured by the algorithm this library already sorts with
  * (NSObjCRuntime.h's note says which, and the probe MEASURES it); `NSSortConcurrent` is a hint nothing here
  * takes, so a caller who passes it gets a correct, sequential answer. */
-- (NSArray<ObjectType> *)sortedArrayWithOptions:(NSSortOptions)options usingComparator:(NSComparator)comparator;
+- (NSArray<ObjectType> *)sortedArrayWithOptions:(NSSortOptions)options usingComparator:(NSComparator)comparator NS_AVAILABLE_MAC(10_6);
 /* THE DESCRIPTOR FORMS (F10). `sortDescriptors` is an ARRAY because a sort is a CHAIN: the first
  * descriptor decides, a tie falls to the second, and a tie that survives the whole chain keeps
  * the INPUT order — the sort is STABLE, which the probe measures directly. The C-function form
@@ -158,7 +158,7 @@ __attribute__((swift_bridge("Swift.Array")))
 - (NSArray *)sortedArrayUsingDescriptors:(NSArray *)sortDescriptors;
 - (NSArray<ObjectType> *)sortedArrayUsingFunction:(NSInteger (*)(ObjectType, ObjectType, void *))comparator
 			      context:(nullable void *)context;
-- (void)enumerateObjectsUsingBlock:(void (^)(ObjectType object, NSUInteger index, BOOL *stop))block;
+- (void)enumerateObjectsUsingBlock:(void (^)(ObjectType object, NSUInteger index, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 
 /* SEND A MESSAGE TO EVERY ELEMENT, in order, starting with the first. The one-argument form sends a
  * no-argument message; the other passes `argument` to each (nullable, as Apple declares it). */
@@ -172,8 +172,8 @@ __attribute__((swift_bridge("Swift.Array")))
 /* THE FIRST MATCH, and it STOPS at it (§63.8): the walk must not keep calling a caller's predicate after the
  * answer is known, because a predicate may have side effects and Apple's contract is the lowest matching
  * index rather than a survey of them. The indexes form below is the exhaustive one on purpose. */
-- (NSUInteger)indexOfObjectPassingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate;
-- (NSIndexSet *)indexesOfObjectsPassingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate;
+- (NSUInteger)indexOfObjectPassingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
+- (NSIndexSet *)indexesOfObjectsPassingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 
 /* THE PREDICATE FILTER (F11a): the elements the predicate answers YES for, in order. The
  * returned array is NEW and the receiver is untouched — Cocoa's rule everywhere here. */
@@ -186,20 +186,20 @@ __attribute__((swift_bridge("Swift.Array")))
  * correct SEQUENTIAL answer. The `-…WithOptions:passingTest:` forms STOP at the first match exactly as
  * their non-options twins do, and for the reason those document: a predicate may have side effects. */
 - (void)enumerateObjectsWithOptions:(NSEnumerationOptions)opts
-			 usingBlock:(void (^)(ObjectType object, NSUInteger index, BOOL *stop))block;
+			 usingBlock:(void (^)(ObjectType object, NSUInteger index, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 - (void)enumerateObjectsAtIndexes:(NSIndexSet *)indexes
 			  options:(NSEnumerationOptions)opts
-		       usingBlock:(void (^)(ObjectType object, NSUInteger index, BOOL *stop))block;
+		       usingBlock:(void (^)(ObjectType object, NSUInteger index, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 - (NSUInteger)indexOfObjectWithOptions:(NSEnumerationOptions)opts
-			   passingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate;
+			   passingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSUInteger)indexOfObjectAtIndexes:(NSIndexSet *)indexes
 			     options:(NSEnumerationOptions)opts
-			 passingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate;
+			 passingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSIndexSet *)indexesOfObjectsWithOptions:(NSEnumerationOptions)opts
-				passingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate;
+				passingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSIndexSet *)indexesOfObjectsAtIndexes:(NSIndexSet *)indexes
 				  options:(NSEnumerationOptions)opts
-			      passingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate;
+			      passingTest:(BOOL (^)(ObjectType object, NSUInteger index, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 
 /* --- §63.45: THE DESCRIPTION, PATHNAME, SHUFFLE AND HINT DOORS --------------------------------------
  *
@@ -285,8 +285,8 @@ __attribute__((swift_bridge("Swift.Array")))
 - (void)replaceObjectsInRange:(NSRange)range
 	 withObjectsFromArray:(NSArray<ObjectType> *)other
 			  range:(NSRange)otherRange;
-- (void)sortUsingComparator:(NSComparator)comparator;
-- (void)sortWithOptions:(NSSortOptions)options usingComparator:(NSComparator)comparator;
+- (void)sortUsingComparator:(NSComparator)comparator NS_AVAILABLE_MAC(10_6);
+- (void)sortWithOptions:(NSSortOptions)options usingComparator:(NSComparator)comparator NS_AVAILABLE_MAC(10_6);
 - (void)sortUsingSelector:(SEL)comparator;
 - (void)sortUsingDescriptors:(NSArray *)sortDescriptors;
 - (void)sortUsingFunction:(NSInteger (*)(ObjectType, ObjectType, void *))comparator context:(nullable void *)context;
@@ -300,7 +300,7 @@ __attribute__((swift_bridge("Swift.Array")))
 - (void)replaceObjectsAtIndexes:(NSIndexSet *)indexes withObjects:(NSArray<ObjectType> *)objects;
 
 /* `array[i] = x`: replaces, and APPENDS when i == count (Cocoa's rule). */
-- (void)setObject:(ObjectType)object atIndexedSubscript:(NSUInteger)index;
+- (void)setObject:(ObjectType)object atIndexedSubscript:(NSUInteger)index NS_AVAILABLE_MAC(10_8);
 
 NS_ASSUME_NONNULL_END
 
@@ -311,7 +311,7 @@ NS_ASSUME_NONNULL_END
  * assumed about hashability. `-removeObjectsFromIndices:numIndices:` is the deprecated one (OWED, per
  * dec-1a00739ebd0bdc05) and it SORTS THE INDICES DESCENDING FIRST, which is the whole hazard of that door. */
 - (void)removeObjectsInArray:(NSArray<ObjectType> * _Nonnull)otherArray;
-- (void)removeObjectsFromIndices:(NSUInteger * _Nonnull)indices numIndices:(NSUInteger)count;
+- (void)removeObjectsFromIndices:(NSUInteger * _Nonnull)indices numIndices:(NSUInteger)count NS_DEPRECATED_MAC(10_0, 10_6);
 @end
 
 #endif /* FOUNDATION_NSARRAY_H */

@@ -51,6 +51,7 @@ typedef NSPointerFunctionsOptions NSMapTableOptions;
 #define NSMapTableObjectPointerPersonality	NSPointerFunctionsObjectPointerPersonality
 #define NSMapTableWeakMemory			NSPointerFunctionsWeakMemory
 
+NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSMapTable<KeyType, ObjectType> : NSObject <NSCopying, NSFastEnumeration, NSSecureCoding>
 {
 	FNPointerTable *_table;
@@ -73,14 +74,14 @@ typedef NSPointerFunctionsOptions NSMapTableOptions;
 /* THE 10.6 SPELLINGS. Apple's 10.6 header carries only these four names (`+mapTableWithStrongToStrongObjects`
  * and its three siblings); the `...ObjectsMapTable` family above arrived later and is what this class implemented
  * first. Both spellings are here, and the old ones delegate, so a program written against either header runs. */
-+ (NSMapTable<KeyType, ObjectType> *)mapTableWithStrongToStrongObjects;
-+ (NSMapTable<KeyType, ObjectType> *)mapTableWithWeakToStrongObjects;
-+ (NSMapTable<KeyType, ObjectType> *)mapTableWithStrongToWeakObjects;
-+ (NSMapTable<KeyType, ObjectType> *)mapTableWithWeakToWeakObjects;
-+ (NSMapTable<KeyType, ObjectType> *)strongToStrongObjectsMapTable;
-+ (NSMapTable<KeyType, ObjectType> *)weakToStrongObjectsMapTable;
-+ (NSMapTable<KeyType, ObjectType> *)strongToWeakObjectsMapTable;
-+ (NSMapTable<KeyType, ObjectType> *)weakToWeakObjectsMapTable;
++ (NSMapTable<KeyType, ObjectType> *)mapTableWithStrongToStrongObjects NS_DEPRECATED_MAC(10_5, 10_8);
++ (NSMapTable<KeyType, ObjectType> *)mapTableWithWeakToStrongObjects NS_DEPRECATED_MAC(10_5, 10_8);
++ (NSMapTable<KeyType, ObjectType> *)mapTableWithStrongToWeakObjects NS_DEPRECATED_MAC(10_5, 10_8);
++ (NSMapTable<KeyType, ObjectType> *)mapTableWithWeakToWeakObjects NS_DEPRECATED_MAC(10_5, 10_8);
++ (NSMapTable<KeyType, ObjectType> *)strongToStrongObjectsMapTable NS_AVAILABLE_MAC(10_8);
++ (NSMapTable<KeyType, ObjectType> *)weakToStrongObjectsMapTable NS_AVAILABLE_MAC(10_8);
++ (NSMapTable<KeyType, ObjectType> *)strongToWeakObjectsMapTable NS_AVAILABLE_MAC(10_8);
++ (NSMapTable<KeyType, ObjectType> *)weakToWeakObjectsMapTable NS_AVAILABLE_MAC(10_8);
 
 - (NSPointerFunctions *)keyPointerFunctions;
 - (NSPointerFunctions *)valuePointerFunctions;

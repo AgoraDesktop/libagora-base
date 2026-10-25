@@ -110,8 +110,8 @@ extern NSInteger const NSFileProviderErrorDeletionRejected;
  * library's WILDCARD — "the provider for every domain" — and it is a stated reading: Apple's documentation
  * says a provider is asked when the dictionary has no value, and does not spell the nil-domain case out. */
 + (void)setUserInfoValueProviderForDomain:(nullable NSErrorDomain)domain
-				 provider:(nullable NSErrorUserInfoValueProvider)provider;
-+ (nullable NSErrorUserInfoValueProvider)userInfoValueProviderForDomain:(nullable NSErrorDomain)domain;
+				 provider:(nullable NSErrorUserInfoValueProvider)provider NS_AVAILABLE_MAC(10_11);
++ (nullable NSErrorUserInfoValueProvider)userInfoValueProviderForDomain:(nullable NSErrorDomain)domain NS_AVAILABLE_MAC(10_11);
 
 
 

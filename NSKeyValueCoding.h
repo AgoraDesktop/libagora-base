@@ -167,18 +167,18 @@ NS_ASSUME_NONNULL_BEGIN
  * that makes an archive of a properties dictionary possible.
  */
 + (BOOL)accessInstanceVariablesDirectly;
-- (nullable id)storedValueForKey:(NSString *)key;
-- (void)takeStoredValue:(nullable id)value forKey:(NSString *)key;
-- (void)takeValue:(nullable id)value forKey:(NSString *)key;
-- (void)takeValue:(nullable id)value forKeyPath:(NSString *)keyPath;
-- (void)takeValuesFromDictionary:(NSDictionary *)properties;
-- (NSArray *)valuesForKeys:(NSArray *)keys;
+- (nullable id)storedValueForKey:(NSString *)key NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)takeStoredValue:(nullable id)value forKey:(NSString *)key NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)takeValue:(nullable id)value forKey:(NSString *)key NS_DEPRECATED_MAC(10_0, 10_3);
+- (void)takeValue:(nullable id)value forKeyPath:(NSString *)keyPath NS_DEPRECATED_MAC(10_0, 10_3);
+- (void)takeValuesFromDictionary:(NSDictionary *)properties NS_DEPRECATED_MAC(10_0, 10_3);
+- (NSArray *)valuesForKeys:(NSArray *)keys NS_DEPRECATED_MAC(10_0, 10_3);
 - (NSDictionary *)dictionaryWithValuesForKeys:(NSArray *)keys;
 - (void)setValuesForKeysWithDictionary:(NSDictionary *)keyedValues;
-- (nullable id)handleQueryWithUnboundKey:(NSString *)key;
-- (void)handleTakeValue:(nullable id)value forUnboundKey:(NSString *)key;
-- (void)unableToSetNilForKey:(NSString *)key;
-- (BOOL)useStoredAccessor;
+- (nullable id)handleQueryWithUnboundKey:(NSString *)key NS_DEPRECATED_MAC(10_0, 10_3);
+- (void)handleTakeValue:(nullable id)value forUnboundKey:(NSString *)key NS_DEPRECATED_MAC(10_0, 10_3);
+- (void)unableToSetNilForKey:(NSString *)key NS_DEPRECATED_MAC(10_0, 10_3);
+- (BOOL)useStoredAccessor NS_DEPRECATED_MAC(10_0, 10_4);
 - (BOOL)validateValue:(id _Nullable * _Nullable)ioValue
 	    forKeyPath:(NSString *)keyPath
 		 error:(NSError * _Nullable * _Nullable)outError;

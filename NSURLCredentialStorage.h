@@ -80,11 +80,11 @@ extern NSString * const NSURLCredentialStorageChangedNotification;
  * options it honours, so both take their arguments and delegate — the reading is stated rather than implied. */
 - (void)removeCredential:(NSURLCredential *)credential
        forProtectionSpace:(NSURLProtectionSpace *)protectionSpace
-		 options:(NSDictionary * _Nonnull)options;
+		 options:(NSDictionary * _Nonnull)options NS_AVAILABLE_MAC(10_9);
 - (void)removeCredential:(NSURLCredential *)credential
        forProtectionSpace:(NSURLProtectionSpace *)protectionSpace
 		    options:(NSDictionary * _Nonnull)options
-		       task:(id _Nonnull)task;
+		       task:(id _Nonnull)task NS_AVAILABLE_MAC(10_10);
 @end
 
 NS_ASSUME_NONNULL_END

@@ -62,13 +62,13 @@ NS_ASSUME_NONNULL_BEGIN
  * compares the OBJECTS THEMSELVES rather than a value taken from them. That is the one case
  * where "which key" has an answer, and it is not a missing argument.
  */
-+ (instancetype)sortDescriptorWithKey:(nullable NSString *)key ascending:(BOOL)ascending;
++ (instancetype)sortDescriptorWithKey:(nullable NSString *)key ascending:(BOOL)ascending NS_AVAILABLE_MAC(10_6);
 + (instancetype)sortDescriptorWithKey:(nullable NSString *)key
 			    ascending:(BOOL)ascending
-			     selector:(nullable SEL)selector;
+			     selector:(nullable SEL)selector NS_AVAILABLE_MAC(10_6);
 + (instancetype)sortDescriptorWithKey:(nullable NSString *)key
 			    ascending:(BOOL)ascending
-			   comparator:(NSComparator)comparator;
+			   comparator:(NSComparator)comparator NS_AVAILABLE_MAC(10_6);
 
 - (instancetype)initWithKey:(nullable NSString *)key ascending:(BOOL)ascending;
 - (instancetype)initWithKey:(nullable NSString *)key
@@ -76,12 +76,12 @@ NS_ASSUME_NONNULL_BEGIN
 		   selector:(nullable SEL)selector;
 - (instancetype)initWithKey:(nullable NSString *)key
 		  ascending:(BOOL)ascending
-		 comparator:(NSComparator)comparator;
+		 comparator:(NSComparator)comparator NS_AVAILABLE_MAC(10_6);
 
 - (nullable NSString *)key;
 - (BOOL)ascending;
 - (nullable SEL)selector;
-- (nullable NSComparator)comparator;
+- (nullable NSComparator)comparator NS_AVAILABLE_MAC(10_6);
 
 /* The same descriptor with `ascending` flipped — the key and the comparison are untouched. */
 - (NSSortDescriptor *)reversedSortDescriptor;

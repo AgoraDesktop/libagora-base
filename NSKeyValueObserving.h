@@ -119,7 +119,7 @@ typedef NSUInteger NSKeyValueSetMutationKind;
 - (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath;
 - (void)removeObserver:(NSObject *)observer
 	    forKeyPath:(NSString *)keyPath
-	       context:(nullable void *)context;
+	       context:(nullable void *)context NS_AVAILABLE_MAC(10_7);
 
 /* The manual pair. Between them, the change is reported exactly once. */
 - (void)willChangeValueForKey:(NSString *)key;
@@ -162,8 +162,8 @@ typedef NSUInteger NSKeyValueSetMutationKind;
  * gets the notifications it asked for rather than a no-op.
  */
 + (BOOL)automaticallyNotifiesObserversForKey:(NSString *)key;
-+ (NSSet *)keyPathsForValuesAffectingValueForKey:(NSString *)key;
-- (void)setKeys:(NSArray *)keys triggerChangeNotificationsForDependentKey:(NSString *)dependentKey;
++ (NSSet *)keyPathsForValuesAffectingValueForKey:(NSString *)key NS_AVAILABLE_MAC(10_5);
+- (void)setKeys:(NSArray *)keys triggerChangeNotificationsForDependentKey:(NSString *)dependentKey NS_DEPRECATED_MAC(10_0, 10_5);
 
 @end
 
@@ -199,7 +199,7 @@ typedef NSUInteger NSKeyValueSetMutationKind;
 - (void)removeObserver:(NSObject *)observer
  fromObjectsAtIndexes:(NSIndexSet *)indexes
 	    forKeyPath:(NSString *)keyPath
-	       context:(nullable void *)context;
+	       context:(nullable void *)context NS_AVAILABLE_MAC(10_7);
 - (void)removeObserver:(NSObject *)observer
  fromObjectsAtIndexes:(NSIndexSet *)indexes
 	    forKeyPath:(NSString *)keyPath;

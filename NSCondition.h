@@ -27,6 +27,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 NS_SWIFT_NAME(NSCondition)
+NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSCondition : NSObject <NSLocking>
 {
 @private
@@ -40,7 +41,7 @@ NS_SWIFT_NAME(NSCondition)
 - (void)signal;
 - (void)broadcast;
 
-@property (nullable, copy) NSString *name;
+@property (nullable, copy) NSString *name NS_AVAILABLE_MAC(10_5);
 
 @end
 

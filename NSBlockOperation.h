@@ -41,6 +41,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 NS_SWIFT_NAME(BlockOperation)
+NS_CLASS_AVAILABLE_MAC(10_6)
 @interface NSBlockOperation : NSOperation
 {
 	NSMutableArray *_blocks;

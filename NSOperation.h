@@ -70,6 +70,7 @@ typedef enum {
 
 NS_ASSUME_NONNULL_BEGIN
 NS_SWIFT_NAME(Operation)
+NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSOperation : NSObject
 {
 	NSMutableArray *_dependencies;
@@ -98,7 +99,7 @@ NS_SWIFT_NAME(Operation)
 - (void)addDependency:(NSOperation *)operation;
 - (void)removeDependency:(NSOperation *)operation;
 - (NSArray *)dependencies;
-- (void)waitUntilFinished;
+- (void)waitUntilFinished NS_AVAILABLE_MAC(10_6);
 
 /*
  * THE 10.6 STATE DOORS. `-completionBlock` runs once after the operation finishes — including the case where it was
@@ -109,7 +110,7 @@ NS_SWIFT_NAME(Operation)
  */
 @property (copy, nullable) void (^completionBlock)(void);
 @property NSOperationQueuePriority queuePriority;
-@property double threadPriority;
+@property double threadPriority NS_DEPRECATED_MAC(10_6, 10_10);
 - (BOOL)isConcurrent;
 
 - (NSString *)description;

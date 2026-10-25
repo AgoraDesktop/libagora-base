@@ -56,6 +56,7 @@ typedef enum {
  * finished or should be deferred." */
 typedef void (^NSBackgroundActivityCompletionHandler)(NSBackgroundActivityResult result);
 
+NS_CLASS_AVAILABLE_MAC(10_10)
 @interface NSBackgroundActivityScheduler : NSObject
 {
 @protected

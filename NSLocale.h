@@ -90,7 +90,7 @@ extern NSString *const NSLocaleCountryCode;
 - (instancetype)initWithCoder:(NSCoder *)coder;
 
 + (instancetype)currentLocale;
-+ (nullable instancetype)localeWithLocaleIdentifier:(NSString *)identifier;
++ (nullable instancetype)localeWithLocaleIdentifier:(NSString *)identifier NS_AVAILABLE_MAC(10_6);
 
 /* ---- THE LOCALE SOURCES, AND THE ISO CODE CATALOGUES -----------------------------------------------
  *
@@ -102,7 +102,7 @@ extern NSString *const NSLocaleCountryCode;
 /* THE USER'S LOCALE, UPDATED WHEN IT CHANGES. There is no locale store to watch here — the process
  * environment IS the source (the same LC_ALL/LANG +currentLocale reads) — so this is a locale that
  * re-reads it on every access, which is what "autoupdating" can mean with no store behind it. */
-+ (NSLocale *)autoupdatingCurrentLocale;
++ (NSLocale *)autoupdatingCurrentLocale NS_AVAILABLE_MAC(10_5);
 
 /* THE SYSTEM'S LOCALE. ICU's `uloc_getDefault` is what a system sets — the same source NSTimeZone's
  * `+systemTimeZone` reads (`ucal_getDefaultTimeZone`) — so this is that default, canonicalised. */
@@ -113,12 +113,12 @@ extern NSString *const NSLocaleCountryCode;
 + (NSArray *)ISOLanguageCodes;
 + (NSArray *)ISOCountryCodes;
 + (NSArray *)ISOCurrencyCodes;
-+ (NSArray *)commonISOCurrencyCodes;
++ (NSArray *)commonISOCurrencyCodes NS_AVAILABLE_MAC(10_5);
 
 /* WINDOWS LOCALE CODES: ICU's `uloc_getLCID`/`uloc_getLocaleForLCID`. Measured: en_US <-> 1033,
  * fr_FR <-> 1036. An LCID with no locale answers nil, and an identifier with no LCID answers 0. */
-+ (nullable NSString *)localeIdentifierFromWindowsLocaleCode:(uint32_t)windowsLocaleCode;
-+ (uint32_t)windowsLocaleCodeFromLocaleIdentifier:(NSString *)localeIdentifier;
++ (nullable NSString *)localeIdentifierFromWindowsLocaleCode:(uint32_t)windowsLocaleCode NS_AVAILABLE_MAC(10_6);
++ (uint32_t)windowsLocaleCodeFromLocaleIdentifier:(NSString *)localeIdentifier NS_AVAILABLE_MAC(10_6);
 
 /* The identifiers whose CASE rules this library implements — not Cocoa's
  * catalogue of hundreds: every other identifier behaves as the neutral default. */
@@ -186,8 +186,8 @@ extern NSString *const NSLocaleVariantCode;
  * THE LANGUAGE DIRECTION (D2's names): ICU's `uloc_getCharacterOrientation`/`uloc_getLineOrientation`.
  * Measured on the host: en/tr/ja are LeftToRight, ar/he/fa/ur are RightToLeft, and LINE direction is
  * TopToBottom for every language tried — which is the top-to-bottom script layout, not a bug. */
-+ (NSLocaleLanguageDirection)characterDirectionForLanguage:(NSString *)isoLanguageCode;
-+ (NSLocaleLanguageDirection)lineDirectionForLanguage:(NSString *)isoLanguageCode;
++ (NSLocaleLanguageDirection)characterDirectionForLanguage:(NSString *)isoLanguageCode NS_AVAILABLE_MAC(10_6);
++ (NSLocaleLanguageDirection)lineDirectionForLanguage:(NSString *)isoLanguageCode NS_AVAILABLE_MAC(10_6);
 
 /* THE DISPLAY-NAME DOORS (Apple's -localizedStringFor…: are -displayNameForKey:value: with a fixed key).
  * The RECEIVER is the language the answer comes back IN; the argument is the identifier being named. All
@@ -239,7 +239,7 @@ NS_ASSUME_NONNULL_END
 
 /* §63.235: THE PREFERRED LANGUAGES, from the ONE locale this system resolves (its own), so the list is the
  * current locale's language rather than a preference chain a caller could reorder — the reading is stated. */
-+ (NSArray * _Nonnull)preferredLanguages;
++ (NSArray * _Nonnull)preferredLanguages NS_AVAILABLE_MAC(10_5);
 @end
 
 

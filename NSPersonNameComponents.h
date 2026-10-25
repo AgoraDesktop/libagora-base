@@ -36,6 +36,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_CLASS_AVAILABLE_MAC(10_11)
 @interface NSPersonNameComponents : NSObject <NSCopying, NSSecureCoding>
 {
 	NSString *_namePrefix;

@@ -52,11 +52,11 @@ NS_SWIFT_NAME(InputStream)
 
 + (nullable instancetype)inputStreamWithData:(NSData *)data;
 + (nullable instancetype)inputStreamWithFileAtPath:(NSString *)path;
-+ (nullable instancetype)inputStreamWithURL:(NSURL *)url;
++ (nullable instancetype)inputStreamWithURL:(NSURL *)url NS_AVAILABLE_MAC(10_6);
 
 - (nullable instancetype)initWithData:(NSData *)data;
 - (nullable instancetype)initWithFileAtPath:(NSString *)path;
-- (nullable instancetype)initWithURL:(NSURL *)url;
+- (nullable instancetype)initWithURL:(NSURL *)url NS_AVAILABLE_MAC(10_6);
 
 /* THE PRIMITIVE: 0 means END OF STREAM and -1 means an error, which is not the same thing and is why the
  * return is signed. Reading a closed stream answers -1 with the stream in Error. */

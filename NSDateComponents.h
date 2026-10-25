@@ -85,8 +85,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setEra:(NSInteger)value;
 - (NSInteger)year;
 - (void)setYear:(NSInteger)value;
-- (NSInteger)quarter;			/* 1-4, derived from the month on a conversion */
-- (void)setQuarter:(NSInteger)value;
+- (NSInteger)quarter NS_AVAILABLE_MAC(10_6);			/* 1-4, derived from the month on a conversion */
+- (void)setQuarter:(NSInteger)value NS_AVAILABLE_MAC(10_6);
 - (NSInteger)month;			/* 1-12 */
 - (void)setMonth:(NSInteger)value;
 - (NSInteger)day;			/* 1-31 */
@@ -97,26 +97,26 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setMinute:(NSInteger)value;
 - (NSInteger)second;			/* 0-59, and 60 in the leap-second RECORD only */
 - (void)setSecond:(NSInteger)value;
-- (NSInteger)nanosecond;		/* 0-999999999, from NSDate's fractional part */
-- (void)setNanosecond:(NSInteger)value;
+- (NSInteger)nanosecond NS_AVAILABLE_MAC(10_7);		/* 0-999999999, from NSDate's fractional part */
+- (void)setNanosecond:(NSInteger)value NS_AVAILABLE_MAC(10_7);
 
 /* The week-based fields. See the note above: answers, not a second input form. */
 - (NSInteger)weekday;			/* 1 = the calendar's first weekday ... 7 */
 - (void)setWeekday:(NSInteger)value;
 - (NSInteger)weekdayOrdinal;		/* the nth <weekday> in the month: 1-based */
 - (void)setWeekdayOrdinal:(NSInteger)value;
-- (NSInteger)weekOfMonth;
-- (void)setWeekOfMonth:(NSInteger)value;
-- (NSInteger)weekOfYear;
-- (void)setWeekOfYear:(NSInteger)value;
-- (NSInteger)yearForWeekOfYear;
-- (void)setYearForWeekOfYear:(NSInteger)value;
+- (NSInteger)weekOfMonth NS_AVAILABLE_MAC(10_7);
+- (void)setWeekOfMonth:(NSInteger)value NS_AVAILABLE_MAC(10_7);
+- (NSInteger)weekOfYear NS_AVAILABLE_MAC(10_7);
+- (void)setWeekOfYear:(NSInteger)value NS_AVAILABLE_MAC(10_7);
+- (NSInteger)yearForWeekOfYear NS_AVAILABLE_MAC(10_7);
+- (void)setYearForWeekOfYear:(NSInteger)value NS_AVAILABLE_MAC(10_7);
 
 /* Is this a date the calendar can make? NO when a field is out of range, when
  * only week fields are set, or when the day does not exist in that month
  * (2026-02-30). The calendar is passed in, as in Cocoa, so a components object
  * does not have to own one. */
-- (BOOL)isValidDateInCalendar:(NSCalendar *)calendar;
+- (BOOL)isValidDateInCalendar:(NSCalendar *)calendar NS_AVAILABLE_MAC(10_9);
 
 /* THE THREE FIELDS THAT ARE ONLY ANSWERS IN SOME CALENDARS, and the two REFERENCES that say HOW to read
  * a bag of fields. Apple's words for the first two: "The day of the year value of the date components",
@@ -130,30 +130,30 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)dayOfYear;
 - (void)setDayOfYear:(NSInteger)value;
 - (BOOL)leapMonth;
-- (void)setLeapMonth:(BOOL)value;
+- (void)setLeapMonth:(BOOL)value NS_AVAILABLE_MAC(10_8);
 - (BOOL)repeatedDay;
 - (void)setRepeatedDay:(BOOL)value;
 
 /* SET BY THE CALLER, USED BY THE TWO DOORS BELOW. When none is set, -date and -validDate answer in the
  * CURRENT calendar (Apple's rule for -date is "the date calculated from the current components using
  * the stored calendar"; with no stored calendar the only calendar left is the current one). */
-- (nullable NSCalendar *)calendar;
-- (void)setCalendar:(nullable NSCalendar *)calendar;
-- (nullable NSTimeZone *)timeZone;
-- (void)setTimeZone:(nullable NSTimeZone *)timeZone;
+- (nullable NSCalendar *)calendar NS_AVAILABLE_MAC(10_7);
+- (void)setCalendar:(nullable NSCalendar *)calendar NS_AVAILABLE_MAC(10_7);
+- (nullable NSTimeZone *)timeZone NS_AVAILABLE_MAC(10_7);
+- (void)setTimeZone:(nullable NSTimeZone *)timeZone NS_AVAILABLE_MAC(10_7);
 
 /* THE TWO VALIDATION-CATEGORY ANSWERS. -date is -dateFromComponents: in the stored calendar (nil when
  * the fields make no date); -validDate is -isValidDateInCalendar: asked of that same calendar, so the
  * two cannot disagree about what "this bag is a date" means. */
-- (nullable NSDate *)date;
+- (nullable NSDate *)date NS_AVAILABLE_MAC(10_7);
 - (BOOL)validDate;
 
 /* THE UNIT-ADDRESSABLE PAIR. Apple's words: "Sets/Returns a value for a given calendar unit" — a
  * SWITCH over the units a bag of fields can hold, which is the calendar-field and week-field units plus
  * DayOfYear. EVERY OTHER UNIT IS REFUSED BY NAME, and two of them by necessity: Calendar and TimeZone
  * ask for OBJECTS where this door answers an NSInteger. */
-- (void)setValue:(NSInteger)value forComponent:(NSCalendarUnit)unit;
-- (NSInteger)valueForComponent:(NSCalendarUnit)unit;
+- (void)setValue:(NSInteger)value forComponent:(NSCalendarUnit)unit NS_AVAILABLE_MAC(10_9);
+- (NSInteger)valueForComponent:(NSCalendarUnit)unit NS_AVAILABLE_MAC(10_9);
 
 /* THE DEPRECATED WEEK PAIR (Apple deprecates it in favour of -weekOfYear), KEPT AS AN ALIAS of the same
  * storage rather than as a second field: two fields would let the same bag answer two different weeks,

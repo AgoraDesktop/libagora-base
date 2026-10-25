@@ -24,6 +24,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_CLASS_AVAILABLE_MAC(10_2)
 @interface NSAppleScript : NSObject <NSCopying>
 {
 @private

@@ -61,6 +61,7 @@ typedef NSString * NSRunLoopMode;
 @class NSPort;
 
 NS_SWIFT_NAME(RunLoop)
+NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSRunLoop : NSObject
 {
 	NSMutableArray *_timers;	/* NSTimer, in no particular order; the loop sorts at each wait */
@@ -72,7 +73,7 @@ NS_SWIFT_NAME(RunLoop)
 }
 
 + (NSRunLoop *)currentRunLoop;
-+ (NSRunLoop *)mainRunLoop;
++ (NSRunLoop *)mainRunLoop NS_AVAILABLE_MAC(10_5);
 
 /*
  * INTERNAL, AND IT IS WHAT MAKES `-performSelector:onThread:…` POSSIBLE. A run loop is per-thread and its ownership
@@ -173,7 +174,7 @@ NS_SWIFT_NAME(RunLoop)
  * same name — a caller would add a source to one and wait on the other — so the door raises with that ground. */
 - (BOOL)acceptInputForMode:(NSRunLoopMode)mode beforeDate:(NSDate *)limitDate;
 - (nullable NSDate *)limitDateForMode:(NSRunLoopMode)mode;
-- (void)configureAsServer;
+- (void)configureAsServer NS_DEPRECATED_MAC(10_0, 10_5);
 - (CFRunLoopRef)getCFRunLoop;
 @end
 

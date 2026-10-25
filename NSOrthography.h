@@ -67,6 +67,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_CLASS_AVAILABLE_MAC(10_6)
 @interface NSOrthography : NSObject <NSCopying, NSSecureCoding>
 {
 	NSString *_dominantScript;
@@ -81,24 +82,24 @@ NS_ASSUME_NONNULL_BEGIN
 /* THE DESIGNATED DOOR, and the one that ENFORCES the invariant: the dominant script must be a key of the map, and
  * that key's array must not be empty. Apple's pages describe this initializer as the way to OVERRIDE the script a
  * language is usually written in, which is why a caller still has to name one. */
-- (instancetype)initWithDominantScript:(NSString *)script languageMap:(NSDictionary *)map;
-+ (instancetype)orthographyWithDominantScript:(NSString *)script languageMap:(NSDictionary *)map;
+- (instancetype)initWithDominantScript:(NSString *)script languageMap:(NSDictionary *)map NS_AVAILABLE_MAC(10_6);
++ (instancetype)orthographyWithDominantScript:(NSString *)script languageMap:(NSDictionary *)map NS_AVAILABLE_MAC(10_6);
 
 /* THE DOMINANT SCRIPT, and the first language of ITS array (never nil: the invariant is what guarantees it). */
 @property (readonly, copy) NSString *dominantScript;
-@property (readonly, copy) NSString *dominantLanguage;
+@property (readonly, copy) NSString *dominantLanguage NS_AVAILABLE_MAC(10_6);
 
 /* THE MAP ITSELF, as an immutable snapshot: a caller that changes the dictionary it passed must not change this
  * object's content. */
 @property (readonly, copy) NSDictionary *languageMap;
 
 /* THE KEYS AND THE FLATTENED LANGUAGES — sorted, and grouped by script, for the reason the file comment gives. */
-@property (readonly, copy) NSArray *allScripts;
-@property (readonly, copy) NSArray *allLanguages;
+@property (readonly, copy) NSArray *allScripts NS_AVAILABLE_MAC(10_6);
+@property (readonly, copy) NSArray *allLanguages NS_AVAILABLE_MAC(10_6);
 
 /* THE TWO QUERIES THAT CAN MISS, and both answer nil for a script the map does not carry. */
-- (nullable NSArray *)languagesForScript:(nullable NSString *)script;
-- (nullable NSString *)dominantLanguageForScript:(nullable NSString *)script;
+- (nullable NSArray *)languagesForScript:(nullable NSString *)script NS_AVAILABLE_MAC(10_6);
+- (nullable NSString *)dominantLanguageForScript:(nullable NSString *)script NS_AVAILABLE_MAC(10_6);
 
 @end
 

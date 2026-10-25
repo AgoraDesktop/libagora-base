@@ -79,13 +79,13 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSNumber *)numberWithInt:(int)value;
 + (NSNumber *)numberWithLong:(long)value;
 + (NSNumber *)numberWithLongLong:(long long)value;
-+ (NSNumber *)numberWithInteger:(NSInteger)value;
++ (NSNumber *)numberWithInteger:(NSInteger)value NS_AVAILABLE_MAC(10_5);
 + (NSNumber *)numberWithUnsignedChar:(unsigned char)value;
 + (NSNumber *)numberWithUnsignedShort:(unsigned short)value;
 + (NSNumber *)numberWithUnsignedInt:(unsigned int)value;
 + (NSNumber *)numberWithUnsignedLong:(unsigned long)value;
 + (NSNumber *)numberWithUnsignedLongLong:(unsigned long long)value;
-+ (NSNumber *)numberWithUnsignedInteger:(NSUInteger)value;
++ (NSNumber *)numberWithUnsignedInteger:(NSUInteger)value NS_AVAILABLE_MAC(10_5);
 + (NSNumber *)numberWithFloat:(float)value;
 + (NSNumber *)numberWithDouble:(double)value;
 
@@ -95,13 +95,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (id)initWithInt:(int)value;
 - (id)initWithLong:(long)value;
 - (id)initWithLongLong:(long long)value;
-- (id)initWithInteger:(NSInteger)value;
+- (id)initWithInteger:(NSInteger)value NS_AVAILABLE_MAC(10_5);
 - (id)initWithUnsignedChar:(unsigned char)value;
 - (id)initWithUnsignedShort:(unsigned short)value;
 - (id)initWithUnsignedInt:(unsigned int)value;
 - (id)initWithUnsignedLong:(unsigned long)value;
 - (id)initWithUnsignedLongLong:(unsigned long long)value;
-- (id)initWithUnsignedInteger:(NSUInteger)value;
+- (id)initWithUnsignedInteger:(NSUInteger)value NS_AVAILABLE_MAC(10_5);
 - (id)initWithFloat:(float)value;
 - (id)initWithDouble:(double)value;
 
@@ -112,13 +112,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (int)intValue;
 - (long)longValue;
 - (long long)longLongValue;
-- (NSInteger)integerValue;
+- (NSInteger)integerValue NS_AVAILABLE_MAC(10_5);
 - (unsigned char)unsignedCharValue;
 - (unsigned short)unsignedShortValue;
 - (unsigned int)unsignedIntValue;
 - (unsigned long)unsignedLongValue;
 - (unsigned long long)unsignedLongLongValue;
-- (NSUInteger)unsignedIntegerValue;
+- (NSUInteger)unsignedIntegerValue NS_AVAILABLE_MAC(10_5);
 - (float)floatValue;
 - (double)doubleValue;
 

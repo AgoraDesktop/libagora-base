@@ -96,6 +96,7 @@ typedef enum {
  * nil URL and a nil accessor WITH A NAMED ERROR rather than invoking them - so those parameters are
  * `nullable` and the refusals are asserted by the probe. A parameter that may be nil and is refused is
  * exactly what `nullable` means. */
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSFileCoordinator : NSObject
 {
 	id _presenter;			/* the coordinator's OWN presenter, NOT retained: see +addFilePresenter: */
@@ -132,9 +133,9 @@ typedef enum {
  * serves no purpose. This method is nonfunctional in iOS." This system has no app sandbox, so the will form
  * is declared (a balanced pair must compile) and notifies nobody, which is Apple's sentence rather than an
  * omission. */
-- (nullable NSString *)purposeIdentifier;
-- (void)setPurposeIdentifier:(nullable NSString *)identifier;
-- (void)itemAtURL:(NSURL *)oldURL willMoveToURL:(NSURL *)newURL;
+- (nullable NSString *)purposeIdentifier NS_AVAILABLE_MAC(10_7);
+- (void)setPurposeIdentifier:(nullable NSString *)identifier NS_AVAILABLE_MAC(10_7);
+- (void)itemAtURL:(NSURL *)oldURL willMoveToURL:(NSURL *)newURL NS_AVAILABLE_MAC(10_8);
 - (void)itemAtURL:(NSURL *)oldURL didMoveToURL:(NSURL *)newURL;
 
 /* "Performs a number of coordinated-read or -write operations ASYNCHRONOUSLY", measured: "The file

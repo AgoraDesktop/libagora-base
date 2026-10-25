@@ -155,6 +155,7 @@ extern NSLinguisticTag const NSLinguisticTagOrganizationName;
  * that it is a VIEW OVER A STRING plus a set of schemes: the string and the orthography are set on it, and the
  * questions are then asked of RANGES.
  */
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSLinguisticTagger : NSObject
 {
 	NSArray *_tagSchemes;
@@ -173,23 +174,23 @@ extern NSLinguisticTag const NSLinguisticTagOrganizationName;
 /* A TAGGER IS MADE FROM SCHEMES AND OPTIONS, and it holds no string until one is set (Apple's arrangement, and
  * the reason `-string` is nullable: a tagger with no string answers an EMPTY range rather than crashing). */
 - (instancetype)initWithTagSchemes:(NSArray *)tagSchemes
-			   options:(NSUInteger)options;
+			   options:(NSUInteger)options NS_AVAILABLE_MAC(10_7);
 
-@property (readonly, copy) NSArray *tagSchemes;
+@property (readonly, copy) NSArray *tagSchemes NS_AVAILABLE_MAC(10_7);
 
 /* THE TEXT IT IS A VIEW OVER, and `NIL` IS A VALID STATE rather than a broken one. */
-@property (nullable, copy) NSString *string;
+@property (nullable, copy) NSString *string NS_AVAILABLE_MAC(10_7);
 
 /* THE ORTHOGRAPHY, WHICH IS A CLASS THIS LIBRARY ALREADY HAS (§62.21), and the range it applies to. */
-- (void)setOrthography:(nullable NSOrthography *)orthography range:(NSRange)range;
-- (nullable NSOrthography *)orthographyAtIndex:(NSUInteger)charIndex effectiveRange:(nullable NSRangePointer)effectiveRange;
+- (void)setOrthography:(nullable NSOrthography *)orthography range:(NSRange)range NS_AVAILABLE_MAC(10_7);
+- (nullable NSOrthography *)orthographyAtIndex:(NSUInteger)charIndex effectiveRange:(nullable NSRangePointer)effectiveRange NS_AVAILABLE_MAC(10_7);
 
 /* THE ONE TAG AT A POSITION, with the token it covers and the SENTENCE it sits in — both of which the break
  * iterator already knows, and neither of which is a guess. */
 - (nullable NSLinguisticTag)tagAtIndex:(NSUInteger)charIndex
 				scheme:(NSLinguisticTagScheme)scheme
 			    tokenRange:(nullable NSRangePointer)tokenRange
-			 sentenceRange:(nullable NSRangePointer)sentenceRange;
+			 sentenceRange:(nullable NSRangePointer)sentenceRange NS_AVAILABLE_MAC(10_7);
 
 /* AND THE ENUMERATION, which is the door most callers use: every tag in a range, one block call per token. */
 - (void)enumerateTagsInRange:(NSRange)range
@@ -197,7 +198,7 @@ extern NSLinguisticTag const NSLinguisticTagOrganizationName;
 		      options:(NSLinguisticTaggerOptions)options
 		   usingBlock:(void (^)(NSLinguisticTag _Nullable tag,
 					NSRange tokenRange,
-					BOOL *stop))block;
+					BOOL *stop))block NS_AVAILABLE_MAC(10_7);
 - (void)enumerateTagsInRange:(NSRange)range
 			unit:(NSLinguisticTaggerUnit)unit
 		      scheme:(NSLinguisticTagScheme)scheme
@@ -208,7 +209,7 @@ extern NSLinguisticTag const NSLinguisticTagOrganizationName;
 
 /* THE SENTENCE THAT CONTAINS A RANGE, which is a break-iterator question rather than a tagging one and is
  * therefore answered even for a scheme this library refuses. */
-- (NSRange)sentenceRangeForRange:(NSRange)range;
+- (NSRange)sentenceRangeForRange:(NSRange)range NS_AVAILABLE_MAC(10_7);
 
 @end
 
@@ -241,13 +242,13 @@ extern NSLinguisticTag const NSLinguisticTagOrganizationName;
 			   usingBlock:(void (^)(NSLinguisticTag _Nullable tag,
 						NSRange tokenRange,
 						NSRange sentenceRange,
-						BOOL *stop))block;
+						BOOL *stop))block NS_AVAILABLE_MAC(10_7);
 
 - (NSArray *)linguisticTagsInRange:(NSRange)range
 			    scheme:(NSLinguisticTagScheme)tagScheme
 			   options:(NSLinguisticTaggerOptions)opts
 		       orthography:(nullable NSOrthography *)orthography
-		      tokenRanges:(NSArray * _Nullable * _Nullable)tokenRanges;
+		      tokenRanges:(NSArray * _Nullable * _Nullable)tokenRanges NS_AVAILABLE_MAC(10_7);
 
 @end
 

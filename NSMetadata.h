@@ -42,6 +42,7 @@ NS_ASSUME_NONNULL_BEGIN
 			     value:(id)attributeValue;
 @end
 
+NS_CLASS_AVAILABLE_MAC(10_4)
 @interface NSMetadataItem : NSObject
 {
 @private
@@ -55,6 +56,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, copy) NSDictionary *attributes;
 @end
 
+NS_CLASS_AVAILABLE_MAC(10_4)
 @interface NSMetadataQueryAttributeValueTuple : NSObject
 {
 @private
@@ -67,6 +69,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly) NSUInteger count;
 @end
 
+NS_CLASS_AVAILABLE_MAC(10_4)
 @interface NSMetadataQueryResultGroup : NSObject
 {
 @private
@@ -83,6 +86,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nullable, readonly, copy) NSArray *subgroups;
 @end
 
+NS_CLASS_AVAILABLE_MAC(10_4)
 @interface NSMetadataQuery : NSObject
 {
 @private

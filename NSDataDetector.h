@@ -89,6 +89,7 @@ enum {
 	NSDataDetectorTypeNeedsSubstrateCode = 2
 };
 
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSDataDetector : NSRegularExpression
 {
 	NSTextCheckingTypes _checkingTypes;

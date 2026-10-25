@@ -43,6 +43,12 @@
  * options.
  */
 #import <CoreFoundation/CFBridgingTypes.h>
+/* **THE AVAILABILITY SPELLINGS BELOW ARE ALIASES, SO THEIR BODIES HAVE TO BE REACHABLE.** Nothing in this tree used
+ * `NS_AVAILABLE` until the 10.11 sweep annotated 767 declarations, so nothing noticed that `CF_AVAILABLE` was not in
+ * scope: `CFBridgingTypes.h` includes no other header, and a macro that expands to an undefined function-like macro
+ * is left as tokens, which the compiler reads as a broken declaration. It is included here rather than in
+ * CFBridgingTypes.h because Foundation is the consumer of these spellings and Core Foundation defines them. */
+#import <CoreFoundation/CFAvailability.h>
 
 #include <limits.h>
 #include <objc/objc.h>	/* BOOL, YES, NO */

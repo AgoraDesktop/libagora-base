@@ -99,11 +99,12 @@ Pinned 2026-10-25, the first pin that does not contain the extractor's faults:
 | protocols | 40 | 30 | **10** |
 | selectors on classes the tree has | 3,407 | 3,296 | **111** |
 | C functions | 182 | 182 | **0** |
-| annotated declarations (S2) | 802 | 0 | **802** |
+| annotated declarations (S2) | 767 | 767 | **0** |
 
 The annotation row is its own census (`tests/api-10.11-annotations.txt`, gate `foundation-api-availability`): the
-macros became real in the same slice that made the row measurable. A declaration stating a version Apple does not
-fails the gate outright; the 802 is the sweep's work list and may only fall.
+macros became real in the slice that made the row measurable, and the sweep (`api-ledger annotate`) then annotated 761
+declarations in 108 headers. A declaration stating a version Apple does not fails the gate outright; the missing count
+was the work list and read 802 before the sweep and 0 after it.
 
 **Everything missing is 10.8–10.11** — 0 owed from 10.6. The remaining work is staged in `FOUNDATION-10.11-PLAN.md`;
 the 111 selectors are 11 `-initWithCoder:` doors (one `NSCoding` conformance decision) and 100 individual doors

@@ -87,13 +87,13 @@ typedef NSUInteger NSNetServiceOptions;
 @property (readonly, copy) NSString *domain;
 @property (readonly, copy) NSString *type;
 @property (readonly, copy) NSString *name;
-@property (readonly) NSInteger port;
+@property (readonly) NSInteger port NS_AVAILABLE_MAC(10_5);
 @property (readonly, copy) NSArray *addresses;
 @property (nullable, readonly, copy) NSString *hostName;
 
 - (void)publish;
-- (void)publishWithOptions:(NSNetServiceOptions)options;
-- (void)resolve;
+- (void)publishWithOptions:(NSNetServiceOptions)options NS_AVAILABLE_MAC(10_5);
+- (void)resolve NS_DEPRECATED_MAC(10_2, 10_4);
 - (void)resolveWithTimeout:(NSTimeInterval)timeout;
 - (void)stop;
 - (void)startMonitoring;

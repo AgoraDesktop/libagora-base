@@ -74,7 +74,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)removeCachedResponseForRequest:(NSURLRequest *)request;
 
 /* WHICH IS WHY EACH ENTRY REMEMBERS WHEN IT WAS CACHED: Apple's door cannot be answered any other way. */
-- (void)removeCachedResponsesSinceDate:(NSDate *)date;
+- (void)removeCachedResponsesSinceDate:(NSDate *)date NS_AVAILABLE_MAC(10_10);
 - (void)removeAllCachedResponses;
 
 @property (readonly) NSUInteger currentMemoryUsage;

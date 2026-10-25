@@ -296,12 +296,12 @@ totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite;
 /* THE COMMON PAIR. `+connectionWithRequest:delegate:` starts immediately; the designated initializer
  * does not, if the caller says so. BOTH MAY RETURN NIL: a connection needs a request with a URL. */
 + (nullable NSURLConnection *)connectionWithRequest:(NSURLRequest *)request
-					   delegate:(nullable id)delegate;
+					   delegate:(nullable id)delegate NS_DEPRECATED_MAC(10_3, 10_11);
 - (nullable instancetype)initWithRequest:(NSURLRequest *)request
 				delegate:(nullable id)delegate
-			startImmediately:(BOOL)startImmediately;
+			startImmediately:(BOOL)startImmediately NS_DEPRECATED_MAC(10_5, 10_11);
 - (nullable instancetype)initWithRequest:(NSURLRequest *)request
-				delegate:(nullable id)delegate;
+				delegate:(nullable id)delegate NS_DEPRECATED_MAC(10_3, 10_11);
 
 /* WHETHER THE LOADING SYSTEM CAN RUN THIS REQUEST. THE ANSWER IS ABOUT WHAT IS REGISTERED, and the registry is
  * filled before a caller is reached: this library registers its own transport (FNCURLURLProtocol - `file`, `http`,
@@ -325,10 +325,10 @@ totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite;
  * events to, so streaming has no meaning here and the bytes are accumulated. */
 + (nullable NSData *)sendSynchronousRequest:(NSURLRequest *)request
 			  returningResponse:(NSURLResponse *_Nullable *_Nullable)response
-				      error:(NSError *_Nullable *_Nullable)error;
+				      error:(NSError *_Nullable *_Nullable)error NS_DEPRECATED_MAC(10_3, 10_11);
 
 /* START IT. Idempotent: a connection already started (or finished, or cancelled) ignores this. */
-- (void)start;
+- (void)start NS_AVAILABLE_MAC(10_5);
 
 /* STOP IT. NO FAILURE CALL FOLLOWS — a cancel is not an error, and Apple's delegate contract for this
  * class is silent after one. Idempotent, and safe before `-start`. */
@@ -337,12 +337,12 @@ totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite;
 /* WHERE THE DELEGATE IS CALLED. `nil` means the transport's own thread (deviation (1) in the header above);
  * a serial queue means that queue, and the order the transfer reported in is preserved. Only meaningful
  * before `-start`. */
-- (void)setDelegateQueue:(nullable NSOperationQueue *)queue;
+- (void)setDelegateQueue:(nullable NSOperationQueue *)queue NS_AVAILABLE_MAC(10_7);
 
 /* WHAT THE CALLER ASKED FOR, and what the connection is running NOW — the two differ after a followed
  * redirect, which is the whole reason both exist. */
-@property (nullable, readonly, copy) NSURLRequest *originalRequest;
-@property (nullable, readonly, copy) NSURLRequest *currentRequest;
+@property (nullable, readonly, copy) NSURLRequest *originalRequest NS_AVAILABLE_MAC(10_8);
+@property (nullable, readonly, copy) NSURLRequest *currentRequest NS_AVAILABLE_MAC(10_8);
 
 
 /* §63.228: THE COMPLETION-HANDLER FORM. It is the SAME transport as the synchronous door — a connection with a
@@ -353,12 +353,12 @@ totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite;
 			  queue:(NSOperationQueue *)queue
 	      completionHandler:(void (^)(NSURLResponse * _Nullable,
 					  NSData * _Nullable,
-					  NSError * _Nullable))handler;
+					  NSError * _Nullable))handler NS_DEPRECATED_MAC(10_7, 10_11);
 /* THE RUN-LOOP DELIVERY PAIR, DECLARED AND REFUSED (10.2). See the header note above: this connection delivers
  * through `-setDelegateQueue:` and has no run-loop source to hand work to, so the pair raises with that stated
  * rather than storing a run loop nothing reads. */
-- (void)scheduleInRunLoop:(NSRunLoop *)aRunLoop forMode:(NSString *)mode;
-- (void)unscheduleFromRunLoop:(NSRunLoop *)aRunLoop forMode:(NSString *)mode;
+- (void)scheduleInRunLoop:(NSRunLoop *)aRunLoop forMode:(NSString *)mode NS_AVAILABLE_MAC(10_5);
+- (void)unscheduleFromRunLoop:(NSRunLoop *)aRunLoop forMode:(NSString *)mode NS_AVAILABLE_MAC(10_5);
 
 @end
 

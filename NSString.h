@@ -385,7 +385,7 @@ __attribute__((swift_bridge("Swift.String")))
 /* Deprecated by Apple in favour of -initWithCString:encoding:; in scope under §62.24 like every other
  * deprecated name here, and it takes the one honest default C-string encoding (UTF-8) for the reason
  * §63.30's note gives. */
-- (nullable id)initWithCStringNoCopy:(char *)bytes length:(NSUInteger)length freeWhenDone:(BOOL)freeBuffer;
+- (nullable id)initWithCStringNoCopy:(char *)bytes length:(NSUInteger)length freeWhenDone:(BOOL)freeBuffer NS_DEPRECATED_MAC(10_0, 10_4);
 /* `-getBytes:…` is the one door of this family that takes ANY encoding in Apple's header. A NULL buffer is
  * Apple's "tell me the size the conversion needs" form and is answered; `options` carries the
  * lossy/external-representation hints, and no lossy converter exists here. */
@@ -401,7 +401,7 @@ __attribute__((swift_bridge("Swift.String")))
 - (void)getCString:(char *)buffer
 	 maxLength:(NSUInteger)maxLength
 	     range:(NSRange)range
-    remainingRange:(nullable NSRangePointer)leftoverRange;
+    remainingRange:(nullable NSRangePointer)leftoverRange NS_DEPRECATED_MAC(10_0, 10_4);
 
 /* ===================================================================================================
  * THE C-STRING AND CHARACTER-COPY DOORS, AND ENCODING INTROSPECTION (§63.30).
@@ -415,15 +415,15 @@ __attribute__((swift_bridge("Swift.String")))
  * against them is exactly who this library is for. -getCString:maxLength:encoding: is the modern door and
  * the others delegate to it rather than keeping a second copy of the copy-out rule.
  * =================================================================================================== */
-- (const char *)cString;
-- (NSUInteger)cStringLength;
-- (const char *)lossyCString;
-- (void)getCString:(char *)buffer;
-- (void)getCString:(char *)buffer maxLength:(NSUInteger)maxLength;
+- (const char *)cString NS_DEPRECATED_MAC(10_0, 10_4);
+- (NSUInteger)cStringLength NS_DEPRECATED_MAC(10_0, 10_4);
+- (const char *)lossyCString NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)getCString:(char *)buffer NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)getCString:(char *)buffer maxLength:(NSUInteger)maxLength NS_DEPRECATED_MAC(10_0, 10_4);
 - (BOOL)getCString:(char *)buffer maxLength:(NSUInteger)maxLength encoding:(NSStringEncoding)encoding;
 - (void)getCharacters:(unichar *)buffer;
-+ (nullable id)stringWithCString:(const char *)cString;
-+ (nullable id)stringWithCString:(const char *)cString length:(NSUInteger)length;
++ (nullable id)stringWithCString:(const char *)cString NS_DEPRECATED_MAC(10_0, 10_4);
++ (nullable id)stringWithCString:(const char *)cString length:(NSUInteger)length NS_DEPRECATED_MAC(10_0, 10_4);
 /* THE INSTANCE FORMS OF THE C-STRING AND BYTE DOORS (§63.30's C-string family). They are the -init mirrors of
  * `+stringWithCString:…` and `+stringWithCString:encoding:` above — the same two refusals in the same two places
  * (an encoding this library does not store, and a high byte under the ASCII label) — and the deprecated
@@ -431,8 +431,8 @@ __attribute__((swift_bridge("Swift.String")))
  * is the modern length-taking byte door and honours `length` rather than a terminating NUL. */
 - (nullable id)initWithBytes:(const void *)bytes length:(NSUInteger)len encoding:(NSStringEncoding)encoding;
 - (nullable id)initWithCString:(const char *)nullTerminatedCString encoding:(NSStringEncoding)encoding;
-- (nullable id)initWithCString:(const char *)nullTerminatedCString;
-- (nullable id)initWithCString:(const char *)bytes length:(NSUInteger)length;
+- (nullable id)initWithCString:(const char *)nullTerminatedCString NS_DEPRECATED_MAC(10_0, 10_4);
+- (nullable id)initWithCString:(const char *)bytes length:(NSUInteger)length NS_DEPRECATED_MAC(10_0, 10_4);
 /* INTROSPECTION over the same storage fact: a conversion is possible exactly when the storage IS the
  * encoding or when every byte is 7-bit ASCII, and the maximum length is the UTF-8 byte count — or 0 when
  * the conversion cannot happen at all, which is Apple's own answer for an impossible conversion. */
@@ -478,7 +478,7 @@ __attribute__((swift_bridge("Swift.String")))
 + (NSStringEncoding)stringEncodingForData:(NSData *)data
 			  encodingOptions:(nullable NSDictionary<NSStringEncodingDetectionOptionsKey, id> *)opts
 			  convertedString:(NSString * _Nullable * _Nullable)string
-		      usedLossyConversion:(nullable BOOL *)usedLossyConversion;
+		      usedLossyConversion:(nullable BOOL *)usedLossyConversion NS_AVAILABLE_MAC(10_10);
 + (nullable NSString *)localizedNameOfStringEncoding:(NSStringEncoding)encoding;
 - (nullable NSData *)dataUsingEncoding:(NSStringEncoding)encoding allowLossyConversion:(BOOL)lossy;
 - (BOOL)writeToFile:(NSString *)path
@@ -505,12 +505,12 @@ __attribute__((swift_bridge("Swift.String")))
 			usedEncoding:(NSStringEncoding *)encoding
 			       error:(NSError * _Nullable * _Nullable)errorPtr;
 /* THE DEPRECATED NO-ENCODING NAMES: their default is the storage, i.e. -defaultCStringEncoding. */
-- (nullable id)initWithContentsOfFile:(NSString *)path;
-- (nullable id)initWithContentsOfURL:(NSURL *)url;
-+ (nullable id)stringWithContentsOfFile:(NSString *)path;
-+ (nullable id)stringWithContentsOfURL:(NSURL *)url;
-- (BOOL)writeToFile:(NSString *)path atomically:(BOOL)useAuxiliaryFile;
-- (BOOL)writeToURL:(NSURL *)url atomically:(BOOL)atomically;
+- (nullable id)initWithContentsOfFile:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_4);
+- (nullable id)initWithContentsOfURL:(NSURL *)url NS_DEPRECATED_MAC(10_0, 10_4);
++ (nullable id)stringWithContentsOfFile:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_4);
++ (nullable id)stringWithContentsOfURL:(NSURL *)url NS_DEPRECATED_MAC(10_0, 10_4);
+- (BOOL)writeToFile:(NSString *)path atomically:(BOOL)useAuxiliaryFile NS_DEPRECATED_MAC(10_0, 10_4);
+- (BOOL)writeToURL:(NSURL *)url atomically:(BOOL)atomically NS_DEPRECATED_MAC(10_0, 10_4);
 - (BOOL)writeToURL:(NSURL *)url
 	 atomically:(BOOL)atomically
 	   encoding:(NSStringEncoding)encoding
@@ -541,7 +541,7 @@ __attribute__((swift_bridge("Swift.String")))
 - (NSComparisonResult)localizedCaseInsensitiveCompare:(NSString *)other;
 - (BOOL)hasPrefix:(NSString *)prefix;
 - (BOOL)hasSuffix:(NSString *)suffix;
-- (BOOL)containsString:(NSString *)substring;
+- (BOOL)containsString:(NSString *)substring NS_AVAILABLE_MAC(10_10);
 - (NSRange)rangeOfString:(NSString *)substring;
 - (NSRange)rangeOfString:(NSString *)substring options:(NSStringCompareOptions)options;
 - (NSRange)rangeOfString:(NSString *)substring
@@ -550,7 +550,7 @@ __attribute__((swift_bridge("Swift.String")))
 - (NSRange)rangeOfString:(NSString *)substring
 		 options:(NSStringCompareOptions)options
 		   range:(NSRange)range
-		  locale:(nullable id)locale;
+		  locale:(nullable id)locale NS_AVAILABLE_MAC(10_5);
 
 /* Case, substrings, appending and replacing. The BASE mapping is ASCII — this
  * Foundation is UTF-8 and makes no general Unicode case claims — and the two
@@ -558,26 +558,26 @@ __attribute__((swift_bridge("Swift.String")))
  * pairing of i with İ and I with ı. */
 - (NSString *)uppercaseString;
 - (NSString *)lowercaseString;
-- (NSString *)uppercaseStringWithLocale:(nullable id)locale;
-- (NSString *)lowercaseStringWithLocale:(nullable id)locale;
+- (NSString *)uppercaseStringWithLocale:(nullable id)locale NS_AVAILABLE_MAC(10_8);
+- (NSString *)lowercaseStringWithLocale:(nullable id)locale NS_AVAILABLE_MAC(10_8);
 - (NSString *)capitalizedString;
 /* THE BOTTOM OF THE SAME FAMILY (§63.25). `-capitalizedStringWithLocale:` is the one LIVE door of the four; the
  * three `localized…` spellings are Apple's DEPRECATED names for the same three operations with the CURRENT
  * locale — un-deprecated here under §11.5's porting-target policy, and answered by DELEGATING to the
  * locale-taking door, so there is one rule rather than two that can drift. */
-- (NSString *)capitalizedStringWithLocale:(nullable id)locale;
-- (NSString *)localizedUppercaseString;
-- (NSString *)localizedLowercaseString;
-- (NSString *)localizedCapitalizedString;
+- (NSString *)capitalizedStringWithLocale:(nullable id)locale NS_AVAILABLE_MAC(10_8);
+- (NSString *)localizedUppercaseString NS_AVAILABLE_MAC(10_11);
+- (NSString *)localizedLowercaseString NS_AVAILABLE_MAC(10_11);
+- (NSString *)localizedCapitalizedString NS_AVAILABLE_MAC(10_11);
 /* THE LOCALISED SEARCH DOORS (§63.26). Apple's two "standard" ones fold CASE **and** DIACRITICS under the
  * current locale — which is what §63.24's normalization finally makes expressible here: diacritic-insensitivity
  * IS canonical decomposition plus dropping the combining marks. `-localizedCaseInsensitiveContainsString:`
  * folds case only, because that is what its name says. */
 /* AN `NSRange` IS A STRUCT AND CANNOT CARRY A NULLABILITY SPECIFIER — its "not found" is a VALUE
  * (`NSNotFound`), not a null, which is why Apple's own declaration of this door has none either. */
-- (NSRange)localizedStandardRangeOfString:(NSString *)string;
-- (BOOL)localizedStandardContainsString:(NSString *)string;
-- (BOOL)localizedCaseInsensitiveContainsString:(NSString *)string;
+- (NSRange)localizedStandardRangeOfString:(NSString *)string NS_AVAILABLE_MAC(10_11);
+- (BOOL)localizedStandardContainsString:(NSString *)string NS_AVAILABLE_MAC(10_11);
+- (BOOL)localizedCaseInsensitiveContainsString:(NSString *)string NS_AVAILABLE_MAC(10_10);
 - (NSString *)substringFromIndex:(NSUInteger)index;
 - (NSString *)substringToIndex:(NSUInteger)index;
 - (NSString *)substringWithRange:(NSRange)range;
@@ -588,16 +588,16 @@ __attribute__((swift_bridge("Swift.String")))
 		    startingAtIndex:(NSUInteger)index;
 - (NSString *)stringByAppendingFormat:(NSString *)format, ...;
 - (NSString *)stringByReplacingOccurrencesOfString:(NSString *)target
-					 withString:(NSString *)replacement;
+					 withString:(NSString *)replacement NS_AVAILABLE_MAC(10_5);
 - (NSString *)stringByReplacingOccurrencesOfString:(NSString *)target
 					 withString:(NSString *)replacement
 					    options:(NSStringCompareOptions)options
-					      range:(NSRange)range;
+					      range:(NSRange)range NS_AVAILABLE_MAC(10_5);
 - (NSArray *)componentsSeparatedByString:(NSString *)separator;
 - (NSRange)rangeOfCharacterFromSet:(NSCharacterSet *)set;
-- (NSArray *)componentsSeparatedByCharactersInSet:(NSCharacterSet *)set;
+- (NSArray *)componentsSeparatedByCharactersInSet:(NSCharacterSet *)set NS_AVAILABLE_MAC(10_5);
 - (NSString *)stringByTrimmingCharactersInSet:(NSCharacterSet *)set;
-- (NSString *)stringByReplacingCharactersInRange:(NSRange)range withString:(NSString *)replacement;
+- (NSString *)stringByReplacingCharactersInRange:(NSRange)range withString:(NSString *)replacement NS_AVAILABLE_MAC(10_5);
 
 /* ===================================================================================================
  * THE SEARCH AND COMPARISON DOORS THAT TAKE OPTIONS.
@@ -656,8 +656,8 @@ __attribute__((swift_bridge("Swift.String")))
  * -stringByFoldingWithOptions: folds case and/or diacritics (the same ASCII case rule and the same BMP
  * non-base-character set the rest of this family uses) and RAISES NSInvalidArgumentException for an option it
  * cannot fold — width or numeric — rather than silently leaving it unfolded. */
-- (nullable NSString *)stringByApplyingTransform:(NSString *)transform reverse:(BOOL)reverse;
-- (NSString *)stringByFoldingWithOptions:(NSStringCompareOptions)options locale:(nullable id)locale;
+- (nullable NSString *)stringByApplyingTransform:(NSString *)transform reverse:(BOOL)reverse NS_AVAILABLE_MAC(10_11);
+- (NSString *)stringByFoldingWithOptions:(NSStringCompareOptions)options locale:(nullable id)locale NS_AVAILABLE_MAC(10_5);
 
 /* ===================================================================================================
  * PERCENT-ENCODING, IN BOTH DIRECTIONS, ON APPLE'S OWN RULES.
@@ -693,11 +693,11 @@ __attribute__((swift_bridge("Swift.String")))
  * -Werror=nullable-to-nonnull-conversion, refused to build. */
 /* THE DEPRECATED PAIR (§63.74), declared where this library keeps its percent-encoding family. Apple declares
  * them in NSURL.h; the OWNER is NSString either way, which is what the ledger row says. */
-- (nullable NSString *)stringByAddingPercentEscapesUsingEncoding:(NSStringEncoding)encoding;
-- (nullable NSString *)stringByReplacingPercentEscapesUsingEncoding:(NSStringEncoding)encoding;
+- (nullable NSString *)stringByAddingPercentEscapesUsingEncoding:(NSStringEncoding)encoding NS_DEPRECATED_MAC(10_0, 10_11);
+- (nullable NSString *)stringByReplacingPercentEscapesUsingEncoding:(NSStringEncoding)encoding NS_DEPRECATED_MAC(10_0, 10_11);
 
-- (nullable NSString *)stringByAddingPercentEncodingWithAllowedCharacters:(nullable NSCharacterSet *)allowedCharacters;
-@property (readonly, nullable) NSString *stringByRemovingPercentEncoding;
+- (nullable NSString *)stringByAddingPercentEncodingWithAllowedCharacters:(nullable NSCharacterSet *)allowedCharacters NS_AVAILABLE_MAC(10_9);
+@property (readonly, nullable) NSString *stringByRemovingPercentEncoding NS_AVAILABLE_MAC(10_9);
 
 /* ===================================================================================================
  * COMPOSED CHARACTER SEQUENCES: A BASE LETTER AND THE COMBINING CHARACTERS THAT FOLLOW IT.
@@ -734,15 +734,15 @@ __attribute__((swift_bridge("Swift.String")))
  * caller can predict, rather than handing the empty range back.
  * =================================================================================================== */
 - (NSRange)rangeOfComposedCharacterSequenceAtIndex:(NSUInteger)index;
-- (NSRange)rangeOfComposedCharacterSequencesForRange:(NSRange)range;
+- (NSRange)rangeOfComposedCharacterSequencesForRange:(NSRange)range NS_AVAILABLE_MAC(10_5);
 
 /* Conversions. */
 - (int)intValue;
-- (NSInteger)integerValue;
-- (long long)longLongValue;
+- (NSInteger)integerValue NS_AVAILABLE_MAC(10_5);
+- (long long)longLongValue NS_AVAILABLE_MAC(10_5);
 - (float)floatValue;
 - (double)doubleValue;
-- (BOOL)boolValue;
+- (BOOL)boolValue NS_AVAILABLE_MAC(10_5);
 
 /* Paths — pure string operations, and FSH-shaped paths are slash-separated. */
 - (NSString *)lastPathComponent;
@@ -799,7 +799,7 @@ __attribute__((swift_bridge("Swift.String")))
  * completes a partial path against the filesystem and reports how many candidates it found. Both take their
  * shapes from a citable source rather than from memory: the first from Apple's own header, the second from
  * GNUstep's published reference, which §2 admits as a secondary spec. */
-- (NSComparisonResult)localizedStandardCompare:(NSString *)string;
+- (NSComparisonResult)localizedStandardCompare:(NSString *)string NS_AVAILABLE_MAC(10_6);
 /* ⚠ THE TYPES ARE WRITTEN PLAIN `NSArray *`, WHICH IS THIS HEADER'S OWN RULE RATHER THAN AN OVERSIGHT: NSArray
  * is only FORWARD-DECLARED here, so a type argument is a compile error ("type arguments cannot be applied to
  * non-parameterized class") — and the sibling door above (`+pathWithComponents:`) is spelled the same way for
@@ -841,7 +841,7 @@ __attribute__((swift_bridge("Swift.String")))
 			usingBlock:(void (^)(NSString * _Nullable substring,
 					     NSRange substringRange,
 					     NSRange enclosingRange,
-					     BOOL *stop))block;
+					     BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 
 /* ===================================================================================================
  * THE LINE RANGES — AND A LINE'S TERMINATOR SET IS APPLE'S, TAKEN FROM ITS PUBLISHED PAGE RATHER THAN
@@ -882,7 +882,7 @@ __attribute__((swift_bridge("Swift.String")))
 	 contentsEnd:(NSUInteger *)contentsEndPtr
 	    forRange:(NSRange)range;
 - (NSRange)lineRangeForRange:(NSRange)range;
-- (void)enumerateLinesUsingBlock:(void (^)(NSString *line, BOOL *stop))block;
+- (void)enumerateLinesUsingBlock:(void (^)(NSString *line, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 
 /* THE PARAGRAPH PAIR, the same shape as the line pair above and for the same reason the three out-parameters
  * exist: `end` is where the TERMINATOR stops (a paragraph owns the break it ends with), `contentsEnd` is where
@@ -899,7 +899,7 @@ __attribute__((swift_bridge("Swift.String")))
  * string that can reach this door the only spelling that fits is the receiver. That IS the answer Apple's own
  * contract gives for the no-variant case rather than a boundary invented here: a variant-bearing string cannot
  * be built in this tree, so there is no input for which a different answer is specified. */
-- (NSString *)variantFittingPresentationWidth:(NSInteger)width;
+- (NSString *)variantFittingPresentationWidth:(NSInteger)width NS_AVAILABLE_MAC(10_11);
 @end
 
 @interface NSOwnedString : NSString
@@ -948,7 +948,7 @@ __attribute__((swift_bridge("Swift.String")))
  * INVALID RANGE raises NSRangeException for the same reason, and that check is this door's own: the file's
  * -substringWithRange: is a direct byte walk and does NOT detect one (measured — it answers an empty string). */
 - (void)applyTransform:(NSString *)transform reverse:(BOOL)reverse range:(NSRange)range
-	  updatedRange:(nullable NSRangePointer)updatedRange;
+	  updatedRange:(nullable NSRangePointer)updatedRange NS_AVAILABLE_MAC(10_11);
 @end
 
 /*

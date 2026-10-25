@@ -83,8 +83,8 @@ typedef enum {
 - (BOOL)decodeBoolForKey:(NSString *)key;
 - (void)encodeInt:(int)value forKey:(NSString *)key;
 - (int)decodeIntForKey:(NSString *)key;
-- (void)encodeInteger:(NSInteger)value forKey:(NSString *)key;
-- (NSInteger)decodeIntegerForKey:(NSString *)key;
+- (void)encodeInteger:(NSInteger)value forKey:(NSString *)key NS_AVAILABLE_MAC(10_5);
+- (NSInteger)decodeIntegerForKey:(NSString *)key NS_AVAILABLE_MAC(10_5);
 - (void)encodeDouble:(double)value forKey:(NSString *)key;
 - (double)decodeDoubleForKey:(NSString *)key;
 - (void)encodeFloat:(float)value forKey:(NSString *)key;
@@ -109,7 +109,7 @@ typedef enum {
 
 /* A PROPERTY LIST, BY NAME. Apple spells this door for the values its own plist serialiser can carry,
  * which is the reader's way of saying "this key held a plist, not an object". */
-- (nullable id)decodePropertyListForKey:(NSString *)key;
+- (nullable id)decodePropertyListForKey:(NSString *)key NS_AVAILABLE_MAC(10_8);
 
 /* --- THE KEYED GEOMETRY DOORS: A C STRUCT BOXED AS AN `NSValue` ------------------------------------
  *
@@ -153,8 +153,8 @@ typedef enum {
  * the decoder's failure (`-failWithError:`). They are the point of `NSSecureCoding`, and they are why
  * `NSCoding.h` could stop saying the enforcement was missing. The KEYED pair implements them; the
  * abstract base raises, like every other keyed door. */
-- (nullable id)decodeObjectOfClass:(Class)aClass forKey:(NSString *)key;
-- (nullable id)decodeObjectOfClasses:(nullable NSSet *)classes forKey:(NSString *)key;
+- (nullable id)decodeObjectOfClass:(Class)aClass forKey:(NSString *)key NS_AVAILABLE_MAC(10_8);
+- (nullable id)decodeObjectOfClasses:(nullable NSSet *)classes forKey:(NSString *)key NS_AVAILABLE_MAC(10_8);
 - (nullable NSArray *)decodeArrayOfObjectsOfClass:(Class)cls forKey:(NSString *)key;
 - (nullable NSArray *)decodeArrayOfObjectsOfClasses:(nullable NSSet *)classes forKey:(NSString *)key;
 - (nullable NSDictionary *)decodeDictionaryWithKeysOfClass:(Class)keyClass
@@ -181,15 +181,15 @@ typedef enum {
  * THERE and cannot be decoded, which is corruption rather than an absence. The sentence that used to
  * stand here said the ordinary family "keeps its raising contract", and it was wrong about both halves
  * at once: it made a benign absence fatal and it suggested corruption was the only failure. */
-- (nullable id)decodeTopLevelObjectAndReturnError:(NSError * _Nullable * _Nullable)error;
+- (nullable id)decodeTopLevelObjectAndReturnError:(NSError * _Nullable * _Nullable)error NS_AVAILABLE_MAC(10_11);
 - (nullable id)decodeTopLevelObjectForKey:(NSString *)key
-				    error:(NSError * _Nullable * _Nullable)error;
+				    error:(NSError * _Nullable * _Nullable)error NS_AVAILABLE_MAC(10_11);
 - (nullable id)decodeTopLevelObjectOfClass:(Class)cls
 				    forKey:(NSString *)key
-				     error:(NSError * _Nullable * _Nullable)error;
+				     error:(NSError * _Nullable * _Nullable)error NS_AVAILABLE_MAC(10_11);
 - (nullable id)decodeTopLevelObjectOfClasses:(nullable NSSet *)classes
 				      forKey:(NSString *)key
-				       error:(NSError * _Nullable * _Nullable)error;
+				       error:(NSError * _Nullable * _Nullable)error NS_AVAILABLE_MAC(10_11);
 
 /* --- THE SEQUENTIAL OBJECT-CONVENTIONS, AT THE BASE (see the file note) ----------------------------- */
 - (void)encodeBycopyObject:(nullable id)object;
@@ -201,11 +201,11 @@ typedef enum {
  * `-failWithError:` is how a decoder reports a failure it cannot return as a value; what it DOES is
  * `-decodingFailurePolicy`'s business — raise, or record the error for `-error`. The base answers the
  * DEFAULTS and stores them; the keyed unarchiver is where the policy is honoured. */
-- (void)failWithError:(NSError *)error;
+- (void)failWithError:(NSError *)error NS_AVAILABLE_MAC(10_11);
 
 @property (readonly) BOOL allowsKeyedCoding;
-@property BOOL requiresSecureCoding;
-@property (copy, nullable) NSSet *allowedClasses;
+@property BOOL requiresSecureCoding NS_AVAILABLE_MAC(10_8);
+@property (copy, nullable) NSSet *allowedClasses NS_AVAILABLE_MAC(10_8);
 @property (readonly, copy, nullable) NSError *error;
 @property NSDecodingFailurePolicy decodingFailurePolicy;
 
@@ -306,8 +306,8 @@ typedef enum {
 - (void)encodeRootObject:(id)rootObject;
 - (nullable NSZone *)objectZone;
 - (void)setObjectZone:(nullable NSZone *)zone;
-- (void)encodeNXObject:(nullable id)object;
-- (nullable id)decodeNXObject;
+- (void)encodeNXObject:(nullable id)object NS_DEPRECATED_MAC(10_0, 10_5);
+- (nullable id)decodeNXObject NS_DEPRECATED_MAC(10_0, 10_5);
 
 @end
 

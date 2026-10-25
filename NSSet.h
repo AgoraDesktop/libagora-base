@@ -124,7 +124,7 @@ __attribute__((swift_bridge("Swift.Set")))
 @property (nullable, readonly) ObjectType anyObject;
 @property (readonly, copy) NSArray<ObjectType> *allObjects;
 - (NSEnumerator<ObjectType> *)objectEnumerator;
-- (void)enumerateObjectsUsingBlock:(void (^)(ObjectType object, BOOL *stop))block;
+- (void)enumerateObjectsUsingBlock:(void (^)(ObjectType object, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 
 /* THE OPTIONS FORM (§63.178): NSEnumerationReverse is honoured, and NSEnumerationConcurrent is the hint
  * this library ignores everywhere (so a loop is always serial and synchronous) — the same reading the
@@ -132,7 +132,7 @@ __attribute__((swift_bridge("Swift.Set")))
  * which is why nothing here promises one: reverse means the reverse of whatever order -allObjects
  * happened to answer, and a caller who needs an order sorts first. */
 - (void)enumerateObjectsWithOptions:(NSEnumerationOptions)options
-			 usingBlock:(void (^)(ObjectType object, BOOL *stop))block;
+			 usingBlock:(void (^)(ObjectType object, BOOL *stop))block NS_AVAILABLE_MAC(10_6);
 
 /* THE PER-OBJECT DOORS: every member gets the message, in no promised order, and the selector must take
  * no argument (or exactly one object, in the `withObject:` form). */
@@ -141,9 +141,9 @@ __attribute__((swift_bridge("Swift.Set")))
 
 /* THE TEST DOORS: a NEW immutable set of the members the block accepted. `stop` ends the walk, and the
  * predicate's two arguments are both answers, as in NSIndexSet's scan. */
-- (NSSet<ObjectType> *)objectsPassingTest:(BOOL (^)(ObjectType object, BOOL *stop))predicate;
+- (NSSet<ObjectType> *)objectsPassingTest:(BOOL (^)(ObjectType object, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 - (NSSet<ObjectType> *)objectsWithOptions:(NSEnumerationOptions)options
-			      passingTest:(BOOL (^)(ObjectType object, BOOL *stop))predicate;
+			      passingTest:(BOOL (^)(ObjectType object, BOOL *stop))predicate NS_AVAILABLE_MAC(10_6);
 
 - (BOOL)isEqualToSet:(NSSet<ObjectType> *)other;
 - (BOOL)isSubsetOfSet:(NSSet<ObjectType> *)other;
@@ -151,11 +151,11 @@ __attribute__((swift_bridge("Swift.Set")))
 
 /* The three "adding" forms answer a NEW set (the receiver is immutable), which is why no addObject:
  * exists here at all. */
-- (instancetype)setByAddingObject:(ObjectType)object;
-- (instancetype)setByAddingObjectsFromSet:(NSSet<ObjectType> *)other;
-- (instancetype)setByAddingObjectsFromArray:(NSArray<ObjectType> *)other;
+- (instancetype)setByAddingObject:(ObjectType)object NS_AVAILABLE_MAC(10_5);
+- (instancetype)setByAddingObjectsFromSet:(NSSet<ObjectType> *)other NS_AVAILABLE_MAC(10_5);
+- (instancetype)setByAddingObjectsFromArray:(NSArray<ObjectType> *)other NS_AVAILABLE_MAC(10_5);
 
-- (NSArray *)sortedArrayUsingDescriptors:(NSArray *)descriptors;
+- (NSArray *)sortedArrayUsingDescriptors:(NSArray *)descriptors NS_AVAILABLE_MAC(10_6);
 
 - (BOOL)isEqual:(id)other;
 - (NSUInteger)hash;

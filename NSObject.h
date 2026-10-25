@@ -214,7 +214,7 @@ __attribute__((objc_root_class))
  * compiles, and raises with the reason instead of doing half of it. (Apple's own header marks it unavailable
  * to 64-bit code, so a 64-bit caller cannot reach it there either.)
  */
-+ (void)poseAsClass:(Class)aClass;
++ (void)poseAsClass:(Class)aClass NS_DEPRECATED_MAC(10_0, 10_5);
 
 /*
  * THE DISCARDABLE-CONTENT PROXY (10.6). For an object whose content can be purged, this answers a proxy that
@@ -222,7 +222,7 @@ __attribute__((objc_root_class))
  * Apple's answer for an object with no purgeable content; NSDiscardableContent is where a class declares that
  * it has some, and NSPurgeableData is the concrete one this tree ships.
  */
-- (id)autoContentAccessingProxy;
+- (id)autoContentAccessingProxy NS_AVAILABLE_MAC(10_6);
 
 /*
  * THE GARBAGE COLLECTOR'S HOOK, and a NO-OP BY DOCUMENTATION rather than by omission: `-finalize` was sent

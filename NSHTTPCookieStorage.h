@@ -71,11 +71,11 @@ extern NSString * const NSHTTPCookieManagerCookiesChangedNotification;
 	    forURL:(NSURL *)URL
   mainDocumentURL:(nullable NSURL *)mainDocumentURL;
 - (void)deleteCookie:(NSHTTPCookie *)cookie;
-- (void)removeCookiesSinceDate:(NSDate *)date;
+- (void)removeCookiesSinceDate:(NSDate *)date NS_AVAILABLE_MAC(10_10);
 
 @property (readonly, copy) NSArray *cookies;
 - (NSArray *)cookiesForURL:(NSURL *)URL;
-- (NSArray *)sortedCookiesUsingDescriptors:(NSArray *)sortDescriptors;
+- (NSArray *)sortedCookiesUsingDescriptors:(NSArray *)sortDescriptors NS_AVAILABLE_MAC(10_7);
 
 /* The task-scoped pair. A task names a request, so both answer through its URL rather than keeping a
  * second table: this store has ONE index and it is the cookie list. */

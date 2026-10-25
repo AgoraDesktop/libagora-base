@@ -23,6 +23,7 @@ enum {
 	NSOrPredicateType
 };
 
+NS_CLASS_AVAILABLE_MAC(10_4)
 @interface NSCompoundPredicate : NSPredicate
 {
 	NSCompoundPredicateType _type;

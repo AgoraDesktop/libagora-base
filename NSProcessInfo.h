@@ -107,14 +107,14 @@ NS_SWIFT_NAME(ProcessInfo)
 /* THE DEPRECATED 10.0 DOOR (10.6 deprecates it in favour of -operatingSystemName). Apple's enum names Mach,
  * Windows NT and their relatives, and NONE OF THEM DESCRIBES THIS SYSTEM; 0 is returned as the stated "no Mac OS
  * value applies", which is why the modern name door exists. */
-- (NSUInteger)operatingSystem;
-- (NSString *)operatingSystemName;
+- (NSUInteger)operatingSystem NS_DEPRECATED_MAC(10_0, 10_10);
+- (NSString *)operatingSystemName NS_DEPRECATED_MAC(10_0, 10_10);
 /* THE STATE THE ENUM ABOVE DESCRIBES HAD NO DOOR UNTIL §62.98, which is how the enum sat here orphaned.
  * ANSWERED AS Nominal, and the boundary is stated rather than implied: no thermal sensor is plumbed into this
  * library, so the state never changes and the notification that pairs with it is never posted by anything here.
  * A caller that reads the property or observes the name compiles and gets a truthful answer - "nominal" is what
  * a system with no thermal management is. */
-- (NSProcessInfoThermalState)thermalState;
+- (NSProcessInfoThermalState)thermalState NS_AVAILABLE_MAC(10_10_3);
 /* THE PLATFORM-COMPATIBILITY FLAGS, and NONE of them names a mode this OS HAS: the process is a native
  * Argentum process, not a Mac Catalyst app and not an iOS app running on a Mac or a Vision device, and this
  * system has no low-power mode to be in. So each answers its own NO — the honest state of a system that never
@@ -126,17 +126,17 @@ NS_SWIFT_NAME(ProcessInfo)
 - (BOOL)iOSAppOnMac;
 - (BOOL)iOSAppOnVision;
 - (NSString *)operatingSystemVersionString;
-- (NSOperatingSystemVersion)operatingSystemVersion;
+- (NSOperatingSystemVersion)operatingSystemVersion NS_AVAILABLE_MAC(10_10);
 /* THE VERSION COMPONENTS, one field each, so a caller need not take the struct apart. They are the SAME three
  * numbers -operatingSystemVersion answers, read from the one place this file keeps them. */
 - (NSInteger)majorVersion;
 - (NSInteger)minorVersion;
 - (NSInteger)patchVersion;
-- (BOOL)isOperatingSystemAtLeastVersion:(NSOperatingSystemVersion)version;
-- (NSUInteger)processorCount;
-- (NSUInteger)activeProcessorCount;
-- (unsigned long long)physicalMemory;
-- (NSTimeInterval)systemUptime;
+- (BOOL)isOperatingSystemAtLeastVersion:(NSOperatingSystemVersion)version NS_AVAILABLE_MAC(10_10);
+- (NSUInteger)processorCount NS_AVAILABLE_MAC(10_5);
+- (NSUInteger)activeProcessorCount NS_AVAILABLE_MAC(10_5);
+- (unsigned long long)physicalMemory NS_AVAILABLE_MAC(10_5);
+- (NSTimeInterval)systemUptime NS_AVAILABLE_MAC(10_6);
 
 /* ACTIVITIES (§63.181). An activity is a PROMISE to the system that work is in progress — do not
  * idle-sleep the machine, do not terminate the app — and what is handed back is an OPAQUE TOKEN whose only
@@ -144,23 +144,23 @@ NS_SWIFT_NAME(ProcessInfo)
  * keep it with: no idle sleep to prevent and no app-napping to defer. Recorded rather than pretended,
  * because a caller can still measure the SHAPE — an activity begins, the block runs, the activity ends —
  * and -endActivity: with a token this library did not hand out is ignored rather than fatal. */
-- (id<NSObject>)beginActivityWithOptions:(NSActivityOptions)options reason:(NSString *)reason;
-- (void)endActivity:(id<NSObject>)activity;
+- (id<NSObject>)beginActivityWithOptions:(NSActivityOptions)options reason:(NSString *)reason NS_AVAILABLE_MAC(10_9);
+- (void)endActivity:(id<NSObject>)activity NS_AVAILABLE_MAC(10_9);
 - (void)performActivityWithOptions:(NSActivityOptions)options
 			    reason:(NSString *)reason
-			usingBlock:(void (^)(void))block;
+			usingBlock:(void (^)(void))block NS_AVAILABLE_MAC(10_9);
 - (void)performExpiringActivityWithReason:(NSString *)reason
 			       usingBlock:(void (^)(BOOL expired))block;
 
 /* AUTOMATIC AND SUDDEN TERMINATION. The "enable" doors BALANCE the "disable" ones, so what is kept is a
  * COUNT — per reason for automatic termination, one counter for sudden termination. The support flag is the
  * one part of this group with a getter, which is why it can be asserted rather than hoped for. */
-- (void)disableAutomaticTermination:(NSString *)reason;
-- (void)enableAutomaticTermination:(NSString *)reason;
-- (void)disableSuddenTermination;
-- (void)enableSuddenTermination;
-- (BOOL)automaticTerminationSupportEnabled;
-- (void)setAutomaticTerminationSupportEnabled:(BOOL)flag;
+- (void)disableAutomaticTermination:(NSString *)reason NS_AVAILABLE_MAC(10_7);
+- (void)enableAutomaticTermination:(NSString *)reason NS_AVAILABLE_MAC(10_7);
+- (void)disableSuddenTermination NS_AVAILABLE_MAC(10_6);
+- (void)enableSuddenTermination NS_AVAILABLE_MAC(10_6);
+- (BOOL)automaticTerminationSupportEnabled NS_AVAILABLE_MAC(10_7);
+- (void)setAutomaticTerminationSupportEnabled:(BOOL)flag NS_AVAILABLE_MAC(10_7);
 
 /* THE TWO HARDWARE QUESTIONS, and both ask about a Mac: a performance profile is an Apple-silicon
  * performance mode, and a certified device is one Apple has certified for a named use. Neither exists on

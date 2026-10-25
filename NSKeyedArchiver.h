@@ -71,6 +71,7 @@ NS_ASSUME_NONNULL_BEGIN
 /* THE KEY THE ROOT OBJECT IS STORED UNDER (§62.103), for a caller that reads an archive's own plist. */
 extern NSString * const NSKeyedArchiveRootObjectKey;
 
+NS_CLASS_AVAILABLE_MAC(10_9)
 @interface NSKeyedArchiver : NSCoder
 {
 	NSMutableArray *_objects;	/* the $objects table */
@@ -215,7 +216,7 @@ extern NSString * const NSKeyedArchiveRootObjectKey;
  * OBJECTS are checked separately. The class-set forms take a set of allowed classes; the singular forms are
  * the one-class case. Anything refused answers nil with an NSCoderInvalidValueError, which is the same
  * answer -decodeObjectOfClasses: gives mid-stream. */
-+ (nullable id)unarchiveTopLevelObjectWithData:(NSData *)data error:(NSError * _Nullable * _Nullable)error;
++ (nullable id)unarchiveTopLevelObjectWithData:(NSData *)data error:(NSError * _Nullable * _Nullable)error NS_AVAILABLE_MAC(10_11);
 + (nullable id)unarchivedObjectOfClass:(Class)cls
 			      fromData:(NSData *)data
 				 error:(NSError * _Nullable * _Nullable)error;

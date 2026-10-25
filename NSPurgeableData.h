@@ -24,6 +24,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_CLASS_AVAILABLE_MAC(10_6)
 @interface NSPurgeableData : NSMutableData <NSDiscardableContent>
 {
 	NSUInteger _accessCount;	/* outstanding accesses: the reason a discard may be refused */

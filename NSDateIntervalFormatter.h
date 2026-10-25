@@ -59,6 +59,7 @@ typedef enum {
 } NSDateIntervalFormatterStyle;
 
 NS_SWIFT_NAME(DateIntervalFormatter)
+NS_CLASS_AVAILABLE_MAC(10_10)
 @interface NSDateIntervalFormatter : NSFormatter
 {
 	NSDateIntervalFormatterStyle _dateStyle;

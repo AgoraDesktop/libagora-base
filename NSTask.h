@@ -126,7 +126,7 @@ NS_SWIFT_NAME(Process)
 
 /* `WEXITSTATUS` when the task exited; the SIGNAL NUMBER when it did not — see the header's note. */
 - (int)terminationStatus;
-- (NSTaskTerminationReason)terminationReason;
+- (NSTaskTerminationReason)terminationReason NS_AVAILABLE_MAC(10_6);
 
 /* --- configuring, BEFORE the launch -------------------------------------- */
 
@@ -154,8 +154,8 @@ NS_SWIFT_NAME(Process)
 /* CARRIED AND REPORTED, NOT APPLIED: there is no scheduler class to hand a quality of service to, so the
  * value is stored and answered and the launch does not consult it. Stated because a caller could
  * otherwise believe it had asked for something. */
-- (NSQualityOfService)qualityOfService;
-- (void)setQualityOfService:(NSQualityOfService)qualityOfService;
+- (NSQualityOfService)qualityOfService NS_AVAILABLE_MAC(10_10);
+- (void)setQualityOfService:(NSQualityOfService)qualityOfService NS_AVAILABLE_MAC(10_10);
 
 /* COPIED, and called by the REAPER when the task ends. */
 - (nullable void (^)(NSTask *task))terminationHandler;

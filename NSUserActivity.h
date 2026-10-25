@@ -80,6 +80,7 @@ FOUNDATION_EXPORT NSString * const NSUserActivityTypeBrowsingWeb;
 
 @end
 
+NS_CLASS_AVAILABLE_MAC(10_10)
 @interface NSUserActivity : NSObject
 {
 @private
@@ -126,8 +127,8 @@ FOUNDATION_EXPORT NSString * const NSUserActivityTypeBrowsingWeb;
 
 /* The keys the activity REQUIRES to be continuable. Apple's rule is that the payload should be small; this set
  * is how an app says which part of it matters, and it is copied. */
-- (nullable NSSet *)requiredUserInfoKeys;
-- (void)setRequiredUserInfoKeys:(nullable NSSet *)aSet;
+- (nullable NSSet *)requiredUserInfoKeys NS_AVAILABLE_MAC(10_11);
+- (void)setRequiredUserInfoKeys:(nullable NSSet *)aSet NS_AVAILABLE_MAC(10_11);
 
 /* WHETHER THE STATE NEEDS SAVING. SETTING IT TO YES ASKS THE DELEGATE TO SAVE (see the file's note), and the save
  * clears it — so a caller that sets it on every keystroke gets one delegate message per save rather than one per
@@ -148,8 +149,8 @@ FOUNDATION_EXPORT NSString * const NSUserActivityTypeBrowsingWeb;
 
 /* WHEN THE ACTIVITY STOPS BEING USEFUL. Stored and answered; nothing here expires it, because there is no
  * system doing the expiring. */
-- (nullable NSDate *)expirationDate;
-- (void)setExpirationDate:(nullable NSDate *)aDate;
+- (nullable NSDate *)expirationDate NS_AVAILABLE_MAC(10_11);
+- (void)setExpirationDate:(nullable NSDate *)aDate NS_AVAILABLE_MAC(10_11);
 
 /* Whether the continuing device may ask for streams back to this one. See
  * `-getContinuationStreamsWithCompletionHandler:` for what asking actually gets here. */
@@ -189,25 +190,25 @@ FOUNDATION_EXPORT NSString * const NSUserActivityTypeBrowsingWeb;
 
 /* THE KEYWORDS DESCRIBING THE ACTIVITY'S CONTENT, which Apple joins into the searchable text. A copied set;
  * there is no index here to put them in. */
-- (nullable NSSet *)keywords;
-- (void)setKeywords:(nullable NSSet *)aSet;
+- (nullable NSSet *)keywords NS_AVAILABLE_MAC(10_11);
+- (void)setKeywords:(nullable NSSet *)aSet NS_AVAILABLE_MAC(10_11);
 
 /* WHICH SYSTEM BEHAVIORS THE ACTIVITY MAY TAKE PART IN. Stored and answered — the activity owns these flags —
  * but the three engines that would READ them are absent here, and named where they are missed: the handoff
  * daemon (a second device), the CoreSpotlight index, and Siri's prediction/Shortcuts service. */
 - (BOOL)eligibleForHandoff;
-- (void)setEligibleForHandoff:(BOOL)flag;
+- (void)setEligibleForHandoff:(BOOL)flag NS_AVAILABLE_MAC(10_11);
 - (BOOL)eligibleForSearch;
-- (void)setEligibleForSearch:(BOOL)flag;
+- (void)setEligibleForSearch:(BOOL)flag NS_AVAILABLE_MAC(10_11);
 - (BOOL)eligibleForPublicIndexing;
-- (void)setEligibleForPublicIndexing:(BOOL)flag;
+- (void)setEligibleForPublicIndexing:(BOOL)flag NS_AVAILABLE_MAC(10_11);
 - (BOOL)eligibleForPrediction;
 - (void)setEligibleForPrediction:(BOOL)flag;
 
 /* THE LIFECYCLE, with Apple's two rules enforced: only one activity is current at a time (becoming current
  * resigns the previous one), and an INVALIDATED activity can never become current again. */
 - (void)becomeCurrent;
-- (void)resignCurrent;
+- (void)resignCurrent NS_AVAILABLE_MAC(10_11);
 - (void)invalidate;
 
 /* THE STREAMS DOOR — and here it answers `NSUserActivityConnectionUnavailableError`, because there is no other

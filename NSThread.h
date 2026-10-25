@@ -61,28 +61,28 @@ NS_SWIFT_NAME(Thread)
 }
 
 + (NSThread *)currentThread;
-+ (NSThread *)mainThread;
-+ (BOOL)isMainThread;
++ (NSThread *)mainThread NS_AVAILABLE_MAC(10_5);
++ (BOOL)isMainThread NS_AVAILABLE_MAC(10_5);
 
 /* THE STACK OF THE CALLING THREAD (10.5 return addresses, 10.6 symbols). `+callStackReturnAddresses` answers
  * NSNumbers holding the addresses, and `+callStackSymbols` answers the same frames as `backtrace_symbols(3)`
  * strings. Both begin at the CALLER, not at this class. */
-+ (NSArray *)callStackReturnAddresses;
-+ (NSArray *)callStackSymbols;
-- (BOOL)isMainThread;
++ (NSArray *)callStackReturnAddresses NS_AVAILABLE_MAC(10_5);
++ (NSArray *)callStackSymbols NS_AVAILABLE_MAC(10_6);
+- (BOOL)isMainThread NS_AVAILABLE_MAC(10_5);
 
-- (nullable NSString *)name;
-- (void)setName:(nullable NSString *)name;
+- (nullable NSString *)name NS_AVAILABLE_MAC(10_5);
+- (void)setName:(nullable NSString *)name NS_AVAILABLE_MAC(10_5);
 
-- (BOOL)isCancelled;
-- (void)cancel;
+- (BOOL)isCancelled NS_AVAILABLE_MAC(10_5);
+- (void)cancel NS_AVAILABLE_MAC(10_5);
 
 /* THE PER-THREAD STORE: one per THREAD, created on first ask, and the receiver is the thread whose
  * dictionary it is — which is Apple's contract and why this is an ivar rather than a table keyed by
  * thread id (a table would need locking to read). */
 - (NSMutableDictionary *)threadDictionary;
-- (BOOL)isExecuting;
-- (BOOL)isFinished;
+- (BOOL)isExecuting NS_AVAILABLE_MAC(10_5);
+- (BOOL)isFinished NS_AVAILABLE_MAC(10_5);
 
 + (void)sleepForTimeInterval:(NSTimeInterval)interval;
 + (void)sleepUntilDate:(NSDate *)date;
@@ -92,25 +92,25 @@ NS_SWIFT_NAME(Thread)
  * PRIORITY IS 0.0-1.0, Apple's scale, MAPPED onto this kernel's nice range — a stated reading, because
  * Apple's scale names a scheduling class this kernel has no equivalent of. `qualityOfService` is recorded
  * and used as the same hint, and `stackSize` is applied through the pthread this class creates. */
-- (void)main;
+- (void)main NS_AVAILABLE_MAC(10_5);
 + (void)exit;
 + (BOOL)isMultiThreaded;
-+ (double)threadPriority;
-+ (BOOL)setThreadPriority:(double)priority;
-@property (readwrite) double threadPriority;
-@property (readwrite) NSUInteger stackSize;
-@property (readwrite) NSQualityOfService qualityOfService;
++ (double)threadPriority NS_AVAILABLE_MAC(10_6);
++ (BOOL)setThreadPriority:(double)priority NS_AVAILABLE_MAC(10_6);
+@property (readwrite) double threadPriority NS_AVAILABLE_MAC(10_6);
+@property (readwrite) NSUInteger stackSize NS_AVAILABLE_MAC(10_5);
+@property (readwrite) NSQualityOfService qualityOfService NS_AVAILABLE_MAC(10_10);
 
 + (void)detachNewThreadWithBlock:(void (^)(void))block;
 - (instancetype)initWithBlock:(void (^)(void))block;
 
 - (instancetype)initWithTarget:(id)target
 		      selector:(SEL)selector
-			object:(nullable id)argument;
+			object:(nullable id)argument NS_AVAILABLE_MAC(10_5);
 + (void)detachNewThreadSelector:(SEL)selector
 		       toTarget:(id)target
 		     withObject:(nullable id)argument;
-- (void)start;
+- (void)start NS_AVAILABLE_MAC(10_5);
 
 - (NSString *)description;
 
@@ -142,12 +142,12 @@ NS_SWIFT_NAME(Thread)
 	       onThread:(NSThread *)thr
 	     withObject:(nullable id)arg
 	  waitUntilDone:(BOOL)wait
-		  modes:(nullable NSArray *)array;
+		  modes:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
 - (void)performSelector:(SEL)aSelector
 	       onThread:(NSThread *)thr
 	     withObject:(nullable id)arg
-	  waitUntilDone:(BOOL)wait;
-- (void)performSelectorInBackground:(SEL)aSelector withObject:(nullable id)arg;
+	  waitUntilDone:(BOOL)wait NS_AVAILABLE_MAC(10_5);
+- (void)performSelectorInBackground:(SEL)aSelector withObject:(nullable id)arg NS_AVAILABLE_MAC(10_5);
 
 @end
 

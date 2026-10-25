@@ -108,13 +108,13 @@ typedef enum {
 
 /* THE REGISTRY. A handle class answers for a URL scheme; the first registered class that says YES serves it, and
  * the base class's answer (the transport's own capability) is the last resort rather than the first. */
-+ (void)registerURLHandleClass:(Class)anURLHandleSubclass;
-+ (nullable Class)URLHandleClassForURL:(NSURL *)anURL;
-+ (BOOL)canInitWithURL:(NSURL *)anURL;
++ (void)registerURLHandleClass:(Class)anURLHandleSubclass NS_DEPRECATED_MAC(10_0, 10_4);
++ (nullable Class)URLHandleClassForURL:(NSURL *)anURL NS_DEPRECATED_MAC(10_0, 10_4);
++ (BOOL)canInitWithURL:(NSURL *)anURL NS_DEPRECATED_MAC(10_0, 10_4);
 
 /* A CACHE OF HANDLES, keyed by the URL's absolute string: the reason the class has a designated initialiser with a
  * `cached` flag at all. A handle that was not asked to be cached is not here. */
-+ (nullable NSURLHandle *)cachedHandleForURL:(NSURL *)anURL;
++ (nullable NSURLHandle *)cachedHandleForURL:(NSURL *)anURL NS_DEPRECATED_MAC(10_0, 10_4);
 
 - (instancetype)initWithURL:(NSURL *)anURL cached:(BOOL)willCache;
 - (NSURL *)URL;
@@ -122,39 +122,39 @@ typedef enum {
 /* THE PROPERTY BAG. `-propertyForKey:` FLUSHES THE CACHE and loads the resource if the property is not known yet,
  * which is the difference between it and `-propertyForKeyIfAvailable:` — a distinction Apple's documentation makes
  * and this implementation keeps, because it is the only thing the two names were for. */
-- (nullable id)propertyForKey:(NSString *)propertyKey;
-- (nullable id)propertyForKeyIfAvailable:(NSString *)propertyKey;
-- (BOOL)writeProperty:(nullable id)propertyValue forKey:(NSString *)propertyKey;
+- (nullable id)propertyForKey:(NSString *)propertyKey NS_DEPRECATED_MAC(10_0, 10_4);
+- (nullable id)propertyForKeyIfAvailable:(NSString *)propertyKey NS_DEPRECATED_MAC(10_0, 10_4);
+- (BOOL)writeProperty:(nullable id)propertyValue forKey:(NSString *)propertyKey NS_DEPRECATED_MAC(10_0, 10_4);
 
 /* THE REQUEST BODY. Each `-writeData:` appends; the first one turns the request into a POST, and the accumulated
  * bytes go out with the load. */
-- (BOOL)writeData:(NSData *)data;
+- (BOOL)writeData:(NSData *)data NS_DEPRECATED_MAC(10_0, 10_4);
 
 /* LOADING. `-loadInForeground` is synchronous and answers the whole resource; `-beginLoadInBackground` starts a
  * thread and tells the clients; `-availableResourceData` is whatever has arrived and does not start a load. */
-- (nullable NSData *)loadInForeground;
-- (void)beginLoadInBackground;
-- (void)endLoadInBackground;
-- (void)cancelLoadInBackground;
-- (nullable NSData *)availableResourceData;
+- (nullable NSData *)loadInForeground NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)beginLoadInBackground NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)endLoadInBackground NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)cancelLoadInBackground NS_DEPRECATED_MAC(10_0, 10_4);
+- (nullable NSData *)availableResourceData NS_DEPRECATED_MAC(10_0, 10_4);
 
-- (NSURLHandleStatus)status;
-- (nullable NSString *)failureReason;
-- (void)flushCachedData;
+- (NSURLHandleStatus)status NS_DEPRECATED_MAC(10_0, 10_4);
+- (nullable NSString *)failureReason NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)flushCachedData NS_DEPRECATED_MAC(10_0, 10_4);
 
-- (void)addClient:(id <NSURLHandleClient>)client;
-- (void)removeClient:(id <NSURLHandleClient>)client;
+- (void)addClient:(id <NSURLHandleClient>)client NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)removeClient:(id <NSURLHandleClient>)client NS_DEPRECATED_MAC(10_0, 10_4);
 
 
 /* §63.216: THE FIVE DOORS. This class already HAS the loader (`-fnLoadWithStatus:reason:`), the foreground door
  * and a background load, so each of these is a wrapper: `-resourceData` loads ON DEMAND (Apple's own contract),
  * `-loadInBackground` runs the loader the file already has on a thread, and the two SUBCLASS receipts notify the
  * clients the protocol declares. `-expectedResourceDataSize` answers -1 for unknown, Apple's own sentinel. */
-- (nullable NSData *)resourceData;
-- (void)loadInBackground;
-- (long long)expectedResourceDataSize;
-- (void)didLoadBytes:(NSData *)newBytes loadComplete:(BOOL)complete;
-- (void)backgroundLoadDidFailWithReason:(nullable NSString *)reason;
+- (nullable NSData *)resourceData NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)loadInBackground NS_DEPRECATED_MAC(10_0, 10_4);
+- (long long)expectedResourceDataSize NS_DEPRECATED_MAC(10_3, 10_4);
+- (void)didLoadBytes:(NSData *)newBytes loadComplete:(BOOL)complete NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)backgroundLoadDidFailWithReason:(nullable NSString *)reason NS_DEPRECATED_MAC(10_0, 10_4);
 @end
 
 /*
@@ -177,10 +177,10 @@ typedef enum {
 /* THE FOUR ROWS THE FORMAL PROTOCOL DOES NOT CARRY, and 10.6's informal category does: the client's own loading
  * callbacks, whose selectors begin with `URL` (which is why the census grouped them separately). Bodiless by
  * design — the client implements them and the handle asks `-respondsToSelector:`. */
-- (void)URL:(NSURL *)sender resourceDataDidBecomeAvailable:(NSData *)newBytes FN_INFORMAL;
-- (void)URL:(NSURL *)sender resourceDidFailLoadingWithReason:(NSString *)reason FN_INFORMAL;
-- (void)URLResourceDidCancelLoading:(NSURL *)sender FN_INFORMAL;
-- (void)URLResourceDidFinishLoading:(NSURL *)sender FN_INFORMAL;
+- (void)URL:(NSURL *)sender resourceDataDidBecomeAvailable:(NSData *)newBytes FN_INFORMAL NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)URL:(NSURL *)sender resourceDidFailLoadingWithReason:(NSString *)reason FN_INFORMAL NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)URLResourceDidCancelLoading:(NSURL *)sender FN_INFORMAL NS_DEPRECATED_MAC(10_0, 10_4);
+- (void)URLResourceDidFinishLoading:(NSURL *)sender FN_INFORMAL NS_DEPRECATED_MAC(10_0, 10_4);
 @end
 
 NS_ASSUME_NONNULL_END

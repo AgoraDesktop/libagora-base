@@ -186,7 +186,7 @@ typedef enum {
  * library does not have (the same call NSLocale made). */
 + (nullable NSCalendar *)currentCalendar;
 /* nil for an identifier this library does not implement — see the list above. */
-+ (nullable NSCalendar *)calendarWithIdentifier:(NSString *)identifier;
++ (nullable NSCalendar *)calendarWithIdentifier:(NSString *)identifier NS_AVAILABLE_MAC(10_9);
 
 /* -init is inherited from NSObject and is NOT re-declared: a nullable re-declaration
  * of it conflicts with the inherited nonnull specifier (the warning F10's first build
@@ -239,7 +239,7 @@ typedef enum {
 - (NSDate *)dateByAddingUnit:(NSCalendarUnit)unit
 		       value:(NSInteger)value
 		      toDate:(NSDate *)date
-		     options:(NSCalendarOptions)options;
+		     options:(NSCalendarOptions)options NS_AVAILABLE_MAC(10_9);
 
 /* RANGES. -rangeOfUnit:inUnit:forDate: answers a count: of days in a month, of
  * months in a year, of hours in a day (always 24 here — a fixed offset has no
@@ -253,9 +253,9 @@ typedef enum {
 - (BOOL)rangeOfUnit:(NSCalendarUnit)unit
 	  startDate:(NSDate * _Nullable * _Nullable)datep
 	   interval:(double * _Nullable)tip
-	    forDate:(NSDate *)date;
+	    forDate:(NSDate *)date NS_AVAILABLE_MAC(10_5);
 
-- (BOOL)isDate:(NSDate *)date inSameDayAsDate:(NSDate *)other;
+- (BOOL)isDate:(NSDate *)date inSameDayAsDate:(NSDate *)other NS_AVAILABLE_MAC(10_9);
 
 /* =================================================================================================
  * THE COMPARISON, EXTRACTION, CONSTRUCTION, SETTING, RANGE AND SYMBOL DOORS (F13.7c)
@@ -278,36 +278,36 @@ typedef enum {
  * -isDate:…: answers whether the truncations are equal, -compareDate:…: their order. */
 - (NSComparisonResult)compareDate:(NSDate *)date
 			   toDate:(NSDate *)other
-		 toUnitGranularity:(NSCalendarUnit)unit;
+		 toUnitGranularity:(NSCalendarUnit)unit NS_AVAILABLE_MAC(10_9);
 - (BOOL)isDate:(NSDate *)date
    equalToDate:(NSDate *)other
-toUnitGranularity:(NSCalendarUnit)unit;
+toUnitGranularity:(NSCalendarUnit)unit NS_AVAILABLE_MAC(10_9);
 
-- (BOOL)isDateInToday:(NSDate *)date;
-- (BOOL)isDateInTomorrow:(NSDate *)date;
-- (BOOL)isDateInYesterday:(NSDate *)date;
-- (BOOL)isDateInWeekend:(NSDate *)date;
+- (BOOL)isDateInToday:(NSDate *)date NS_AVAILABLE_MAC(10_9);
+- (BOOL)isDateInTomorrow:(NSDate *)date NS_AVAILABLE_MAC(10_9);
+- (BOOL)isDateInYesterday:(NSDate *)date NS_AVAILABLE_MAC(10_9);
+- (BOOL)isDateInWeekend:(NSDate *)date NS_AVAILABLE_MAC(10_9);
 
 /* EXTRACTION. -component:fromDate: answers ONE field as an object (nil for a unit this door does
  * not report); -componentsInTimeZone:fromDate: is -components:fromDate: read in ANOTHER zone. The
  * -get…:fromDate: doors write through the pointers they are given and leave a NULL one alone. */
-- (nullable NSNumber *)component:(NSCalendarUnit)unit fromDate:(NSDate *)date;
-- (NSDateComponents *)componentsInTimeZone:(NSTimeZone *)timeZone fromDate:(NSDate *)date;
+- (nullable NSNumber *)component:(NSCalendarUnit)unit fromDate:(NSDate *)date NS_AVAILABLE_MAC(10_9);
+- (NSDateComponents *)componentsInTimeZone:(NSTimeZone *)timeZone fromDate:(NSDate *)date NS_AVAILABLE_MAC(10_9);
 - (void)getEra:(NSInteger *)eraValuePointer
 	  year:(NSInteger *)yearValuePointer
 	 month:(NSInteger *)monthValuePointer
 	   day:(NSInteger *)dayValuePointer
-      fromDate:(NSDate *)date;
+      fromDate:(NSDate *)date NS_AVAILABLE_MAC(10_9);
 - (void)getEra:(NSInteger *)eraValuePointer
 yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
       weekOfYear:(NSInteger *)weekOfYearValuePointer
 	 weekday:(NSInteger *)weekdayValuePointer
-	fromDate:(NSDate *)date;
+	fromDate:(NSDate *)date NS_AVAILABLE_MAC(10_9);
 - (void)getHour:(NSInteger *)hourValuePointer
 	 minute:(NSInteger *)minuteValuePointer
 	 second:(NSInteger *)secondValuePointer
      nanosecond:(NSInteger *)nanosecondValuePointer
-       fromDate:(NSDate *)date;
+       fromDate:(NSDate *)date NS_AVAILABLE_MAC(10_9);
 
 /* CONSTRUCTION. An NSDateComponentUndefined field is OMITTED rather than set to its maximum. */
 - (nullable NSDate *)dateWithEra:(NSInteger)eraValue
@@ -317,7 +317,7 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 			    hour:(NSInteger)hourValue
 			  minute:(NSInteger)minuteValue
 			  second:(NSInteger)secondValue
-		      nanosecond:(NSInteger)nanosecondValue;
+		      nanosecond:(NSInteger)nanosecondValue NS_AVAILABLE_MAC(10_9);
 - (nullable NSDate *)dateWithEra:(NSInteger)eraValue
 	       yearForWeekOfYear:(NSInteger)yearForWeekOfYearValue
 		       weekOfYear:(NSInteger)weekOfYearValue
@@ -325,7 +325,7 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 			     hour:(NSInteger)hourValue
 			   minute:(NSInteger)minuteValue
 			   second:(NSInteger)secondValue
-		       nanosecond:(NSInteger)nanosecondValue;
+		       nanosecond:(NSInteger)nanosecondValue NS_AVAILABLE_MAC(10_9);
 
 /* SETTING ONE FIELD (or the time of day) on an existing date. NSCalendarOptionsNone is the only
  * honoured value — the match policies name a search (see the note above). */
@@ -333,11 +333,11 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 				minute:(NSInteger)minute
 				second:(NSInteger)second
 				ofDate:(NSDate *)date
-			       options:(NSCalendarOptions)options;
+			       options:(NSCalendarOptions)options NS_AVAILABLE_MAC(10_9);
 - (nullable NSDate *)dateBySettingUnit:(NSCalendarUnit)unit
 				 value:(NSInteger)value
 				ofDate:(NSDate *)date
-			       options:(NSCalendarOptions)options;
+			       options:(NSCalendarOptions)options NS_AVAILABLE_MAC(10_9);
 
 /* RANGES. -maximumRangeOfUnit: / -minimumRangeOfUnit: answer the WIDEST and the NARROWEST range a
  * unit can take in this calendar — 1-31 and 1-28 for a Gregorian day, 1-12 both ways for its month. */
@@ -348,28 +348,28 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 - (NSUInteger)ordinalityOfUnit:(NSCalendarUnit)smaller
 			inUnit:(NSCalendarUnit)larger
 		       forDate:(NSDate *)date;
-- (nullable NSDate *)startOfDayForDate:(NSDate *)date;
+- (nullable NSDate *)startOfDayForDate:(NSDate *)date NS_AVAILABLE_MAC(10_9);
 
 /* THE WEEKEND, from the calendar's OWN rule: the locale's region decides which days count, and
  * ucal_isWeekend answers it in the calendar's zone. -rangeOfWeekend… answers NO for a date that is
  * not in a weekend (and leaves the out-parameters alone). */
 - (BOOL)rangeOfWeekendStartDate:(NSDate * _Nullable * _Nullable)datep
 		       interval:(double * _Nullable)tip
-		 containingDate:(NSDate *)date;
+		 containingDate:(NSDate *)date NS_AVAILABLE_MAC(10_9);
 - (BOOL)nextWeekendStartDate:(NSDate * _Nullable * _Nullable)datep
 		    interval:(double * _Nullable)tip
 		     options:(NSCalendarOptions)options
-		   afterDate:(NSDate *)date;
+		   afterDate:(NSDate *)date NS_AVAILABLE_MAC(10_9);
 
 /* MATCHING. YES when every field `components` SETS equals this date's own field. */
-- (BOOL)date:(NSDate *)date matchesComponents:(NSDateComponents *)components;
+- (BOOL)date:(NSDate *)date matchesComponents:(NSDateComponents *)components NS_AVAILABLE_MAC(10_9);
 
 /* THE FIELD-WISE DIFFERENCE between two COMPONENT sets (not two dates): each is turned into a date
  * through -dateFromComponents: and the difference taken as above. A nil set means "now", as in Cocoa. */
 - (NSDateComponents *)components:(NSCalendarUnit)units
 	      fromDateComponents:(nullable NSDateComponents *)startingDateComp
 		toDateComponents:(nullable NSDateComponents *)resultDateComp
-			 options:(NSCalendarOptions)options;
+			 options:(NSCalendarOptions)options NS_AVAILABLE_MAC(10_9);
 
 /* SYMBOLS AND IDENTITY. The symbol arrays are the LOCALE's names for this calendar's units, read
  * from ICU against the calendar's own locale keyword (NSCalendar.m). They are nullable because a
@@ -377,28 +377,28 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
 - (NSString *)calendarIdentifier;
 - (NSLocale *)locale;
 - (void)setLocale:(NSLocale *)locale;
-+ (nullable NSCalendar *)autoupdatingCurrentCalendar;
++ (nullable NSCalendar *)autoupdatingCurrentCalendar NS_AVAILABLE_MAC(10_5);
 
-- (nullable NSString *)AMSymbol;
-- (nullable NSString *)PMSymbol;
-- (nullable NSArray *)eraSymbols;
-- (nullable NSArray *)longEraSymbols;
-- (nullable NSArray *)monthSymbols;
-- (nullable NSArray *)shortMonthSymbols;
-- (nullable NSArray *)veryShortMonthSymbols;
-- (nullable NSArray *)standaloneMonthSymbols;
-- (nullable NSArray *)shortStandaloneMonthSymbols;
-- (nullable NSArray *)veryShortStandaloneMonthSymbols;
-- (nullable NSArray *)weekdaySymbols;
-- (nullable NSArray *)shortWeekdaySymbols;
-- (nullable NSArray *)veryShortWeekdaySymbols;
-- (nullable NSArray *)standaloneWeekdaySymbols;
-- (nullable NSArray *)shortStandaloneWeekdaySymbols;
-- (nullable NSArray *)veryShortStandaloneWeekdaySymbols;
-- (nullable NSArray *)quarterSymbols;
-- (nullable NSArray *)shortQuarterSymbols;
-- (nullable NSArray *)standaloneQuarterSymbols;
-- (nullable NSArray *)shortStandaloneQuarterSymbols;
+- (nullable NSString *)AMSymbol NS_AVAILABLE_MAC(10_7);
+- (nullable NSString *)PMSymbol NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)eraSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)longEraSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)monthSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)shortMonthSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)veryShortMonthSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)standaloneMonthSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)shortStandaloneMonthSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)veryShortStandaloneMonthSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)weekdaySymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)shortWeekdaySymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)veryShortWeekdaySymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)standaloneWeekdaySymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)shortStandaloneWeekdaySymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)veryShortStandaloneWeekdaySymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)quarterSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)shortQuarterSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)standaloneQuarterSymbols NS_AVAILABLE_MAC(10_7);
+- (nullable NSArray *)shortStandaloneQuarterSymbols NS_AVAILABLE_MAC(10_7);
 
 - (BOOL)isEqual:(id)other;
 - (NSUInteger)hash;
@@ -416,20 +416,20 @@ yearForWeekOfYear:(NSInteger *)yearForWeekOfYearValuePointer
  * match answers nil, which is the documented shape. */
 - (nullable NSDate *)nextDateAfterDate:(NSDate *)date
 		    matchingComponents:(NSDateComponents *)components
-			       options:(NSCalendarOptions)options;
+			       options:(NSCalendarOptions)options NS_AVAILABLE_MAC(10_9);
 - (nullable NSDate *)nextDateAfterDate:(NSDate *)date
 			   matchingHour:(NSInteger)hourValue
 			       minute:(NSInteger)minuteValue
 			       second:(NSInteger)secondValue
-			      options:(NSCalendarOptions)options;
+			      options:(NSCalendarOptions)options NS_AVAILABLE_MAC(10_9);
 - (nullable NSDate *)nextDateAfterDate:(NSDate *)date
 			   matchingUnit:(NSCalendarUnit)unit
 				value:(NSInteger)value
-			      options:(NSCalendarOptions)options;
+			      options:(NSCalendarOptions)options NS_AVAILABLE_MAC(10_9);
 - (void)enumerateDatesStartingAfterDate:(NSDate *)startDate
 		     matchingComponents:(NSDateComponents *)components
 				options:(NSCalendarOptions)options
-			     usingBlock:(void (^)(NSDate * _Nullable, BOOL *stop))block;
+			     usingBlock:(void (^)(NSDate * _Nullable, BOOL *stop))block NS_AVAILABLE_MAC(10_9);
 @end
 
 /*

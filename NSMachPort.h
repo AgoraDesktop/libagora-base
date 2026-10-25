@@ -66,9 +66,9 @@ typedef enum {
 }
 
 + (nullable NSPort *)portWithMachPort:(uint32_t)machPort;
-+ (nullable NSPort *)portWithMachPort:(uint32_t)machPort options:(NSMachPortOptions)options;
++ (nullable NSPort *)portWithMachPort:(uint32_t)machPort options:(NSMachPortOptions)options NS_AVAILABLE_MAC(10_5);
 - (nullable instancetype)initWithMachPort:(uint32_t)machPort;
-- (nullable instancetype)initWithMachPort:(uint32_t)machPort options:(NSMachPortOptions)options;
+- (nullable instancetype)initWithMachPort:(uint32_t)machPort options:(NSMachPortOptions)options NS_AVAILABLE_MAC(10_5);
 
 /* This system's handle for this port: the descriptor of its own end of the pair. */
 - (uint32_t)machPort;

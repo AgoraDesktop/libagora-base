@@ -30,6 +30,7 @@ typedef enum {
 } NSEnergyFormatterUnit;
 
 NS_SWIFT_NAME(EnergyFormatter)
+NS_CLASS_AVAILABLE_MAC(10_10)
 @interface NSEnergyFormatter : NSFormatter
 {
 	NSNumberFormatter *_numberFormatter;

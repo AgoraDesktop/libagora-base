@@ -84,8 +84,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 /* The next transition in the zone's rules, or nil when there is none — which includes every
  * fixed-offset zone, because a transition IS a table entry. */
-- (nullable NSDate *)nextDaylightSavingTimeTransition;
-- (nullable NSDate *)nextDaylightSavingTimeTransitionAfterDate:(NSDate *)date;
+- (nullable NSDate *)nextDaylightSavingTimeTransition NS_AVAILABLE_MAC(10_5);
+- (nullable NSDate *)nextDaylightSavingTimeTransitionAfterDate:(NSDate *)date NS_AVAILABLE_MAC(10_5);
 
 - (BOOL)isEqualToTimeZone:(NSTimeZone *)other;
 - (BOOL)isEqual:(id)other;
@@ -121,10 +121,10 @@ enum {
  * know whether its offset table is current.
  */
 + (NSDictionary *)abbreviationDictionary;
-+ (void)setAbbreviationDictionary:(NSDictionary *)dictionary;
++ (void)setAbbreviationDictionary:(NSDictionary *)dictionary NS_AVAILABLE_MAC(10_6);
 + (nullable NSTimeZone *)timeZoneWithAbbreviation:(NSString *)abbreviation;
-+ (NSString *)timeZoneDataVersion;
-- (NSTimeInterval)daylightSavingTimeOffset;
++ (NSString *)timeZoneDataVersion NS_AVAILABLE_MAC(10_6);
+- (NSTimeInterval)daylightSavingTimeOffset NS_AVAILABLE_MAC(10_5);
 /* ⚠⚠ FOUR OF `NSTimeZone`'S TEN, THROUGH ICU — WHICH THIS CLASS ALREADY IS ("ICU's default zone", says its own
  * `+systemTimeZone`). **AND ONE ICU DISCOVERY IS RECORDED HERE RATHER THAN HIDDEN: APPLE PUBLISHES SIX
  * `NSTimeZoneNameStyle` CASES WITH THEIR MEANINGS, AND ICU HAS NO GENERIC DISPLAY NAME AT ALL** —
@@ -134,8 +134,8 @@ enum {
  * recognise.** */
 - (nullable NSString *)abbreviation;
 - (nullable NSString *)abbreviationForDate:(NSDate *)date;
-- (NSTimeInterval)daylightSavingTimeOffsetForDate:(NSDate *)date;
-- (nullable NSString *)localizedName:(NSTimeZoneNameStyle)style locale:(nullable NSLocale *)locale;
+- (NSTimeInterval)daylightSavingTimeOffsetForDate:(NSDate *)date NS_AVAILABLE_MAC(10_5);
+- (nullable NSString *)localizedName:(NSTimeZoneNameStyle)style locale:(nullable NSLocale *)locale NS_AVAILABLE_MAC(10_5);
 @property (class, copy) NSTimeZone *defaultTimeZone;
 /* ⚠⚠ FOUR MORE ROWS, AND THE DATA-TAKING PAIR IS APPLE'S OWN COMMENT READ FIRST: "Primary creation method is
  * `+timeZoneWithName:`; THE DATA-TAKING VARIANTS SHOULD RARELY BE USED DIRECTLY" — WHICH IS ALL APPLE PUBLISHES ABOUT

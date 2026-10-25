@@ -155,7 +155,7 @@ extern NSString *const NSFailedAuthenticationException;
  * whether it is valid, whether it is waiting for a reply, and how many request modes it serves — rather than counters
  * invented to fill a dictionary. **A STATISTICS DOOR THAT REPORTS NUMBERS NOTHING MEASURES IS A DOOR THAT LIES
  * POLITELY.** */
-+ (NSConnection *)defaultConnection;
++ (NSConnection *)defaultConnection NS_DEPRECATED_MAC(10_0, 10_6);
 @property (readonly, copy) NSDictionary *statistics;
 
 /* ⚠⚠ APPLE'S EXTENSION POINT FOR PORT SUBCLASSES, WHOSE CONTRACT THE CORPUS PUBLISHES VERBATIM: “NSPort subclasses
@@ -165,7 +165,7 @@ extern NSString *const NSFailedAuthenticationException;
  * ⚠ AND IT IS A DOOR OVER A PATH THAT ALREADY EXISTED: this class's `-handlePortMessage:` has served exactly this way
  * since §62.53, so the body MOVED to `-fnDispatchComponents:` and both doors call it — **the authentication refusal
  * its comment names lives in ONE place, which is the property a second decoder would have destroyed.** */
-- (void)dispatchWithComponents:(NSArray *)components;
+- (void)dispatchWithComponents:(NSArray *)components NS_AVAILABLE_MAC(10_7);
 
 /* ⚠⚠ `localObjects` — THE OBJECTS THIS CONNECTION VENDS. Apple's corpus declares it without a comment, so the
  * reading is ours and is written here (§11.6.1 D2): **WHAT CODE ON THE FAR SIDE CAN REACH THROUGH THIS CONNECTION,
@@ -198,8 +198,8 @@ extern NSString *const NSFailedAuthenticationException;
 /* THE SERVICE SIDE: make a connection that answers for `rootObject`, and publish it under `name`. */
 + (nullable NSConnection *)serviceConnectionWithName:(NSString *)name
 					  rootObject:(id)rootObject
-				     usingNameServer:(NSPortNameServer *)server;
-+ (nullable NSConnection *)serviceConnectionWithName:(NSString *)name rootObject:(id)rootObject;
+				     usingNameServer:(NSPortNameServer *)server NS_AVAILABLE_MAC(10_5);
++ (nullable NSConnection *)serviceConnectionWithName:(NSString *)name rootObject:(id)rootObject NS_AVAILABLE_MAC(10_5);
 
 /* THE CLIENT SIDE: find a published connection by name and answer a proxy for its root object. */
 + (nullable id)rootProxyForConnectionWithRegisteredName:(NSString *)name

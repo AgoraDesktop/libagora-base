@@ -68,13 +68,13 @@ NS_ASSUME_NONNULL_BEGIN
  * enumeration started". */
 - (nullable NSDictionary *)fileAttributes;
 - (nullable NSDictionary *)directoryAttributes;
-- (NSUInteger)level;
+- (NSUInteger)level NS_AVAILABLE_MAC(10_6);
 
 /* "Causes the receiver to skip recursion into the most recently obtained subdirectory" - and the two
  * spellings are ONE method: Apple's page for the modern one says "this method is identical to
  * -skipDescendents: except for the spelling", and NEITHER carries a deprecation flag, so both ship. */
 - (void)skipDescendents;
-- (void)skipDescendants;
+- (void)skipDescendants NS_AVAILABLE_MAC(10_6);
 
 /* Whether this enumerator was made in post-order mode (W8 slice 6f). HONOURED NOW: with
  * NSDirectoryEnumerationIncludesDirectoriesPostOrder a directory is answered AFTER its contents, which is

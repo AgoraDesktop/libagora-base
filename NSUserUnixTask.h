@@ -49,6 +49,7 @@ NS_ASSUME_NONNULL_BEGIN
 /* NIL FOR SUCCESS; an error when the script failed to run or exited non-zero. */
 typedef void (^NSUserUnixTaskCompletionHandler)(NSError * _Nullable error);
 
+NS_CLASS_AVAILABLE_MAC(10_8)
 @interface NSUserUnixTask : NSObject
 {
 	NSURL *_scriptURL;

@@ -53,6 +53,7 @@ typedef enum {
 	NSUbiquitousKeyValueStoreAccountChange = 3		/* the account changed underneath */
 } NSUbiquitousKeyValueStoreChangeReasons;
 
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSUbiquitousKeyValueStore : NSObject
 {
 @private

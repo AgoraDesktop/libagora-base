@@ -121,14 +121,14 @@ NS_SWIFT_NAME(Scanner)
 - (BOOL)scanDecimal:(NSDecimal *)dcm;
 - (BOOL)scanDouble:(double * _Nullable)result;
 - (BOOL)scanFloat:(float * _Nullable)result;
-- (BOOL)scanHexDouble:(double * _Nullable)result;
-- (BOOL)scanHexFloat:(float * _Nullable)result;
+- (BOOL)scanHexDouble:(double * _Nullable)result NS_AVAILABLE_MAC(10_5);
+- (BOOL)scanHexFloat:(float * _Nullable)result NS_AVAILABLE_MAC(10_5);
 - (BOOL)scanHexInt:(unsigned int * _Nullable)result;
-- (BOOL)scanHexLongLong:(unsigned long long * _Nullable)result;
-- (BOOL)scanInteger:(NSInteger * _Nullable)result;
+- (BOOL)scanHexLongLong:(unsigned long long * _Nullable)result NS_AVAILABLE_MAC(10_5);
+- (BOOL)scanInteger:(NSInteger * _Nullable)result NS_AVAILABLE_MAC(10_5);
 - (BOOL)scanInt:(int * _Nullable)result;
 - (BOOL)scanLongLong:(long long * _Nullable)result;
-- (BOOL)scanUnsignedLongLong:(unsigned long long * _Nullable)result;
+- (BOOL)scanUnsignedLongLong:(unsigned long long * _Nullable)result NS_AVAILABLE_MAC(10_9);
 
 @end
 

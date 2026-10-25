@@ -96,8 +96,8 @@ extern NSString * const NSURLAuthenticationMethodServerTrust;
 
 /* THE TWO SECURITY-SHAPED DOORS, refused by name. `void *` stands in for SecTrustRef for the reason
  * NSURLCredential.h gives. */
-- (nullable void *)serverTrust;
-- (nullable NSArray *)distinguishedNames;
+- (nullable void *)serverTrust NS_AVAILABLE_MAC(10_6);
+- (nullable NSArray *)distinguishedNames NS_AVAILABLE_MAC(10_6);
 
 @end
 

@@ -58,6 +58,7 @@ typedef NSPointerFunctionsOptions NSHashTableOptions;
  * -classForCoder answers NSHashTable, so the legacy subclass's name never reaches an archive.
  * =================================================================================================== */
 
+NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSHashTable<ObjectType> : NSObject <NSCopying, NSFastEnumeration, NSSecureCoding>
 {
 	FNPointerTable *_table;
@@ -73,10 +74,10 @@ typedef NSPointerFunctionsOptions NSHashTableOptions;
 - (instancetype)initWithPointerFunctions:(NSPointerFunctions *)functions
 				capacity:(NSUInteger)initialCapacity;
 
-+ (NSHashTable<ObjectType> *)weakObjectsHashTable;
++ (NSHashTable<ObjectType> *)weakObjectsHashTable NS_AVAILABLE_MAC(10_8);
 + (NSHashTable<ObjectType> *)hashTableWithOptions:(NSHashTableOptions)options;
 /* THE 10.6 SPELLING: a table of weak objects, which `+hashTableWithOptions:` reaches with the weak-memory bit. */
-+ (NSHashTable<ObjectType> *)hashTableWithWeakObjects;
++ (NSHashTable<ObjectType> *)hashTableWithWeakObjects NS_DEPRECATED_MAC(10_5, 10_8);
 
 - (NSPointerFunctions *)pointerFunctions;
 

@@ -183,14 +183,14 @@ NS_SWIFT_NAME(Stream)
 + (void)getStreamsToHost:(NSHost *)host
 		    port:(NSInteger)port
 	     inputStream:(NSInputStream * _Nullable * _Nullable)inputStream
-	    outputStream:(NSOutputStream * _Nullable * _Nullable)outputStream;
+	    outputStream:(NSOutputStream * _Nullable * _Nullable)outputStream NS_DEPRECATED_MAC(10_3, 10_10);
 + (void)getStreamsToHostWithName:(NSString *)hostname
 			    port:(NSInteger)port
 		     inputStream:(NSInputStream * _Nullable * _Nullable)inputStream
-		    outputStream:(NSOutputStream * _Nullable * _Nullable)outputStream;
+		    outputStream:(NSOutputStream * _Nullable * _Nullable)outputStream NS_AVAILABLE_MAC(10_10);
 + (void)getBoundStreamsWithBufferSize:(NSUInteger)bufferSize
 			  inputStream:(NSInputStream * _Nullable * _Nullable)inputStream
-			 outputStream:(NSOutputStream * _Nullable * _Nullable)outputStream;
+			 outputStream:(NSOutputStream * _Nullable * _Nullable)outputStream NS_AVAILABLE_MAC(10_10);
 @end
 
 /* THE SUBSTREAM HOOKS. Private in the sense that Apple declares no such thing and no caller should use them:

@@ -31,6 +31,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_CLASS_AVAILABLE_MAC(10_4)
 @interface NSPredicate : NSObject <NSCoding, NSCopying>
 {
 	void *_reserved;
@@ -43,7 +44,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSPredicate *)predicateWithValue:(BOOL)value;
 
 #if __has_feature(blocks)
-+ (NSPredicate *)predicateWithBlock:(BOOL (^)(id evaluatedObject, NSDictionary *bindings))block;
++ (NSPredicate *)predicateWithBlock:(BOOL (^)(id evaluatedObject, NSDictionary *bindings))block NS_AVAILABLE_MAC(10_6);
 #endif
 
 - (NSString *)predicateFormat;
@@ -51,7 +52,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSPredicate *)predicateWithSubstitutionVariables:(NSDictionary *)variables;
 
 - (BOOL)evaluateWithObject:(nullable id)object;
-- (BOOL)evaluateWithObject:(nullable id)object substitutionVariables:(nullable NSDictionary *)bindings;
+- (BOOL)evaluateWithObject:(nullable id)object substitutionVariables:(nullable NSDictionary *)bindings NS_AVAILABLE_MAC(10_5);
 
 @end
 
@@ -64,11 +65,11 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 @interface NSSet<ObjectType> (NSPredicateSupport)
-- (NSSet<ObjectType> *)filteredSetUsingPredicate:(NSPredicate *)predicate;
+- (NSSet<ObjectType> *)filteredSetUsingPredicate:(NSPredicate *)predicate NS_AVAILABLE_MAC(10_5);
 @end
 
 @interface NSMutableSet<ObjectType> (NSPredicateSupport)
-- (void)filterUsingPredicate:(NSPredicate *)predicate;
+- (void)filterUsingPredicate:(NSPredicate *)predicate NS_AVAILABLE_MAC(10_5);
 @end
 
 NS_ASSUME_NONNULL_END

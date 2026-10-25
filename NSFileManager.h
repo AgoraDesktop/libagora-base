@@ -315,6 +315,7 @@ typedef enum {
 	NSFileManagerItemReplacementWithoutDeletingBackupItem = 1 << 1
 } NSFileManagerItemReplacementOptions;
 
+NS_CLASS_AVAILABLE_MAC(10_8)
 @interface NSFileManager : NSObject
 {
 	/* ASSIGN, NOT WEAK, and that is MEASURED rather than chosen: Apple's own declaration comes back
@@ -329,8 +330,8 @@ typedef enum {
  * manager object only if you allocated and initialized the object yourself. Avoid assigning a delegate
  * to the shared file manager" - a delegate on +defaultManager is consulted by EVERY caller of the
  * process. The default value is nil. */
-- (nullable id <NSFileManagerDelegate>)delegate;
-- (void)setDelegate:(nullable id <NSFileManagerDelegate>)delegate;
+- (nullable id <NSFileManagerDelegate>)delegate NS_AVAILABLE_MAC(10_5);
+- (void)setDelegate:(nullable id <NSFileManagerDelegate>)delegate NS_AVAILABLE_MAC(10_5);
 
 /* ---- LOCATING SYSTEM DIRECTORIES ---------------------------------------------------------------
  *
@@ -348,9 +349,9 @@ typedef enum {
 			   inDomain:(NSSearchPathDomainMask)domain
 		  appropriateForURL:(nullable NSURL *)url
 			     create:(BOOL)shouldCreate
-			      error:(NSError ** _Nullable)error;
+			      error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
 - (NSArray *)URLsForDirectory:(NSSearchPathDirectory)directory
-		    inDomains:(NSSearchPathDomainMask)domainMask;
+		    inDomains:(NSSearchPathDomainMask)domainMask NS_AVAILABLE_MAC(10_6);
 
 /* ---- THE TRASH AND VOLUME DOORS (the coverage slice) --------------------------------------------
  *
@@ -372,10 +373,10 @@ typedef enum {
  */
 - (BOOL)trashItemAtURL:(NSURL *)url
       resultingItemURL:(NSURL * _Nullable * _Nullable)outResultingURL
-		 error:(NSError ** _Nullable)error;
+		 error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_8);
 - (void)unmountVolumeAtURL:(NSURL *)url
 		  options:(NSFileManagerUnmountOptions)optionsMask
-	completionHandler:(void (^)(NSError * _Nullable error))completionHandler;
+	completionHandler:(void (^)(NSError * _Nullable error))completionHandler NS_AVAILABLE_MAC(10_11);
 
 /* EXISTENCE, and the second door answers the question a caller usually means by it. */
 - (BOOL)fileExistsAtPath:(NSString *)path;
@@ -386,7 +387,7 @@ typedef enum {
 - (BOOL)isDeletableFileAtPath:(NSString *)path;
 
 /* THE NAMES IN A DIRECTORY, not the full paths: Cocoa's answer, and the caller joins them. */
-- (nullable NSArray *)contentsOfDirectoryAtPath:(NSString *)path error:(NSError ** _Nullable)error;
+- (nullable NSArray *)contentsOfDirectoryAtPath:(NSString *)path error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 
 /* ---- THE DEEP WALK (W8 slice 1, foundation-plan.md §60), AND ITS THREE ANSWERS ARE THREE RULES ----
  *
@@ -407,23 +408,23 @@ typedef enum {
  */
 - (nullable NSDirectoryEnumerator *)enumeratorAtPath:(NSString *)path;
 - (nullable NSArray *)subpathsAtPath:(NSString *)path;
-- (nullable NSArray *)subpathsOfDirectoryAtPath:(NSString *)path error:(NSError ** _Nullable)error;
+- (nullable NSArray *)subpathsOfDirectoryAtPath:(NSString *)path error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 
 - (BOOL)createDirectoryAtPath:(NSString *)path
   withIntermediateDirectories:(BOOL)createIntermediates
 		   attributes:(nullable NSDictionary *)attributes
-			error:(NSError ** _Nullable)error;
+			error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 - (BOOL)createFileAtPath:(NSString *)path
 		contents:(nullable NSData *)contents
 	      attributes:(nullable NSDictionary *)attributes;
 
-- (BOOL)removeItemAtPath:(NSString *)path error:(NSError ** _Nullable)error;
+- (BOOL)removeItemAtPath:(NSString *)path error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 - (BOOL)moveItemAtPath:(NSString *)sourcePath
 		toPath:(NSString *)destinationPath
-		 error:(NSError ** _Nullable)error;
+		 error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 - (BOOL)copyItemAtPath:(NSString *)sourcePath
 		toPath:(NSString *)destinationPath
-		 error:(NSError ** _Nullable)error;
+		 error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 
 /* A HARD LINK, and it lands with the delegate rather than after it because the protocol's LINKING
  * family (four selectors) would otherwise have no caller at all - a declared question nobody can ever
@@ -432,7 +433,7 @@ typedef enum {
  * path, and it is slice 3's row, not this one's). */
 - (BOOL)linkItemAtPath:(NSString *)sourcePath
 		toPath:(NSString *)destinationPath
-		 error:(NSError ** _Nullable)error;
+		 error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 
 
 /* ⚠ THE LEGACY HANDLER DOORS (§63.193). Each is the modern door above with a PER-ITEM VETO: the handler is
@@ -442,13 +443,13 @@ typedef enum {
  * veto, and the probe asserts that a vetoed copy leaves no copy.
  * `handler` may be nil, which is the same as always approving. */
 - (BOOL)copyPath:(NSString *)source toPath:(NSString *)destination
-	 handler:(nullable BOOL (^)(NSString *path, NSError *error))handler;
+	 handler:(nullable BOOL (^)(NSString *path, NSError *error))handler NS_DEPRECATED_MAC(10_0, 10_5);
 - (BOOL)movePath:(NSString *)source toPath:(NSString *)destination
-	 handler:(nullable BOOL (^)(NSString *path, NSError *error))handler;
+	 handler:(nullable BOOL (^)(NSString *path, NSError *error))handler NS_DEPRECATED_MAC(10_0, 10_5);
 - (BOOL)linkPath:(NSString *)source toPath:(NSString *)destination
-	 handler:(nullable BOOL (^)(NSString *path, NSError *error))handler;
+	 handler:(nullable BOOL (^)(NSString *path, NSError *error))handler NS_DEPRECATED_MAC(10_0, 10_5);
 - (BOOL)removeFileAtPath:(NSString *)path
-		 handler:(nullable BOOL (^)(NSString *path, NSError *error))handler;
+		 handler:(nullable BOOL (^)(NSString *path, NSError *error))handler NS_DEPRECATED_MAC(10_0, 10_5);
 /* ---- A COPY AND A MOVE REFUSE AN EXISTING DESTINATION (W8 slice 3, AND BOTH ARE FIXES) ------------
  *
  * Apple says it in the copy's own discussion - "if a file with the same name already exists at dstPath,
@@ -467,7 +468,7 @@ typedef enum {
  * making it possible to create symbolic links to locations that DO NOT YET EXIST". */
 - (BOOL)createSymbolicLinkAtPath:(NSString *)path
 	     withDestinationPath:(NSString *)destPath
-			   error:(NSError ** _Nullable)error;
+			   error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 
 /* THE FILE'S BYTES, and the exclusion is Apple's: a DIRECTORY answers nil ("if `path` specifies a
  * directory, or if some other error occurs, this method returns nil"), and there is no error channel -
@@ -483,7 +484,7 @@ typedef enum {
 - (BOOL)contentsEqualAtPath:(NSString *)path1 andPath:(NSString *)path2;
 
 - (nullable NSDictionary *)attributesOfItemAtPath:(NSString *)path
-					    error:(NSError ** _Nullable)error;
+					    error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 
 /* THE MUTATOR (W8 slice 3d), and THREE OF APPLE'S OWN SENTENCES ARE ITS WHOLE DESIGN:
  *
@@ -499,7 +500,7 @@ typedef enum {
  */
 - (BOOL)setAttributes:(NSDictionary *)attributes
 	ofItemAtPath:(NSString *)path
-	       error:(NSError ** _Nullable)error;
+	       error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 
 /* THE DISPLAY NAME (W8 slice 3e), and its rule HERE is a decision with two grounds. Apple: "the name of
  * the file or directory at path in a LOCALIZED FORM appropriate for presentation to the user", and the
@@ -522,7 +523,7 @@ typedef enum {
 - (nullable NSArray *)componentsToDisplayForPath:(NSString *)path;
 
 - (nullable NSString *)destinationOfSymbolicLinkAtPath:(NSString *)path
-						 error:(NSError ** _Nullable)error;
+						 error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 
 /* THE FILE SYSTEM'S OWN NUMBERS (W8 slice 3c), from statfs(2) - and Apple's sentence about what a
  * dictionary means is what makes the missing entries honest rather than lazy: a key that is ABSENT is
@@ -546,7 +547,7 @@ typedef enum {
 - (nullable NSArray *)contentsOfDirectoryAtURL:(NSURL *)url
 		     includingPropertiesForKeys:(nullable NSArray *)keys
 					options:(NSUInteger)options
-					  error:(NSError ** _Nullable)error;
+					  error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
 
 /* "Returns the URLs of the mounted volumes", with the keys a caller asks for PREFETCHED into each - the
  * volume-list half of W8p, and the door whose option set is declared below with it. On this system the table
@@ -554,7 +555,7 @@ typedef enum {
  * NSVolumeEnumerationSkipHiddenVolumes is CARRIED because this system has no hidden volumes to skip - the
  * table lists what is mounted and nothing else. */
 - (nullable NSArray *)mountedVolumeURLsIncludingResourceValuesForKeys:(nullable NSArray *)propertyKeys
-							      options:(NSVolumeEnumerationOptions)options;
+							      options:(NSVolumeEnumerationOptions)options NS_AVAILABLE_MAC(10_6);
 
 /* THE DEEP WALK AS A DOOR (W8 slice 6e), which is where Apple puts it: the enumerator CLASS is the
  * cursor, and the manager is what knows a directory.
@@ -571,7 +572,7 @@ typedef enum {
 - (nullable NSDirectoryEnumerator *)enumeratorAtURL:(NSURL *)url
 			  includingPropertiesForKeys:(nullable NSArray *)keys
 					     options:(NSUInteger)options
-					errorHandler:(nullable BOOL (^)(NSURL *url, NSError *error))handler;
+					errorHandler:(nullable BOOL (^)(NSURL *url, NSError *error))handler NS_AVAILABLE_MAC(10_6);
 
 /* THE LOOKUP FOR A FILE PROVIDER'S SERVICES (W8 slice 9), and it is Apple's own home for it: the SERVICE
  * object's page has two members and neither of them is this one. What this system answers is EMPTY, and
@@ -583,7 +584,7 @@ typedef enum {
 						      NSError * _Nullable error))completionHandler;
 
 - (nullable NSDictionary *)attributesOfFileSystemForPath:(NSString *)path
-						   error:(NSError ** _Nullable)error;
+						   error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_5);
 
 /* WHERE ONE ITEM STANDS RELATIVE TO A DIRECTORY, in three answers: "the directory may CONTAIN the item,
  * it may be the SAME as the item, or it may not have a DIRECT relationship to the item." The directory
@@ -607,9 +608,9 @@ typedef enum {
  * DESTINATION of -createSymbolicLinkAtURL:withDestinationURL:error: "may be a relative URL", so only
  * the LINK's own URL must be a file URL; the target is taken as whatever path the destination answers.
  */
-- (BOOL)removeItemAtURL:(NSURL *)URL error:(NSError ** _Nullable)error;
-- (BOOL)copyItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL error:(NSError ** _Nullable)error;
-- (BOOL)moveItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL error:(NSError ** _Nullable)error;
+- (BOOL)removeItemAtURL:(NSURL *)URL error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
+- (BOOL)copyItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
+- (BOOL)moveItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
 /* THE ATOMIC REPLACEMENT (10.6). `newItemURL` takes the place of `originalItemURL`; when `backupItemName` is not
  * nil the item being replaced is moved to that name in the original's directory first, and
  * `NSFileManagerItemReplacementWithoutDeletingBackupItem` keeps it after a successful swap. The metadata options
@@ -620,22 +621,22 @@ typedef enum {
 	  backupItemName:(nullable NSString *)backupItemName
 		 options:(NSFileManagerItemReplacementOptions)options
 	resultingItemURL:(NSURL * _Nullable * _Nullable)resultingURL
-		   error:(NSError ** _Nullable)error;
-- (BOOL)linkItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL error:(NSError ** _Nullable)error;
+		   error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
+- (BOOL)linkItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_6);
 - (BOOL)createSymbolicLinkAtURL:(NSURL *)url
 	     withDestinationURL:(NSURL *)destURL
-			   error:(NSError ** _Nullable)error;
+			   error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_7);
 - (BOOL)createDirectoryAtURL:(NSURL *)url
  withIntermediateDirectories:(BOOL)createIntermediates
 		  attributes:(nullable NSDictionary *)attributes
-		       error:(NSError ** _Nullable)error;
+		       error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_7);
 
 /* THE SAME RELATIONSHIP QUESTION, ASKED OF TWO URLs - and, like the path form beside it, about
  * LOCATIONS rather than inodes. */
 - (BOOL)getRelationship:(NSURLRelationship *)outRelationship
       ofDirectoryAtURL:(NSURL *)directoryURL
 	    toItemAtURL:(NSURL *)url
-		   error:(NSError ** _Nullable)error;
+		   error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_10);
 
 /* ---- WHERE A USER'S OWN DIRECTORIES ARE (the coverage slice) -----------------------------------
  *
@@ -670,13 +671,13 @@ typedef enum {
  * the distinction -attributesOfItemAtPath: (always lstat) does not offer. NOTE the signature of
  * -createDirectoryAtPath:attributes:: it creates ONE directory, with no intermediate rule.
  */
-- (BOOL)changeFileAttributes:(NSDictionary *)attributes atPath:(NSString *)path;
-- (BOOL)createDirectoryAtPath:(NSString *)path attributes:(nullable NSDictionary *)attributes;
-- (BOOL)createSymbolicLinkAtPath:(NSString *)path pathContent:(NSString *)otherpath;
-- (nullable NSDictionary *)fileAttributesAtPath:(NSString *)path traverseLink:(BOOL)flag;
-- (nullable NSDictionary *)fileSystemAttributesAtPath:(NSString *)path;
-- (nullable NSString *)pathContentOfSymbolicLinkAtPath:(NSString *)path;
-- (nullable NSArray *)directoryContentsAtPath:(NSString *)path;
+- (BOOL)changeFileAttributes:(NSDictionary *)attributes atPath:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_5);
+- (BOOL)createDirectoryAtPath:(NSString *)path attributes:(nullable NSDictionary *)attributes NS_DEPRECATED_MAC(10_0, 10_5);
+- (BOOL)createSymbolicLinkAtPath:(NSString *)path pathContent:(NSString *)otherpath NS_DEPRECATED_MAC(10_0, 10_5);
+- (nullable NSDictionary *)fileAttributesAtPath:(NSString *)path traverseLink:(BOOL)flag NS_DEPRECATED_MAC(10_0, 10_5);
+- (nullable NSDictionary *)fileSystemAttributesAtPath:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_5);
+- (nullable NSString *)pathContentOfSymbolicLinkAtPath:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_5);
+- (nullable NSArray *)directoryContentsAtPath:(NSString *)path NS_DEPRECATED_MAC(10_0, 10_5);
 
 /* ---- THE iCLOUD- AND GROUP-CONTAINER DOORS (the coverage slice) --------------------------------
  *
@@ -687,19 +688,19 @@ typedef enum {
  * item is ubiquitous, there is no container URL and no identity token, and every door that would MOVE
  * or EVICT a ubiquitous item answers NO with that error.
  */
-- (BOOL)isUbiquitousItemAtURL:(NSURL *)url;
-- (nullable NSURL *)URLForUbiquityContainerIdentifier:(nullable NSString *)containerIdentifier;
+- (BOOL)isUbiquitousItemAtURL:(NSURL *)url NS_AVAILABLE_MAC(10_7);
+- (nullable NSURL *)URLForUbiquityContainerIdentifier:(nullable NSString *)containerIdentifier NS_AVAILABLE_MAC(10_7);
 - (nullable NSURL *)URLForPublishingUbiquitousItemAtURL:(NSURL *)url
 					expirationDate:(NSDate * _Nullable * _Nullable)outDate
-						 error:(NSError ** _Nullable)error;
-- (BOOL)evictUbiquitousItemAtURL:(NSURL *)url error:(NSError ** _Nullable)error;
+						 error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_7);
+- (BOOL)evictUbiquitousItemAtURL:(NSURL *)url error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_7);
 - (BOOL)setUbiquitous:(BOOL)flag
 	   itemAtURL:(NSURL *)url
       destinationURL:(NSURL *)destinationURL
-	       error:(NSError ** _Nullable)error;
-- (BOOL)startDownloadingUbiquitousItemAtURL:(NSURL *)url error:(NSError ** _Nullable)error;
-- (nullable id)ubiquityIdentityToken;
-- (nullable NSURL *)containerURLForSecurityApplicationGroupIdentifier:(NSString *)groupIdentifier;
+	       error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_7);
+- (BOOL)startDownloadingUbiquitousItemAtURL:(NSURL *)url error:(NSError ** _Nullable)error NS_AVAILABLE_MAC(10_7);
+- (nullable id)ubiquityIdentityToken NS_AVAILABLE_MAC(10_8);
+- (nullable NSURL *)containerURLForSecurityApplicationGroupIdentifier:(NSString *)groupIdentifier NS_AVAILABLE_MAC(10_8);
 
 /* ---- THE FILE-PROVIDER SYNC-CONTROL DOORS (the coverage slice) ----------------------------------
  *
@@ -733,7 +734,7 @@ typedef enum {
 	    ofDirectory:(NSURL *)directoryURL
 	       inDomain:(NSSearchPathDomainMask)domainMask
 	      toItemAtURL:(NSURL *)url
-		    error:(NSError ** _Nullable)errorPtr;
+		    error:(NSError ** _Nullable)errorPtr NS_AVAILABLE_MAC(10_10);
 @end
 
 /*
@@ -906,8 +907,8 @@ shouldProceedAfterError:(NSError *)error
 
 /* THE TWO 10.0 ROWS: the legacy proceed-after-error callback and the path notification. Declaration-only. */
 - (BOOL)fileManager:(NSFileManager *)fileManager
-    shouldProceedAfterError:(NSError *)error FN_INFORMAL;
-- (void)fileManager:(NSFileManager *)fileManager willProcessPath:(NSString *)path FN_INFORMAL;
+    shouldProceedAfterError:(NSError *)error FN_INFORMAL NS_DEPRECATED_MAC(10_0, 10_5);
+- (void)fileManager:(NSFileManager *)fileManager willProcessPath:(NSString *)path FN_INFORMAL NS_DEPRECATED_MAC(10_0, 10_5);
 @end
 
 NS_ASSUME_NONNULL_END

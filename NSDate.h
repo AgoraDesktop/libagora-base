@@ -67,7 +67,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (nullable NSDate *)dateWithNaturalLanguageString:(NSString *)string;
 + (nullable NSDate *)dateWithNaturalLanguageString:(NSString *)string locale:(nullable id)locale;
 - (nullable instancetype)initWithString:(NSString *)description;
-- (NSDate *)addTimeInterval:(double)seconds;
+- (NSDate *)addTimeInterval:(double)seconds NS_DEPRECATED_MAC(10_0, 10_6);
 + (NSDate *)distantPast;
 + (NSDate *)distantFuture;
 @property (class, readonly) NSTimeInterval timeIntervalSinceReferenceDate;
@@ -81,7 +81,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (double)timeIntervalSinceNow;
 @property (readonly) NSTimeInterval timeIntervalSinceReferenceDate;
 - (double)timeIntervalSinceDate:(NSDate *)other;
-- (NSDate *)dateByAddingTimeInterval:(double)seconds;
+- (NSDate *)dateByAddingTimeInterval:(double)seconds NS_AVAILABLE_MAC(10_6);
 - (NSString *)descriptionWithLocale:(nullable id)locale;
 
 - (BOOL)isEqualToDate:(NSDate *)other;

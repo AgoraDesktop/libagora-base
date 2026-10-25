@@ -73,7 +73,7 @@ typedef NSString *NSNotificationName NS_TYPED_EXTENSIBLE_ENUM;
  * lives — which, for a posted one, is the delivery. */
 - (instancetype)initWithName:(NSNotificationName)name
 		      object:(nullable id)object
-		    userInfo:(nullable NSDictionary *)userInfo;
+		    userInfo:(nullable NSDictionary *)userInfo NS_AVAILABLE_MAC(10_6);
 
 @property (readonly, copy) NSNotificationName name;
 @property (readonly, nullable) id object;

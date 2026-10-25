@@ -175,7 +175,7 @@ NS_SWIFT_NAME(Bundle)
  * system's executables are ELF, so the door reads the ELF header's e_machine and answers the matching code.
  * nil for a bundle whose executable is absent, unreadable, or not an ELF - Apple's "no Mach-O executable"
  * case, answered the way THIS format says it. */
-- (NSArray * _Nullable)executableArchitectures;
+- (NSArray * _Nullable)executableArchitectures NS_AVAILABLE_MAC(10_5);
 
 /* ---- CREATING A BUNDLE FROM A CLASS OR A URL ------------------------------------------------------
  *
@@ -189,8 +189,8 @@ NS_SWIFT_NAME(Bundle)
  * +bundleWithURL: and -initWithURL: are the URL spellings of the path doors: the URL's `-path` is the path,
  * so a URL that is not a file URL (its `-path` is nil) answers nil. */
 + (NSBundle * _Nullable)bundleForClass:(Class)aClass;
-+ (NSBundle * _Nullable)bundleWithURL:(NSURL *)url;
-- (instancetype _Nullable)initWithURL:(NSURL *)url;
++ (NSBundle * _Nullable)bundleWithURL:(NSURL *)url NS_AVAILABLE_MAC(10_6);
+- (instancetype _Nullable)initWithURL:(NSURL *)url NS_AVAILABLE_MAC(10_6);
 
 /* ---- THE STANDARD BUNDLE DIRECTORIES AND THEIR URLS --------------------------------------------------
  *
@@ -201,19 +201,19 @@ NS_SWIFT_NAME(Bundle)
  * -bundleURL and -resourceURL, whose paths are the bundle's own and always answer, and -executableURL, which
  * follows the manifest's CFBundleExecutable whether or not the file is present (the manifest, not the disk, is
  * its source) -- the same split -executablePath already uses. */
-- (NSURL *)bundleURL;
-- (NSURL * _Nullable)executableURL;
-- (NSURL *)resourceURL;
+- (NSURL *)bundleURL NS_AVAILABLE_MAC(10_6);
+- (NSURL * _Nullable)executableURL NS_AVAILABLE_MAC(10_6);
+- (NSURL *)resourceURL NS_AVAILABLE_MAC(10_6);
 - (NSString * _Nullable)pathForAuxiliaryExecutable:(NSString *)executableName;
-- (NSURL * _Nullable)URLForAuxiliaryExecutable:(NSString *)executableName;
+- (NSURL * _Nullable)URLForAuxiliaryExecutable:(NSString *)executableName NS_AVAILABLE_MAC(10_6);
 - (NSString * _Nullable)builtInPlugInsPath;
-- (NSURL * _Nullable)builtInPlugInsURL;
+- (NSURL * _Nullable)builtInPlugInsURL NS_AVAILABLE_MAC(10_6);
 - (NSString * _Nullable)privateFrameworksPath;
-- (NSURL * _Nullable)privateFrameworksURL;
+- (NSURL * _Nullable)privateFrameworksURL NS_AVAILABLE_MAC(10_6);
 - (NSString * _Nullable)sharedFrameworksPath;
-- (NSURL * _Nullable)sharedFrameworksURL;
+- (NSURL * _Nullable)sharedFrameworksURL NS_AVAILABLE_MAC(10_6);
 - (NSString * _Nullable)sharedSupportPath;
-- (NSURL * _Nullable)sharedSupportURL;
+- (NSURL * _Nullable)sharedSupportURL NS_AVAILABLE_MAC(10_6);
 
 /* ---- THE CLASS-METHOD RESOURCE DOORS, WHICH SEARCH THE MAIN BUNDLE -----------------------------------
  *
@@ -229,10 +229,10 @@ NS_SWIFT_NAME(Bundle)
 + (NSURL * _Nullable)URLForResource:(NSString * _Nullable)name
 		      withExtension:(NSString * _Nullable)ext
 		       subdirectory:(NSString * _Nullable)subpath
-		  inBundleWithURL:(NSURL *)bundleURL;
+		  inBundleWithURL:(NSURL *)bundleURL NS_AVAILABLE_MAC(10_6);
 + (NSArray *)URLsForResourcesWithExtension:(NSString * _Nullable)ext
 			      subdirectory:(NSString * _Nullable)subpath
-			 inBundleWithURL:(NSURL *)bundleURL;
+			 inBundleWithURL:(NSURL *)bundleURL NS_AVAILABLE_MAC(10_6);
 
 /* ---- THE LOCALIZATION-AWARE RESOURCE DOORS -----------------------------------------------------------
  *
@@ -250,17 +250,17 @@ NS_SWIFT_NAME(Bundle)
 - (NSURL * _Nullable)URLForResource:(NSString * _Nullable)name
 		      withExtension:(NSString * _Nullable)ext
 		       subdirectory:(NSString * _Nullable)subpath
-		       localization:(NSString * _Nullable)localization;
+		       localization:(NSString * _Nullable)localization NS_AVAILABLE_MAC(10_6);
 - (NSArray *)URLsForResourcesWithExtension:(NSString * _Nullable)ext
 			      subdirectory:(NSString * _Nullable)subpath
-			      localization:(NSString * _Nullable)localization;
+			      localization:(NSString * _Nullable)localization NS_AVAILABLE_MAC(10_6);
 - (NSURL * _Nullable)URLForResource:(NSString * _Nullable)name
-		      withExtension:(NSString * _Nullable)ext;
+		      withExtension:(NSString * _Nullable)ext NS_AVAILABLE_MAC(10_6);
 - (NSURL * _Nullable)URLForResource:(NSString * _Nullable)name
 		      withExtension:(NSString * _Nullable)ext
-		       subdirectory:(NSString * _Nullable)subpath;
+		       subdirectory:(NSString * _Nullable)subpath NS_AVAILABLE_MAC(10_6);
 - (NSArray *)URLsForResourcesWithExtension:(NSString * _Nullable)ext
-			      subdirectory:(NSString * _Nullable)subpath;
+			      subdirectory:(NSString * _Nullable)subpath NS_AVAILABLE_MAC(10_6);
 
 /* ---- THE IMAGE AND SOUND RESOURCE DOORS ARE NOT HERE (MOVED 2026-10-01, §63.52) --------------------
  *
@@ -298,8 +298,8 @@ NS_SWIFT_NAME(Bundle)
  * are the error-reporting forms of -load: a bundle that names no loadable executable fills `error` with an
  * NSCocoaErrorDomain / NSFileNoSuchFileError and answers NO. */
 - (_Nullable Class)classNamed:(NSString *)className;
-- (BOOL)loadAndReturnError:(NSError **)error;
-- (BOOL)preflightAndReturnError:(NSError **)error;
+- (BOOL)loadAndReturnError:(NSError **)error NS_AVAILABLE_MAC(10_5);
+- (BOOL)preflightAndReturnError:(NSError **)error NS_AVAILABLE_MAC(10_5);
 
 
 /* §63.212: THE TAG-PRESERVATION PAIR. Apple's door tells a bundle's resource loader to keep the resources
@@ -315,7 +315,7 @@ NS_SWIFT_NAME(Bundle)
  * receipt inside the bundle or nil: with no App Store mechanism here, nil is the honest answer for a bundle that
  * does not carry the file. */
 + (NSArray *)allFrameworks;
-@property (readonly, nullable) NSURL *appStoreReceiptURL;
+@property (readonly, nullable) NSURL *appStoreReceiptURL NS_AVAILABLE_MAC(10_7);
 @end
 
 NS_ASSUME_NONNULL_END

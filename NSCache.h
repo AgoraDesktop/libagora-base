@@ -56,6 +56,7 @@ NS_ASSUME_NONNULL_BEGIN
  * parameterized by anything.
  * =================================================================================================== */
 
+NS_CLASS_AVAILABLE_MAC(10_6)
 @interface NSCache<KeyType, ObjectType> : NSObject
 {
 	NSString *_name;

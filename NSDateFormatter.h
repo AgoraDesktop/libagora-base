@@ -77,14 +77,14 @@ NS_ASSUME_NONNULL_BEGIN
  * have to build one for a single string. */
 + (nullable NSString *)localizedStringFromDate:(NSDate *)date
 				     dateStyle:(NSDateFormatterStyle)dateStyle
-				     timeStyle:(NSDateFormatterStyle)timeStyle;
+				     timeStyle:(NSDateFormatterStyle)timeStyle NS_AVAILABLE_MAC(10_6);
 
 /* CLDR'S SKELETONS, which are not patterns: `@"yMMMd"` asks for a year, a month and a day and
  * lets the LOCALE decide the order, the separators and the widths. That is a data question, so it
  * is answered by the data. `options` is Apple's reserved bitmask and is ignored here. */
 + (nullable NSString *)dateFormatFromTemplate:(NSString *)aTemplate
 				      options:(NSUInteger)options
-				       locale:(nullable NSLocale *)locale;
+				       locale:(nullable NSLocale *)locale NS_AVAILABLE_MAC(10_6);
 
 /* BOTH DIRECTIONS. `-stringFromDate:` answers nil for a nil date, and the EMPTY STRING when the
  * formatter has been given nothing to say (no pattern and no style) — that is Apple's behaviour
@@ -123,29 +123,29 @@ NS_ASSUME_NONNULL_BEGIN
  * names and AM/PM, in the locale's spellings and its own COUNT — a thirteen-month Hebrew year has
  * thirteen month symbols, which is the kind of thing a hand-written table gets wrong. */
 - (nullable NSArray *)eraSymbols;
-- (nullable NSArray *)longEraSymbols;
+- (nullable NSArray *)longEraSymbols NS_AVAILABLE_MAC(10_5);
 - (nullable NSArray *)monthSymbols;
 - (nullable NSArray *)shortMonthSymbols;
-- (nullable NSArray *)veryShortMonthSymbols;
-- (nullable NSArray *)standaloneMonthSymbols;
-- (nullable NSArray *)shortStandaloneMonthSymbols;
-- (nullable NSArray *)veryShortStandaloneMonthSymbols;
+- (nullable NSArray *)veryShortMonthSymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)standaloneMonthSymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)shortStandaloneMonthSymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)veryShortStandaloneMonthSymbols NS_AVAILABLE_MAC(10_5);
 - (nullable NSArray *)weekdaySymbols;
 - (nullable NSArray *)shortWeekdaySymbols;
-- (nullable NSArray *)veryShortWeekdaySymbols;
-- (nullable NSArray *)standaloneWeekdaySymbols;
-- (nullable NSArray *)shortStandaloneWeekdaySymbols;
-- (nullable NSArray *)veryShortStandaloneWeekdaySymbols;
-- (nullable NSArray *)quarterSymbols;
-- (nullable NSArray *)shortQuarterSymbols;
-- (nullable NSArray *)standaloneQuarterSymbols;
-- (nullable NSArray *)shortStandaloneQuarterSymbols;
+- (nullable NSArray *)veryShortWeekdaySymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)standaloneWeekdaySymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)shortStandaloneWeekdaySymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)veryShortStandaloneWeekdaySymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)quarterSymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)shortQuarterSymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)standaloneQuarterSymbols NS_AVAILABLE_MAC(10_5);
+- (nullable NSArray *)shortStandaloneQuarterSymbols NS_AVAILABLE_MAC(10_5);
 - (nullable NSString *)AMSymbol;
 - (nullable NSString *)PMSymbol;
 
 /* CLDR'S SKELETON, APPLIED: the same question +dateFormatFromTemplate:options:locale: answers, but
  * asked of THIS formatter, so its locale, calendar and zone decide the pattern. */
-- (void)setLocalizedDateFormatFromTemplate:(NSString *)aTemplate;
+- (void)setLocalizedDateFormatFromTemplate:(NSString *)aTemplate NS_AVAILABLE_MAC(10_10);
 
 /* THE BEHAVIOUR KNOBS. Only ONE behaviour exists here and it is the modern one — Apple's
  * NSDateFormatterBehavior10_4, which is what NSDateFormatterBehaviorDefault MEANS on any current
@@ -175,30 +175,30 @@ typedef enum {
  * refuses. The dictionary is small and the arrays are what the caller passed.
  */
 - (void)setEraSymbols:(nullable NSArray *)array;
-- (void)setLongEraSymbols:(nullable NSArray *)array;
+- (void)setLongEraSymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
 - (void)setMonthSymbols:(nullable NSArray *)array;
 - (void)setShortMonthSymbols:(nullable NSArray *)array;
-- (void)setVeryShortMonthSymbols:(nullable NSArray *)array;
-- (void)setStandaloneMonthSymbols:(nullable NSArray *)array;
-- (void)setShortStandaloneMonthSymbols:(nullable NSArray *)array;
-- (void)setVeryShortStandaloneMonthSymbols:(nullable NSArray *)array;
+- (void)setVeryShortMonthSymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setStandaloneMonthSymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setShortStandaloneMonthSymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setVeryShortStandaloneMonthSymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
 - (void)setWeekdaySymbols:(nullable NSArray *)array;
 - (void)setShortWeekdaySymbols:(nullable NSArray *)array;
-- (void)setVeryShortWeekdaySymbols:(nullable NSArray *)array;
-- (void)setStandaloneWeekdaySymbols:(nullable NSArray *)array;
-- (void)setShortStandaloneWeekdaySymbols:(nullable NSArray *)array;
-- (void)setVeryShortStandaloneWeekdaySymbols:(nullable NSArray *)array;
-- (void)setQuarterSymbols:(nullable NSArray *)array;
-- (void)setShortQuarterSymbols:(nullable NSArray *)array;
-- (void)setStandaloneQuarterSymbols:(nullable NSArray *)array;
-- (void)setShortStandaloneQuarterSymbols:(nullable NSArray *)array;
+- (void)setVeryShortWeekdaySymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setStandaloneWeekdaySymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setShortStandaloneWeekdaySymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setVeryShortStandaloneWeekdaySymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setQuarterSymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setShortQuarterSymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setStandaloneQuarterSymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
+- (void)setShortStandaloneQuarterSymbols:(nullable NSArray *)array NS_AVAILABLE_MAC(10_5);
 - (void)setAMSymbol:(nullable NSString *)string;
 - (void)setPMSymbol:(nullable NSString *)string;
 
 /* WHERE THE TEXT WILL APPEAR. ICU spells this as its capitalization context, and standalone is the
  * one that changes a name's case in the locales whose data says so. */
-- (NSFormattingContext)formattingContext;
-- (void)setFormattingContext:(NSFormattingContext)context;
+- (NSFormattingContext)formattingContext NS_AVAILABLE_MAC(10_10);
+- (void)setFormattingContext:(NSFormattingContext)context NS_AVAILABLE_MAC(10_10);
 
 /* TWO-DIGIT YEARS AND THE GREGORIAN CUTOVER, both carried straight into ICU: the first is the
  * pivot a two-digit year resolves against (udat_set2DigitYearStart), the second the calendar's
@@ -206,8 +206,8 @@ typedef enum {
  * "ICU's own". */
 - (nullable NSDate *)twoDigitStartDate;
 - (void)setTwoDigitStartDate:(nullable NSDate *)date;
-- (nullable NSDate *)gregorianStartDate;
-- (void)setGregorianStartDate:(nullable NSDate *)date;
+- (nullable NSDate *)gregorianStartDate NS_AVAILABLE_MAC(10_5);
+- (void)setGregorianStartDate:(nullable NSDate *)date NS_AVAILABLE_MAC(10_5);
 
 /* THE DEPRECATED PAIR, kept as DOORS rather than stubs. This class parses with ICU and never
  * guesses a natural-language phrase, so -allowsNaturalLanguage is NO; the deprecated initializer
@@ -227,7 +227,7 @@ typedef enum {
  * stored CLASS value with -dateFromString: consulting it; `doesRelativeDateFormatting` is the per-formatter
  * switch for "today"/"tomorrow" wording, and this tree's formatter spells those in the one locale it has. */
 @property (class, nullable, copy) NSDate *defaultDate;
-@property BOOL doesRelativeDateFormatting;
+@property BOOL doesRelativeDateFormatting NS_AVAILABLE_MAC(10_6);
 @end
 
 NS_ASSUME_NONNULL_END

@@ -49,6 +49,7 @@ enum {
 	NSAnyPredicateModifier
 };
 
+NS_CLASS_AVAILABLE_MAC(10_4)
 @interface NSComparisonPredicate : NSPredicate
 {
 	NSPredicateOperatorType _operatorType;

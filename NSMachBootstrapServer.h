@@ -25,7 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSMachBootstrapServer *)sharedInstance;
 
 /* Apple's door for asking for a registered service by name; here it is `-portForName:`. */
-- (nullable NSPort *)servicePortWithName:(NSString *)name;
+- (nullable NSPort *)servicePortWithName:(NSString *)name NS_AVAILABLE_MAC(10_5);
 
 @end
 

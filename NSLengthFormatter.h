@@ -43,6 +43,7 @@ typedef enum {
 } NSLengthFormatterUnit;
 
 NS_SWIFT_NAME(LengthFormatter)
+NS_CLASS_AVAILABLE_MAC(10_10)
 @interface NSLengthFormatter : NSFormatter
 {
 	NSNumberFormatter *_numberFormatter;

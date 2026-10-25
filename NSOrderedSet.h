@@ -39,6 +39,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSOrderedSet<__covariant ObjectType> : NSObject <NSCopying, NSMutableCopying, NSFastEnumeration, NSCoding>
 {
 	NSArray *_members;		/* insertion order, each value once; REPLACED by every mutation */
@@ -90,7 +91,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (readonly) NSUInteger count;
 - (nullable ObjectType)objectAtIndex:(NSUInteger)index;
-- (nullable ObjectType)objectAtIndexedSubscript:(NSUInteger)index;
+- (nullable ObjectType)objectAtIndexedSubscript:(NSUInteger)index NS_AVAILABLE_MAC(10_8);
 - (NSUInteger)indexOfObject:(ObjectType)object;
 - (BOOL)containsObject:(ObjectType)object;
 @property (nullable, readonly) ObjectType firstObject;
@@ -128,7 +129,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)intersectsSet:(NSSet<ObjectType> *)set;
 - (BOOL)isSubsetOfSet:(NSSet<ObjectType> *)set;
 
-- (NSArray *)sortedArrayUsingDescriptors:(NSArray *)descriptors;
+- (NSArray *)sortedArrayUsingDescriptors:(NSArray *)descriptors NS_AVAILABLE_MAC(10_7);
 /* THE PREDICATE AND COMPARATOR DOORS (§63.8). The two SORTS DELEGATE to the array view, exactly as
  * `-sortedArrayUsingDescriptors:` above does and for the same reason: the array view IS the same sequence —
  * same members, same order, same indexes — so one implementation cannot drift from itself. The two

@@ -65,7 +65,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSUInteger)indexAtPosition:(NSUInteger)position;	/* past -length: NSRangeException */
 @property (readonly) NSUInteger length;
 - (void)getIndexes:(NSUInteger *)indexes;		/* all _length positions */
-- (void)getIndexes:(NSUInteger *)indexes range:(NSRange)positionRange;
+- (void)getIndexes:(NSUInteger *)indexes range:(NSRange)positionRange NS_AVAILABLE_MAC(10_9);
 
 - (NSComparisonResult)compare:(NSIndexPath *)otherObject;	/* nil: NSInvalidArgumentException */
 

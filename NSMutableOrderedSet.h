@@ -21,6 +21,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSMutableOrderedSet<ObjectType> : NSOrderedSet<ObjectType>
 
 + (instancetype)orderedSetWithCapacity:(NSUInteger)capacity;
@@ -36,7 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)addObjectsFromArray:(NSArray<ObjectType> *)array;
 - (void)insertObject:(ObjectType)object atIndex:(NSUInteger)index;
 - (void)replaceObjectAtIndex:(NSUInteger)index withObject:(ObjectType)object;
-- (void)setObject:(ObjectType)object atIndexedSubscript:(NSUInteger)index;
+- (void)setObject:(ObjectType)object atIndexedSubscript:(NSUInteger)index NS_AVAILABLE_MAC(10_8);
 
 /* THE INDEX-SET AND COUNT MUTATORS (§63.9). Apple declares the position forms in its
  * `NSExtendedMutableOrderedSet` category and the count forms beside the array ones; they are declared here in
@@ -66,7 +67,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)intersectOrderedSet:(NSOrderedSet<ObjectType> *)other;
 - (void)intersectSet:(NSSet<ObjectType> *)other;
 
-- (void)sortUsingDescriptors:(NSArray *)descriptors;
+- (void)sortUsingDescriptors:(NSArray *)descriptors NS_AVAILABLE_MAC(10_7);
 /* THE COMPARATOR SORTS (§63.8), Apple's three: the whole set, the whole set with options, and a RANGE. Each
  * replaces the members through the one private door every mutation uses, so the for-in consistency token
  * moves with the storage exactly as it does for `-addObject:`. */

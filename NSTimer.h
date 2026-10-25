@@ -99,7 +99,7 @@ NS_SWIFT_NAME(Timer)
 /* THE WINDOW A REPEATING TIMER MAY LATE-FIRE IN. Apple's contract is a HINT to the run loop rather than a
  * promise to the caller, and this loop fires as soon as the date has passed; the value is stored and read
  * back, which is what the probe asserts. */
-@property NSTimeInterval tolerance;
+@property NSTimeInterval tolerance NS_AVAILABLE_MAC(10_9);
 
 - (NSString *)description;
 

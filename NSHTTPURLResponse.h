@@ -51,7 +51,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithURL:(NSURL *)URL
 		 statusCode:(NSInteger)statusCode
 		HTTPVersion:(nullable NSString *)HTTPVersion
-	       headerFields:(nullable NSDictionary *)headerFields;
+	       headerFields:(nullable NSDictionary *)headerFields NS_AVAILABLE_MAC(10_7);
 
 @property (readonly) NSInteger statusCode;
 @property (readonly, copy) NSDictionary *allHeaderFields;

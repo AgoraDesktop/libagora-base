@@ -48,8 +48,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)tryLock;
 - (BOOL)lockBeforeDate:(NSDate *)limit;
-- (nullable NSString *)name;
-- (void)setName:(nullable NSString *)name;
+- (nullable NSString *)name NS_AVAILABLE_MAC(10_5);
+- (void)setName:(nullable NSString *)name NS_AVAILABLE_MAC(10_5);
 
 - (NSString *)description;
 
@@ -63,8 +63,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)tryLock;
 - (BOOL)lockBeforeDate:(NSDate *)limit;
-- (nullable NSString *)name;
-- (void)setName:(nullable NSString *)name;
+- (nullable NSString *)name NS_AVAILABLE_MAC(10_5);
+- (void)setName:(nullable NSString *)name NS_AVAILABLE_MAC(10_5);
 
 - (NSString *)description;
 
@@ -101,8 +101,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)lockWhenCondition:(NSInteger)condition beforeDate:(NSDate *)limit;
 
 - (BOOL)tryLock;
-- (nullable NSString *)name;
-- (void)setName:(nullable NSString *)name;
+- (nullable NSString *)name NS_AVAILABLE_MAC(10_5);
+- (void)setName:(nullable NSString *)name NS_AVAILABLE_MAC(10_5);
 
 - (NSString *)description;
 

@@ -201,7 +201,7 @@ NS_SWIFT_NAME(UserDefaults)
 
 /* The app domain becomes `suiteName` instead of NSGlobalDomain. NOTHING HAPPENS when `suiteName` is nil,
  * which is Apple's contract: "If you pass nil, the method has no effect" — so the result is `-init`. */
-- (nullable instancetype)initWithSuiteName:(nullable NSString *)suitename;
+- (nullable instancetype)initWithSuiteName:(nullable NSString *)suitename NS_AVAILABLE_MAC(10_9);
 
 /* Merge `registrationDictionary` into NSRegistrationDomain. Nothing is written to disk and nothing can be
  * removed this way: the registration domain is the fallback, so it may be added to or replaced, never
@@ -220,7 +220,7 @@ NS_SWIFT_NAME(UserDefaults)
 - (nullable NSArray *)stringArrayForKey:(NSString *)defaultName;
 - (nullable NSDictionary *)dictionaryForKey:(NSString *)defaultName;
 - (nullable NSData *)dataForKey:(NSString *)defaultName;
-- (nullable NSURL *)URLForKey:(NSString *)defaultName;
+- (nullable NSURL *)URLForKey:(NSString *)defaultName NS_AVAILABLE_MAC(10_6);
 
 /* THE COERCING FOUR. `-boolForKey:` answers NO and the others answer zero when the key is absent, and each
  * coerces what it finds rather than refusing it — Apple's documented examples are the rule: a NUMBER that
@@ -245,7 +245,7 @@ NS_SWIFT_NAME(UserDefaults)
 - (void)setInteger:(NSInteger)value forKey:(NSString *)defaultName;
 - (void)setFloat:(float)value forKey:(NSString *)defaultName;
 - (void)setDouble:(double)value forKey:(NSString *)defaultName;
-- (void)setURL:(nullable NSURL *)url forKey:(NSString *)defaultName;
+- (void)setURL:(nullable NSURL *)url forKey:(NSString *)defaultName NS_AVAILABLE_MAC(10_6);
 - (void)removeObjectForKey:(NSString *)defaultName;
 
 /* --- the search list, as a caller may edit it --- */
@@ -286,8 +286,8 @@ NS_SWIFT_NAME(UserDefaults)
 /* §63.200: the four deprecated doors. `-initWithUser:` scopes this instance's USER directory to the named
  * user's Configuration/ (the shared and system scopes are not per-user); `-persistentDomainNames` lists the
  * .plist domains that exist across the three scopes. */
-- (instancetype)initWithUser:(NSString *)userName;
-- (nullable NSArray *)persistentDomainNames;
+- (instancetype)initWithUser:(NSString *)userName NS_DEPRECATED_MAC(10_0, 10_9);
+- (nullable NSArray *)persistentDomainNames NS_DEPRECATED_MAC(10_0, 10_9);
 - (BOOL)synchronize;
 + (void)resetStandardUserDefaults;
 @end

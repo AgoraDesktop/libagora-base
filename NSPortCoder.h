@@ -67,22 +67,22 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (nullable id)portCoderWithReceivePort:(nullable NSPort *)receivePort
 			       sendPort:(nullable NSPort *)sendPort
-			     components:(nullable NSArray *)components;
+			     components:(nullable NSArray *)components NS_DEPRECATED_MAC(10_0, 10_7);
 
 - (instancetype)initWithReceivePort:(nullable NSPort *)receivePort
 			   sendPort:(nullable NSPort *)sendPort
-			 components:(nullable NSArray *)components;
+			 components:(nullable NSArray *)components NS_DEPRECATED_MAC(10_0, 10_7);
 
 /* Adds one object to the message, or reads the next one out of it. */
 - (void)encodeObject:(nullable id)anObject;
 - (nullable id)decodeObject;
 
 /* Sends what has been added. Answers NO when the port cannot carry it. */
-- (void)dispatch;
+- (void)dispatch NS_DEPRECATED_MAC(10_0, 10_7);
 
 /* THE DISTRIBUTED-OBJECTS OWNER (10.0). A port coder is made BY an NSConnection, and this library's coders are
  * made directly, so there is no connection to answer: nil is the honest "no connection owns this coder". */
-- (nullable id)connection;
+- (nullable id)connection NS_DEPRECATED_MAC(10_0, 10_7);
 
 - (BOOL)isBycopy;
 - (BOOL)isByref;
