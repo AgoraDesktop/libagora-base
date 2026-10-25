@@ -108,11 +108,11 @@ __attribute__((swift_bridge("Swift.Dictionary")))
 
 + (NSDictionary *)dictionary;
 + (NSDictionary<KeyType, ObjectType> *)dictionaryWithObject:(ObjectType)value forKey:(KeyType <NSCopying>)key;
-+ (NSDictionary<KeyType, ObjectType> *)dictionaryWithDictionary:(NSDictionary<KeyType, ObjectType> *)other;
++ (instancetype)dictionaryWithDictionary:(NSDictionary<KeyType, ObjectType> *)other;
 + (NSDictionary<KeyType, ObjectType> *)dictionaryWithObjects:(const ObjectType _Nonnull * _Nonnull)values
 				 forKeys:(const KeyType _Nonnull * _Nonnull)keys
 				   count:(NSUInteger)count;
-+ (NSDictionary *)dictionaryWithObjectsAndKeys:(id)firstObject, ... NS_REQUIRES_NIL_TERMINATION;
++ (instancetype)dictionaryWithObjectsAndKeys:(id)firstObject, ... NS_REQUIRES_NIL_TERMINATION;
 + (NSDictionary<KeyType, ObjectType> *)dictionaryWithObjects:(NSArray<ObjectType> *)objects forKeys:(NSArray<KeyType> *)keys;
 
 - (id)initWithObject:(id)value forKey:(id)key;

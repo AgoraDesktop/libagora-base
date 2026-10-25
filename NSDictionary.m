@@ -446,7 +446,7 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 	return built;
 }
 
-+ (NSDictionary *)dictionaryWithDictionary:(NSDictionary *)other
++ (instancetype)dictionaryWithDictionary:(NSDictionary *)other
 {
 	return [[self alloc] initAsCopyOf:other];
 }
@@ -458,7 +458,7 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 	return [[self alloc] initWithObjects:values forKeys:keys count:count];
 }
 
-+ (NSDictionary *)dictionaryWithObjectsAndKeys:(id)firstObject, ...
++ (instancetype)dictionaryWithObjectsAndKeys:(id)firstObject, ...
 {
 	va_list args;
 	id result = [[self alloc] init];
