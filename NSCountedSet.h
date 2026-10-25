@@ -42,7 +42,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 + (instancetype)setWithCapacity:(NSUInteger)capacity;
-- (instancetype)initWithCapacity:(NSUInteger)capacity;
+- (instancetype)initWithCapacity:(NSUInteger)capacity NS_DESIGNATED_INITIALIZER;
 
 - (void)addObject:(ObjectType)object;
 - (void)removeObject:(ObjectType)object;

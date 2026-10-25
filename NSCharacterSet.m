@@ -191,7 +191,9 @@ static unsigned long fn_ranges_from_bitmap(NSData *bitmap, unsigned int **outPai
 
 - (id)initWithCharactersInString:(NSString *)string
 {
-	self = [super init];
+	/* A CONVENIENCE door (Apple marks only `-initWithCoder:` designated here), so it starts from `-init` and fills;
+	 * `-init` is the base's, which is what a character set with no ranges is. */
+	self = [self init];
 	if (self == nil) {
 		return nil;
 	}
@@ -209,7 +211,7 @@ static unsigned long fn_ranges_from_bitmap(NSData *bitmap, unsigned int **outPai
 
 - (id)initWithRange:(NSRange)range
 {
-	self = [super init];
+	self = [self init];
 	if (self == nil) {
 		return nil;
 	}

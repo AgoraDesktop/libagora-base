@@ -23,6 +23,9 @@
 #import <Foundation/NSCountedSet.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSNumber.h>
+#import <Foundation/NSException.h>
+#import <Foundation/FNKeyedWire.h>	/* FNKeyedObjectsKey: the one key the set's coder writes */
+#include <stdlib.h>	/* calloc/free: the C list -initWithObjects:count: takes */
 
 /* THE COUNTED SET'S OWN CONCRETE CLASS (plan §C.5, M3: "counted-set storage as its own concrete class").
  * The storage is NSCountedSet's own ivar - a count array index-aligned with the inherited member array -
@@ -53,18 +56,20 @@
 	return [[self alloc] initWithCapacity:capacity];
 }
 
-/* THE INITIALISER FUNNEL: NSMutableSet's -initWithCapacity: calls -initWithObjects:count:, NSSet's
- * -initWithSet: calls -initWithArray:, and both of those are overridden here — so every door into an
- * NSCountedSet passes through one of these two. */
+/* THE INITIALISER FUNNEL, and there is exactly ONE designated door under it: Apple marks this class's
+ * `-initWithCapacity:` and nothing else, so the capacity door establishes the count array and this door is a
+ * CONVENIENCE one that routes to it and then adds (§4.15: a designated initializer may not chain on `self`).
+ *
+ * The stored count array is index-aligned with the inherited member array, so it is made HERE — in the designated
+ * door — and never remade, which is what makes the two doors agree about it. */
 - (instancetype)initWithObjects:(const id _Nonnull * _Nullable)objects count:(NSUInteger)count
 {
 	NSUInteger i;
 
-	self = [super initWithObjects:NULL count:0];
+	self = [self initWithCapacity:0];
 	if (self == nil) {
 		return nil;
 	}
-	_counts = [NSMutableArray array];
 	for (i = 0; i < count; i++) {
 		if (objects[i] != nil) {
 			[self addObject:objects[i]];
@@ -75,23 +80,59 @@
 
 - (instancetype)initWithArray:(NSArray *)array
 {
-	NSUInteger i;
+	NSUInteger i, n = [array count];
+	id *objects;
+	id result;
 
-	self = [super initWithObjects:NULL count:0];
-	if (self == nil) {
+	/* A CONVENIENCE door: it routes to the designated constructor below, so the count bookkeeping stays in one
+	 * place rather than in a copy per entry point (§4.15). */
+	objects = (id *)calloc(n + 1, sizeof(id));
+	if (objects == NULL) {
+		[self release];
 		return nil;
 	}
-	_counts = [NSMutableArray array];
-	for (i = 0; i < [array count]; i++) {
-		[self addObject:[array objectAtIndex:i]];
+	for (i = 0; i < n; i++) {
+		objects[i] = [array objectAtIndex:i];
 	}
-	return self;
+	result = [self initWithObjects:objects count:n];
+	free(objects);
+	return result;
 }
 
 - (instancetype)initWithCapacity:(NSUInteger)capacity
 {
-	(void)capacity;
-	return [self initWithObjects:NULL count:0];
+	/* THE DESIGNATED DOOR: the super's designated capacity door starts the members and this makes the count array
+	 * that is aligned with them. */
+	self = [super initWithCapacity:capacity];
+	if (self != nil) {
+		_counts = [[NSMutableArray alloc] init];
+	}
+	return self;
+}
+
+- (nullable instancetype)initWithCoder:(NSCoder *)coder
+{
+	NSArray *members;
+	NSUInteger i;
+
+	/* THE OVERRIDE A SUBCLASS OWES A DESIGNATED SUPER DOOR, and it is a CONVENIENCE one (this class marks only
+	 * `-initWithCapacity:`): it decodes the members, starts from the designated capacity door — which makes the count
+	 * array aligned with the members — and adds each one once. The archive carries MEMBERS, not multiplicities, so a
+	 * rebuilt count of one per member is what the wire can honestly say. */
+	if (![coder containsValueForKey:FNKeyedObjectsKey]) {
+		[self release];
+		[NSException raise:NSInvalidArgumentException
+		            format:@"NSCountedSet: the archive has no %@ — it is not one this class wrote", FNKeyedObjectsKey];
+	}
+	members = [coder decodeObjectForKey:FNKeyedObjectsKey];
+	self = [self initWithCapacity:0];
+	if (self == nil) {
+		return nil;
+	}
+	for (i = 0; i < [members count]; i++) {
+		[self addObject:[members objectAtIndex:i]];
+	}
+	return self;
 }
 
 /* BY VALUE, like the set itself: the index of the member that is EQUAL to `object`, or -1. */

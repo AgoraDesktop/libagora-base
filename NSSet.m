@@ -205,63 +205,32 @@
 
 - (instancetype)initWithArray:(NSArray *)array
 {
-	NSMutableArray *members;
-	NSUInteger i;
+	NSUInteger i, n = [array count];
+	id *objects;
+	id result;
 
-	/* THE CLASS IS CHOSEN BY THE DATA (§C.3 item 2), for this family's general class only - a
-	 * mutable receiver inherits this implementation and must keep it. Both constructions here are
-	 * COMPLETE (the member array is assigned at the end), which is what makes answering the shared
-	 * empty instance safe. */
-	if ([self isMemberOfClass:[AGSetItems class]] && [array count] == 0) {
-		[self release];	/* never initialized: the storage was never built */
-		return (id)[AGSetEmpty emptySet];
-	}
-	self = [super init];
-	if (self == nil) {
+	/* A CONVENIENCE DOOR: the storage is the designated constructor's job, and this only turns the array into the
+	 * C list it takes. That is what keeps the dedup rule and the class-choosing rule in ONE place — the two copies
+	 * this used to keep had to be changed together, and `-initWithCoder:` was a third. */
+	objects = (id *)calloc(n + 1, sizeof(id));
+	if (objects == NULL) {
+		[self release];
 		return nil;
 	}
-	members = [NSMutableArray array];
-	/* ⚠ **THE DEDUPLICATION WAS A NESTED LOOP AND IS NOT ANY MORE (2026-10-23).** For each element it scanned
-	 * everything already accepted, so building a set from n objects cost O(n^2) `-isEqual:` calls: MEASURED at
-	 * 0.16 s for 4,000 and 0.73 s for 8,000, which is what made a 10^5-row Core Data save take **626 seconds**
-	 * (COREDATA-PLAN.md §0.12). The bucket table below is keyed by `-hash`, so membership is a bucket scan and the
-	 * construction is O(n) amortised. The rules are unchanged: `nil` is skipped, the FIRST occurrence wins, and the
-	 * class is still chosen by the data. */
-	{
-		NSMutableDictionary *buckets = [NSMutableDictionary dictionary];
-
-		for (i = 0; i < [array count]; i++) {
-			id object = [array objectAtIndex:i];
-			NSNumber *key;
-			NSMutableArray *bucket;
-			NSUInteger j;
-			BOOL seen = NO;
-
-			if (object == nil) {
-				continue;
-			}
-			key = [NSNumber numberWithUnsignedLong:(unsigned long)[object hash]];
-			bucket = [buckets objectForKey:key];
-			for (j = 0; j < [bucket count]; j++) {
-				if ([[bucket objectAtIndex:j] isEqual:object]) {
-					seen = YES;
-					break;
-				}
-			}
-			if (seen) {
-				continue;
-			}
-			if (bucket == nil) {
-				bucket = [NSMutableArray array];
-				[buckets setObject:bucket forKey:key];
-			}
-			[bucket addObject:object];
-			[members addObject:object];
-		}
+	for (i = 0; i < n; i++) {
+		objects[i] = [array objectAtIndex:i];
 	}
+	result = [self initWithObjects:objects count:n];
+	free(objects);
+	return result;
+}
+
+/* THE MEMBER SNAPSHOT, AS A METHOD, because BOTH designated doors below establish it and a designated initializer
+ * may not chain to another one on `self` (FOUNDATION-10.11-PLAN.md §4.15). */
+- (void)fnTakeMembers:(NSArray *)members
+{
 	_members = [members copy];
 	_mutations = 0;
-	return self;
 }
 
 - (instancetype)initWithSet:(NSSet *)set
@@ -332,11 +301,24 @@
  * =================================================================================================== */
 - (nullable instancetype)initWithCoder:(NSCoder *)coder
 {
-		if (![coder containsValueForKey:FNKeyedObjectsKey]) {
+	NSArray *members;
+
+	/* A DESIGNATED door, so it calls super and takes the snapshot itself rather than chaining to `-initWithArray:`
+	 * (§4.15). One consequence is stated rather than hidden: an EMPTY decoded set is a plain instance, not the
+	 * shared empty one — the class-choosing rule is the CONSTRUCTOR's, and a decoder has data, not a constructor
+	 * argument. */
+	if (![coder containsValueForKey:FNKeyedObjectsKey]) {
+		[self release];
 		[NSException raise:NSInvalidArgumentException
 			    format:@"NSSet: the archive has no %@ — it is not one this class wrote", FNKeyedObjectsKey];
 	}
-	return [self initWithArray:[coder decodeObjectForKey:FNKeyedObjectsKey]];
+	members = [coder decodeObjectForKey:FNKeyedObjectsKey];
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	[self fnTakeMembers:members];
+	return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)coder
@@ -729,8 +711,28 @@ static void fnAppendSetMember(NSMutableString *out, id member, id locale, NSUInt
 
 - (instancetype)initWithCapacity:(NSUInteger)capacity
 {
+	/* A DESIGNATED door of this class, so it calls the super's designated constructor rather than chaining. */
 	(void)capacity;
-	return [self initWithObjects:NULL count:0];
+	return [super initWithObjects:NULL count:0];
+}
+
+- (instancetype)initWithObjects:(const id _Nonnull * _Nullable)objects count:(NSUInteger)count
+{
+	NSUInteger i;
+
+	/* THE OVERRIDE A SUBCLASS OWES A DESIGNATED SUPER DOOR, and it is a CONVENIENCE door (only
+	 * `-initWithCapacity:` is marked here): it starts from the designated capacity door and adds, which is the same
+	 * storage the immutable class builds — the mutability is a capability, not a different structure. */
+	self = [self initWithCapacity:0];
+	if (self == nil) {
+		return nil;
+	}
+	for (i = 0; i < count; i++) {
+		if (objects[i] != nil) {
+			[self addObject:objects[i]];
+		}
+	}
+	return self;
 }
 
 /* THE SAME DOOR ON THE MUTABLE CLASS, which Apple declares here too and which therefore needs an

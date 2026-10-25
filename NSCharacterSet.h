@@ -100,7 +100,7 @@ NS_ASSUME_NONNULL_BEGIN
  * NOT for the collections: this family's mutable class has the SAME LAYOUT (`_ranges` is the front's own ivar)
  * rather than a different one behind a cluster, so a decoder building onto a mutable receiver produces a
  * mutable set. The ledger carries no row for the mutable class for the same reason. */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 - (void)encodeWithCoder:(NSCoder *)coder;
 
 + (nullable NSCharacterSet *)characterSetWithCharactersInString:(NSString *)string;

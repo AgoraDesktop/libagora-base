@@ -91,7 +91,7 @@ __attribute__((swift_bridge("Swift.Set")))
  * these doors carry. They survive the ARCHIVE (the structural branch writes them under `NS.counts`, §63.5)
  * and they do not survive a direct `-initWithCoder:` — use `-countForObject:` after either to see the
  * difference. Stated so the gap is a known edge of the pair and not a later surprise. */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 - (void)encodeWithCoder:(NSCoder *)coder;
 
 + (instancetype)set;
@@ -105,7 +105,7 @@ __attribute__((swift_bridge("Swift.Set")))
 + (instancetype)setWithArray:(NSArray<ObjectType> *)array;
 + (instancetype)setWithSet:(NSSet<ObjectType> *)set;
 
-- (instancetype)initWithObjects:(const ObjectType _Nonnull * _Nullable)objects count:(NSUInteger)count;
+- (instancetype)initWithObjects:(const ObjectType _Nonnull * _Nullable)objects count:(NSUInteger)count NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithArray:(NSArray<ObjectType> *)array;
 - (instancetype)initWithSet:(NSSet<ObjectType> *)set;
 /* THE VARIADIC INITIALIZER (Apple's, nil-terminated) and the COPYING one. The copying form sends -copy to
@@ -172,13 +172,13 @@ __attribute__((swift_bridge("Swift.Set")))
 @interface NSMutableSet<ObjectType> : NSSet<ObjectType>
 
 + (instancetype)setWithCapacity:(NSUInteger)capacity;
-- (instancetype)initWithCapacity:(NSUInteger)capacity;
+- (instancetype)initWithCapacity:(NSUInteger)capacity NS_DESIGNATED_INITIALIZER;
 /* APPLE DECLARES THIS ON THE MUTABLE CLASS TOO (§63.11), so it is redeclared here rather than left to
  * inheritance: a source-compatible caller reading THIS header must find it, and the ledger's shipped test is
  * a declaration in the owner's own block. Its implementation lives in this class's own `@implementation`
  * for the same reason — `--unimplemented` counts an implementation in the class or a SUBCLASS, so the
  * front's body does not satisfy this declaration. */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
 - (void)addObject:(ObjectType)object;
 - (void)removeObject:(ObjectType)object;
