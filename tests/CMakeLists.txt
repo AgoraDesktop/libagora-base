@@ -27,6 +27,13 @@ target_link_libraries(foundation_10_11_formatting PRIVATE Foundation CoreFoundat
 
 add_test(NAME foundation_10_11_formatting COMMAND foundation_10_11_formatting)
 
+# THE QUERY ITEM (10.10): a value, not a pair of pointers. Equality, hashing, copy stability and an archive round-trip —
+# the three properties `NSURLComponents -queryItems` depends on.
+add_executable(foundation_10_11_url_query_item foundation_10_11_url_query_item.m)
+target_link_libraries(foundation_10_11_url_query_item PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_url_query_item COMMAND foundation_10_11_url_query_item)
+
 # Core Foundation's Unicode normalization, against Unicode's own test suite. A separate suite from the
 # bridge because it is a separate concern, and because it is a CONFORMANCE run first: `NormalizationTest.txt`
 # is 19,129 cases with six invariants each, and nothing else in the tree asks `CFStringNormalize` anything.

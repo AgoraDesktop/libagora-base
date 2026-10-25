@@ -102,6 +102,7 @@
 #import <Foundation/NSFileWrapper.h>
 #import <Foundation/NSPropertyListSerialization.h>
 #import <Foundation/NSURL.h>
+#import <Foundation/NSURLQueryItem.h>
 #import <Foundation/NSKeyValueCoding.h>
 #import <Foundation/NSSortDescriptor.h>
 /* THE PREDICATE FAMILY IS BACK (§63.161 REVERSED, COREDATA-PLAN.md §4.1), and the paragraph that used to sit
