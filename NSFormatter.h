@@ -98,10 +98,14 @@ typedef enum {
 	NSFormattingContextMiddleOfSentence = 5
 } NSFormattingContext;
 
+/* **THE VALUES ARE APPLE'S, NOT A FROM-ZERO COPY.** 10.11 declares Short = 1, Medium, Long; this enum counted from
+ * zero, so `NSFormattingUnitStyleShort` was 0 and any client comparing against Apple's constant read the wrong one.
+ * It also made a zeroed ivar look like a valid style, which is why every formatter below initialises its style
+ * explicitly. Found while implementing `-unitStyle`, which is the first code to read the value. */
 typedef enum {
-	NSFormattingUnitStyleShort = 0,
-	NSFormattingUnitStyleMedium = 1,
-	NSFormattingUnitStyleLong = 2
+	NSFormattingUnitStyleShort = 1,
+	NSFormattingUnitStyleMedium = 2,
+	NSFormattingUnitStyleLong = 3
 } NSFormattingUnitStyle;
 
 NS_ASSUME_NONNULL_END

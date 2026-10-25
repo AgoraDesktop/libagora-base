@@ -35,12 +35,19 @@ NS_CLASS_AVAILABLE_MAC(10_10)
 {
 	NSNumberFormatter *_numberFormatter;
 	BOOL _forFoodEnergyUse;
+	NSFormattingUnitStyle _unitStyle;	/* default Medium: 0 is NOT a style (see NSFormatter.h) */
 }
 
 - (nullable NSNumberFormatter *)numberFormatter;
 - (void)setNumberFormatter:(nullable NSNumberFormatter *)numberFormatter;
 - (BOOL)isForFoodEnergyUse;
 - (void)setForFoodEnergyUse:(BOOL)use;
+
+/* THE UNIT STYLE (10.10). Short and medium render the SI symbol; long renders the unit's name, pluralised
+ * unless the value is exactly one. Apple's default is medium, and it is set in -init because a zeroed ivar
+ * is not a style — the enum's values are 1/2/3 (see NSFormatter.h). */
+- (NSFormattingUnitStyle)unitStyle;
+- (void)setUnitStyle:(NSFormattingUnitStyle)style;
 
 - (NSString *)stringFromValue:(double)value unit:(NSEnergyFormatterUnit)unit;
 - (NSString *)stringFromJoules:(double)number;

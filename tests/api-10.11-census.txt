@@ -24,7 +24,7 @@
 #     on NSXMLDTD, and NSProxy's `-allowsWeakReference` / `-retainWeakReference`. A door a caller must not send is not
 #     a gap; charging them made the first pass read two phantom selectors and one phantom class.
 #
-# THE MEASURED POSITION WHEN THIS FILE WAS LAST PINNED: 193 of 219 classes, 3,296 of 3,407 selectors, 30 of 40
+# THE MEASURED POSITION WHEN THIS FILE WAS LAST PINNED: 193 of 219 classes, 3,302 of 3,407 selectors, 30 of 40
 # protocols, 182 of 182 functions, 0 declarations without bodies. **The whole remaining gap is 10.8–10.11** — 26
 # classes, 10 protocols, 111 selectors, no C functions — which is the finding that turned the Cocoa plan's Foundation
 # sizing from a debt into a delta.
@@ -435,7 +435,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 3933
+methods-declared 3939
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -526,7 +526,7 @@ sel:NSDistantObject 6
 sel:NSDistantObjectRequest 4
 sel:NSDistributedLock 6
 sel:NSDistributedNotificationCenter 11
-sel:NSEnergyFormatter 9
+sel:NSEnergyFormatter 11
 sel:NSEnumerator 2
 sel:NSError 13
 sel:NSException 10
@@ -553,7 +553,7 @@ sel:NSInvocationOperation 4
 sel:NSJSONSerialization 3
 sel:NSKeyedArchiver 21
 sel:NSKeyedUnarchiver 20
-sel:NSLengthFormatter 9
+sel:NSLengthFormatter 11
 sel:NSLinguisticTagger 9
 sel:NSLocale 23
 sel:NSLock 4
@@ -561,7 +561,7 @@ sel:NSLogicalTest 3
 sel:NSMachBootstrapServer 5
 sel:NSMachPort 9
 sel:NSMapTable 21
-sel:NSMassFormatter 9
+sel:NSMassFormatter 11
 sel:NSMessagePortNameServer 3
 sel:NSMetadataItem 3
 sel:NSMetadataQuery 28
@@ -665,6 +665,6 @@ sel:NSXMLDocument 32
 sel:NSXMLElement 29
 sel:NSXMLNode 51
 sel:NSXMLParser 18
-selectors-missing 111
+selectors-missing 105
 selectors-offered 3407
-selectors-present 3296
+selectors-present 3302

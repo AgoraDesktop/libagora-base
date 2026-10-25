@@ -19,6 +19,14 @@ target_link_libraries(linguistic_units PRIVATE Foundation CoreFoundation::CoreFo
 
 add_test(NAME linguistic_units COMMAND linguistic_units)
 
+# THE UNIT STYLE (10.10) AND THE ENUM VALUES IT READS. The three unit formatters shipped without `-unitStyle`, and
+# `NSFormattingUnitStyle` counted from zero where Apple counts from one; this probe pins both and the singular/plural
+# rule the long style states.
+add_executable(foundation_10_11_formatting foundation_10_11_formatting.m)
+target_link_libraries(foundation_10_11_formatting PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_formatting COMMAND foundation_10_11_formatting)
+
 # Core Foundation's Unicode normalization, against Unicode's own test suite. A separate suite from the
 # bridge because it is a separate concern, and because it is a CONFORMANCE run first: `NormalizationTest.txt`
 # is 19,129 cases with six invariants each, and nothing else in the tree asks `CFStringNormalize` anything.

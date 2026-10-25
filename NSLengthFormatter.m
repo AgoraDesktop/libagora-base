@@ -19,19 +19,21 @@
 typedef struct {
 	NSLengthFormatterUnit unit;
 	const char *symbol;
+	const char *longOne;		/* the unit's NAME, singular */
+	const char *longMany;		/* and plural, for the long style */
 	double perMetre;		/* how many of this unit one metre holds */
 	BOOL metric;
 } FNLengthUnitInfo;
 
 static const FNLengthUnitInfo fn_lf_units[] = {
-	{ NSLengthFormatterUnitMillimeter,	"mm",	1000.0,			YES },
-	{ NSLengthFormatterUnitCentimeter,	"cm",	100.0,			YES },
-	{ NSLengthFormatterUnitMeter,		"m",	1.0,			YES },
-	{ NSLengthFormatterUnitKilometer,	"km",	0.001,			YES },
-	{ NSLengthFormatterUnitInch,		"in",	39.37007874015748,	NO },
-	{ NSLengthFormatterUnitFoot,		"ft",	3.280839895013123,	NO },
-	{ NSLengthFormatterUnitYard,		"yd",	1.0936132983377078,	NO },
-	{ NSLengthFormatterUnitMile,		"mi",	0.000621371192237334,	NO }
+	{ NSLengthFormatterUnitMillimeter,	"mm", "millimeter", "millimeters",	1000.0,			YES },
+	{ NSLengthFormatterUnitCentimeter,	"cm", "centimeter", "centimeters",	100.0,			YES },
+	{ NSLengthFormatterUnitMeter,		"m", "meter", "meters",	1.0,			YES },
+	{ NSLengthFormatterUnitKilometer,	"km", "kilometer", "kilometers",	0.001,			YES },
+	{ NSLengthFormatterUnitInch,		"in", "inch", "inches",	39.37007874015748,	NO },
+	{ NSLengthFormatterUnitFoot,		"ft", "foot", "feet",	3.280839895013123,	NO },
+	{ NSLengthFormatterUnitYard,		"yd", "yard", "yards",	1.0936132983377078,	NO },
+	{ NSLengthFormatterUnitMile,		"mi", "mile", "miles",	0.000621371192237334,	NO }
 };
 
 #define FN_LF_UNIT_COUNT	(sizeof(fn_lf_units) / sizeof(fn_lf_units[0]))
@@ -100,6 +102,7 @@ static void fn_lf_natural(BOOL metric, double metres, NSLengthFormatterUnit *out
 	if (self != nil) {
 		_numberFormatter = nil;
 		_forPersonHeightUse = NO;
+		_unitStyle = NSFormattingUnitStyleMedium;
 	}
 	return self;
 }
@@ -117,16 +120,34 @@ static void fn_lf_natural(BOOL metric, double metres, NSLengthFormatterUnit *out
 - (BOOL)isForPersonHeightUse { return _forPersonHeightUse; }
 - (void)setForPersonHeightUse:(BOOL)use { _forPersonHeightUse = use; }
 
+/* THE UNIT STYLE (10.10). Short and medium render the SI symbol; long renders the unit's name, pluralised unless the
+ * value is exactly one. Apple defaults to medium, and -init says so explicitly because the enum's values are 1/2/3
+ * (NSFormatter.h): a zeroed ivar is not a style. */
+- (NSFormattingUnitStyle)unitStyle { return _unitStyle; }
+- (void)setUnitStyle:(NSFormattingUnitStyle)style { _unitStyle = style; }
+
+- (NSString *)fn_unitName:(const FNLengthUnitInfo *)info forValue:(double)value
+{
+	if (info == NULL) {
+		return @"";
+	}
+	if (_unitStyle == NSFormattingUnitStyleLong) {
+		const char *name = (value == 1.0) ? info->longOne : info->longMany;
+		return [NSString stringWithUTF8String:name];
+	}
+	return [NSString stringWithUTF8String:info->symbol];
+}
+
 /* THE RENDER, AND THE NUMBER FORMATTER IS HONOURED WHEN THERE IS ONE. Without one the value is printed with a
  * decimal point and four significant digits, which is the root locale's separator and the same stance the
  * byte-count formatter takes — this library has no locale to take another from. */
-- (NSString *)fn_value:(double)value symbol:(const char *)symbol
+- (NSString *)fn_value:(double)value name:(NSString *)name
 {
 	if (_numberFormatter != nil) {
-		return [NSString stringWithFormat:@"%@ %s",
-			[_numberFormatter stringFromNumber:[NSNumber numberWithDouble:value]], symbol];
+		return [NSString stringWithFormat:@"%@ %@",
+			[_numberFormatter stringFromNumber:[NSNumber numberWithDouble:value]], name];
 	}
-	return [NSString stringWithFormat:@"%.4g %s", value, symbol];
+	return [NSString stringWithFormat:@"%.4g %@", value, name];
 }
 
 - (NSString *)stringFromValue:(double)value unit:(NSLengthFormatterUnit)unit
@@ -136,7 +157,7 @@ static void fn_lf_natural(BOOL metric, double metres, NSLengthFormatterUnit *out
 	if (info == NULL) {
 		return [NSString stringWithFormat:@"%.4g", value];
 	}
-	return [self fn_value:value symbol:info->symbol];
+	return [self fn_value:value name:[self fn_unitName:info forValue:value]];
 }
 
 - (NSString *)unitStringFromValue:(double)value unit:(NSLengthFormatterUnit)unit
@@ -144,7 +165,7 @@ static void fn_lf_natural(BOOL metric, double metres, NSLengthFormatterUnit *out
 	const FNLengthUnitInfo *info = fn_lf_find(unit);
 
 	(void)value;
-	return info == NULL ? @"" : [NSString stringWithUTF8String:info->symbol];
+	return [self fn_unitName:info forValue:value];
 }
 
 - (NSString *)unitStringFromMeters:(double)number usedUnit:(NSLengthFormatterUnit *)unitp

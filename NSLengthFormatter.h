@@ -48,6 +48,7 @@ NS_CLASS_AVAILABLE_MAC(10_10)
 {
 	NSNumberFormatter *_numberFormatter;
 	BOOL _forPersonHeightUse;
+	NSFormattingUnitStyle _unitStyle;	/* default Medium: 0 is NOT a style (see NSFormatter.h) */
 }
 
 /* A NUMBER FORMATTER IS HONOURED WHEN ONE IS SET and a local render is used when it is not, which is what makes
@@ -57,6 +58,12 @@ NS_CLASS_AVAILABLE_MAC(10_10)
 
 - (BOOL)isForPersonHeightUse;
 - (void)setForPersonHeightUse:(BOOL)use;
+
+/* THE UNIT STYLE (10.10). Short and medium render the SI symbol; long renders the unit's name, pluralised
+ * unless the value is exactly one. Apple's default is medium, and it is set in -init because a zeroed ivar
+ * is not a style — the enum's values are 1/2/3 (see NSFormatter.h). */
+- (NSFormattingUnitStyle)unitStyle;
+- (void)setUnitStyle:(NSFormattingUnitStyle)style;
 
 /* THE FOUR DOORS: render a value in a unit the caller names, or in the unit this formatter would choose, and ask
  * for the unit's own name. `usedUnit` is an out-parameter and may be NULL — a caller who only wants the string

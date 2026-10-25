@@ -18,15 +18,17 @@
 typedef struct {
 	NSEnergyFormatterUnit unit;
 	const char *symbol;
+	const char *longOne;		/* the unit's NAME, singular */
+	const char *longMany;		/* and plural, for the long style */
 	double perJoule;		/* how many of this unit one joule holds */
 	BOOL food;			/* the calorie family, which `forFoodEnergyUse` asks for */
 } FNEnergyUnitInfo;
 
 static const FNEnergyUnitInfo fn_ef_units[] = {
-	{ NSEnergyFormatterUnitJoule,		"J",	1.0,				NO },
-	{ NSEnergyFormatterUnitKilojoule,	"kJ",	0.001,				NO },
-	{ NSEnergyFormatterUnitCalorie,		"cal",	0.2390057361376673,		YES },
-	{ NSEnergyFormatterUnitKilocalorie,	"kcal",	0.0002390057361376673,		YES }
+	{ NSEnergyFormatterUnitJoule,		"J", "joule", "joules",	1.0,				NO },
+	{ NSEnergyFormatterUnitKilojoule,	"kJ", "kilojoule", "kilojoules",	0.001,				NO },
+	{ NSEnergyFormatterUnitCalorie,		"cal", "calorie", "calories",	0.2390057361376673,		YES },
+	{ NSEnergyFormatterUnitKilocalorie,	"kcal", "kilocalorie", "kilocalories",	0.0002390057361376673,		YES }
 };
 
 #define FN_EF_UNIT_COUNT	(sizeof(fn_ef_units) / sizeof(fn_ef_units[0]))
@@ -87,6 +89,7 @@ static void fn_ef_natural(BOOL food, double joules, NSEnergyFormatterUnit *outUn
 	if (self != nil) {
 		_numberFormatter = nil;
 		_forFoodEnergyUse = NO;
+		_unitStyle = NSFormattingUnitStyleMedium;
 	}
 	return self;
 }
@@ -104,13 +107,31 @@ static void fn_ef_natural(BOOL food, double joules, NSEnergyFormatterUnit *outUn
 - (BOOL)isForFoodEnergyUse { return _forFoodEnergyUse; }
 - (void)setForFoodEnergyUse:(BOOL)use { _forFoodEnergyUse = use; }
 
-- (NSString *)fn_value:(double)value symbol:(const char *)symbol
+/* THE UNIT STYLE (10.10). Short and medium render the SI symbol; long renders the unit's name, pluralised unless the
+ * value is exactly one. Apple defaults to medium, and -init says so explicitly because the enum's values are 1/2/3
+ * (NSFormatter.h): a zeroed ivar is not a style. */
+- (NSFormattingUnitStyle)unitStyle { return _unitStyle; }
+- (void)setUnitStyle:(NSFormattingUnitStyle)style { _unitStyle = style; }
+
+- (NSString *)fn_unitName:(const FNEnergyUnitInfo *)info forValue:(double)value
+{
+	if (info == NULL) {
+		return @"";
+	}
+	if (_unitStyle == NSFormattingUnitStyleLong) {
+		const char *name = (value == 1.0) ? info->longOne : info->longMany;
+		return [NSString stringWithUTF8String:name];
+	}
+	return [NSString stringWithUTF8String:info->symbol];
+}
+
+- (NSString *)fn_value:(double)value name:(NSString *)name
 {
 	if (_numberFormatter != nil) {
-		return [NSString stringWithFormat:@"%@ %s",
-			[_numberFormatter stringFromNumber:[NSNumber numberWithDouble:value]], symbol];
+		return [NSString stringWithFormat:@"%@ %@",
+			[_numberFormatter stringFromNumber:[NSNumber numberWithDouble:value]], name];
 	}
-	return [NSString stringWithFormat:@"%.4g %s", value, symbol];
+	return [NSString stringWithFormat:@"%.4g %@", value, name];
 }
 
 - (NSString *)stringFromValue:(double)value unit:(NSEnergyFormatterUnit)unit
@@ -120,7 +141,7 @@ static void fn_ef_natural(BOOL food, double joules, NSEnergyFormatterUnit *outUn
 	if (info == NULL) {
 		return [NSString stringWithFormat:@"%.4g", value];
 	}
-	return [self fn_value:value symbol:info->symbol];
+	return [self fn_value:value name:[self fn_unitName:info forValue:value]];
 }
 
 - (NSString *)unitStringFromValue:(double)value unit:(NSEnergyFormatterUnit)unit
@@ -128,7 +149,7 @@ static void fn_ef_natural(BOOL food, double joules, NSEnergyFormatterUnit *outUn
 	const FNEnergyUnitInfo *info = fn_ef_find(unit);
 
 	(void)value;
-	return info == NULL ? @"" : [NSString stringWithUTF8String:info->symbol];
+	return [self fn_unitName:info forValue:value];
 }
 
 - (NSString *)unitStringFromJoules:(double)number usedUnit:(NSEnergyFormatterUnit *)unitp

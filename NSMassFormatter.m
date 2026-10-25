@@ -17,16 +17,18 @@
 typedef struct {
 	NSMassFormatterUnit unit;
 	const char *symbol;
+	const char *longOne;		/* the unit's NAME, singular */
+	const char *longMany;		/* and plural, for the long style */
 	double perKilogram;		/* how many of this unit one kilogram holds */
 	BOOL metric;
 } FNMassUnitInfo;
 
 static const FNMassUnitInfo fn_mf_units[] = {
-	{ NSMassFormatterUnitGram,	"g",	1000.0,			YES },
-	{ NSMassFormatterUnitKilogram,	"kg",	1.0,			YES },
-	{ NSMassFormatterUnitOunce,	"oz",	35.27396194958041,	NO },
-	{ NSMassFormatterUnitPound,	"lb",	2.2046226218487757,	NO },
-	{ NSMassFormatterUnitStone,	"st",	0.15747304441776972,	NO }
+	{ NSMassFormatterUnitGram,	"g", "gram", "grams",	1000.0,			YES },
+	{ NSMassFormatterUnitKilogram,	"kg", "kilogram", "kilograms",	1.0,			YES },
+	{ NSMassFormatterUnitOunce,	"oz", "ounce", "ounces",	35.27396194958041,	NO },
+	{ NSMassFormatterUnitPound,	"lb", "pound", "pounds",	2.2046226218487757,	NO },
+	{ NSMassFormatterUnitStone,	"st", "stone", "stone",	0.15747304441776972,	NO }
 };
 
 #define FN_MF_UNIT_COUNT	(sizeof(fn_mf_units) / sizeof(fn_mf_units[0]))
@@ -87,6 +89,7 @@ static void fn_mf_natural(BOOL metric, double kilograms, NSMassFormatterUnit *ou
 	if (self != nil) {
 		_numberFormatter = nil;
 		_forPersonMassUse = NO;
+		_unitStyle = NSFormattingUnitStyleMedium;
 	}
 	return self;
 }
@@ -104,13 +107,31 @@ static void fn_mf_natural(BOOL metric, double kilograms, NSMassFormatterUnit *ou
 - (BOOL)isForPersonMassUse { return _forPersonMassUse; }
 - (void)setForPersonMassUse:(BOOL)use { _forPersonMassUse = use; }
 
-- (NSString *)fn_value:(double)value symbol:(const char *)symbol
+/* THE UNIT STYLE (10.10). Short and medium render the SI symbol; long renders the unit's name, pluralised unless the
+ * value is exactly one. Apple defaults to medium, and -init says so explicitly because the enum's values are 1/2/3
+ * (NSFormatter.h): a zeroed ivar is not a style. */
+- (NSFormattingUnitStyle)unitStyle { return _unitStyle; }
+- (void)setUnitStyle:(NSFormattingUnitStyle)style { _unitStyle = style; }
+
+- (NSString *)fn_unitName:(const FNMassUnitInfo *)info forValue:(double)value
+{
+	if (info == NULL) {
+		return @"";
+	}
+	if (_unitStyle == NSFormattingUnitStyleLong) {
+		const char *name = (value == 1.0) ? info->longOne : info->longMany;
+		return [NSString stringWithUTF8String:name];
+	}
+	return [NSString stringWithUTF8String:info->symbol];
+}
+
+- (NSString *)fn_value:(double)value name:(NSString *)name
 {
 	if (_numberFormatter != nil) {
-		return [NSString stringWithFormat:@"%@ %s",
-			[_numberFormatter stringFromNumber:[NSNumber numberWithDouble:value]], symbol];
+		return [NSString stringWithFormat:@"%@ %@",
+			[_numberFormatter stringFromNumber:[NSNumber numberWithDouble:value]], name];
 	}
-	return [NSString stringWithFormat:@"%.4g %s", value, symbol];
+	return [NSString stringWithFormat:@"%.4g %@", value, name];
 }
 
 - (NSString *)stringFromValue:(double)value unit:(NSMassFormatterUnit)unit
@@ -120,7 +141,7 @@ static void fn_mf_natural(BOOL metric, double kilograms, NSMassFormatterUnit *ou
 	if (info == NULL) {
 		return [NSString stringWithFormat:@"%.4g", value];
 	}
-	return [self fn_value:value symbol:info->symbol];
+	return [self fn_value:value name:[self fn_unitName:info forValue:value]];
 }
 
 - (NSString *)unitStringFromValue:(double)value unit:(NSMassFormatterUnit)unit
@@ -128,7 +149,7 @@ static void fn_mf_natural(BOOL metric, double kilograms, NSMassFormatterUnit *ou
 	const FNMassUnitInfo *info = fn_mf_find(unit);
 
 	(void)value;
-	return info == NULL ? @"" : [NSString stringWithUTF8String:info->symbol];
+	return [self fn_unitName:info forValue:value];
 }
 
 - (NSString *)unitStringFromKilograms:(double)number usedUnit:(NSMassFormatterUnit *)unitp
