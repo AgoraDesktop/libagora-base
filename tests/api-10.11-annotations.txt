@@ -63,12 +63,13 @@
 #
 # THE GATE is `foundation-api-availability` in tests/CMakeLists.txt, which runs `api-ledger availability` with `--pin`
 # and fails on drift in either direction as well as on a wrong version.
-annotations-candidates 771
+annotations-candidates 776
 annotations-extra 0
 annotations-missing 0
-annotations-present 771
+annotations-present 776
 annotations-wrong 0
-designated-candidates 136
+designated-candidates 137
 designated-extra 0
 designated-missing 135
-designated-present 1
+designated-present 2
+

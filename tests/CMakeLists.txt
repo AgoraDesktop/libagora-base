@@ -40,6 +40,13 @@ target_link_libraries(foundation_10_11_url_components PRIVATE Foundation CoreFou
 
 add_test(NAME foundation_10_11_url_components COMMAND foundation_10_11_url_components)
 
+# THE OBSERVATION CONTRACT (10.9): KVO on the derived keys, the per-thread current stack, a child's share, cancellation
+# travelling down, and user info under a readonly property.
+add_executable(foundation_10_11_progress foundation_10_11_progress.m)
+target_link_libraries(foundation_10_11_progress PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_progress COMMAND foundation_10_11_progress)
+
 # Core Foundation's Unicode normalization, against Unicode's own test suite. A separate suite from the
 # bridge because it is a separate concern, and because it is a CONFORMANCE run first: `NormalizationTest.txt`
 # is 19,129 cases with six invariants each, and nothing else in the tree asks `CFStringNormalize` anything.

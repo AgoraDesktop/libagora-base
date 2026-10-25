@@ -62,9 +62,9 @@
 # **A SURFACE IS NOT A BEHAVIOURAL CLAIM.** This file says every name a caller can reach has a body or a disposition;
 # what the bodies DO is measured by callers, in the suites `FOUNDATION-10.11-PLAN.md` §7 schedules.
 #
-classes-missing 24
+classes-missing 23
 classes-offered 219
-classes-present 195
+classes-present 196
 fn:NSAllHashTableObjects 1
 fn:NSAllMapTableKeys 1
 fn:NSAllMapTableValues 1
@@ -435,7 +435,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 3953
+methods-declared 3984
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -458,7 +458,7 @@ proto:NSMutableCopying 1
 proto:NSNetServiceBrowserDelegate 1
 proto:NSNetServiceDelegate 1
 proto:NSPortDelegate 1
-proto:NSProgressReporting 0
+proto:NSProgressReporting 1
 proto:NSSecureCoding 1
 proto:NSSpellServerDelegate 1
 proto:NSStreamDelegate 1
@@ -479,9 +479,9 @@ proto:NSUserNotificationCenterDelegate 0
 proto:NSXMLParserDelegate 1
 proto:NSXPCListenerDelegate 0
 proto:NSXPCProxyCreating 0
-protocols-missing 10
+protocols-missing 9
 protocols-offered 40
-protocols-present 30
+protocols-present 31
 sel:NSAffineTransform 15
 sel:NSAppleEventDescriptor 43
 sel:NSAppleEventManager 11
@@ -667,6 +667,7 @@ sel:NSXMLDocument 32
 sel:NSXMLElement 29
 sel:NSXMLNode 51
 sel:NSXMLParser 18
-selectors-missing 113
-selectors-offered 3457
-selectors-present 3344
+sel:NSProgress 31
+selectors-missing 118
+selectors-offered 3493
+selectors-present 3375

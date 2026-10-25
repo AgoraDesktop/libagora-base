@@ -187,6 +187,7 @@
 #import <Foundation/NSHost.h>
 #import <Foundation/NSBackgroundActivityScheduler.h>
 #import <Foundation/NSCalendarDate.h>
+#import <Foundation/NSProgress.h>
 #import <Foundation/NSOperation.h>
 #import <Foundation/NSBlockOperation.h>
 #import <Foundation/NSInvocationOperation.h>
