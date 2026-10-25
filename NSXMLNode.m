@@ -84,25 +84,51 @@ static NSString *fn_xml_escape_attribute(NSString *text, BOOL singleQuoted)
 
 @implementation NSXMLNode
 
-/* A NODE IS MADE PRIVATELY AND ANSWERED THROUGH THE FACTORIES, which is what keeps the kinds consistent
- * with the fields they use. */
-- (id)initWithKind:(NSXMLNodeKind)kind name:(NSString *)name value:(NSString *)value
+/* THE FIELDS, IN ONE PLACE. Two designated initializers below establish them (the private constructor and
+ * `-initWithKind:options:`), and a plain method is the only way both can without one chaining to the other — which a
+ * designated initializer may not do (FOUNDATION-10.11-PLAN.md §4.15). */
+- (void)fnSetKind:(NSXMLNodeKind)kind name:(NSString *)name value:(NSString *)value
 {
-	self = [super init];
-	if (self == nil) {
-		return nil;
-	}
+	[_name release];
+	[_stringValue release];
 	_kind = kind;
 	_name = [name copy];
 	_stringValue = [value copy];
-	_children = (kind == NSXMLDocumentKind || kind == NSXMLElementKind) ?
-			[[NSMutableArray alloc] init] : nil;
+	/* THE CHILD LIST IS MADE ONCE, for the kinds that hold children, and never remade: this door is called from `-init`
+	 * AND from the factories, so allocating unconditionally would leak a list per call. */
+	if ((kind == NSXMLDocumentKind || kind == NSXMLElementKind) && _children == nil) {
+		_children = [[NSMutableArray alloc] init];
+	}
+}
+
+/* A NODE IS MADE PRIVATELY AND ANSWERED THROUGH THE FACTORIES, which is what keeps the kinds consistent
+ * with the fields they use. The door is `+alloc`/`-init` and then fnSetKind:, because fnSetKind: is a METHOD: a
+ * designated initializer may not chain to another initializer on `self`, and every kind-specific constructor here
+ * would otherwise have to chain to it (§4.15). */
++ (id)fnNodeWithKind:(NSXMLNodeKind)kind name:(NSString *)name value:(NSString *)value
+{
+	NSXMLNode *node = [[self alloc] init];
+
+	if (node != nil) {
+		[node fnSetKind:kind name:name value:value];
+	}
+	return [node autorelease];
+}
+
+/* A NODE WITH NO KIND IS A LEGITIMATE NODE, and it is the one `-init` answers: Apple marks `-init` designated because
+ * it is a way to make a node without a kind, which is what this establishes. */
+- (instancetype)init
+{
+	self = [super init];
+	if (self != nil) {
+		[self fnSetKind:NSXMLInvalidKind name:nil value:nil];
+	}
 	return self;
 }
 
 + (id)document
 {
-	return [[[NSXMLNode alloc] initWithKind:NSXMLDocumentKind name:nil value:nil] autorelease];
+	return [NSXMLNode fnNodeWithKind:NSXMLDocumentKind name:nil value:nil];
 }
 
 + (id)documentWithRootElement:(id)element
@@ -130,7 +156,7 @@ static NSString *fn_xml_escape_attribute(NSString *text, BOOL singleQuoted)
 
 + (id)attributeWithName:(NSString *)name URI:(NSString *)URI stringValue:(NSString *)stringValue
 {
-	id node = [[[NSXMLNode alloc] initWithKind:NSXMLAttributeKind name:name value:stringValue] autorelease];
+	id node = [NSXMLNode fnNodeWithKind:NSXMLAttributeKind name:name value:stringValue];
 
 	[node setURI:URI];
 	return node;
@@ -146,29 +172,27 @@ static NSString *fn_xml_escape_attribute(NSString *text, BOOL singleQuoted)
 
 + (id)attributeWithName:(NSString *)name stringValue:(NSString *)stringValue
 {
-	return [[[NSXMLNode alloc] initWithKind:NSXMLAttributeKind name:name value:stringValue] autorelease];
+	return [NSXMLNode fnNodeWithKind:NSXMLAttributeKind name:name value:stringValue];
 }
 
 + (id)namespaceWithName:(NSString *)name stringValue:(NSString *)stringValue
 {
-	return [[[NSXMLNode alloc] initWithKind:NSXMLNamespaceKind name:name value:stringValue] autorelease];
+	return [NSXMLNode fnNodeWithKind:NSXMLNamespaceKind name:name value:stringValue];
 }
 
 + (id)processingInstructionWithName:(NSString *)name stringValue:(NSString *)stringValue
 {
-	return [[[NSXMLNode alloc] initWithKind:NSXMLProcessingInstructionKind
-					  name:name
-					 value:stringValue] autorelease];
+	return [NSXMLNode fnNodeWithKind:NSXMLProcessingInstructionKind name:name value:stringValue];
 }
 
 + (id)commentWithStringValue:(NSString *)stringValue
 {
-	return [[[NSXMLNode alloc] initWithKind:NSXMLCommentKind name:nil value:stringValue] autorelease];
+	return [NSXMLNode fnNodeWithKind:NSXMLCommentKind name:nil value:stringValue];
 }
 
 + (id)textWithStringValue:(NSString *)stringValue
 {
-	return [[[NSXMLNode alloc] initWithKind:NSXMLTextKind name:nil value:stringValue] autorelease];
+	return [NSXMLNode fnNodeWithKind:NSXMLTextKind name:nil value:stringValue];
 }
 
 + (id)DTDNodeWithXMLString:(NSString *)string
@@ -730,18 +754,19 @@ static NSString *fn_xml_escape_attribute(NSString *text, BOOL singleQuoted)
 
 - (instancetype)initWithKind:(NSXMLNodeKind)kind
 {
-	/* THE DESIGNATED INITIALIZER THE DECLARATION PROMISED AND NOTHING IMPLEMENTED: this is what -initWithKind:
-	 * options: routes through, so without it that door reached doesNotRecognizeSelector: at RUN time while the
-	 * ledger and the build were both quiet. */
-	return [self initWithKind:kind name:nil value:nil];
+	/* THE KIND DOOR THE DECLARATION PROMISED: it is a CONVENIENCE door (Apple marks only `-initWithKind:options:`),
+	 * so it routes to the designated one rather than parsing on its own. */
+	return [self initWithKind:kind options:0];
 }
 
 - (instancetype)initWithKind:(NSXMLNodeKind)kind options:(NSXMLNodeOptions)options
 {
 	/* THE NODE'S OWN OPTIONS, AND THEY DO SOMETHING: they are merged over whatever the caller passes, which is
-	 * how a node created with NSXMLNodeCompactEmptyElement serializes as "<a/>" wherever it is written. */
-	self = [self initWithKind:kind];
+	 * how a node created with NSXMLNodeCompactEmptyElement serializes as "<a/>" wherever it is written. This is a
+	 * DESIGNATED door, so it calls super and the field method itself rather than chaining to `-initWithKind:`. */
+	self = [super init];
 	if (self != nil) {
+		[self fnSetKind:kind name:nil value:nil];
 		_options = options;
 	}
 	return self;
@@ -913,14 +938,20 @@ static NSString *fn_canonical_escape_attribute(NSString *text)
  * is a question only an ELEMENT or a DTD node can answer. NSXMLElement implements the failing form
  * (`-initWithXMLString:error:`) and this class does not, so a bare NSXMLNode asked to parse a string says why
  * instead of manufacturing a text node that was never in the document. */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-designated-initializers"
 - (id)initWithXMLString:(NSString *)string
 {
+	/* A REFUSAL IS NOT A CONSTRUCTION: this door's whole body is a raise, so there is no initializer to chain to and
+	 * no object to hand back. Suppressed HERE, for this door only (NSURL's bookmark door keeps the same note); the
+	 * alternative — parsing something first to satisfy the checker — would be a lie about what the door does. */
 	(void)string;
 	[NSException raise:NSInvalidArgumentException
 		    format:@"NSXMLNode -initWithXMLString:: parsing XML text needs an element or DTD node, and "
 			   "this is a %@", [self class]];
 	return nil;
 }
+#pragma clang diagnostic pop
 
 @end
 
@@ -955,11 +986,42 @@ static NSString *fn_canonical_escape_attribute(NSString *text)
 	return [text length] > 0 ? text : [super stringValue];
 }
 
+- (instancetype)init
+{
+	/* THE OVERRIDE A SUBCLASS OWES THE SUPER'S DESIGNATED `-init`: an element with no name is a legitimate element,
+	 * and it is what this makes. */
+	self = [super initWithKind:NSXMLElementKind options:0];
+	if (self != nil) {
+		[self fnMakeElementStorage];
+	}
+	return self;
+}
+
+- (void)fnMakeElementStorage
+{
+	_attributesByName = [[NSMutableDictionary alloc] init];
+	_attributeOrder = [[NSMutableArray alloc] init];
+}
+
+- (instancetype)initWithKind:(NSXMLNodeKind)kind options:(NSXMLNodeOptions)options
+{
+	/* THE OVERRIDE A SUBCLASS OWES A DESIGNATED DOOR. An element inherits the node's kind door, and clang wants this
+	 * class to say what that door makes. It makes an ELEMENT — the kind argument has never been honoured here, because
+	 * the element's ivars are what the class exists to make — so the base's designated kind door starts the storage and
+	 * this adds its own. A designated initializer, so it calls super rather than chaining to `-initWithKind:`.
+	 */
+	(void)kind;
+	self = [super initWithKind:NSXMLElementKind options:options];
+	if (self != nil) {
+		[self fnMakeElementStorage];
+	}
+	return self;
+}
+
 - (instancetype)initWithKind:(NSXMLNodeKind)kind
 {
-	/* §63.196: an element's own ivars are made by -initWithName:, so the KIND door — declared on this class too
-	 * — must route there rather than to the node's plain initializer. */
-	return [self initWithName:nil];
+	/* §63.196's door, as a CONVENIENCE one: it routes to the designated kind door above. */
+	return [self initWithKind:kind options:0];
 }
 
 - (id)initWithName:(NSString *)name
@@ -969,18 +1031,22 @@ static NSString *fn_canonical_escape_attribute(NSString *text)
 
 - (id)initWithName:(NSString *)name stringValue:(NSString *)stringValue
 {
-	self = [super initWithKind:NSXMLElementKind name:name value:stringValue];
+	self = [self initWithKind:NSXMLElementKind options:0];
 	if (self != nil) {
-		_attributesByName = [[NSMutableDictionary alloc] init];
-		_attributeOrder = [[NSMutableArray alloc] init];
+		[self setName:name];
+		[self setStringValue:stringValue];
 	}
 	return self;
 }
 
 - (id)initWithName:(NSString *)name URI:(NSString *)URI
 {
-	self = [self initWithName:name];
+	/* A DESIGNATED door (Apple marks it), so it calls the base's designated kind door and makes the element's own
+	 * storage itself rather than chaining to another initializer on `self`. */
+	self = [super initWithKind:NSXMLElementKind options:0];
 	if (self != nil) {
+		[self fnMakeElementStorage];
+		[self setName:name];
 		[self setURI:URI];
 	}
 	return self;
@@ -1273,18 +1339,28 @@ static NSString *fn_canonical_escape_attribute(NSString *text)
 
 - (id)initWithXMLString:(NSString *)string error:(NSError **)errorPtr
 {
-	/* THE FAILING FORM OF THE DOOR THE CLASS ALREADY HAS: the node is the same one, and the error path answers
-	 * the parse failure rather than a guess. The key is spelled as the literal it is, so this file needs no
-	 * import it does not already have. */
-	self = [self initWithXMLString:string];
-	if (self == nil && errorPtr != NULL) {
-		*errorPtr = [NSError errorWithDomain:@"NSXMLParserErrorDomain"
-						code:1
-					    userInfo:[NSDictionary dictionaryWithObject:@"the XML fragment could not be parsed"
-										 forKey:@"NSLocalizedDescriptionKey"]];
+	/* THE FRAGMENT PARSER IS NOT IN THIS TREE, and this door used to hide that: it chained to the inherited
+	 * `-initWithXMLString:`, which RAISES — so the error out-parameter was never written and a caller caught an
+	 * exception from a door documented as failing. It is now the designated constructor it is marked as (super, then
+	 * the element's storage) and it REFUSES BY NAME with its own message. The receiver is released first, because an
+	 * initializer that raises and leaks the object it was sent on is the leak this pass exists to close. */
+	(void)string;
+	self = [super initWithKind:NSXMLElementKind options:0];
+	if (self == nil) {
+		return nil;
 	}
-	return self;
+	[self fnMakeElementStorage];
+	[self release];
+	if (errorPtr != NULL) {
+		*errorPtr = nil;
+	}
+	[NSException raise:NSInvalidArgumentException
+	            format:@"NSXMLElement -initWithXMLString:error:: this system has no XML FRAGMENT parser, so an "
+	                   @"element cannot be built from text here; parse a document (NSXMLDocument) and take its root "
+	                   @"element"];
+	return nil;
 }
+
 /* REPLACE THE NAMESPACE DECLARATIONS: each incoming namespace's prefix is removed first so a duplicate neither
  * accumulates nor shadows, then the node is added. The order is the array's, which is what a serializer walks. */
 - (void)setNamespaces:(NSArray *)namespaces

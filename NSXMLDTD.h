@@ -83,7 +83,10 @@ typedef enum {
 	NSString *_elementName;		/* OURS: the ELEMENT an attribute declaration belongs to, which Apple's
 					 * -attributeDeclarationForName:elementName: looks up by and does not otherwise expose */
 }
-- (nullable id)initWithXMLString:(NSString *)string;
+- (id)init NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithKind:(NSXMLNodeKind)kind
+                     options:(NSXMLNodeOptions)options NS_DESIGNATED_INITIALIZER;
+- (nullable id)initWithXMLString:(NSString *)string NS_DESIGNATED_INITIALIZER;
 - (id)initWithKind:(NSXMLDTDNodeKind)kind;
 
 /* THE ELEMENT AN ATTRIBUTE DECLARATION BELONGS TO, which Apple's -attributeDeclarationForName:elementName: looks
@@ -118,8 +121,11 @@ typedef enum {
 
 /* The two doors to a DTD: from a file URL and from bytes - "options" is carried as Apple's signature has
  * it, and the THIRD door, an internal subset as a string, is -setInternalSubset:. */
+- (id)init NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithKind:(NSXMLNodeKind)kind
+                     options:(NSXMLNodeOptions)options NS_DESIGNATED_INITIALIZER;
 - (nullable id)initWithContentsOfURL:(NSURL *)url options:(NSUInteger)mask error:(NSError ** _Nullable)error;
-- (nullable id)initWithData:(NSData *)data options:(NSUInteger)mask error:(NSError ** _Nullable)error;
+- (nullable id)initWithData:(NSData *)data options:(NSUInteger)mask error:(NSError ** _Nullable)error NS_DESIGNATED_INITIALIZER;
 
 - (nullable NSString *)publicID;
 - (void)setPublicID:(nullable NSString *)publicID;

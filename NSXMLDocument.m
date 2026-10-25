@@ -267,25 +267,47 @@
 /* ---- THE DOCUMENT --------------------------------------------------------------------------------- */
 @implementation NSXMLDocument
 
+/* APPLE'S DEFAULTS, which are what a document parsed WITHOUT a readable declaration keeps (XML-a reports the
+ * declaration as nothing - see the header). A METHOD, because three designated constructors below must each establish
+ * them without chaining to one another (§4.15). */
+- (void)fnSetDocumentDefaults
+{
+	_version = [@"1.0" copy];
+	_characterEncoding = [@"UTF-8" copy];
+	_mimeType = [@"text/xml" copy];
+	_contentKind = NSXMLDocumentXMLKind;
+}
+
 - (id)init
 {
-	self = [super initWithKind:NSXMLDocumentKind name:nil value:nil];
+	self = [super initWithKind:NSXMLDocumentKind options:0];
 	if (self != nil) {
-		/* APPLE'S DEFAULTS, which are what a document parsed WITHOUT a readable declaration keeps (XML-a
-		 * reports the declaration as nothing - see the header). */
-		_version = [@"1.0" copy];
-		_characterEncoding = [@"UTF-8" copy];
-		_mimeType = [@"text/xml" copy];
-		_contentKind = NSXMLDocumentXMLKind;
+		[self fnSetDocumentDefaults];
+	}
+	return self;
+}
+
+- (instancetype)initWithKind:(NSXMLNodeKind)kind options:(NSXMLNodeOptions)options
+{
+	/* THE INHERITED KIND DOOR, OVERRIDDEN AS A DESIGNATED SUPER DOOR MUST BE. A document is its own kind whatever it
+	 * was asked for, because the document's ivars are what this class exists to make. */
+	(void)kind;
+	self = [super initWithKind:NSXMLDocumentKind options:options];
+	if (self != nil) {
+		[self fnSetDocumentDefaults];
 	}
 	return self;
 }
 
 - (id)initWithRootElement:(id)element
 {
-	self = [self init];
-	if (self != nil && element != nil) {
-		[self addChild:element];
+	/* A DESIGNATED door, so it calls super and the defaults method rather than chaining to `-init`. */
+	self = [super initWithKind:NSXMLDocumentKind options:0];
+	if (self != nil) {
+		[self fnSetDocumentDefaults];
+		if (element != nil) {
+			[self addChild:element];
+		}
 	}
 	return self;
 }
@@ -335,10 +357,11 @@
 		[self release];
 		return nil;
 	}
-	self = [self init];
+	self = [super initWithKind:NSXMLDocumentKind options:0];
 	if (self == nil) {
 		return nil;
 	}
+	[self fnSetDocumentDefaults];
 	parser = [[NSXMLParser alloc] initWithData:data];
 	if (parser == nil) {
 		[self release];

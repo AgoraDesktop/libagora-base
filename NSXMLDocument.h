@@ -80,16 +80,19 @@ enum {
 /* FOUR DOORS TO A DOCUMENT: from bytes, from a file URL, from a string, and from a root element a caller
  * has already built. The first three PARSE - the bridge is inside this file - and each answers nil with an
  * error when the document cannot be read or when an option this system cannot honour was asked for. */
+- (id)init NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithKind:(NSXMLNodeKind)kind
+                     options:(NSXMLNodeOptions)options NS_DESIGNATED_INITIALIZER;
 - (nullable id)initWithData:(NSData *)data
 		    options:(NSUInteger)mask
-		      error:(NSError ** _Nullable)error;
+		      error:(NSError ** _Nullable)error NS_DESIGNATED_INITIALIZER;
 - (nullable id)initWithContentsOfURL:(NSURL *)url
 			     options:(NSUInteger)mask
 			       error:(NSError ** _Nullable)error;
 - (nullable id)initWithXMLString:(NSString *)string
 			 options:(NSUInteger)mask
 			   error:(NSError ** _Nullable)error;
-- (id)initWithRootElement:(nullable id)element;
+- (id)initWithRootElement:(nullable id)element NS_DESIGNATED_INITIALIZER;
 
 /* "Returns the class to use for a node" - Apple's hook for subclasses, whose default answers the class it
  * was given, which is what this does. */

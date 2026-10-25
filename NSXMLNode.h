@@ -119,8 +119,18 @@ typedef enum {
 + (nullable id)prefixForName:(NSString *)name;
 + (nullable id)predefinedNamespaceForPrefix:(NSString *)name;
 
-/* "Managing XML Node Objects": what a node IS. */
-- (instancetype)initWithKind:(NSXMLNodeKind)kind options:(NSXMLNodeOptions)options;
+/* "Managing XML Node Objects": what a node IS. `-init` is a designated initializer because Apple's header says so (a
+ * node with no kind is a legitimate, empty node), and it is DECLARED here so that fact can be stated at all: an
+ * inherited `-init` is not a declaration site, so without this line the manifest's `designated-init NSXMLNode init`
+ * had nowhere to go and every subclass's convenience door looked like it had no designated target. */
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithKind:(NSXMLNodeKind)kind options:(NSXMLNodeOptions)options NS_DESIGNATED_INITIALIZER;
+
+/* THE STORAGE DOOR IS A METHOD, NOT AN INITIALIZER (§4.15's lesson from this batch): it is where a node's kind, name,
+ * value and children are made, and every factory in NSXMLNode.m calls it after `-init`. It cannot be an initializer:
+ * the designated constructors below must be able to establish the fields themselves, and a designated initializer may
+ * not chain to another one on `self`. Declared here because NSXMLElement, NSXMLDocument and NSXMLDTD reach it. */
+- (void)fnSetKind:(NSXMLNodeKind)kind name:(nullable NSString *)name value:(nullable NSString *)value;
 
 - (NSXMLNodeKind)kind;
 - (nullable NSString *)name;
@@ -202,9 +212,15 @@ typedef enum {
 	NSMutableArray *_attributeOrder;		/* retained: the names in the order they were added */
 }
 
+/* AN ELEMENT STATES ITS OWN DESIGNATED GRAPH, including the two doors it INHERITS: a class that marks any
+ * initializer designated has to say which of the inherited ones it honours, or a caller's subclass of NSXMLElement
+ * cannot tell (and clang reads the override as convenience). */
+- (id)init NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithKind:(NSXMLNodeKind)kind
+                     options:(NSXMLNodeOptions)options NS_DESIGNATED_INITIALIZER;
 - (id)initWithName:(NSString *)name;
 - (id)initWithName:(NSString *)name stringValue:(nullable NSString *)stringValue;
-- (id)initWithName:(NSString *)name URI:(nullable NSString *)URI;
+- (id)initWithName:(NSString *)name URI:(nullable NSString *)URI NS_DESIGNATED_INITIALIZER;
 - (id)initWithName:(NSString *)name children:(nullable NSArray *)children
 	   attributes:(nullable NSArray *)attributes;
 
@@ -246,7 +262,7 @@ typedef enum {
  * already has. */
 - (nullable id)attributeForLocalName:(NSString *)localName URI:(nullable NSString *)URI;
 - (void)setAttributesAsDictionary:(NSDictionary *)attributes;
-- (nullable id)initWithXMLString:(NSString *)string error:(NSError **)errorPtr;
+- (nullable id)initWithXMLString:(NSString *)string error:(NSError **)errorPtr NS_DESIGNATED_INITIALIZER;
 @end
 
 /* OURS: THE SERIALIZER AS A METHOD RATHER THAN A C FUNCTION, because a SUBCLASS has to be able to override
@@ -254,13 +270,17 @@ typedef enum {
 @interface NSXMLNode (FNPrivate)
 - (NSString *)fnXMLStringWithOptions:(NSXMLNodeOptions)options depth:(NSUInteger)depth;
 
-/* THE DESIGNATED INITIALIZER AND THE XML-STRING DOOR, declared here so the compiler can CHECK them: the
+/* THE PRIVATE CONSTRUCTOR IS A DESIGNATED INITIALIZER, and that is a fact about this class rather than a convenience
+ * for clang: it is where a node's storage is made (kind, name, value, children), every factory in this file goes
+ * through it, and the subclasses' own constructors reach the base's storage through `[super
+ * initWithKind:name:value:]`. Marking it is what makes those subclass calls legal under the rule the plan's §4.15
+ * records — a designated initializer may not chain to another one on `self`, so a funnel that IS an initializer must
+ * be the designated one.
+ *
+ * THE DESIGNATED INITIALIZER AND THE XML-STRING DOOR, declared here so the compiler can CHECK them: the
  * implementations are in this file, and NSXMLDocument and NSXMLDTD reach the initializer through
  * `[super initWithKind:name:value:]` - calls that were UNCHECKED because no declaration existed, which is the
  * -Wobjc-method-access class that hid §62.69's selector typo. A mistyped argument would have compiled silently. */
-- (id)initWithKind:(NSXMLNodeKind)kind
-	      name:(nullable NSString *)name
-	     value:(nullable NSString *)value;
 - (nullable id)initWithXMLString:(NSString *)string;
 @end
 

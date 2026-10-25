@@ -324,19 +324,45 @@ NSArray *FNDTDDeclarationNodes(NSString *declaration)
 
 @implementation NSXMLDTDNode
 
-- (id)initWithKind:(NSXMLDTDNodeKind)kind
+- (id)init
 {
-	self = [super initWithKind:NSXMLDTDKind name:nil value:nil];
+	self = [super initWithKind:NSXMLDTDKind options:0];
 	if (self != nil) {
-		_dtdKind = kind;
+		/* NO DECLARATION KIND YET: `NSXMLInvalidKind` is the node enum's zero, and the DTD node enum has no
+		 * invalid spelling of its own, so the cast states the equivalence rather than inventing a constant. */
+		_dtdKind = (NSXMLDTDNodeKind)NSXMLInvalidKind;
 	}
 	return self;
+}
+
+- (instancetype)initWithKind:(NSXMLNodeKind)kind options:(NSXMLNodeOptions)options
+{
+	/* THE INHERITED KIND DOOR, OVERRIDDEN AS A DESIGNATED SUPER DOOR MUST BE: a DTD node records the declaration kind
+	 * it was made as, which is its own ivar, so the override is where that happens. */
+	self = [super initWithKind:kind options:options];
+	if (self != nil) {
+		_dtdKind = (NSXMLDTDNodeKind)kind;
+	}
+	return self;
+}
+
+- (id)initWithKind:(NSXMLDTDNodeKind)kind
+{
+	/* A CONVENIENCE door: it routes to the designated kind door above. */
+	return [self initWithKind:(NSXMLNodeKind)kind options:0];
 }
 
 - (nullable id)initWithXMLString:(NSString *)string
 {
 	NSArray *nodes;
 
+	/* A DESIGNATED door: super first, then the declaration reader. It answers a node the reader built rather than
+	 * this receiver (releasing the receiver is the reader's substitution), which is why the super call is the only
+	 * thing this receiver contributes. */
+	self = [super initWithKind:NSXMLDTDKind options:0];
+	if (self == nil) {
+		return nil;
+	}
 	if (string == nil) {
 		[self release];
 		return nil;
@@ -460,7 +486,15 @@ NSArray *FNDTDDeclarationNodes(NSString *declaration)
 
 - (id)init
 {
-	return [super initWithKind:NSXMLDTDKind name:nil value:nil];
+	self = [super initWithKind:NSXMLDTDKind options:0];
+	return self;
+}
+
+- (instancetype)initWithKind:(NSXMLNodeKind)kind options:(NSXMLNodeOptions)options
+{
+	/* A DTD is its own kind whatever it was asked for; there is nothing of its own to make. */
+	(void)kind;
+	return [super initWithKind:NSXMLDTDKind options:options];
 }
 
 - (nullable id)initWithData:(NSData *)data options:(NSUInteger)mask error:(NSError **)error
@@ -483,7 +517,7 @@ NSArray *FNDTDDeclarationNodes(NSString *declaration)
 		[self release];
 		return nil;
 	}
-	self = [self init];
+	self = [super initWithKind:NSXMLDTDKind options:0];
 	if (self != nil) {
 		[self setInternalSubset:text];
 	}
