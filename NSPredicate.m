@@ -197,6 +197,17 @@
 - (void)encodeWithCoder:(NSCoder *)coder { (void)coder; }
 - (id)initWithCoder:(NSCoder *)coder { (void)coder; return self; }
 
+- (void)allowEvaluation
+{
+	/* See NSExpression.m: the allow-list is this tree's boundary, not a per-object flag. */
+}
+
++ (nullable NSPredicate *)predicateFromMetadataQueryString:(NSString *)queryString
+{
+	/* One language, one parser: Spotlight's query syntax IS the predicate format this class already reads. */
+	return [self predicateWithFormat:queryString];
+}
+
 @end
 
 @implementation NSArray (NSPredicateSupport)

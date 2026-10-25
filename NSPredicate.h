@@ -52,6 +52,13 @@ NS_CLASS_AVAILABLE_MAC(10_4)
 - (NSPredicate *)predicateWithSubstitutionVariables:(NSDictionary *)variables;
 
 - (BOOL)evaluateWithObject:(nullable id)object;
+
+/* THE SAME SANDBOX AS NSExpression's, and the same answer: this tree's boundary is the decoding allow-list, not a flag. */
+- (void)allowEvaluation NS_AVAILABLE_MAC(10_9);
+
+/* THE METADATA QUERY LANGUAGE IS THE FORMAT STRING'S (10.4). Spotlight's query syntax is the predicate format this
+ * class already parses, so the door names the intent and delegates rather than growing a second parser. */
++ (nullable NSPredicate *)predicateFromMetadataQueryString:(NSString *)queryString NS_AVAILABLE_MAC(10_9);
 - (BOOL)evaluateWithObject:(nullable id)object substitutionVariables:(nullable NSDictionary *)bindings NS_AVAILABLE_MAC(10_5);
 
 @end

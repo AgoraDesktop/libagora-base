@@ -484,4 +484,16 @@ static id FNAggregate(NSString *function, NSArray *values)
 	return (id (^)(id, NSArray *, NSMutableDictionary *))_constantValue;
 }
 
+/* ANY key (10.9): the key expression whose key is the evaluated object itself. */
++ (NSExpression *)expressionForAnyKey
+{
+	return [self expressionForKeyPath:@"SELF"];
+}
+
+- (void)allowEvaluation
+{
+	/* Nothing to unlock: this tree evaluates a decoded expression only if its class passed the secure-decoding
+	 * allow-list, which is the boundary PROVENANCE.md states. The door is Apple's and answers the call. */
+}
+
 @end

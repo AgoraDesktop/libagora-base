@@ -253,4 +253,9 @@ static NSString *const kDescriptorSelectorKey = @"NS.selector";
 		: (_selector != NULL ? @"selector" : @"compare:")];
 }
 
+- (void)allowEvaluation
+{
+	/* See NSExpression.m. */
+}
+
 @end

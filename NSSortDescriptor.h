@@ -93,6 +93,10 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (NSComparisonResult)compareObject:(id)object1 toObject:(id)object2;
 
+/* THE EVALUATION SANDBOX (10.9), as on NSExpression and NSPredicate. This tree's boundary is the secure-decoding
+ * allow-list rather than a per-object flag, so the door answers the call and the class documents that. */
+- (void)allowEvaluation NS_AVAILABLE_MAC(10_9);
+
 @end
 
 NS_ASSUME_NONNULL_END

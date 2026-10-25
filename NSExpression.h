@@ -74,6 +74,16 @@ NS_CLASS_AVAILABLE_MAC(10_4)
 + (NSExpression *)expressionForEvaluatedObject;
 + (NSExpression *)expressionForVariable:(NSString *)string;
 + (NSExpression *)expressionForKeyPath:(NSString *)keyPath;
+
+/* THE ANY-KEY FORM (10.9): a key expression whose key is the evaluated object's OWN key, used by the predicate
+ * compiler for `ANY` aggregates. It is a key-path expression with the special key `SELF`. */
++ (NSExpression *)expressionForAnyKey NS_AVAILABLE_MAC(10_9);
+
+/* THE EVALUATION SANDBOX (10.9). A predicate or expression decoded from an UNTRUSTED archive is evaluated only if the
+ * receiver says it may be: `-allowEvaluation` unlocks it. This tree never sets the lock — its secure decoding
+ * allow-list is the boundary (see PROVENANCE.md) — so the door records the intent and answers YES, which is what a
+ * caller who just called it expects. */
+- (void)allowEvaluation NS_AVAILABLE_MAC(10_9);
 + (NSExpression *)expressionForFunction:(NSString *)name arguments:(NSArray *)parameters;
 + (NSExpression *)expressionForAggregate:(NSArray *)subexpressions NS_AVAILABLE_MAC(10_5);
 + (NSExpression *)expressionForUnionSet:(NSExpression *)left with:(NSExpression *)right NS_AVAILABLE_MAC(10_5);

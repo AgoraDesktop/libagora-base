@@ -435,7 +435,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4004
+methods-declared 4009
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -530,7 +530,7 @@ sel:NSEnergyFormatter 11
 sel:NSEnumerator 2
 sel:NSError 13
 sel:NSException 10
-sel:NSExpression 26
+sel:NSExpression 28
 sel:NSFileCoordinator 14
 sel:NSFileHandle 32
 sel:NSFileManager 67
@@ -602,7 +602,7 @@ sel:NSPortCoder 8
 sel:NSPortMessage 7
 sel:NSPortNameServer 5
 sel:NSPositionalSpecifier 9
-sel:NSPredicate 9
+sel:NSPredicate 11
 sel:NSProcessInfo 28
 sel:NSPropertyListSerialization 7
 sel:NSProtocolChecker 4
@@ -626,7 +626,7 @@ sel:NSSet 40
 sel:NSSetCommand 2
 sel:NSSocketPort 11
 sel:NSSocketPortNameServer 9
-sel:NSSortDescriptor 13
+sel:NSSortDescriptor 14
 sel:NSSpecifierTest 1
 sel:NSSpellServer 5
 sel:NSStream 13
@@ -669,6 +669,6 @@ sel:NSXMLNode 51
 sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
 sel:NSProgress 31
-selectors-missing 118
+selectors-missing 113
 selectors-offered 3513
-selectors-present 3395
+selectors-present 3400
