@@ -86,6 +86,9 @@
 # **W5: the XPC family and the script tasks, all refusals.** classes 212 -> **219 of 219**, protocols 38 -> **40 of 40**,
 # selectors 3,615 -> 3,658 of 3,744 (86 missing, all on classes W6 fills); offered 3,701 -> 3,744. Every class of the
 # 10.11 Foundation now exists in the tree; what is left of the surface is method fill, not classes.
+# **W6b: the `NSAppleEventDescriptor` type doors.** The eight 10.11 factories and accessors — double, date, file URL,
+# the two application-name forms, the process identifier and `+currentProcessDescriptor` — plus `-isRecordDescriptor`
+# and the send that refuses by name. Missing 86 -> 74; methods-declared 4,289 -> 4,301.
 classes-missing 0
 classes-offered 219
 classes-present 219
@@ -459,7 +462,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4289
+methods-declared 4301
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -507,7 +510,7 @@ protocols-missing 0
 protocols-offered 40
 protocols-present 40
 sel:NSAffineTransform 15
-sel:NSAppleEventDescriptor 43
+sel:NSAppleEventDescriptor 55
 sel:NSAppleEventManager 11
 sel:NSAppleScript 7
 sel:NSArchiver 9
@@ -712,6 +715,6 @@ sel:NSXMLNode 51
 sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
 sel:NSProgress 31
-selectors-missing 86
+selectors-missing 74
 selectors-offered 3744
-selectors-present 3658
+selectors-present 3670

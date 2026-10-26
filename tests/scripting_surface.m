@@ -13,6 +13,7 @@
 
 #import <Foundation/Foundation.h>
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -225,6 +226,64 @@ main(void)
 		      "a record descriptor answers by keyword");
 		check([[[number coerceToDescriptorType:typeUTF8Text] stringValue] isEqualToString:@"42"],
 		      "coercion to text goes through the value");
+	}
+
+	/* THE DESCRIPTOR TYPES OF 10.11, AND THE SEND THAT REFUSES. A double, a date and a file URL each round-trip
+	 * through their own type code; a process descriptor is a record keyed the way Apple keys it; and a send answers
+	 * nil with the feature-unsupported error rather than pretending an event left the process. */
+	{
+		NSAppleEventDescriptor *doubled = [NSAppleEventDescriptor descriptorWithDouble:2.5];
+		NSDate *when = [NSDate dateWithTimeIntervalSinceReferenceDate:1234.5];
+		NSAppleEventDescriptor *dated = [NSAppleEventDescriptor descriptorWithDate:when];
+		NSURL *file = [NSURL fileURLWithPath:@"/tmp/agora-descriptor.txt"];
+		NSAppleEventDescriptor *filed = [NSAppleEventDescriptor descriptorWithFileURL:file];
+		NSAppleEventDescriptor *bundled =
+			[NSAppleEventDescriptor descriptorWithBundleIdentifier:@"com.example.agora"];
+		NSAppleEventDescriptor *appURL =
+			[NSAppleEventDescriptor descriptorWithApplicationURL:[NSURL fileURLWithPath:@"/Applications/Agora.app"]];
+		NSAppleEventDescriptor *process = [NSAppleEventDescriptor currentProcessDescriptor];
+		NSAppleEventDescriptor *byPID =
+			[NSAppleEventDescriptor descriptorWithProcessIdentifier:(pid_t)getpid()];
+		NSError *sendError = nil;
+
+		check([doubled descriptorType] == typeIEEE64BitFloatingPoint && [doubled doubleValue] == 2.5,
+		      "a double descriptor is a 64-bit float and answers its value");
+		check([[[NSAppleEventDescriptor descriptorWithInt32:7] description] length] > 0 &&
+		      [[NSAppleEventDescriptor descriptorWithInt32:7] doubleValue] == 7.0,
+		      "a 'long' descriptor answers a double through the integer door");
+		check([dated descriptorType] == typeDate &&
+		      fabs([[dated dateValue] timeIntervalSinceReferenceDate] - 1234.5) < 0.001,
+		      "a date descriptor is a long datetime and round-trips to the same instant");
+		check([filed descriptorType] == typeFileURL && [[filed fileURLValue] isEqual:file],
+		      "a file URL descriptor carries its own type code and reads back as the URL");
+		check([[filed fileURLValue] isFileURL] && [dated fileURLValue] == nil,
+		      "a descriptor of another type has no file URL");
+		check([bundled descriptorType] == typeApplicationBundleID &&
+		      [[bundled stringValue] isEqualToString:@"com.example.agora"],
+		      "a bundle identifier is its own type code with the string as payload");
+		check([appURL descriptorType] == typeApplicationURL &&
+		      [[appURL stringValue] isEqualToString:@"file:///Applications/Agora.app"],
+		      "an application URL is its own type code with the absolute string as payload");
+		check([process isRecordDescriptor] && [[process descriptorForKeyword:keyProcessSerialNumber] int32Value] ==
+		      (SInt32)getpid(), "the current process descriptor is a record keyed by its process id");
+		check([[byPID descriptorForKeyword:keyProcessSerialNumber] int32Value] == (SInt32)getpid() &&
+		      [doubled isRecordDescriptor] == NO &&
+		      [[[[NSAppleEventDescriptor alloc] initRecordDescriptor] autorelease] isRecordDescriptor],
+		      "only a record descriptor answers YES to isRecordDescriptor");
+		check([NSAppleEventDescriptor appleEventWithEventClass:'aevt'
+								 eventID:'oapp'
+							targetDescriptor:nil
+								returnID:0
+							   transactionID:0] != nil &&
+			      [[NSAppleEventDescriptor appleEventWithEventClass:'aevt'
+								       eventID:'oapp'
+								targetDescriptor:nil
+									returnID:0
+								   transactionID:0] isRecordDescriptor],
+			      "an Apple event IS a record descriptor");
+		check([doubled sendEventWithOptions:NSAppleEventSendDefaultOptions timeout:1.0 error:&sendError] == nil &&
+		      sendError != nil && [sendError code] == NSFeatureUnsupportedError,
+		      "a send refuses with the feature-unsupported error and delivers nothing");
 	}
 
 	/* APPLESCRIPT COMPILES AND REFUSES TO RUN. */

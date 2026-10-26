@@ -8,11 +8,23 @@
  */
 #import <Foundation/NSAppleEventDescriptor.h>
 #import <Foundation/NSData.h>
+#import <Foundation/NSDate.h>
+#import <Foundation/NSError.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSNumber.h>
+#import <Foundation/NSURL.h>
+#include <stdint.h>
+#include <stdio.h>		/* stdio, for the refusal line's fprintf */
 #include <string.h>
+#include <unistd.h>		/* getpid(2), for +currentProcessDescriptor */
+
+/* THE LONG DATETIME, WHICH IS WHAT `typeDate` CARRIES. Apple's AppleEvents type is a 64-bit float of seconds since
+ * 1904-01-01 00:00:00 UTC, so the conversion is a CONSTANT rather than a calendar: the two reference dates do not move.
+ * 1904 -> 1970 is 24,107 days; 1970 -> 2001 (NSDate's reference date) is 978,307,200 seconds. */
+#define FN_SECONDS_1904_TO_1970	2082844800.0
+#define FN_SECONDS_1904_TO_2001	3061152000.0
 
 static DescType fn_four_char_code(OSType value)
 {
@@ -38,6 +50,41 @@ static NSData *fn_data_from_code(OSType code)
 	bytes[2] = (unsigned char)((code >> 8) & 0xFF);
 	bytes[3] = (unsigned char)(code & 0xFF);
 	return [NSData dataWithBytes:bytes length:4];
+}
+
+/* A DOUBLE IS EIGHT BYTES BIG-ENDIAN, because that is what an AppleEvents 64-bit float is. The bits are moved through
+ * a `uint64_t` rather than by casting a pointer, so the conversion is the same on either endianness of host. */
+static NSData *fn_data_from_double(double value)
+{
+	unsigned char bytes[8];
+	uint64_t bits = 0;
+	int i;
+
+	memcpy(&bits, &value, sizeof bits);
+	for (i = 0; i < 8; i++) {
+		bytes[i] = (unsigned char)((bits >> (56 - 8 * i)) & 0xFF);
+	}
+	return [NSData dataWithBytes:bytes length:8];
+}
+
+static double fn_double_from_data(NSData *data)
+{
+	unsigned char bytes[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+	uint64_t bits = 0;
+	double value = 0.0;
+	NSUInteger length;
+	int i;
+
+	if (data == nil) {
+		return 0.0;
+	}
+	length = [data length] < 8 ? [data length] : 8;
+	[data getBytes:bytes length:length];
+	for (i = 0; i < 8; i++) {
+		bits = (bits << 8) | bytes[i];
+	}
+	memcpy(&value, &bits, sizeof value);
+	return value;
 }
 
 @implementation NSAppleEventDescriptor
@@ -183,6 +230,57 @@ static NSData *fn_data_from_code(OSType code)
 	bytes[2] = (unsigned char)((value >> 8) & 0xFF);
 	bytes[3] = (unsigned char)(value & 0xFF);
 	return [self descriptorWithDescriptorType:typeSInt32 bytes:bytes length:4];
+}
+
++ (NSAppleEventDescriptor *)descriptorWithDouble:(double)value
+{
+	return [self descriptorWithDescriptorType:typeIEEE64BitFloatingPoint data:fn_data_from_double(value)];
+}
+
+/* A DATE IS A LONG DATETIME, so the door converts through the fixed 1904 reference and nothing else. An `NSDate` keeps
+ * seconds since 2001; the descriptor keeps seconds since 1904; the difference is 3,061,152,000. */
++ (NSAppleEventDescriptor *)descriptorWithDate:(NSDate *)value
+{
+	return [self descriptorWithDescriptorType:typeDate
+					     data:fn_data_from_double([value timeIntervalSinceReferenceDate] +
+							      FN_SECONDS_1904_TO_2001)];
+}
+
+/* A FILE URL IS ITS OWN TYPE CODE AND ITS ABSOLUTE STRING, which is the encoding `-fileURLValue` reads back. */
++ (NSAppleEventDescriptor *)descriptorWithFileURL:(NSURL *)value
+{
+	return [self descriptorWithDescriptorType:typeFileURL
+					     data:[[value absoluteString] dataUsingEncoding:NSUTF8StringEncoding]];
+}
+
+/* A BUNDLE ID AND AN APPLICATION URL ARE THE TWO 10.11 WAYS TO NAME AN APPLICATION. Each is a string payload under the
+ * type code Apple publishes for it, so the descriptor says what it names rather than only holding text. */
++ (NSAppleEventDescriptor *)descriptorWithBundleIdentifier:(NSString *)value
+{
+	return [self descriptorWithDescriptorType:typeApplicationBundleID
+					     data:[value dataUsingEncoding:NSUTF8StringEncoding]];
+}
+
++ (NSAppleEventDescriptor *)descriptorWithApplicationURL:(NSURL *)value
+{
+	return [self descriptorWithDescriptorType:typeApplicationURL
+					     data:[[value absoluteString] dataUsingEncoding:NSUTF8StringEncoding]];
+}
+
+/* A PROCESS DESCRIPTOR IS A RECORD WITH ONE KEYED ENTRY. Apple keys it `keyProcessSerialNumber` and stores a PSN; this
+ * system has no ProcessSerialNumber (no Carbon, no process manager), so the entry is the process ID the operating system
+ * does have, as a SInt32. The keyword is Apple's, the payload is this system's, and the header says so at the factory. */
++ (NSAppleEventDescriptor *)descriptorWithProcessIdentifier:(pid_t)value
+{
+	NSAppleEventDescriptor *record = [[[self alloc] initRecordDescriptor] autorelease];
+
+	[record setDescriptor:[self descriptorWithInt32:(SInt32)value] forKeyword:keyProcessSerialNumber];
+	return record;
+}
+
++ (NSAppleEventDescriptor *)currentProcessDescriptor
+{
+	return [self descriptorWithProcessIdentifier:getpid()];
 }
 
 + (NSAppleEventDescriptor *)descriptorWithTypeCode:(OSType)value
@@ -362,6 +460,43 @@ static NSData *fn_data_from_code(OSType code)
 - (OSType)enumCodeValue { return fn_code_from_data(_data); }
 - (OSType)typeCodeValue { return fn_code_from_data(_data); }
 
+/* THE DOUBLE IS READ FROM ITS OWN TYPE, and falls back to the SInt32 door: a caller asking a `'long'` descriptor for
+ * its double is asking a question with an answer, while one asking a `'doub'` descriptor is asking for the payload. */
+- (double)doubleValue
+{
+	if (_descriptorType == typeSInt32) {
+		return (double)[self int32Value];
+	}
+	if (_data != nil && [_data length] >= 8) {
+		return fn_double_from_data(_data);
+	}
+	return (double)[self int32Value];
+}
+
+/* THE DATE IS A LONG DATETIME READ BACK THE WAY IT WAS WRITTEN. A descriptor that is not a date answers nil rather than
+ * interpreting four arbitrary bytes as a timestamp — the same rule `-fileURLValue` states. */
+- (NSDate *)dateValue
+{
+	if (_descriptorType != typeDate || _data == nil || [_data length] < 8) {
+		return nil;
+	}
+	return [NSDate dateWithTimeIntervalSinceReferenceDate:fn_double_from_data(_data) - FN_SECONDS_1904_TO_2001];
+}
+
+/* A FILE URL IS ITS ABSOLUTE STRING UNDER `'furl'`, so the door is the string door plus the type check. */
+- (NSURL *)fileURLValue
+{
+	NSString *string;
+
+	if (_descriptorType != typeFileURL) {
+		return nil;
+	}
+	string = [self stringValue];
+	return string != nil ? [NSURL URLWithString:string] : nil;
+}
+
+- (BOOL)isRecordDescriptor { return _record != nil; }
+
 - (SInt32)int32Value
 {
 	if (_data == nil || [_data length] < 4) {
@@ -387,5 +522,26 @@ static NSData *fn_data_from_code(OSType code)
 - (AETransactionID)transactionID { return _isEvent ? _transactionID : 0; }
 
 - (const void *)aeDesc { return NULL; }
+
+/* THE SEND DOOR, AND IT REFUSES BY NAME. Nothing in this library can post an Apple event: there is no Apple Event
+ * Manager port, no `AESend`, and no target process to address. Answering nil with an `NSFeatureUnsupportedError` and a
+ * line on stderr is the honest reply; a caller that ignores the error gets nothing delivered, which is the truth. */
+- (NSAppleEventDescriptor *)sendEventWithOptions:(NSAppleEventSendOptions)sendOptions
+						  timeout:(NSTimeInterval)timeoutInSeconds
+						    error:(NSError **)error
+{
+	(void)sendOptions;
+	(void)timeoutInSeconds;
+	if (error != NULL) {
+		*error = [NSError errorWithDomain:NSCocoaErrorDomain
+					     code:NSFeatureUnsupportedError
+					 userInfo:@{ NSLocalizedDescriptionKey :
+						     @"NSAppleEventDescriptor: this library has no AppleEvents transport, so an event "
+						     @"cannot be sent" }];
+	}
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSAppleEventDescriptor sendEventWithOptions:timeout:error:] has no "
+			"AppleEvents transport; a descriptor is data here, and nothing can deliver an event\n");
+	return nil;
+}
 
 @end
