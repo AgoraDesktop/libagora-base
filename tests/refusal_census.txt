@@ -1,0 +1,26 @@
+# THE FOUNDATION REFUSAL CENSUS — every `FOUNDATION-REFUSE` site, per file, compared in BOTH directions.
+#
+# Copyright © 2026 Kyle J. Cardoza.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#
+# W5 of FOUNDATION-10.11-PLAN.md: the tree's refusals were held by prose, and prose drifts. The instrument is
+# libagora-app's `tests/claims_census.cmake`, SHARED through a path rather than copied (it is GPL and this component is
+# LGPL), with the needle `(FOUNDATION-REFUSE|fn_refuse_[a-z]+)`. It counts SITES rather than symbols because every door
+# here is an Objective-C method, which appears in no symbol table.
+#
+# A REFUSAL IS A CONTRACT: the door is declared, annotated and callable, and calling it names what this system cannot do
+# rather than returning a plausible lie. Every site carries its own line, so the census can see the door behind it; a
+# helper with one line would hide the doors it serves.
+#
+# A CENSUS, NOT A CEILING: the count is per file and checked both ways — a new refusal without a line fails, and a line
+# whose count moved fails. Adding or removing a refusal is therefore a deliberate diff.
+#
+# The entries, by wave: NSURLSession/NSUserNotification/NSExtension carry W3's and W4's (background sessions, streamed
+# uploads, resume data, stream TLS, group containers, unresolved NetServices, extension requests, notification
+# delivery); NSXPCConnection and NSUserScriptTask carry W5's whole families, which have no backing at all.
+# total: 48
+NSExtension.m 3
+NSURLSession.m 16
+NSUserNotification.m 1
+NSXPCConnection.m 24
+NSUserScriptTask.m 4

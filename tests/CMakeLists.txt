@@ -283,6 +283,18 @@ if(Python3_Interpreter_FOUND)
             "${CMAKE_CURRENT_SOURCE_DIR}/.."
             --pin "${CMAKE_CURRENT_SOURCE_DIR}/api-10.11-annotations.txt")
 
+  # **W5: THE REFUSALS ARE A CENSUS, NOT PROSE.** Every `FOUNDATION-REFUSE` site is counted per file and compared in
+  # both directions against tests/refusal_census.txt, so adding or removing a refusal is a deliberate diff. The
+  # instrument is libagora-app's `claims_census.cmake`, SHARED by path rather than copied: it is GPL and this
+  # component is LGPL, and the plan's own word for this gate was "copied or shared".
+  add_test(NAME foundation-refusal-census
+    COMMAND "${CMAKE_COMMAND}"
+            "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/.."
+            "-DCENSUS=${CMAKE_CURRENT_SOURCE_DIR}/refusal_census.txt"
+            "-DEXTENSION=.m"
+            "-DNEEDLE=(FOUNDATION-REFUSE|fn_refuse_[a-z]+)"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/../../libagora-app/tests/claims_census.cmake")
+
   # **S5: EVERY PUBLIC HEADER STANDS ALONE.** The library build proves the umbrella works for its own sources; this
   # asks the client's question instead — import ONE header — in the three client modes, and compiles the umbrella
   # once per mode as well. It found five headers that had never been asked: two that imported nothing, a category
