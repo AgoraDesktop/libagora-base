@@ -134,6 +134,14 @@ target_link_libraries(foundation_10_11_scripting_archive PRIVATE Foundation Core
 
 add_test(NAME foundation_10_11_scripting_archive COMMAND foundation_10_11_scripting_archive)
 
+# M2: EVERY REFUSAL DOOR, BY NAME AND BY ITS DOCUMENTED RETURN. The census counts the sites per file; this suite calls
+# each one, captures the stderr line and checks the line names the door and the return is the documented one. It fails
+# if the number of doors it asserts drifts from the census.
+add_executable(foundation_10_11_refusals foundation_10_11_refusals.m)
+target_link_libraries(foundation_10_11_refusals PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_refusals COMMAND foundation_10_11_refusals)
+
 # THE NOTIFICATION VALUE, ITS ACTION, AND AN IN-PROCESS CENTRE (10.8-10.10): copied doors, a copy, scheduling state, the
 # delegate consultation, and delivery refusing by name.
 add_executable(foundation_10_11_user_notification foundation_10_11_user_notification.m)

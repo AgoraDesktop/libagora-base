@@ -177,6 +177,62 @@ static void *server_main(void *context)
 	return NULL;
 }
 
+/* TWO REQUESTS IN SEQUENCE, which is what a 401-then-retry needs: the first connection is answered with the challenge,
+ * the second (the re-issue) with the final response, and its Authorization header is captured. */
+struct auth_job {
+	struct listener listener;
+	char challenge[512];
+	char final[512];
+	char seen_auth[2048];
+	int requests;
+};
+
+static ssize_t read_request(int client, char *buffer, size_t capacity)
+{
+	size_t used = 0;
+
+	while (used < capacity - 1) {
+		ssize_t got = read(client, buffer + used, capacity - 1 - used);
+
+		if (got <= 0) {
+			break;
+		}
+		used += (size_t)got;
+		if (strstr(buffer, "\r\n\r\n") != NULL) {
+			break;
+		}
+	}
+	buffer[used] = '\0';
+	return (ssize_t)used;
+}
+
+static void *auth_server_main(void *context)
+{
+	struct auth_job *job = (struct auth_job *)context;
+	int i;
+
+	for (i = 0; i < 2; i++) {
+		int client = accept(job->listener.fd, NULL, NULL);
+		char request[4096];
+
+		if (client < 0) {
+			break;
+		}
+		if (read_request(client, request, sizeof request) > 0) {
+			job->requests++;
+			if (strstr(request, "Authorization:") != NULL) {
+				snprintf(job->seen_auth, sizeof job->seen_auth, "%s", request);
+				(void)write(client, job->final, strlen(job->final));
+			} else {
+				(void)write(client, job->challenge, strlen(job->challenge));
+			}
+		}
+		close(client);
+	}
+	close(job->listener.fd);
+	return NULL;
+}
+
 static void *echo_stream_server(void *context)
 {
 	struct server_job *job = (struct server_job *)context;
@@ -245,6 +301,9 @@ static void job_start(struct server_job *job, const char *response, int delay_ms
 	NSInputStream *capturedInput;
 	NSOutputStream *capturedOutput;
 	BOOL readClosedCalled, writeClosedCalled;
+	BOOL useCredentialForChallenge;
+	int challengeCalls;
+	BOOL sawSessionChallenge;
 	fn_event *done;
 }
 @end
@@ -330,6 +389,38 @@ didBecomeInputStream:(NSInputStream *)inputStream
 	capturedInput = [inputStream retain];
 	capturedOutput = [outputStream retain];
 	event_fire(done);
+}
+
+/* THE AUTHENTICATION DOORS, task first and session second, which is the ordering both headers state. The task's
+ * answers with a Basic credential when the case asks for one; the session's only records that it was reached, so a case
+ * can assert the task door won. */
+- (void)URLSession:(NSURLSession *)session
+	      task:(NSURLSessionTask *)task
+didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+ completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
+{
+	(void)session;
+	(void)task;
+	(void)challenge;
+	challengeCalls++;
+	if (useCredentialForChallenge) {
+		completionHandler(NSURLSessionAuthChallengeUseCredential,
+				  [NSURLCredential credentialWithUser:@"agora"
+							     password:@"secret"
+							  persistence:NSURLCredentialPersistenceNone]);
+	} else {
+		completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+	}
+}
+
+- (void)URLSession:(NSURLSession *)session
+didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+ completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
+{
+	(void)session;
+	(void)challenge;
+	sawSessionChallenge = YES;
+	completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
 }
 
 - (void)URLSession:(NSURLSession *)session readClosedForStreamTask:(NSURLSessionStreamTask *)streamTask
@@ -1182,6 +1273,132 @@ int main(void)
 		protocol = [[FNCURLURLProtocol alloc] initWithTask:task cachedResponse:nil client:nil];
 		check(protocol != nil && [protocol task] == task, "and an instance made for the task answers -task");
 		[protocol release];
+	}
+
+
+	/* 21. THE SESSION'S COOKIE STORE IS THE ONE THE TRANSFER USES. W3 recorded this as an honest debt: the transport
+	 * kept cookies in the process-wide store and a session's -HTTPCookieStorage was configuration nothing consulted.
+	 * Now a Set-Cookie lands in the configured store, the shared store stays empty, and a seeded cookie is SENT. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+		NSHTTPCookieStorage *privateStore = [[[NSHTTPCookieStorage alloc] init] autorelease];
+		NSHTTPCookieStorage *shared = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+		NSURLSession *session;
+		__block fn_event done;
+		__block NSData *body = nil;
+		NSURL *url;
+		NSHTTPCookie *seeded;
+
+		[shared removeCookiesSinceDate:[NSDate distantPast]];
+		[configuration setHTTPCookieStorage:privateStore];
+		session = [NSURLSession sessionWithConfiguration:configuration];
+
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nSet-Cookie: agora=1; Path=/\r\nContent-Length: 2\r\n"
+				"Connection: close\r\n\r\nok", 0, 0);
+		check(make_listener(&job.listener) == 0, "the cookie listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		url = [NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%d/cookie", job.listener.port]];
+		[[session dataTaskWithURL:url completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
+			(void)r;
+			(void)e;
+			body = [d retain];
+			event_fire(&done);
+		}] resume];
+		check(event_wait(&done, 10), "the cookie response arrives");
+		pthread_join(thread, NULL);
+		check(body != nil && [body length] == 2, "with its body");
+		check([[privateStore cookiesForURL:url] count] == 1,
+		      "a Set-Cookie lands in the session's configured store");
+		check([[shared cookiesForURL:url] count] == 0,
+		      "and not in the process-wide store");
+
+		/* THE SENDING HALF: seed the configured store with a cookie for the next request's host and path. */
+		seeded = [NSHTTPCookie cookieWithProperties:
+			[NSDictionary dictionaryWithObjectsAndKeys:
+				@"agora", NSHTTPCookieName,
+				@"sent", NSHTTPCookieValue,
+				[url host], NSHTTPCookieDomain,
+				@"/", NSHTTPCookiePath,
+				nil]];
+		check(seeded != nil, "a cookie can be made for the host");
+		[privateStore setCookie:seeded];
+		[body release];
+		body = nil;
+
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
+			  0, sizeof job.captured);
+		check(make_listener(&job.listener) == 0, "the seeded-cookie listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		url = [NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%d/again", job.listener.port]];
+		[[session dataTaskWithURL:url completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
+			(void)r;
+			(void)e;
+			body = [d retain];
+			event_fire(&done);
+		}] resume];
+		check(event_wait(&done, 10), "the seeded-cookie response arrives");
+		pthread_join(thread, NULL);
+		check(strstr(job.captured, "Cookie: agora=sent") != NULL,
+		      "a stored cookie is sent by the transfer");
+		[body release];
+		[session invalidateAndCancel];
+		event_destroy(&done);
+	}
+
+	/* 22. THE AUTHENTICATION CHALLENGE, END TO END. A server answers 401 with a Basic challenge; the TASK's delegate
+	 * door answers with a credential; the transport re-issues ONCE with it and the server's second request carries
+	 * Authorization. Before this case the dispatch was implemented and untested - and the wait it needed was missing,
+	 * so a 401 through a session never retried. */
+	{
+		struct auth_job job;
+		pthread_t thread;
+		RecordingDelegate *delegate = [[RecordingDelegate alloc] init];
+		NSOperationQueue *queue = [[NSOperationQueue alloc] init];
+		NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+		NSURLSession *session;
+		__block fn_event done;
+		NSURL *url;
+
+		event_init(&done);
+		delegate->done = &done;
+		delegate->useCredentialForChallenge = YES;
+		[queue setMaxConcurrentOperationCount:1];
+
+		memset(&job, 0, sizeof job);
+		snprintf(job.challenge, sizeof job.challenge,
+			 "HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"agora\"\r\n"
+			 "Content-Length: 0\r\nConnection: close\r\n\r\n");
+		snprintf(job.final, sizeof job.final,
+			 "HTTP/1.1 200 OK\r\nContent-Length: 13\r\nConnection: close\r\n\r\nauthenticated");
+		check(make_listener(&job.listener) == 0, "the challenge listener bound a port");
+		pthread_create(&thread, NULL, auth_server_main, &job);
+
+		session = [NSURLSession sessionWithConfiguration:configuration
+							delegate:delegate
+						   delegateQueue:queue];
+		url = [NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%d/auth", job.listener.port]];
+		[[session dataTaskWithURL:url] resume];
+		check(event_wait(&done, 20), "the challenged transfer completes");
+		pthread_join(thread, NULL);
+		check(delegate->challengeCalls == 1, "the task's challenge door was consulted once");
+		check(!delegate->sawSessionChallenge, "and the session's door was not needed");
+		check(job.requests == 2, "the server saw the first request and the re-issue");
+		check(strstr(job.seen_auth, "Authorization: Basic YWdvcmE6c2VjcmV0") != NULL,
+		      "the re-issued request carries the Basic credential");
+		check(delegate->body != nil &&
+		      [[[[NSString alloc] initWithData:delegate->body encoding:NSUTF8StringEncoding] autorelease]
+			isEqualToString:@"authenticated"],
+		      "and the final body is the authenticated response");
+		check(delegate->completionError == nil && [delegate->responseHead isKindOfClass:[NSHTTPURLResponse class]] &&
+		      [(NSHTTPURLResponse *)delegate->responseHead statusCode] == 200,
+		      "with a 200 and no error");
+		[session invalidateAndCancel];
+		[delegate release];
+		[queue release];
+		event_destroy(&done);
 	}
 
 	printf("foundation_10_11_url_session: %d of %d cases passed, %d failed\n", g_pass, g_pass + g_fail, g_fail);

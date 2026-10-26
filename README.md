@@ -245,6 +245,22 @@ re-admits the 10.11 families (the session family, notifications, XPC, extensions
 tasks), so a client writes one import. `swift-interop-probe`'s `agora-import-probe` names one class and one function
 per family through that umbrella and passes.
 
+**M2 — the 10.11 surface BEHAVES, and the refusals are tested.** The behavioural tier is one caller per family, and
+every one is a real program against a real peer: `foundation_10_11_url_session` (133 cases — a loopback HTTP server
+drives data, upload and download tasks, redirects, cancellation, the task-scoped cache/cookie/credential doors, **a
+session's own cookie store (a Set-Cookie lands there and the shared store stays empty; a seeded cookie is sent)**, and
+**an authentication challenge end to end** — 401, the task delegate's credential, a single re-issue carrying the Basic
+header); `foundation_10_11_progress` (19 — the tree, KVO on the derived keys, indeterminate, cancellation down, the
+per-thread current stack); `foundation_10_11_url_components` (32); `foundation_10_11_formatting` (19, plus
+`foundation_10_11_byte_count` 19 and `foundation_10_11_person_name` 39); `foundation_10_11_user_notification` (16 —
+centre state, delegate consultation, removal, delivery refusal).
+
+**And `foundation_10_11_refusals` (53 cases) calls every one of the 52 `FOUNDATION-REFUSE` doors**, captures the line
+each writes to stderr, and checks that it names THAT door and that the documented return holds (nil, NO, a handler
+called, a state moved, an exception raised). It fails if its own door count drifts from `tests/refusal_census.txt`.
+That audit corrected the instrument by two: the census needle had been counting two COMMENTS as doors, which is how
+the count went 54 → 52.
+
 Two residues of that tier are closed and gated. **Nullability:** every pointer in every public header states
 `_Nonnull`/`_Nullable`/`_Null_unspecified`; `foundation-header-nullability` pins the count of declarations still
 missing one at **0**, deduped by `header:line:column` across all three modes (a warning-line count is misleading —

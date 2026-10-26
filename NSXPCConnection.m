@@ -3,7 +3,7 @@
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
  *
- * W5: every door of the XPC family refuses by name. Each site carries its own FOUNDATION-REFUSE line so
+ * W5: every door of the XPC family refuses by name. Each site carries its own named refusal line so
  * tests/refusal_census.txt can count them per file — a helper with one line would hide the doors behind it.
  */
 #import <Foundation/NSXPCConnection.h>

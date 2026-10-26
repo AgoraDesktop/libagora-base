@@ -30,8 +30,11 @@
  *     daemon, and a session that accepted one would promise transfers across a process it cannot keep.
  *   * `-suspend` STOPS THE TRANSFER AND `-resume` MAKES THE REQUEST AGAIN. The engine has no resumable transfer, so
  *     "continue where it stopped" is not expressible; the task's bytes restart rather than pretending otherwise.
- *   * A DATA TASK DOES NOT USE THE URL CACHE OR THE COOKIE STORES IN THIS SLICE. The stores are configuration and
- *     the engine keeps its own cache; W3d adds the task-scoped doors that make the session's stores reachable.
+ *   * THE CONFIGURATION'S COOKIE STORE IS THE ONE A TRANSFER USES. The transport asks its client (the task) for the
+ *     store through a private first-party selector, so `-HTTPCookieStorage` means what its name says: a Set-Cookie
+ *     lands in the session's store and a stored cookie is sent, not in/from the process-wide one. The URL CACHE is
+ *     still the engine's own (`NSURLCache sharedURLCache`) — that seam is a later slice, and the task-scoped cache
+ *     doors answer from the store the cache family owns.
  */
 
 #ifndef FOUNDATION_NSURLSESSION_H

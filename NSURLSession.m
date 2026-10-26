@@ -63,7 +63,7 @@
 #import <Foundation/NSAutoreleasePool.h>
 
 #include <Block.h>		/* Block_copy/Block_release: a block is not owned with a message send */
-#include <stdio.h>		/* the FOUNDATION-REFUSE line */
+#include <stdio.h>		/* stdio, for the refusal line's fprintf */
 #include <unistd.h>		/* getpid: the download file's name */
 
 const int64_t NSURLSessionTransferSizeUnknown = -1LL;
@@ -869,6 +869,17 @@ static NSURLSession *fn_sharedSession = nil;
 
 /* THE SESSION, FOR A SUBCLASS: the base's ivar is @private, and a subclass that has to hand a file over (the
  * download) needs it without widening the header's visibility. */
+/* THE STORE THE TRANSPORT ASKS FOR, through FNCURLURLProtocol's private first-party seam. A session task carries its
+ * session, and the session carries the configuration, so this is the store the caller CONFIGURED - which is what makes
+ * `-HTTPCookieStorage` mean what its name says. A configuration made without one answers the shared store, so a plain
+ * session and an NSURLConnection still behave identically. */
+- (NSHTTPCookieStorage *)fnHTTPCookieStorage
+{
+	NSHTTPCookieStorage *store = [[_session configuration] HTTPCookieStorage];
+
+	return store != nil ? store : [NSHTTPCookieStorage sharedHTTPCookieStorage];
+}
+
 - (NSURLSession *)fnSession
 {
 	return (NSURLSession *)_session;

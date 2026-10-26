@@ -36,6 +36,28 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>		/* the 401 answer's wait */
+#include <time.h>		/* the deadline that bounds it */
+
+/* THE COOKIE STORE THIS TRANSFER USES, AND WHERE IT COMES FROM. A SESSION TASK CARRIES ITS SESSION'S CONFIGURATION
+ * and therefore the store the caller configured; a plain NSURLConnection has no session, so the process-wide store is
+ * the answer. The lookup is a PRIVATE selector on the client (the same first-party seam this file already uses for
+ * body-stream re-sends), asked with -respondsToSelector: so a client that does not carry it gets the old behaviour
+ * exactly. Apple's own NSURLProtocol client has no cookie door, which is why the seam is the task rather than the
+ * protocol interface. */
+static NSHTTPCookieStorage *fn_cookie_storage_for(NSURLProtocol *protocol)
+{
+	id client = [protocol client];
+
+	if (client != nil && [client respondsToSelector:@selector(fnHTTPCookieStorage)]) {
+		NSHTTPCookieStorage *store = [client performSelector:@selector(fnHTTPCookieStorage)];
+
+		if (store != nil) {
+			return store;
+		}
+	}
+	return [NSHTTPCookieStorage sharedHTTPCookieStorage];
+}
 
 /* THE TRANSFER'S OWN STATE, on the loading thread's stack for as long as the transfer runs. It carries
  * the curl handle because the HEADER CALLBACK needs to ask curl for the response code while it is
@@ -279,7 +301,7 @@ static size_t fn_curl_header(char *ptr, size_t size, size_t nmemb, void *userdat
 			NSUInteger cookieIndex;
 
 			for (cookieIndex = 0; cookieIndex < [cookies count]; cookieIndex++) {
-				[[NSHTTPCookieStorage sharedHTTPCookieStorage]
+				[fn_cookie_storage_for(transfer->protocol)
 				 setCookie:[cookies objectAtIndex:cookieIndex]];
 			}
 		}
@@ -305,6 +327,21 @@ static size_t fn_curl_header(char *ptr, size_t size, size_t nmemb, void *userdat
 			__block NSURLCredential *credential = nil;
 			NSURLProtectionSpace *space = fn_protection_space_from_challenge(
 				[fields objectForKey:@"WWW-Authenticate"], [[transfer->protocol request] URL]);
+			/* THE ANSWER'S WAIT. The client's door is Apple's NSURLProtocol seam, and a SESSION answers it on its
+			 * delegate queue - asynchronously. The transport cannot continue until it knows what was decided (a
+			 * credential means abort and re-issue), so the continuation that the challenge's sender runs signals
+			 * this condition and the transfer thread waits here. BEFORE THIS, the transport read its two locals
+			 * the instant the ask returned and always saw "nobody answered", so a 401 through a session never
+			 * retried - which is exactly why W3 recorded the dispatch as implemented and untested. A delegate that
+			 * never answers would hang the transfer, so the wait is BOUNDED (thirty seconds) and a timeout is read
+			 * as "no answer", the same outcome as a client that declines. */
+			pthread_mutex_t answerLock = PTHREAD_MUTEX_INITIALIZER;
+			pthread_cond_t answerCond = PTHREAD_COND_INITIALIZER;
+			/* POINTERS, BECAUSE A BLOCK CAPTURES A PLAIN LOCAL BY VALUE and the continuation below runs later: it
+			 * would lock a COPY of the mutex while this frame waits on the original. The pointer is what both
+			 * sides share. (The two __block locals above are already shared, which is why they need no pointer.) */
+			pthread_mutex_t *answerLockPtr = &answerLock;
+			pthread_cond_t *answerCondPtr = &answerCond;
 
 			transfer->attempt = 1;
 			if (space != nil) {
@@ -317,8 +354,11 @@ static size_t fn_curl_header(char *ptr, size_t size, size_t nmemb, void *userdat
 				void (^continuation)(FNAuthenticationChallengeAnswer,
 						     NSURLCredential *) =
 					^(FNAuthenticationChallengeAnswer answer, NSURLCredential *given) {
+					pthread_mutex_lock(answerLockPtr);
 					disposition = (NSInteger)answer;
 					credential = [given retain];
+					pthread_cond_broadcast(answerCondPtr);
+					pthread_mutex_unlock(answerLockPtr);
 				};
 				FNAuthenticationChallengeSender *sender = [[FNAuthenticationChallengeSender alloc]
 					fnInitWithContinuation:continuation];
@@ -332,7 +372,27 @@ static size_t fn_curl_header(char *ptr, size_t size, size_t nmemb, void *userdat
 
 				[sender release];
 				[transfer->protocol fnAskClientForCredential:challenge];
+				{
+					struct timespec deadline;
+					int timedOut = 0;
+
+					clock_gettime(CLOCK_REALTIME, &deadline);
+					deadline.tv_sec += 30;
+					pthread_mutex_lock(&answerLock);
+					while (disposition == -1 && !timedOut) {
+						if (pthread_cond_timedwait(&answerCond, &answerLock, &deadline) != 0) {
+							timedOut = 1;
+						}
+					}
+					pthread_mutex_unlock(&answerLock);
+					if (timedOut) {
+						fprintf(stderr, "FNCURLURLProtocol: the authentication challenge was not answered in "
+								"thirty seconds; the 401 is reported as the response\n");
+					}
+				}
 				[challenge release];
+				pthread_cond_destroy(&answerCond);
+				pthread_mutex_destroy(&answerLock);
 			}
 			if (disposition == FNAuthenticationChallengeAnswerUseCredential && credential != nil) {
 				transfer->credential = credential;	/* kept for the re-issue */
@@ -525,7 +585,7 @@ static size_t fn_curl_header_discard(char *ptr, size_t size, size_t nmemb, void 
 		 * existed, but nothing joined them: a stored cookie was never sent and a Set-Cookie was never kept. The
 		 * caller's own Cookie header wins, which is Apple's rule (an explicit header is the caller's decision). */
 		if ([request HTTPShouldHandleCookies] && !callerSuppliedCookie) {
-			NSArray *stored = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:[request URL]];
+			NSArray *stored = [fn_cookie_storage_for(self) cookiesForURL:[request URL]];
 
 			if ([stored count] > 0) {
 				NSString *value = [[NSHTTPCookie requestHeaderFieldsWithCookies:stored]

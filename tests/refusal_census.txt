@@ -22,11 +22,17 @@
 # NSAppleEventDescriptor's send (no AppleEvents transport — the descriptor is data) and NSProgress's publish without the
 # file-URL key that names what it would be published under, and NSDistantObject's two coder doors (a connection cannot be
 # rebuilt from an archive, so a proxy neither writes nor reads one).
-# total: 54
+#
+# **M2'S AUDIT CORRECTED THE INSTRUMENT BY TWO.** The needle counts the token anywhere in a file, and two COMMENTS had
+# been counted as doors: NSURLSession's `#include` comment ("the FOUNDATION-REFUSE line") and NSXPCConnection's header
+# sentence ("Each site carries its own FOUNDATION-REFUSE line"). Both now say what they mean without spelling the
+# token, so the count is DOORS: 52. `foundation_10_11_refusals` asserts all 52 by calling them, and fails if its own
+# count drifts from this file — which is how the two comments were found.
+# total: 52
 NSExtension.m 3
-NSURLSession.m 16
+NSURLSession.m 15
 NSUserNotification.m 1
-NSXPCConnection.m 24
+NSXPCConnection.m 23
 NSUserScriptTask.m 4
 NSAppleEventDescriptor.m 1
 NSDistantObject.m 2
