@@ -75,7 +75,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (id)initWithTimeIntervalSince1970:(double)seconds;
 - (id)initWithTimeIntervalSinceNow:(double)seconds;
 - (id)initWithTimeInterval:(double)seconds sinceDate:(NSDate *)date;
-- (id)initWithTimeIntervalSinceReferenceDate:(double)seconds;
+- (id)initWithTimeIntervalSinceReferenceDate:(double)seconds NS_DESIGNATED_INITIALIZER;
 
 - (double)timeIntervalSince1970;
 - (double)timeIntervalSinceNow;

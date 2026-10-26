@@ -98,7 +98,7 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 + (nullable NSDataDetector *)dataDetectorWithTypes:(NSTextCheckingTypes)checkingTypes
 					     error:(NSError ** _Nullable)error;
 - (nullable instancetype)initWithTypes:(NSTextCheckingTypes)checkingTypes
-				 error:(NSError ** _Nullable)error;
+				 error:(NSError ** _Nullable)error NS_DESIGNATED_INITIALIZER;
 
 /* THE TYPES THIS DETECTOR LOOKS FOR, exactly as it was built with. */
 @property (readonly) NSTextCheckingTypes checkingTypes;

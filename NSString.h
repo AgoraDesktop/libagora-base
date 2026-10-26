@@ -240,7 +240,7 @@ __attribute__((swift_bridge("Swift.String")))
  * nesting another value type: the payload is the class's own UTF-8 form — which is also what `-UTF8String`
  * answers, so the two agree about an embedded NUL by construction. */
 - (void)encodeWithCoder:(NSCoder *)coder;
-- (instancetype)initWithCoder:(NSCoder *)coder;
+- (instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
 /* UNICODE NORMALIZATION (§63.24) — APPLE'S FOUR FORMS, AND THE REASON THIS CLASS NEEDS ICU. A normalizer is a
  * TABLE, and this project's rule for a table is to take the library that has it: ICU is already linked (F13.6),
@@ -290,7 +290,7 @@ __attribute__((swift_bridge("Swift.String")))
 			      validFormatSpecifiers:(NSString *)validFormatSpecifiers
 					      error:(NSError * _Nullable * _Nullable)errorPtr, ...;
 
-- (id)init;
+- (id)init NS_DESIGNATED_INITIALIZER;
 - (id)initWithString:(NSString *)other;
 - (nullable id)initWithUTF8String:(const char * _Nullable)utf8;
 - (id)initWithFormat:(NSString *)format, ...;

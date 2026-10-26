@@ -1322,14 +1322,22 @@ static NSString *fn_string_from_bytes(const void *bytes, size_t n, NSStringEncod
 	}
 }
 
-- (id)initWithCoder:(NSCoder *)coder
+- (instancetype)initWithCoder:(NSCoder *)coder
 {
 	NSUInteger length = 0;
-	const void *bytes = [coder decodeBytesForKey:@"NS.string" returnedLength:&length];
+	const void *bytes;
 
 	/* RE-ROUTED LIKE EVERY OTHER DOOR ON THIS FRONT, with `-release` first so the abstract receiver does not
 	 * leak — the pattern NSNumber's constructors spell out (§C.3 item 1). The concrete class overrides
-	 * nothing here: it inherits this pair, so a string decoded as a mutable one stays mutable. */
+	 * nothing here: it inherits this pair, so a string decoded as a mutable one stays mutable.
+	 *
+	 * THIS IS A DESIGNATED DOOR IN APPLE'S GRAPH (batch 6), so it chains to `[super init]` before it does its
+	 * own work; the receiver it releases is the one that chain answered. */
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	bytes = [coder decodeBytesForKey:@"NS.string" returnedLength:&length];
 	[self release];
 	return [[NSOwnedString alloc] initWithBytes:(const char *)bytes length:length];
 }
@@ -1563,14 +1571,28 @@ NSStringEncodingDetectionOptionsKey const NSStringEncodingDetectionUseOnlySugges
 	 * A storage-less base returned as itself is honest: +alloc zeroes the
 	 * allocation, so a bare NSOwnedString answers "" and length 0. Use +string
 	 * (or a concrete subclass) to build a real one.
+	 *
+	 * THIS IS THE CLASS'S DESIGNATED DOOR (batch 6), and adding the super call is what makes that true: NSObject
+	 * declares none, so `[super init]` is the legal chain, and the subclasses that call `[super init]` are
+	 * calling this door.
 	 */
+	self = [super init];
 	return self;
 }
 
 - (id)initWithUTF8String:(const char *)utf8
 {
 	/* The abstract class has no storage; a SUBCLASS overrides this and never
-	 * reaches here, which is what keeps the receiver's kind intact. */
+	 * reaches here, which is what keeps the receiver's kind intact.
+	 *
+	 * THE CONVENIENCE DOOR DELEGATES FIRST (batch 6): `[self init]` is the class's designated door, and the object
+	 * it answers is released before the storage-bearing instance is returned — a cluster's convenience door is
+	 * exactly the case where the answer belongs to another class. */
+	self = [self init];
+	if (self == nil) {
+		return nil;
+	}
+	[self release];
 	return [[NSOwnedString alloc] initWithUTF8String:utf8];
 }
 
@@ -1597,12 +1619,22 @@ NSStringEncodingDetectionOptionsKey const NSStringEncodingDetectionUseOnlySugges
 
 - (id)initWithCharacters:(const unichar *)characters length:(NSUInteger)length
 {
+	self = [self init];		/* the designated door first: see -initWithUTF8String: */
+	if (self == nil) {
+		return nil;
+	}
+	[self release];
 	return [[NSOwnedString alloc] initWithCharacters:characters length:length];
 }
 
 - (id)initWithCharactersNoCopy:(unichar *)characters length:(NSUInteger)length
 	  freeWhenDone:(BOOL)freeBuffer
 {
+	self = [self init];		/* the designated door first: see -initWithUTF8String: */
+	if (self == nil) {
+		return nil;
+	}
+	[self release];
 	return [[NSOwnedString alloc] initWithCharactersNoCopy:characters length:length
 					 freeWhenDone:freeBuffer];
 }
@@ -1803,21 +1835,11 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 
 /* ============================ validated formats, the INSTANCE doors (§63.27's siblings) ============================
  *
- * THE SAME RULE the class doors above apply, reached through -init. The two variadic doors forward to their
- * `arguments:` twin, which is the one place the validation lives; the locale-taking pair ACCEPTS a locale and
- * IGNORES it, exactly as -initWithFormat:locale:arguments: does, so the locale form renders the locale-free
- * answer rather than a second rendering rule that could drift. */
-- (nullable id)fn_initWithValidatedFormat:(NSString *)format
-		    validFormatSpecifiers:(NSString *)validFormatSpecifiers
-				    error:(NSError **)errorPtr
-				arguments:(va_list)arguments
-{
-	if (!fn_format_is_allowed(format, validFormatSpecifiers, errorPtr)) {
-		return nil;
-	}
-	return [self initWithFormat:format arguments:arguments];
-}
-
+ * THE SAME RULE the class doors above apply, reached through -init. EACH door validates and then hands control to
+ * -initWithFormat:arguments: — the validation used to sit in an initializer-shaped `fn_` funnel, which a convenience
+ * door cannot delegate to (the checker wants an initializer ON SELF, batch 6). The locale-taking pair ACCEPTS a locale
+ * and IGNORES it, exactly as -initWithFormat:locale:arguments: does, so the locale form renders the locale-free answer
+ * rather than a second rendering rule that could drift. */
 - (id)initWithValidatedFormat:(NSString *)format
 	validFormatSpecifiers:(NSString *)validFormatSpecifiers
 			error:(NSError **)errorPtr, ...
@@ -1825,11 +1847,12 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 	va_list arguments;
 	id result;
 
+	if (!fn_format_is_allowed(format, validFormatSpecifiers, errorPtr)) {
+		[self release];
+		return nil;
+	}
 	va_start(arguments, errorPtr);
-	result = [self fn_initWithValidatedFormat:format
-			    validFormatSpecifiers:validFormatSpecifiers
-					    error:errorPtr
-					arguments:arguments];
+	result = [self initWithFormat:format arguments:arguments];
 	va_end(arguments);
 	return result;
 }
@@ -1839,10 +1862,11 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 		    arguments:(va_list)arguments
 			error:(NSError **)errorPtr
 {
-	return [self fn_initWithValidatedFormat:format
-			  validFormatSpecifiers:validFormatSpecifiers
-				  error:errorPtr
-			      arguments:arguments];
+	if (!fn_format_is_allowed(format, validFormatSpecifiers, errorPtr)) {
+		[self release];
+		return nil;
+	}
+	return [self initWithFormat:format arguments:arguments];
 }
 
 - (id)initWithValidatedFormat:(NSString *)format
@@ -1854,11 +1878,12 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 	va_list arguments;
 	id result;
 
+	if (!fn_format_is_allowed(format, validFormatSpecifiers, errorPtr)) {
+		[self release];
+		return nil;
+	}
 	va_start(arguments, errorPtr);
-	result = [self fn_initWithValidatedFormat:format
-			    validFormatSpecifiers:validFormatSpecifiers
-					    error:errorPtr
-					arguments:arguments];
+	result = [self initWithFormat:format arguments:arguments];
 	va_end(arguments);
 	return result;
 }
@@ -1869,10 +1894,11 @@ static BOOL fn_format_is_allowed(NSString *format, NSString *validFormatSpecifie
 		    arguments:(va_list)arguments
 			error:(NSError **)errorPtr
 {
-	return [self fn_initWithValidatedFormat:format
-			  validFormatSpecifiers:validFormatSpecifiers
-				  error:errorPtr
-			      arguments:arguments];
+	if (!fn_format_is_allowed(format, validFormatSpecifiers, errorPtr)) {
+		[self release];
+		return nil;
+	}
+	return [self initWithFormat:format arguments:arguments];
 }
 
 - (id)initWithData:(NSData *)data encoding:(NSStringEncoding)encoding
@@ -3751,6 +3777,11 @@ static NSComparisonResult fn_compare_turkic(NSString *a, NSString *b, NSStringCo
 	/* ⚠ THE LENGTH IS HONOURED AND THE NUL IS NOT, the same rule +stringWithCString:length: records: the bytes
 	 * need not be NUL-terminated, so exactly `length` of them are read. Deprecated name; default encoding UTF-8. */
 	if (bytes == NULL) {
+		[self release];
+		return nil;
+	}
+	self = [self init];		/* the designated door first: see -initWithUTF8String: */
+	if (self == nil) {
 		return nil;
 	}
 	[self release];

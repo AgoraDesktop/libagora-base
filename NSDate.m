@@ -95,7 +95,13 @@
 
 - (id)initWithTimeIntervalSinceReferenceDate:(double)seconds
 {
-	return [self initWithTimeIntervalSince1970:FN_REFERENCE_DATE_SECONDS + seconds];
+	/* THE DESIGNATED DOOR IN APPLE'S GRAPH (batch 6), and now the one that installs the storage: it takes the
+	 * super's init and writes the instant relative to 1970, which is the ivar's own base. */
+	self = [super init];
+	if (self != nil) {
+		_timeIntervalSince1970 = FN_REFERENCE_DATE_SECONDS + seconds;
+	}
+	return self;
 }
 
 + (id)dateWithSRAbsoluteTime:(double)seconds
@@ -188,11 +194,9 @@
 
 - (id)initWithTimeIntervalSince1970:(double)seconds
 {
-	self = [super init];
-	if (self != nil) {
-		_timeIntervalSince1970 = seconds;
-	}
-	return self;
+	/* A CONVENIENCE door now: the reference-date constructor is the designated one, and 1970 is simply a
+	 * different origin for the same instant. */
+	return [self initWithTimeIntervalSinceReferenceDate:seconds - FN_REFERENCE_DATE_SECONDS];
 }
 
 - (double)timeIntervalSince1970
@@ -405,8 +409,9 @@ static NSDate *fn_parse_date(NSString *string)
 		[self release];
 		return nil;
 	}
-	[self release];
-	return [parsed retain];
+	/* THROUGH THE DESIGNATED DOOR: the parsed instant is this object's own state, so the answer keeps the
+	 * receiver's class rather than being the parser's instance (which is where the old body returned). */
+	return [self initWithTimeIntervalSinceReferenceDate:[parsed timeIntervalSinceReferenceDate]];
 }
 
 @end
