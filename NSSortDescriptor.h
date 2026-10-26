@@ -45,6 +45,18 @@
 
 /* NSComparator lives with the collections (it is what an array's comparator sorts take). */
 
+
+/* "Sorting collections with sort descriptors" — Apple's category name, declared where Apple declares it (W7). The
+ * collections' own headers declare the same doors, so this is a client-facing home rather than a move: a source file
+ * that imports NSSortDescriptor.h to build the descriptor can call the sorted form without importing the collection it
+ * applies to. The availability annotations are repeated because they are FACTS about the door, and the availability
+ * gate reads the declaration that owns the selector. */
+#import <Foundation/NSArray.h>
+#import <Foundation/NSSet.h>
+#import <Foundation/NSOrderedSet.h>
+#import <Foundation/NSMutableOrderedSet.h>
+
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface NSSortDescriptor : NSObject <NSCopying, NSCoding>
@@ -97,6 +109,26 @@ NS_ASSUME_NONNULL_BEGIN
  * allow-list rather than a per-object flag, so the door answers the call and the class documents that. */
 - (void)allowEvaluation NS_AVAILABLE_MAC(10_9);
 
+@end
+
+@interface NSArray<ObjectType> (NSSortDescriptorSorting)
+- (NSArray<ObjectType> *)sortedArrayUsingDescriptors:(NSArray *)sortDescriptors;
+@end
+
+@interface NSMutableArray<ObjectType> (NSSortDescriptorSorting)
+- (void)sortUsingDescriptors:(NSArray *)sortDescriptors;
+@end
+
+@interface NSSet<ObjectType> (NSSortDescriptorSorting)
+- (NSArray<ObjectType> *)sortedArrayUsingDescriptors:(NSArray *)descriptors NS_AVAILABLE_MAC(10_6);
+@end
+
+@interface NSOrderedSet<ObjectType> (NSSortDescriptorSorting)
+- (NSArray<ObjectType> *)sortedArrayUsingDescriptors:(NSArray *)descriptors NS_AVAILABLE_MAC(10_7);
+@end
+
+@interface NSMutableOrderedSet<ObjectType> (NSSortDescriptorSorting)
+- (void)sortUsingDescriptors:(NSArray *)descriptors NS_AVAILABLE_MAC(10_7);
 @end
 
 NS_ASSUME_NONNULL_END

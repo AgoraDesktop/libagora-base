@@ -17,6 +17,7 @@
  */
 
 #import <Foundation/NSPersonNameComponentsFormatter.h>
+#import <Foundation/NSRange.h>
 #import <Foundation/NSPersonNameComponents.h>
 #import <Foundation/NSAttributedString.h>
 #import <Foundation/NSArray.h>

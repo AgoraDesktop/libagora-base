@@ -11,6 +11,10 @@
  * value itself. That one sentence is the model, and every subclass below is a different index rule.
  */
 #import <Foundation/NSScriptObjectSpecifiers.h>
+#import <Foundation/NSScriptExecutionContext.h>
+#import <Foundation/NSScriptCoercionHandler.h>
+#import <Foundation/NSScriptKeyValueCoding.h>
+#import <Foundation/NSObjectScripting.h>
 #import <Foundation/NSCoder.h>
 #import <Foundation/NSScriptWhoseTests.h>
 #import <Foundation/NSScriptClassDescription.h>

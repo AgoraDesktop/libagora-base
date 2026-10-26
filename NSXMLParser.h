@@ -285,6 +285,16 @@ typedef enum {
 
 @end
 
+
+/* "Locator" — Apple's category for where the parser is, declared where Apple declares it (W7). The class's own
+ * interface declares the same doors; this is the Apple-named home, and the getters are the same selectors. */
+@interface NSXMLParser (NSXMLParserLocatorAdditions)
+- (NSInteger)lineNumber;
+- (NSInteger)columnNumber;
+- (nullable NSString *)publicID;
+- (nullable NSString *)systemID;
+@end
+
 NS_ASSUME_NONNULL_END
 
 #endif /* FOUNDATION_NSXMLPARSER_H */

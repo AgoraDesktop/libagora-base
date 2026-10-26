@@ -19,6 +19,7 @@
 
 #import <Foundation/NSObject.h>
 #import <Foundation/NSDate.h>	/* NSTimeInterval */
+#import <Foundation/NSMetadataAttributes.h>
 #import <Foundation/NSIndexSet.h>	/* NSEnumerationOptions */
 
 @class NSArray;

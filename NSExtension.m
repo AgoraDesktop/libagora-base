@@ -3,10 +3,13 @@
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
  *
- * The design is in NSExtensionItem.h. An item is four copied values and a secure archive of them; a context is a host
- * with no extension behind it, so its requests refuse by name and answer their handlers with NO.
+ * The types are in NSExtensionItem.h / NSExtensionContext.h / NSExtensionRequestHandling.h (W7 split Apple's three
+ * names). An item is four copied values and a secure archive of them; a context is a host with no extension behind it,
+ * so its requests refuse by name and answer their handlers with NO.
  */
 #import <Foundation/NSExtensionItem.h>
+#import <Foundation/NSExtensionContext.h>
+#import <Foundation/NSExtensionRequestHandling.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSAttributedString.h>
 #import <Foundation/NSDictionary.h>

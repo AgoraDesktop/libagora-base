@@ -11,6 +11,7 @@
  */
 
 #import <Foundation/NSXMLParser.h>
+#import <Foundation/NSXMLDTDNode.h>
 #import <Foundation/NSInputStream.h>	/* §63.213: the stream door reads an NSInputStream into an NSMutableData */
 #import <Foundation/NSArray.h>
 #import <Foundation/NSData.h>

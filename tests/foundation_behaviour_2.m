@@ -11,6 +11,8 @@
  */
 
 #import <Foundation/Foundation.h>
+#import <Foundation/NSXMLElement.h>
+#import <Foundation/NSXMLDTDNode.h>
 
 #include <stdio.h>
 #include <string.h>

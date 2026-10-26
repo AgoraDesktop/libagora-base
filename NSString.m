@@ -21,6 +21,8 @@
  */
 
 #import <Foundation/NSString.h>
+#import <Foundation/NSRange.h>
+#import <Foundation/FoundationErrors.h>
 #import "FNStringFormat.h"
 #import <Foundation/NSCoder.h>		/* §63.22: the coder PRIMITIVES the string door is written over */
 #include <stdlib.h>

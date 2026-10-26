@@ -16,6 +16,8 @@
 #import <Foundation/NSScriptObjectSpecifiers.h>
 #import <Foundation/NSScriptWhoseTests.h>
 #import <Foundation/NSScriptCommand.h>
+#import <Foundation/NSScriptStandardSuiteCommands.h>
+#import <Foundation/NSScriptCommandDescription.h>
 #import <Foundation/NSDistantObject.h>
 #import <Foundation/NSKeyedArchiver.h>
 

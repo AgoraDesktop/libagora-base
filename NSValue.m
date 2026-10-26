@@ -20,6 +20,8 @@
  */
 
 #import <Foundation/NSValue.h>
+#import <Foundation/NSGeometry.h>
+#import <Foundation/NSRange.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSException.h>
 #import <Foundation/NSCoder.h>		/* §63.22: the coder PRIMITIVES the doors are written over */

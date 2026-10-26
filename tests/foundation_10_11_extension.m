@@ -11,6 +11,8 @@
  */
 #import <Foundation/Foundation.h>
 #import <Foundation/NSExtensionItem.h>
+#import <Foundation/NSExtensionContext.h>
+#import <Foundation/NSExtensionRequestHandling.h>
 #import <Foundation/NSItemProvider.h>
 
 #include <stdio.h>

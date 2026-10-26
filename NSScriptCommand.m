@@ -7,6 +7,9 @@
  * NSScriptCommand.m — execution, the nine standard commands, and the suite registries.
  */
 #import <Foundation/NSScriptCommand.h>
+#import <Foundation/NSScriptCommandDescription.h>
+#import <Foundation/NSScriptSuiteRegistry.h>
+#import <Foundation/NSScriptStandardSuiteCommands.h>
 #import <Foundation/NSCoder.h>
 #import <Foundation/NSScriptObjectSpecifiers.h>
 #import <Foundation/NSScriptClassDescription.h>

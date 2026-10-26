@@ -13,6 +13,7 @@
  * and this implementation agree — which is why the probe PINS EVERY ONE OF THEM rather than sampling.
  */
 #import <Foundation/NSLinguisticTagger.h>
+#import <Foundation/NSRange.h>
 #import <Foundation/FNTextBreaking.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSString.h>

@@ -7,6 +7,7 @@
  * file form registers `public.data` and hands back the file's bytes.
  */
 #import <Foundation/NSItemProvider.h>
+#import <Foundation/FoundationErrors.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSData.h>
 #import <Foundation/NSDictionary.h>

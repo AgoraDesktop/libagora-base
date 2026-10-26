@@ -22,6 +22,8 @@
 #import <Foundation/NSObject.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSCoding.h>
+#import <Foundation/NSScriptExecutionContext.h>
+#import <Foundation/NSScriptCoercionHandler.h>
 
 @class NSArray;
 @class NSCoder;
@@ -232,64 +234,15 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 @property (readonly) BOOL insertionReplaces;
 @end
 
-/* ---- THE CONTEXT AND THE COERCER ------------------------------------------------------------------------------- */
-
-@interface NSScriptExecutionContext : NSObject
-{
-@private
-	id _topLevelObject;
-	id _objectBeingTested;
-	id _rangeContainerObject;
-}
-+ (NSScriptExecutionContext *)sharedScriptExecutionContext;
-@property (nullable, strong) id topLevelObject;
-@property (nullable, strong) id objectBeingTested;
-@property (nullable, strong) id rangeContainerObject;
-@end
-
-@interface NSScriptCoercionHandler : NSObject
-{
-@private
-	id _coercers;
-}
-+ (NSScriptCoercionHandler *)sharedCoercionHandler;
-- (void)registerCoercer:(id)coercer
-	       selector:(SEL)selector
-	 toConvertFromClass:(Class)fromClass
-		     toClass:(Class)toClass;
-- (nullable id)coerceValue:(id)value toClass:(Class)toClass;
-@end
-
 /* ---- THE NSObject DOORS ---------------------------------------------------------------------------------------- */
 
+/* THE SPECIFIER DOORS STAY HERE — they are about SPECIFIERS, which is this header's subject. The manipulation doors
+ * are NSScriptKeyValueCoding.h and the scripting-properties category is NSObjectScripting.h; both were declared here
+ * until W7 gave them Apple's files. */
 @interface NSObject (NSScriptObjectSpecifiers)
 
 - (nullable NSScriptObjectSpecifier *)objectSpecifier;
 - (nullable NSArray *)indicesOfObjectsByEvaluatingObjectSpecifier:(NSScriptObjectSpecifier *)specifier;
-
-- (nullable id)valueAtIndex:(NSUInteger)index inPropertyWithKey:(NSString *)key;
-- (void)insertValue:(id)value atIndex:(NSUInteger)index inPropertyWithKey:(NSString *)key;
-- (void)removeValueAtIndex:(NSUInteger)index fromPropertyWithKey:(NSString *)key;
-- (void)replaceValueAtIndex:(NSUInteger)index inPropertyWithKey:(NSString *)key withValue:(id)value;
-- (void)insertValue:(id)value inPropertyWithKey:(NSString *)key;
-
-- (nullable id)valueWithName:(NSString *)name inPropertyWithKey:(NSString *)key;
-- (nullable id)valueWithUniqueID:(id)uniqueID inPropertyWithKey:(NSString *)key;
-
-- (nullable id)scriptingValueForSpecifier:(NSScriptObjectSpecifier *)specifier NS_AVAILABLE_MAC(10_5);
-
-@end
-
-@interface NSObject (NSObjectScripting)
-
-@property (nullable, copy) NSDictionary *scriptingProperties;
-
-- (nullable id)copyScriptingValue:(id)value forKey:(NSString *)key withProperties:(nullable NSDictionary *)properties NS_AVAILABLE_MAC(10_5);
-- (nullable id)newScriptingObjectOfClass:(Class)objectClass
-			  forValueForKey:(NSString *)key
-		       withContentsValue:(nullable id)contentsValue
-			      properties:(nullable NSDictionary *)properties NS_AVAILABLE_MAC(10_5);
-- (nullable id)coerceValue:(id)value forKey:(NSString *)key;
 
 @end
 

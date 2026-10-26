@@ -7,6 +7,7 @@
  * tests/refusal_census.txt can count them per file — a helper with one line would hide the doors behind it.
  */
 #import <Foundation/NSXPCConnection.h>
+#import <Foundation/FoundationErrors.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSError.h>
 #import <Foundation/NSString.h>

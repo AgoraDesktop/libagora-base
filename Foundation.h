@@ -59,6 +59,7 @@
 #import <Foundation/NSJSONSerialization.h>
 #import <Foundation/NSObject.h>
 #import <Foundation/NSGeometry.h>
+#import <Foundation/NSRange.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSNumber.h>
 #import <Foundation/NSData.h>
@@ -70,6 +71,7 @@
 #import <Foundation/NSArray.h>
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSError.h>
+#import <Foundation/FoundationErrors.h>
 /* THE URL LOADING SYSTEM'S ERROR NAMES (§56): the codes, the two reason enums and the userInfo keys. Its own
  * header because the family is its own, and imported here so a caller of Foundation has them. */
 #import <Foundation/NSURLError.h>
@@ -97,9 +99,13 @@
 #import <Foundation/NSFileProviderService.h>
 #import <Foundation/NSXMLDTD.h>
 #import <Foundation/NSXMLDocument.h>
+#import <Foundation/NSXMLNodeOptions.h>
 #import <Foundation/NSXMLNode.h>
+#import <Foundation/NSXMLElement.h>
+#import <Foundation/NSXMLDTDNode.h>
 #import <Foundation/NSXMLParser.h>
 #import <Foundation/NSFileWrapper.h>
+#import <Foundation/NSPropertyList.h>
 #import <Foundation/NSPropertyListSerialization.h>
 #import <Foundation/NSURL.h>
 #import <Foundation/NSURLComponents.h>
@@ -124,6 +130,12 @@
 #import <Foundation/NSComparisonPredicate.h>
 #import <Foundation/NSClassDescription.h>
 #import <Foundation/NSScriptClassDescription.h>
+#import <Foundation/NSScriptExecutionContext.h>
+#import <Foundation/NSScriptCoercionHandler.h>
+#import <Foundation/NSScriptKeyValueCoding.h>
+#import <Foundation/NSScriptCommandDescription.h>
+#import <Foundation/NSScriptSuiteRegistry.h>
+#import <Foundation/NSScriptStandardSuiteCommands.h>
 #import <Foundation/NSScriptObjectSpecifiers.h>
 #import <Foundation/NSObjectScripting.h>
 #import <Foundation/NSScriptWhoseTests.h>
@@ -132,6 +144,7 @@
 #import <Foundation/NSAppleEventManager.h>
 #import <Foundation/NSAppleScript.h>
 #import <Foundation/NSMetadata.h>
+#import <Foundation/NSMetadataAttributes.h>
 #import <Foundation/NSNetServices.h>
 #import <Foundation/NSCompoundPredicate.h>
 #import <Foundation/NSFormatter.h>
@@ -178,6 +191,8 @@
 #import <Foundation/NSKeyedArchiver.h>
 #import <Foundation/NSProcessInfo.h>
 #import <Foundation/NSFileManager.h>
+#import <Foundation/NSPathUtilities.h>
+#import <Foundation/NSHFSFileTypes.h>
 #import <Foundation/NSTextCheckingResult.h>
 #import <Foundation/NSRegularExpression.h>
 #import <Foundation/NSDataDetector.h>
@@ -225,17 +240,21 @@
 #import <Foundation/NSURLCache.h>
 #import <Foundation/NSURLProtocol.h>
 #import <Foundation/FNCURLURLProtocol.h>
-/* ⚠⚠ AND THE NSURLSession FAMILY IS NOT IN THE UMBRELLA ANY MORE (§63.159). It was SEVEN classes — NSURLSession,
- * its configuration, its task base, its stream/download/websocket tasks and its metrics record — all of them
- * Apple's LATER than the 10.2 baseline this library targets (§11.0), and all of them REMOVED here together. The
- * selector ledger had already filtered their owners out (§63.135); this is the code catching up with that
- * statement. WHAT REPLACED THEM IS THE 10.2 SHAPE THE SEAM ALWAYS HAD: a connection and a download drive
- * `NSURLProtocol` themselves (§63.153, §63.157), so no class in this library owns a session.
+/* THE NSURLSession FAMILY IS IN THE UMBRELLA (W7, AND §63.159 IS REVERSED). §63.159 removed seven classes here
+ * because they are Apple's LATER than the 10.2 baseline; that reasoning measured the WRONG QUESTION, and W7's
+ * reference is 10.11, where the family is a first-class part of Foundation. The classes now exist, are implemented
+ * over the URL-protocol seam (§63.153, §63.157), and a client that writes `#import <Foundation/Foundation.h>` must
+ * see them — an umbrella missing a family the library ships is the defect this line fixes.
  *
- * THE BASELINE AND THE CENSUS ARE DIFFERENT QUESTIONS, WHICH IS WHY REMOVING THEM DID NOT MOVE THE PIN: §11.0 is
- * about what this library MAY LOSE, while `../tests/api-10.6-census.txt` measures the 10.6 surface a caller can
- * reach. NSURLSession is 10.9, so it is outside that denominator; `NSCondition` is 10.5 and is inside it, which is
- * why the census still lists it among the 43 absent classes. */
+ * AND THE TWO RULES ARE STATED TOGETHER, because they answer different questions and both stay:
+ *   * §11.0's 10.2 baseline governs what this library MAY LOSE. It is why a 10.6 door that disappears fails
+ *     `foundation-api-census` (173 of 173 classes, 2,840 of 2,840 selectors).
+ *   * The 10.11 reference — `api/10.11/foundation-manifest.txt` and the pin `tests/api-10.11-census.txt` — governs
+ *     what the Cocoa plan PROMISES. It is why a 10.11 door that never arrives fails `foundation-api-10.11-census`
+ *     (219 of 219 classes, 3,744 of 3,744 selectors, 40 of 40 protocols, 182 of 182 functions).
+ * The session family is 10.9: outside the 10.6 denominator, inside the 10.11 one, and therefore admitted here. */
+#import <Foundation/NSURLSession.h>
+#import <Foundation/NSURLSessionConfiguration.h>
 #import <Foundation/NSHTTPURLResponse.h>
 #import <Foundation/NSHTTPCookie.h>
 #import <Foundation/NSURLProtectionSpace.h>
@@ -243,5 +262,25 @@
 #import <Foundation/NSURLAuthenticationChallenge.h>
 #import <Foundation/NSURLCredentialStorage.h>
 #import <Foundation/NSHTTPCookieStorage.h>
+
+/* ---- THE 10.11 FAMILIES AND THE ORGANISATION HEADERS (W7) --------------------------------------------
+ *
+ * WHAT IS HERE AND WHY IT IS A SEPARATE PARAGRAPH: these names arrived with the 10.8–10.11 waves and were reachable
+ * only by importing their own headers. Apple's umbrella has always carried them, and a client written against
+ * Apple's Foundation must not have to know which of the family's headers to name. Each import below is a family the
+ * plan's §3.1/§3.5 measured, so this list is the plan's own inventory rather than a preference.
+ */
+/* THE EXTENSION FAMILY, in Apple's three files (W7 split W4a's combined header). */
+#import <Foundation/NSExtensionItem.h>
+#import <Foundation/NSExtensionContext.h>
+#import <Foundation/NSExtensionRequestHandling.h>
+#import <Foundation/NSItemProvider.h>
+/* THE NOTIFICATION FAMILY (10.8): the value, its action, and the in-process centre. */
+#import <Foundation/NSUserNotification.h>
+#import <Foundation/NSUserNotificationCenter.h>
+/* XPC (10.8): every door refuses by name; the CLASSES are still the client-visible surface. */
+#import <Foundation/NSXPCConnection.h>
+/* THE SCRIPT TASKS (10.8): the base and its two refused subclasses. */
+#import <Foundation/NSUserScriptTask.h>
 
 #endif /* FOUNDATION_FOUNDATION_H */

@@ -29,7 +29,8 @@
  * disagree — and `fn_value_size` was that walker's OLD NAME (it is `fn_measure` now). A header that denies a
  * function its own implementation ships is exactly the kind of sentence a reader has no reason to doubt.
  *
- * THE FOUNDATION-GEOMETRY DOORS SHIP HERE, AND THIS COMMENT USED TO DENY THEM. It read
+ * THE FOUNDATION-GEOMETRY DOORS SHIP IN NSGeometry.h's NSValueGeometryExtensions category, WHICH THIS COMMENT USED TO
+ * SAY THEY DID NOT. It read
  * "+valueWithPoint:/+valueWithSize:/+valueWithRect: are declared in Cocoa's NSValue.h, and this library has no
  * NSPoint/NSSize/NSRect to build them from" — and THAT was FALSE the day it was written: NSGeometry.h (W2b)
  * has typedef'd NSPoint/NSSize/NSRect to the CG value types since the CG types landed (NSGeometry.h:40-42,
@@ -53,7 +54,8 @@
  * imported header's own declarations would be dragged into this file's region. This is what makes the three
  * +valueWith…: doors and their three readers declarable at all — the types they name are NSGeometry.h's, and
  * (NSGeometry.h:44) those ARE the CG value types. */
-#import <Foundation/NSGeometry.h>
+/* THE NS-SPELLED GEOMETRY DOORS ARE `NSGeometry.h`'s `NSValueGeometryExtensions` CATEGORY (W7): this header no longer
+ * imports NSGeometry.h, which is what lets that header name NSValue without a cycle. */
 /* FOR THE COREGRAPHICS-GEOMETRY DOORS (CGPoint/CGSize/CGRect and CGAffineTransform), also ABOVE the
  * region. CGGeometry.h is reached through NSGeometry.h already, but it is named here for the same reason the
  * implementation names its imports: a reader should not have to follow a typedef to learn why a name is in
@@ -108,15 +110,9 @@ NS_ASSUME_NONNULL_BEGIN
  * @encode(void *), so the box keeps NO claim on the object — it holds the address and neither retains nor
  * releases (the implementation states the full contract). */
 + (NSValue *)valueWithNonretainedObject:(nullable id)anObject;
-+ (NSValue *)valueWithRange:(NSRange)range;
-
 /* THE FOUNDATION-GEOMETRY DOORS, in Cocoa's shape: the type IS the encoding — @encode(NSPoint) is
  * "{CGPoint=dd}" because NSGeometry.h makes NSPoint a typedef of CGPoint — so each door is +valueWithRange:'s
  * shape over its struct, and each reader (below) is the range reader's shape over the same private primitive. */
-+ (NSValue *)valueWithPoint:(NSPoint)point;
-+ (NSValue *)valueWithSize:(NSSize)size;
-+ (NSValue *)valueWithRect:(NSRect)rect;
-
 /* ⚠ THE `CG`-SPELLED GEOMETRY DOORS ARE NOT HERE — THEY MOVED TO THE COREGRAPHICS TIER (§63.53, the user's
  * directive of 2026-10-01). The five `+valueWithCG…:` doors and the five `…Value` readers now live in
  * `userland/CoreGraphics/NSValueCGGeometry.h`, implemented over this class's PUBLIC doors
@@ -138,8 +134,6 @@ NS_ASSUME_NONNULL_BEGIN
  *   `NSEdgeInsets` — its encoding is "{NSEdgeInsets=dddd}". The LAYOUT is identical (four CGFloat, 32 bytes)
  *   but -objCType EXPOSES the string, so a value boxed here differs from Apple's in that string and in
  *   -isEqualToValue: against an Apple-built one. Retagging the struct is NSGeometry.h's, not this file's. */
-+ (NSValue *)valueWithEdgeInsets:(NSEdgeInsets)insets NS_AVAILABLE_MAC(10_10);
-
 - (void)getValue:(void *)value;
 /* Copies at most `size` bytes, and the encoding must fit: Cocoa's own door, for a caller with a
  * buffer of a size it computed itself. */
@@ -149,11 +143,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable void *)pointerValue;
 /* The BORROWED object back — a +0 reference, so ownership never moves to the caller. */
 - (nullable id)nonretainedObjectValue;
-- (NSRange)rangeValue;
-- (NSPoint)pointValue;
-- (NSSize)sizeValue;
-- (NSRect)rectValue;
-- (NSEdgeInsets)edgeInsetsValue NS_AVAILABLE_MAC(10_10);
 
 - (BOOL)isEqualToValue:(NSValue *)value;
 - (BOOL)isEqual:(nullable id)other;

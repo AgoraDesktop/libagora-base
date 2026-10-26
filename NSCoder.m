@@ -14,6 +14,7 @@
  */
 
 #import <Foundation/NSCoder.h>
+#import <Foundation/FoundationErrors.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSSet.h>
 #import <Foundation/NSError.h>

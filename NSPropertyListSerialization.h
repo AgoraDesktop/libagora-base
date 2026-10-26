@@ -29,6 +29,7 @@
 #define FOUNDATION_NSPROPERTYLISTSERIALIZATION_H
 
 #import <Foundation/NSObject.h>
+#import <Foundation/NSPropertyList.h>
 /* The convenience forms below are CATEGORIES, and a category needs the class's
  * FULL interface — a forward declaration will not carry one. None of these three
  * headers imports this one, so the dependency runs one way. */
@@ -56,21 +57,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/* Apple's raw values, so a numeric comparison in existing code still holds. */
-typedef enum {
-	NSPropertyListOpenStepFormat = 1,
-	NSPropertyListXMLFormat_v1_0 = 100,
-	NSPropertyListBinaryFormat_v1_0 = 200
-} NSPropertyListFormat;
 
-typedef enum {
-	NSPropertyListImmutable = 0,
-	NSPropertyListMutableContainers = 1,
-	NSPropertyListMutableContainersAndLeaves = 2
-} NSPropertyListMutabilityOptions;
-
-typedef NSUInteger NSPropertyListReadOptions;
-typedef NSUInteger NSPropertyListWriteOptions;
 
 @class NSInputStream;	/* §63.198: named by the stream doors; the concrete headers carry -read:maxLength: */
 @class NSOutputStream;

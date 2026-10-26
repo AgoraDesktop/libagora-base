@@ -20,6 +20,7 @@
 #endif
 
 #import <Foundation/NSBundle.h>
+#import <Foundation/FoundationErrors.h>
 #import <Foundation/NSData.h>
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSArray.h>

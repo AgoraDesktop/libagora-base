@@ -17,6 +17,7 @@
  */
 
 #import <Foundation/NSException.h>
+#import <Foundation/FoundationErrors.h>
 #import <Foundation/NSCoder.h>	/* the NSCoding doors call the coder's methods, not just its type */
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSString.h>

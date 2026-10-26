@@ -13,6 +13,8 @@
  */
 
 #import <Foundation/NSXMLNode.h>
+#import <Foundation/NSXMLElement.h>
+#import <Foundation/NSXMLDTDNode.h>
 #import <Foundation/NSXMLParser.h>	/* NSXMLParserInternalError + the error domain */
 #import <Foundation/NSError.h>
 #import <Foundation/NSArray.h>

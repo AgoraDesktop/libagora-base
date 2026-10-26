@@ -19,6 +19,7 @@
  */
 
 #import <Foundation/NSUserActivity.h>
+#import <Foundation/FoundationErrors.h>
 #import <Foundation/FNUserActivity.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSDate.h>

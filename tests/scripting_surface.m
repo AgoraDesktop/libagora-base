@@ -12,6 +12,8 @@
  */
 
 #import <Foundation/Foundation.h>
+#import <Foundation/FoundationErrors.h>
+#import <Foundation/NSScriptStandardSuiteCommands.h>
 
 #include <math.h>
 #include <stdio.h>

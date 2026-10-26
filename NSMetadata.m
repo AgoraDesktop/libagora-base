@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LGPL-3.0-or-later
  */
 #import <Foundation/NSMetadata.h>
+#import <Foundation/NSMetadataAttributes.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSString.h>
@@ -22,14 +23,15 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-/* THE ATTRIBUTE NAMES ARE APPLE'S SPELLINGS, because a predicate is written against them. */
-static NSString *const NSMetadataItemFSNameKey = @"kMDItemFSName";
-static NSString *const NSMetadataItemPathKey = @"kMDItemPath";
-static NSString *const NSMetadataItemFSSizeKey = @"kMDItemFSSize";
-static NSString *const NSMetadataItemContentModificationDateKey = @"kMDItemContentModificationDate";
-static NSString *const NSMetadataItemContentCreationDateKey = @"kMDItemContentCreationDate";
-static NSString *const NSMetadataItemContentTypeKey = @"kMDItemContentType";
-static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
+/* THE ATTRIBUTE NAMES ARE APPLE'S SPELLINGS, and they are PUBLIC now (W7): NSMetadataAttributes.h declares them and
+ * this file defines them. A predicate is written against the VALUES, so a caller composing a query needs the names. */
+NSString *const NSMetadataItemFSNameKey = @"kMDItemFSName";
+NSString *const NSMetadataItemPathKey = @"kMDItemPath";
+NSString *const NSMetadataItemFSSizeKey = @"kMDItemFSSize";
+NSString *const NSMetadataItemContentModificationDateKey = @"kMDItemContentModificationDate";
+NSString *const NSMetadataItemContentCreationDateKey = @"kMDItemContentCreationDate";
+NSString *const NSMetadataItemContentTypeKey = @"kMDItemContentType";
+NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 
 /* ONE PLACE THAT TURNS A PATH INTO THE kMDItem SET THIS LIBRARY CAN OBSERVE, so `-initWithURL:` and the query's walk
  * cannot report different facts about the same file. A path that is not there has no file facts, so the dictionary is

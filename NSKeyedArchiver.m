@@ -26,6 +26,8 @@
  */
 
 #import <Foundation/NSKeyedArchiver.h>
+#import <Foundation/NSGeometry.h>
+#import <Foundation/FoundationErrors.h>
 #import <Foundation/NSCoding.h>
 #import <Foundation/NSPropertyListSerialization.h>
 #import <Foundation/NSData.h>

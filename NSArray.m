@@ -11,6 +11,7 @@
  */
 
 #import <Foundation/NSArray.h>
+#import <Foundation/FoundationErrors.h>
 #import <Foundation/NSCoder.h>	/* the NSCoding doors call the coder's methods, not just its type */
 #import <Foundation/NSURL.h>
 #import <Foundation/NSData.h>

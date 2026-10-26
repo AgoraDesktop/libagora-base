@@ -11,6 +11,8 @@
  */
 
 #import <Foundation/NSXMLDTD.h>
+#import <Foundation/NSXMLDTDNode.h>
+#import <Foundation/NSXMLElement.h>
 #import <Foundation/NSXMLParser.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSData.h>

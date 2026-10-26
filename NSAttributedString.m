@@ -14,6 +14,7 @@
  */
 
 #import <Foundation/NSAttributedString.h>
+#import <Foundation/NSRange.h>
 #import "FNStringFormat.h"
 #import <Foundation/NSArray.h>
 #import <Foundation/NSDictionary.h>

@@ -7,6 +7,7 @@
  * NSAppleEventDescriptor.m — the descriptor as data: bytes, a list, or a keyword record.
  */
 #import <Foundation/NSAppleEventDescriptor.h>
+#import <Foundation/FoundationErrors.h>
 #import <Foundation/NSData.h>
 #import <Foundation/NSDate.h>
 #import <Foundation/NSError.h>

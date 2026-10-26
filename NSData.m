@@ -11,6 +11,7 @@
  */
 
 #import <Foundation/NSData.h>
+#import <Foundation/FoundationErrors.h>
 #include <Block.h>
 #import <Foundation/NSCoder.h>	/* the coder forms take NSCoder */
 #import <Foundation/NSString.h>

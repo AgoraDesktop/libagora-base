@@ -24,6 +24,7 @@
 
 #import <Foundation/NSObjCRuntime.h>
 #import <CoreGraphics/CGGeometry.h>	/* our own CoreGraphics value types */
+#import <Foundation/NSValue.h>	/* the NSValueGeometryExtensions category below */
 #import <Foundation/NSString.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -197,6 +198,24 @@ NSRect NSRectFromString(NSString *aString);
 NSString *NSStringFromPoint(NSPoint aPoint);
 NSString *NSStringFromSize(NSSize aSize);
 NSString *NSStringFromRect(NSRect aRect);
+
+
+/* "Extensions to NSValue for geometric data" — Apple's category name and Apple's home for the point, size, rect and
+ * edge-insets doors. W7 moved them here from NSValue.h, which is the direction Apple's dependency runs: NSValue.h no
+ * longer imports NSGeometry.h, so this header can name NSValue without a cycle.
+ *
+ * ⚠ THE `CG`-SPELLED DOORS ARE NOT HERE — they are Core Graphics' own header (NSValueCGGeometry.h), because they are in
+ * no Foundation header of either SDK. */
+@interface NSValue (NSValueGeometryExtensions)
++ (NSValue *)valueWithPoint:(NSPoint)point;
++ (NSValue *)valueWithSize:(NSSize)size;
++ (NSValue *)valueWithRect:(NSRect)rect;
++ (NSValue *)valueWithEdgeInsets:(NSEdgeInsets)insets NS_AVAILABLE_MAC(10_10);
+- (NSPoint)pointValue;
+- (NSSize)sizeValue;
+- (NSRect)rectValue;
+- (NSEdgeInsets)edgeInsetsValue NS_AVAILABLE_MAC(10_10);
+@end
 
 NS_ASSUME_NONNULL_END
 
