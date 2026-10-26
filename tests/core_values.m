@@ -505,6 +505,7 @@ main(void)
 				       @"value", @"string",
 				       [NSNumber numberWithInt:42], @"number",
 				       [NSNumber numberWithDouble:1.5], @"real",
+				       [NSNumber numberWithDouble:0.0], @"zero",
 				       [NSNumber numberWithBool:NO], @"flag",
 				       [NSData dataWithBytes:"abc" length:3], @"data",
 				       [NSDate dateWithTimeIntervalSince1970:1700000000.0], @"date",
@@ -551,6 +552,9 @@ main(void)
 			      "a binary date decodes as NSDate");
 			check([[back objectForKey:@"real"] doubleValue] == 1.5,
 			      "a binary real keeps its value");
+			check([[back objectForKey:@"zero"] isKindOfClass:[NSNumber class]] &&
+			      [[back objectForKey:@"zero"] doubleValue] == 0.0,
+			      "a binary real zero is an object and keeps its value");
 			check(CFGetTypeID((CFTypeRef)[back objectForKey:@"flag"]) == CFBooleanGetTypeID(),
 			      "a binary boolean decodes as a boolean, not a number");
 			check([NSPropertyListSerialization propertyList:plist
