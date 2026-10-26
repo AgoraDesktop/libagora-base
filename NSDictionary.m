@@ -150,6 +150,29 @@ static void dict_entries_free(struct FNDictEntry **buckets, unsigned long count)
 	return (found != nil);
 }
 
+/* AND THE ENUMERATION DOOR Core Foundation asks for: CFDictionaryApplyFunction dispatches to
+ * -__apply:context: (CFDictionary.c:297), and this library did not answer it. MEASURED: serialising a property
+ * list through Core Foundation's binary writer terminated with
+ * '-[AGDictionaryItems __apply:context:] is not implemented', so a Foundation dictionary could not be walked by
+ * Core Foundation at all.
+ *
+ * IT WALKS THIS CLASS'S OWN PRIMITIVES, not Core Foundation's: -keyEnumerator and -objectForKey: are what every
+ * concrete case answers, which is the same rule -allKeys and -allValues follow and the reason the empty case
+ * needs no code here. */
+- (void)__apply:(void (*)(const void *, const void *, void *))applier context:(void *)context
+{
+	NSEnumerator *enumerator = [self keyEnumerator];
+	id key;
+
+	while ((key = [enumerator nextObject]) != nil) {
+		id value = [self objectForKey:key];
+
+		if (value != nil) {
+			applier((const void *)key, (const void *)value, context);
+		}
+	}
+}
+
 /* AND THE PRIVATE DOOR CORE FOUNDATION ASKS A DICTIONARY FOR. MEASURED, AND IT COST AN ABORT: setting
  * attributes on a Core Foundation attributed string calls CFAttributedStringSetAttributes, which
  * dispatches to the dictionary it was handed and sends -_cfMutableCopy -- so a Foundation dictionary

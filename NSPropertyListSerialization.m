@@ -4,11 +4,13 @@
  * SPDX-License-Identifier: LGPL-3.0-or-later
  */
 /*
- * NSPropertyListSerialization.m — the Objective-C skin over the C plist core.
+ * NSPropertyListSerialization.m — the Objective-C skin over the plist implementations the federation has.
  *
- * This file is CONVERSION ONLY: a plist_value_t tree into Foundation objects and
- * back. All the parsing and serialising is in userland/plist.c, because libconfig
- * consumes the same core from C and the two must agree on every file.
+ * This file is CONVERSION AND POLICY, not a parser. XML (and the text forms the core speaks) is parsed and
+ * serialised by `plist.c`, because libconfig consumes the same core from C and the two must agree on every
+ * file. The BINARY format is Core Foundation's (`CFBinaryPList.c`), reached through CFPropertyListCreateWithData
+ * and CFPropertyListCreateData: it is one implementation in this federation rather than a third one here, and
+ * the two meet at this class's public doors. OBJECTIVE-C OWNERSHIP IS MANUAL, as everywhere in this library.
  */
 
 #import <Foundation/NSPropertyListSerialization.h>
@@ -22,6 +24,8 @@
 #import <Foundation/NSArray.h>
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSError.h>
+
+#include <CoreFoundation/CoreFoundation.h>
 
 #include <plist.h>		/* the shared core: -Iinclude */
 #include <stdlib.h>
@@ -40,6 +44,103 @@ static NSError *fn_plist_error(NSInteger code, const char *message)
 	}
 	error = [NSError errorWithDomain:FN_PLIST_ERROR_DOMAIN code:code userInfo:info];
 	return error;
+}
+
+/* ---- the binary format, through Core Foundation --------------------------- */
+
+/* THE BINARY FORMAT'S MAGIC. The text core cannot speak `bplist00`, and Core Foundation's reader is the
+ * federation's binary implementation (libagora-core/CFBinaryPList.c), so the two formats meet in one class
+ * rather than in a third parser: XML and the text forms stay in `plist.c`, binary is Core Foundation's. */
+static BOOL fn_data_is_binary_plist(NSData *data)
+{
+	static const unsigned char magic[8] = { 'b', 'p', 'l', 'i', 's', 't', '0', '0' };
+
+	return [data length] >= sizeof(magic) && memcmp([data bytes], magic, sizeof(magic)) == 0;
+}
+
+/* A CORE FOUNDATION ERROR AS THIS CLASS'S ERROR, and the CFError is released here: the caller asked for an
+ * NSError, not for a second ownership rule. The description is copied into C text so nothing here depends on
+ * the error object being a Foundation one. */
+static NSError *fn_plist_error_from_cf(NSInteger code, CFErrorRef cfError, const char *fallback)
+{
+	char message[512] = { '\0' };
+	CFStringRef description = (cfError != NULL) ? CFErrorCopyDescription(cfError) : NULL;
+
+	if (description != NULL) {
+		if (!CFStringGetCString(description, message, sizeof(message), kCFStringEncodingUTF8)) {
+			message[0] = '\0';
+		}
+		CFRelease(description);
+	}
+	if (cfError != NULL) {
+		CFRelease(cfError);
+	}
+	return fn_plist_error(code, (message[0] != '\0') ? message : fallback);
+}
+
+/* THE READ SIDE. The mutability options are Core Foundation's too — the numeric values are the same — and its
+ * reader answers this library's mutable classes for them: MEASURED, NSPropertyListMutableContainersAndLeaves
+ * yields an NSMutableDictionary holding NSMutableArrays and NSMutableStrings. */
+static id fn_object_from_binary_plist(NSData *data, NSPropertyListReadOptions options,
+				      NSPropertyListFormat *format, NSError **errorPtr)
+{
+	CFPropertyListFormat cfFormat = 0;
+	CFErrorRef cfError = NULL;
+	CFPropertyListRef plist;
+	CFOptionFlags cfOptions = kCFPropertyListImmutable;
+
+	if ((options & NSPropertyListMutableContainersAndLeaves) != 0) {
+		cfOptions = kCFPropertyListMutableContainersAndLeaves;
+	} else if ((options & NSPropertyListMutableContainers) != 0) {
+		cfOptions = kCFPropertyListMutableContainers;
+	}
+	plist = CFPropertyListCreateWithData(kCFAllocatorDefault, (CFDataRef)data, cfOptions, &cfFormat, &cfError);
+	if (plist == NULL) {
+		if (errorPtr != NULL) {
+			*errorPtr = fn_plist_error_from_cf(1, cfError, "malformed binary property list");
+		} else if (cfError != NULL) {
+			CFRelease(cfError);
+		}
+		return nil;
+	}
+	if (format != NULL) {
+		*format = (cfFormat == kCFPropertyListBinaryFormat_v1_0)
+			? NSPropertyListBinaryFormat_v1_0 : NSPropertyListXMLFormat_v1_0;
+	}
+	/* THE SAME OWNERSHIP RULE AS fn_object_from_plist ABOVE, and it is this file's rather than Cocoa's: the
+	 * tree answers +1. The callers here keep its containers in ivars without retaining them
+	 * (NSKeyedUnarchiver's -initForReadingWithData: is the one that does), so an autoreleased tree would
+	 * dangle the moment the caller's pool drained. */
+	return (id)plist;
+}
+
+/* THE WRITE SIDE. The tree is handed over as Foundation objects — every type a property list can carry is
+ * toll-free bridged — so Core Foundation validates and walks it through the bridge rather than through a second
+ * conversion table. A dictionary is walked with CFDictionaryApplyFunction, which is why NSDictionary answers
+ * -__apply:context: (see NSDictionary.m). */
+static NSData *fn_binary_plist_from_object(id plist, NSError **errorPtr)
+{
+	CFErrorRef cfError = NULL;
+	CFDataRef data;
+
+	if (plist == nil) {
+		if (errorPtr != NULL) {
+			*errorPtr = fn_plist_error(2, "no object tree to write");
+		}
+		return nil;
+	}
+	data = CFPropertyListCreateData(kCFAllocatorDefault, (CFPropertyListRef)plist,
+					kCFPropertyListBinaryFormat_v1_0, 0, &cfError);
+	if (data == NULL) {
+		if (errorPtr != NULL) {
+			*errorPtr = fn_plist_error_from_cf(2, cfError,
+							   "the object tree cannot be written as a binary property list");
+		} else if (cfError != NULL) {
+			CFRelease(cfError);
+		}
+		return nil;
+	}
+	return [(id)data autorelease];
 }
 
 /* ---- the core's tree -> Foundation objects -------------------------------- */
@@ -288,6 +389,9 @@ static NSData *fn_plist_data_from_object(id object)
 		}
 		return nil;
 	}
+	if (fn_data_is_binary_plist(data)) {
+		return fn_object_from_binary_plist(data, options, format, errorPtr);
+	}
 	if (format != NULL) {
 		*format = NSPropertyListXMLFormat_v1_0;
 	}
@@ -320,9 +424,12 @@ static NSData *fn_plist_data_from_object(id object)
 	if (errorPtr != NULL) {
 		*errorPtr = nil;
 	}
+	if (format == NSPropertyListBinaryFormat_v1_0) {
+		return fn_binary_plist_from_object(plist, errorPtr);
+	}
 	if (format != NSPropertyListXMLFormat_v1_0) {
 		if (errorPtr != NULL) {
-			*errorPtr = fn_plist_error(2, "only XML (v1.0) property lists are supported");
+			*errorPtr = fn_plist_error(2, "only XML (v1.0) and binary (v1.0) property lists are supported");
 		}
 		return nil;
 	}
@@ -348,11 +455,16 @@ static NSData *fn_plist_data_from_object(id object)
 
 + (BOOL)propertyList:(id)plist isValidForFormat:(NSPropertyListFormat)format
 {
-	if (format != NSPropertyListXMLFormat_v1_0) {
-		return NO;		/* the named-but-unsupported formats are not "valid" here */
-	}
 	if (plist == nil) {
 		return NO;
+	}
+	if (format == NSPropertyListBinaryFormat_v1_0) {
+		/* Core Foundation owns the binary format's validity rules, and it walks a Foundation tree through
+		 * the same bridge the writer does. */
+		return CFPropertyListIsValid((CFPropertyListRef)plist, kCFPropertyListBinaryFormat_v1_0) ? YES : NO;
+	}
+	if (format != NSPropertyListXMLFormat_v1_0) {
+		return NO;		/* the named-but-unsupported formats are not "valid" here */
 	}
 	{
 		plist_value_t *root = fn_plist_from_object(plist);
@@ -388,14 +500,6 @@ static NSData *fn_plist_data_from_object(id object)
 	NSError *error = nil;
 	NSData *data;
 
-	if (chosen == NSPropertyListBinaryFormat_v1_0) {
-		/* STATED READING: this tree writes the XML format; asking for the binary one answers nil with a
-		 * description instead of quietly writing XML and calling it binary. */
-		if (errorString != NULL) {
-			*errorString = @"the binary property list format is not written by this implementation";
-		}
-		return nil;
-	}
 	data = [self dataWithPropertyList:plist format:chosen options:0 error:&error];
 	if (data == nil && errorString != NULL) {
 		*errorString = [error localizedDescription];

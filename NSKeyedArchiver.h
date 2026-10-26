@@ -29,10 +29,12 @@
  * silently lose the one thing the class exists to carry.
  *
  * ONE DEPARTURE FROM COCOA, named because it is the only one: a REFERENCE is `{"$ref": n}` rather
- * than Cocoa's `UID` property-list type, which this library's plist reader and writer cannot
- * express. Everything else is Cocoa's design — the objects table, `$null` at index 0, `$class` with
- * a `$classes` chain, `NS.objects`/`NS.keys` for collections — so the SHAPE of the archive is the
- * familiar one and only the reference's spelling differs.
+ * than Cocoa's `UID` property-list type. THE PLIST LAYER CAN CARRY A UID NOW — binary reads and writes go
+ * through Core Foundation (NSPropertyListSerialization) — so this is a choice about THIS WRITER'S WIRE, not a
+ * limit of the layer beneath it: the archive's own reference remains an ordinary dictionary key, because that
+ * is what this reader and writer were built and tested on. Everything else is Cocoa's design — the objects
+ * table, `$null` at index 0, `$class` with a `$classes` chain, `NS.objects`/`NS.keys` for collections — so the
+ * SHAPE of the archive is the familiar one and only the reference's spelling differs.
  *
  * OBJECT IDENTITY IS PRESERVED WITHIN ONE ARCHIVE: an object reachable twice is written once and
  * referenced twice, and an object that refers to itself comes back referring to itself, because an

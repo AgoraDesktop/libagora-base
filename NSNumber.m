@@ -24,6 +24,8 @@
 #import <Foundation/NSDecimalNumber.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
+#include <stdint.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSException.h>	/* §63.22: the coder door refuses an archive with no number type */
 #import <Foundation/NSCoder.h>		/* §63.22: the coder PRIMITIVES the doors are written over */
@@ -340,6 +342,69 @@ FN_NUMBER_GET(double, double)
 	case 'd': return @encode(double);
 	case 'c': return @encode(char);
 	default:  return @encode(BOOL);
+	}
+}
+
+/* THE CORE FOUNDATION NUMBER DOORS, AND THE BINARY PROPERTY-LIST WRITER IS WHAT ASKED FOR THEM. MEASURED:
+ * serialising a plist through Core Foundation terminated with
+ * '-[AGNumberSigned _cfNumberType] is not implemented'. CFNumberGetType dispatches to -_cfNumberType
+ * (CFNumber.c:1197) and CFNumberGetValue to -_getValue:forType: (CFNumber.c:1224), both by name.
+ *
+ * THE MAPPING IS TYPE-WIDTH-FIRST, Apple's own rule: an unsigned type that fits the signed type of the same
+ * width keeps it, and one that does not WIDENS (unsigned char -> Short, unsigned short -> Int, unsigned int
+ * and unsigned long -> LongLong when needed), so CFNumberGetValue can never clip a value whose type Core
+ * Foundation was told. */
+- (CFNumberType)_cfNumberType
+{
+	switch ([self agKind]) {
+	case 'c': return kCFNumberCharType;
+	case 'C': return kCFNumberShortType;
+	case 's': return kCFNumberShortType;
+	case 'S': return kCFNumberIntType;
+	case 'i': return kCFNumberIntType;
+	case 'I':
+		return ([self unsignedLongLongValue] <= (unsigned long long)INT32_MAX)
+			? kCFNumberIntType : kCFNumberLongLongType;
+	case 'l': return kCFNumberLongType;
+	case 'L':
+		return ([self unsignedLongLongValue] <= (unsigned long long)LONG_MAX)
+			? kCFNumberLongType : kCFNumberLongLongType;
+	case 'q':
+	case 'Q': return kCFNumberLongLongType;
+	case 'f': return kCFNumberFloatType;
+	case 'd': return kCFNumberDoubleType;
+	default:  return kCFNumberDoubleType;
+	}
+}
+
+/* AND THE VALUE DOOR. Core Foundation canonicalises the type it asks for to a fixed-width one
+ * (`__CFNumberTypeTable[type].canonicalType`, CFNumber.c:1224), so these six arms are the whole surface. */
+- (BOOL)_getValue:(void *)valuePtr forType:(CFNumberType)type
+{
+	if (valuePtr == NULL) {
+		return NO;
+	}
+	switch (type) {
+	case kCFNumberSInt8Type:
+		*(int8_t *)valuePtr = (int8_t)[self longLongValue];
+		return YES;
+	case kCFNumberSInt16Type:
+		*(int16_t *)valuePtr = (int16_t)[self longLongValue];
+		return YES;
+	case kCFNumberSInt32Type:
+		*(int32_t *)valuePtr = (int32_t)[self longLongValue];
+		return YES;
+	case kCFNumberSInt64Type:
+		*(int64_t *)valuePtr = (int64_t)[self longLongValue];
+		return YES;
+	case kCFNumberFloat32Type:
+		*(float *)valuePtr = (float)[self doubleValue];
+		return YES;
+	case kCFNumberFloat64Type:
+		*(double *)valuePtr = [self doubleValue];
+		return YES;
+	default:
+		return NO;
 	}
 }
 

@@ -16,6 +16,7 @@
 
 #import <Foundation/Foundation.h>
 
+#include <CoreFoundation/CoreFoundation.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -503,6 +504,7 @@ main(void)
 		NSDictionary *plist = [NSDictionary dictionaryWithObjectsAndKeys:
 				       @"value", @"string",
 				       [NSNumber numberWithInt:42], @"number",
+				       [NSNumber numberWithDouble:1.5], @"real",
 				       [NSNumber numberWithBool:NO], @"flag",
 				       [NSData dataWithBytes:"abc" length:3], @"data",
 				       [NSDate dateWithTimeIntervalSince1970:1700000000.0], @"date",
@@ -526,21 +528,57 @@ main(void)
 		check([[[back objectForKey:@"date"] class] isSubclassOfClass:[NSDate class]],
 		      "a property-list date decodes as NSDate");
 
-		/* THE WRITE SIDE IS XML, AND THE HEADER SAYS SO: a binary request answers nil with an error rather than
-		 * pretending. (The READ side accepts what it can parse; this library does not produce bplist00.) */
+		/* AND THE BINARY FORMAT, which is Core Foundation's reader and writer rather than a third plist core:
+		 * "bplist00" on the wire and the same tree on the other side. */
 		error = nil;
 		{
 			NSData *binary = [NSPropertyListSerialization dataWithPropertyList:plist
 										    format:NSPropertyListBinaryFormat_v1_0
 										   options:0
 										     error:&error];
+			NSPropertyListFormat reported = 0;
 
-			check(binary == nil && error != nil,
-			      "a binary property-list WRITE is refused with an error (the write side is XML by contract)");
+			check(binary != nil && error == nil, "a property list writes as binary");
+			check([binary length] >= 8 && memcmp([binary bytes], "bplist00", 8) == 0,
+			      "the binary write carries the bplist magic");
+			back = [NSPropertyListSerialization propertyListWithData:binary
+									 options:0
+									  format:&reported
+									   error:&error];
+			check(reported == NSPropertyListBinaryFormat_v1_0, "the binary format is reported");
+			check([back isEqualToDictionary:plist], "a binary property list round-trips");
+			check([[[back objectForKey:@"date"] class] isSubclassOfClass:[NSDate class]],
+			      "a binary date decodes as NSDate");
+			check([[back objectForKey:@"real"] doubleValue] == 1.5,
+			      "a binary real keeps its value");
+			check(CFGetTypeID((CFTypeRef)[back objectForKey:@"flag"]) == CFBooleanGetTypeID(),
+			      "a binary boolean decodes as a boolean, not a number");
+			check([NSPropertyListSerialization propertyList:plist
+							     isValidForFormat:NSPropertyListBinaryFormat_v1_0],
+			      "+propertyList:isValidForFormat: accepts a writable tree as binary");
+
+			/* THE MUTABILITY OPTION IS THE CALLER'S, and Core Foundation's reader honours it through this
+			 * library's mutable classes rather than through a second conversion pass. */
+			back = [NSPropertyListSerialization propertyListWithData:binary
+									 options:NSPropertyListMutableContainersAndLeaves
+									  format:NULL
+									   error:&error];
+			check([back isKindOfClass:[NSMutableDictionary class]],
+			      "NSPropertyListMutableContainersAndLeaves makes the root mutable");
+			check([[(NSDictionary *)back objectForKey:@"array"] isKindOfClass:[NSMutableArray class]],
+			      "the option makes a nested container mutable");
+			check([[(NSDictionary *)back objectForKey:@"string"] isKindOfClass:[NSMutableString class]],
+			      "the option makes a leaf string mutable");
+
+			/* A TRUNCATED BINARY PLIST IS AN ERROR, not a half-read tree. */
+			error = nil;
+			check([NSPropertyListSerialization propertyListWithData:[binary subdataWithRange:NSMakeRange(0, 12)]
+								       options:0 format:NULL error:&error] == nil && error != nil,
+			      "a truncated binary property list answers nil and an error");
 		}
 		error = nil;
 		check([NSPropertyListSerialization propertyListWithData:[@"not a plist" dataUsingEncoding:NSUTF8StringEncoding]
-							       options:0 format:&format error:&error] == nil && error != nil,
+						       options:0 format:&format error:&error] == nil && error != nil,
 		      "malformed property-list data answers nil and an error");
 	}
 
@@ -572,6 +610,28 @@ main(void)
 		check(decoded->link->link == decoded, "a cycle is preserved, not duplicated");
 		[parent release];
 		[child release];
+	}
+
+	{
+		/* AND THE KEYED ARCHIVER'S BINARY FORM. -setOutputFormat: has always accepted the binary format;
+		 * before the property list could write it, the archive came back nil. */
+		CodableThing *thing = [[CodableThing alloc] init];
+		NSMutableData *buffer = [NSMutableData data];
+		NSKeyedArchiver *writer = [[NSKeyedArchiver alloc] initForWritingWithMutableData:buffer];
+		CodableThing *decoded;
+
+		thing->name = [@"binary" copy];
+		thing->size = [[NSNumber numberWithInt:5] retain];
+		[writer setOutputFormat:NSPropertyListBinaryFormat_v1_0];
+		[writer encodeObject:thing forKey:@"root"];
+		[writer finishEncoding];
+		check([buffer length] >= 8 && memcmp([buffer bytes], "bplist00", 8) == 0,
+		      "NSKeyedArchiver writes bplist00 when -setOutputFormat: asks for binary");
+		decoded = [NSKeyedUnarchiver unarchiveObjectWithData:buffer];
+		check(decoded != nil && [decoded->name isEqualToString:@"binary"],
+		      "a binary keyed archive reads back");
+		[writer release];
+		[thing release];
 	}
 
 	{

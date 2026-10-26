@@ -7,18 +7,22 @@
  * NSPropertyListSerialization — property lists, in the Cocoa API's shape.
  * docs/design/foundation-plan.md; the sharing decision is recorded there.
  *
- * THE THIN SKIN OVER THE C CORE (include/plist.h). This class is conversion and
- * nothing else: it turns a `plist_value_t` tree into Foundation objects and back,
- * and the parsing and serialising — the parts where a config format can be got
- * wrong — live in the C core that libconfig also consumes. One implementation is
- * the point: a file written by a C consumer and read here must mean the same
- * thing, and two parsers would have to be kept in step by hand.
+ * THE THIN SKIN OVER THE FEDERATION'S TWO PLIST IMPLEMENTATIONS. The TEXT formats are the C core's
+ * (`include/plist.h`): this class turns a `plist_value_t` tree into Foundation objects and back, and the
+ * parsing and serialising — the parts where a config format can be got wrong — live in the core that libconfig
+ * also consumes. One implementation is the point: a file written by a C consumer and read here must mean the
+ * same thing, and two text parsers would have to be kept in step by hand.
  *
- * WHAT IS SUPPORTED: XML v1.0, which is the format the core speaks, and is also
- * the one that TYPES its values. NSPropertyListOpenStepFormat and
- * NSPropertyListBinaryFormat_v1_0 are NAMED (so calls compile and mean what they
- * say) and REJECTED rather than half-honoured — a config file read with the wrong
- * reader is worse than one that refuses to open.
+ * WHAT IS SUPPORTED: XML v1.0 (the format the core writes, and the one that TYPES its values), and the BINARY
+ * format v1.0 on both read and write. NSPropertyListOpenStepFormat is NAMED (so calls compile and mean what
+ * they say) and REJECTED rather than half-honoured — a config file read with the wrong reader is worse than one
+ * that refuses to open.
+ *
+ * THE BINARY FORMAT IS CORE FOUNDATION'S, NOT A THIRD IMPLEMENTATION. `CFPropertyListCreateWithData` and
+ * `CFPropertyListCreateData` are the federation's bplist reader and writer (`CFBinaryPList.c`), and this class
+ * routes to them on the same terms the text core is routed to: one binary implementation, reached from
+ * Foundation. The mutability options pass through (Core Foundation answers this library's mutable classes for
+ * them), and the bytes are recognised by the `bplist00` magic rather than by a guess at the content.
  */
 
 #ifndef FOUNDATION_NSPROPERTYLISTSERIALIZATION_H
@@ -182,8 +186,7 @@ NS_SWIFT_NAME(PropertyListSerialization)
 - (nullable NSMutableDictionary<KeyType, ObjectType> *)initWithContentsOfURL:(NSURL *)url;
 
 /* THE LEGACY DOORS (§63.198). Each is a thin wrapper over the typed pair above — the split Apple itself
- * keeps — with one stated reading: the WRITE side is XML, so a request for the binary format answers nil
- * with a description rather than pretending. */
+ * keeps — and they inherit the typed doors' formats: XML, and binary on both read and write. */
 
 
 @end

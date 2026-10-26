@@ -2198,6 +2198,19 @@ static void arg_mutable_cfattributed(void)
  * doors answer in the parent and in a child, and the case below is the same battery. One death in the
  * original survey was never reproduced in four variations, so a "DIED" line there is an UNEXPLAINED death
  * and not an attribution -- which is why the eight doors are held by assertions rather than by that list. */
+static void fn_count_pair(const void *key, const void *value, void *context)
+{
+	(void)key;
+	(void)value;
+	(*(int *)context)++;
+}
+
+static void fn_count_member(const void *value, void *context)
+{
+	(void)value;
+	(*(int *)context)++;
+}
+
 static void arg_cf_surface_doors(void)
 {
 	NSString *str = [NSString stringWithUTF8String:"hello"];
@@ -2239,6 +2252,30 @@ static void arg_cf_surface_doors(void)
 	check(CFSetGetValue((CFSetRef)set, CFSTR("a")) != NULL,
 	      "CFSetGetValue did not find a member that is there -- a set's value door is -__getValue:forObj:");
 	check(CFSetCreateCopy(NULL, (CFSetRef)set) != NULL, "CFSetCreateCopy did not copy a Foundation set");
+
+	/* AND THE ENUMERATION DOORS Core Foundation asks a dictionary and a set for, which is how its binary
+	 * property-list writer walks a Foundation tree. */
+	{
+		int seen = 0;
+
+		CFDictionaryApplyFunction((CFDictionaryRef)dict, fn_count_pair, &seen);
+		check(seen == 1, "CFDictionaryApplyFunction did not walk a Foundation dictionary");
+		seen = 0;
+		CFSetApplyFunction((CFSetRef)set, fn_count_member, &seen);
+		check(seen == 1, "CFSetApplyFunction did not walk a Foundation set");
+	}
+
+	/* AND THE TWO NUMBER DOORS THE SAME WRITER ASKS FOR: its type, and its value in the canonical fixed-width
+	 * form Core Foundation converts to. */
+	{
+		NSNumber *number = [NSNumber numberWithInt:42];
+		int64_t got = 0;
+
+		check(CFNumberGetType((CFNumberRef)number) == kCFNumberIntType,
+		      "CFNumberGetType did not answer a Foundation number's type");
+		check(CFNumberGetValue((CFNumberRef)number, kCFNumberSInt64Type, &got) && got == 42,
+		      "CFNumberGetValue did not read a Foundation number");
+	}
 
 	/* AND THE ARRAY, THE TIMER AND THE ATTRIBUTED DOOR, WHOSE ANSWERS ARE THE CHANGE ITSELF. */
 	CFArraySetValueAtIndex((CFMutableArrayRef)array, 0, CFSTR("z"));

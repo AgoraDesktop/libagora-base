@@ -79,6 +79,19 @@
 	return (found != nil);
 }
 
+/* AND THE SET'S ENUMERATION DOOR: CFSetApplyFunction dispatches to -__applyValues:context: (CFSet.c:251), on
+ * the same terms as the dictionary's -__apply:context: -- Core Foundation asks the class, and the answer walks
+ * the class's own primitive (-objectEnumerator) rather than Core Foundation's storage. */
+- (void)__applyValues:(void (*)(const void *, void *))applier context:(void *)context
+{
+	NSEnumerator *enumerator = [self objectEnumerator];
+	id value;
+
+	while ((value = [enumerator nextObject]) != nil) {
+		applier((const void *)value, context);
+	}
+}
+
 - (unsigned long *)fnMutationWord
 {
 	return &_mutations;

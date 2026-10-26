@@ -1336,10 +1336,10 @@ static NSRange fn_url_token_range(NSString *text, NSUInteger index, BOOL *found)
 	}
 	[plist setObject:[self string] forKey:@"string"];
 	[plist setObject:runs forKey:@"runs"];
-	/* XML, WHICH IS THE ONLY FORMAT THIS LIBRARY'S PROPERTY-LIST CORE SPEAKS: OpenStep and BINARY are NAMED and
-	 * REJECTED there by design (NSPropertyListSerialization.h says why — "a config file read with the wrong
-	 * reader is worse than one that refuses to open"). Asking for the binary format was a REAL DEFECT, not a
-	 * style point: it made this method raise for EVERY attributed string, so the class Apple documents as
+	/* XML, WHICH IS THE FORMAT THIS STORE WRITES. The property-list layer now reads and writes the BINARY format
+	 * too (through Core Foundation — see NSPropertyListSerialization.h), but this door's wire stays the text
+	 * form. And the history is why the format is spelled rather than defaulted: when binary was rejected,
+	 * asking for it made this method raise for EVERY attributed string, so the class Apple documents as
 	 * NSSecureCoding could not be archived at all — and the raise blamed the VALUES, which were innocent. Found
 	 * by §62.69's probe, which archived an item holding an attributed string (that probe and its
 	 * `NSExtensionItem` are gone — §63.166 cut the 10.10 extension family — but the defect it found is
