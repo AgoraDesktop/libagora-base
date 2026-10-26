@@ -17,9 +17,14 @@
  * serial queue the START ORDER IS THE ADDITION ORDER, which is a thing a probe can measure.
  *
  * WHAT IS NOT HERE, named: `NSOperationQueuePriority` ordering (operations run in the order they became
- * ready), `-qualityOfService`, and THE MAIN QUEUE RUNS ON THE MAIN THREAD — this library's run loop has
- * timers and no sources, so `+mainQueue` is a SERIAL queue whose operations run on worker threads like
- * any other. That is a real difference from Cocoa and it is stated rather than implied.
+ * ready), and THE MAIN QUEUE RUNS ON THE MAIN THREAD — this library's run loop has timers and no sources, so
+ * `+mainQueue` is a SERIAL queue whose operations run on worker threads like any other. That is a real difference from
+ * Cocoa and it is stated rather than implied.
+ *
+ * `-qualityOfService` IS A STORED HINT (10.10), like the operation's: this scheduler orders by readiness. `-underlyingQueue`
+ * IS REAL: when it is set, each operation runs on that dispatch queue instead of on the worker thread the queue would
+ * otherwise detach — which is what Apple's property means, and what makes a caller's serial dispatch queue actually
+ * serialize the operations.
  */
 
 #ifndef FOUNDATION_NSOPERATIONQUEUE_H
@@ -30,6 +35,7 @@
 /* THE INTERFACE, NOT A FORWARD DECLARATION: `NSArray<__kindof NSOperation *>` is a LIGHTWEIGHT GENERIC, and clang
  * rejects type arguments on a class it has only seen forward-declared ("non-parameterized class 'NSArray'"). */
 #import <Foundation/NSArray.h>
+#include <dispatch/dispatch.h>	/* dispatch_queue_t: -underlyingQueue's type, as Apple's header has it */
 @class NSMutableArray;	/* the two queues the ivars hold: a pointer ivar needs the NAME, not the interface */
 @class FNCondition;	/* §63.170 re-homed this; see the note in NSOperation.h */
 @class NSOperation;
@@ -53,6 +59,8 @@ NS_CLASS_AVAILABLE_MAC(10_5)
 	NSUInteger _running;
 	BOOL _suspended;
 	NSString *_name;
+	NSQualityOfService _qualityOfService;
+	dispatch_queue_t _underlyingQueue;
 }
 
 /* THE QUEUE AN OPERATION IS RUNNING IN, from inside it, and the process's serial main queue. */
@@ -82,6 +90,14 @@ extern const NSInteger NSOperationQueueDefaultMaxConcurrentOperationCount;
 
 - (nullable NSString *)name NS_AVAILABLE_MAC(10_6);
 - (void)setName:(nullable NSString *)name NS_AVAILABLE_MAC(10_6);
+
+/* THE SERVICE CLASS, STORED AND REPORTED (10.10): the scheduler here orders by readiness, so nothing consults it. */
+@property NSQualityOfService qualityOfService NS_AVAILABLE_MAC(10_10);
+
+/* THE DISPATCH QUEUE THE OPERATIONS RUN ON (10.10). nil means this queue's own worker threads, which is the default;
+ * a non-nil queue receives each operation as a dispatch block, so a SERIAL dispatch queue really does serialize them.
+ * Retained on assignment and released on replacement/dealloc, the way a dispatch object is owned. */
+@property (nullable, assign) dispatch_queue_t underlyingQueue NS_AVAILABLE_MAC(10_10);
 
 
 /* THE BLOCK DOOR: the same act as -addOperation:, for a caller holding a block rather than an operation.

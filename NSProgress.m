@@ -27,6 +27,58 @@
 #import <Foundation/NSThread.h>
 #import <Foundation/NSValue.h>
 #import <Foundation/NSException.h>
+#import <Foundation/NSURL.h>
+#include <Block.h>		/* Block_copy/Block_release: a block is not owned with a message */
+#include <pthread.h>
+#include <stdio.h>		/* stdio, for the refusal line's fprintf */
+
+/* "The key for a URL in the userInfo dictionary" (Apple's spelling and value). */
+NSString *const NSProgressFileURLKey = @"NSProgressFileURL";
+
+/* ONE SUBSCRIBER: the file URL it watches (as a string, so equality is the URL's own) and the handler it gave, COPIED.
+ * The registry retains the token; `+removeSubscriber:` drops it. */
+@interface FNProgressSubscriber : NSObject
+{
+@public
+	NSString *_urlKey;
+	NSProgressPublishingHandler _handler;
+}
+@end
+
+@implementation FNProgressSubscriber
+- (void)dealloc
+{
+	[_urlKey release];
+	if (_handler != NULL) {
+		Block_release(_handler);
+	}
+	[super dealloc];
+}
+@end
+
+/* ONE UNPUBLISHING HANDLER, held apart from its block pointer so the array's -retain never reaches a block's isa. */
+@interface FNProgressUnpublisher : NSObject
+{
+@public
+	NSProgressUnpublishingHandler _handler;
+}
+@end
+
+@implementation FNProgressUnpublisher
+- (void)dealloc
+{
+	if (_handler != NULL) {
+		Block_release(_handler);
+	}
+	[super dealloc];
+}
+@end
+
+/* THE PROCESS-WIDE REGISTRY, under a mutex because -publish and the class methods can be called from any thread. The
+ * snapshot is taken under the lock and the handlers run OUTSIDE it, so a handler that publishes another progress object
+ * cannot deadlock the class. */
+static NSMutableArray *fn_subscribers = nil;
+static pthread_mutex_t fn_subscribers_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* THE CURRENT-PROGRESS STACK IS PER THREAD, because two threads are two pieces of work. The key is the thread object
  * itself, so the stack dies with it and a thread that never becomes current pays nothing. */
@@ -80,6 +132,7 @@ static NSMutableArray *fn_progress_stack(BOOL create)
 - (void)dealloc
 {
 	[_children release];
+	[_unpublishingHandlers release];
 	[_userInfo release];
 	[_kind release];
 	[_localizedDescription release];
@@ -299,6 +352,108 @@ static NSMutableArray *fn_progress_stack(BOOL create)
 		return;
 	}
 	_paused = NO;
+}
+
+/* THE IN-PROCESS PUBLISHING PAIR. A progress object is published under the file URL in its userInfo — Apple's own key,
+ * and its own requirement — and every subscriber registered for that URL in THIS PROCESS is called with it. That is the
+ * boundary: there is no progress service to carry a publication to another process. */
+- (void)publish
+{
+	NSURL *url;
+	NSString *key;
+	NSArray *snapshot;
+	NSUInteger i;
+
+	if (_published) {
+		return;
+	}
+	url = [_userInfo objectForKey:NSProgressFileURLKey];
+	if (![url isKindOfClass:[NSURL class]]) {
+		fprintf(stderr, "FOUNDATION-REFUSE: -[NSProgress publish] needs an NSURL under NSProgressFileURLKey; "
+				"there is no file URL to publish this object under\n");
+		return;
+	}
+	key = [url absoluteString];
+	pthread_mutex_lock(&fn_subscribers_mutex);
+	snapshot = fn_subscribers != nil ? [fn_subscribers copy] : [[NSArray alloc] init];
+	pthread_mutex_unlock(&fn_subscribers_mutex);
+	if (_unpublishingHandlers == nil) {
+		_unpublishingHandlers = [[NSMutableArray alloc] init];
+	}
+	for (i = 0; i < [snapshot count]; i++) {
+		FNProgressSubscriber *subscriber = [snapshot objectAtIndex:i];
+
+		if (![subscriber->_urlKey isEqualToString:key] || subscriber->_handler == NULL) {
+			continue;
+		}
+		{
+			NSProgressUnpublishingHandler unpublish = subscriber->_handler(self);
+
+			if (unpublish != NULL) {
+				FNProgressUnpublisher *holder = [[FNProgressUnpublisher alloc] init];
+
+				holder->_handler = Block_copy(unpublish);
+				[_unpublishingHandlers addObject:holder];
+				[holder release];
+			}
+		}
+	}
+	[snapshot release];
+	_published = YES;
+}
+
+- (void)unpublish
+{
+	NSUInteger i;
+
+	if (!_published) {
+		return;
+	}
+	_published = NO;
+	for (i = 0; i < [_unpublishingHandlers count]; i++) {
+		FNProgressUnpublisher *holder = [_unpublishingHandlers objectAtIndex:i];
+
+		if (holder->_handler != NULL) {
+			holder->_handler();
+		}
+	}
+	[_unpublishingHandlers removeAllObjects];
+}
+
+/* "Whether the progress object is old" distinguishes an object carried in by a system service's legacy publishing
+ * mechanism from one this process made; nothing here can make such an object, so the answer is NO. */
+- (BOOL)isOld
+{
+	return NO;
+}
+
++ (id)addSubscriberForFileURL:(NSURL *)url withPublishingHandler:(NSProgressPublishingHandler)publishingHandler
+{
+	FNProgressSubscriber *token;
+
+	if (url == nil || publishingHandler == NULL) {
+		return nil;
+	}
+	token = [[[FNProgressSubscriber alloc] init] autorelease];
+	token->_urlKey = [[url absoluteString] copy];
+	token->_handler = Block_copy(publishingHandler);
+	pthread_mutex_lock(&fn_subscribers_mutex);
+	if (fn_subscribers == nil) {
+		fn_subscribers = [[NSMutableArray alloc] init];
+	}
+	[fn_subscribers addObject:token];
+	pthread_mutex_unlock(&fn_subscribers_mutex);
+	return token;
+}
+
++ (void)removeSubscriber:(id)subscriber
+{
+	if (subscriber == nil) {
+		return;
+	}
+	pthread_mutex_lock(&fn_subscribers_mutex);
+	[fn_subscribers removeObjectIdenticalTo:subscriber];
+	pthread_mutex_unlock(&fn_subscribers_mutex);
 }
 
 - (NSDictionary *)userInfo { return _userInfo; }

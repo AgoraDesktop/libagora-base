@@ -16,10 +16,11 @@
  * forgot to override it would otherwise "succeed" at doing nothing at all, which is the failure a
  * caller cannot see.
  *
- * WHAT IS NOT HERE, named: `-qualityOfService` (the property, as opposed to the legacy macro aliases below),
- * ASYNCHRONOUS operations that manage their own completion (`-isConcurrent` answers NO), and `NSOperation`'s KVO
- * announcements for its own state — the state is readable, but changing it does not notify (F13.9's registry
- * exists; wiring it here is its own step).
+ * THE 10.8/10.10 STATE DOORS ARE HERE NOW: `-isAsynchronous` (the modern spelling of `-isConcurrent`, and NO for the
+ * same reason: this operation runs its `-main` on the calling thread), `-name`, and `-qualityOfService` with its setter
+ * (stored and reported; this scheduler orders by readiness, not by service class). `NSOperation`'s KVO announcements for
+ * its own state are still not wired — the state is readable, but changing it does not notify (F13.9's registry exists;
+ * wiring it here is its own step).
  *
  * AND ONE NAME HAS LEFT THAT LIST RATHER THAN BEEN DELETED FROM IT: `-addOperationWithBlock:` USED TO BE
  * HERE because "this library has no blocks in its public headers". That was true when F13.9 wrote it and
@@ -33,6 +34,7 @@
 #import <Foundation/NSObject.h>
 
 @class NSArray;
+@class NSString;
 @class NSMutableArray;		/* the IVAR needs the name, and NSArray is not NSMutableArray */
 /* ⚠ `FNCondition`, NOT `NSCondition` (2026-10-21). §63.170 cut the 10.5 public class and re-homed its body
  * first-party under this name (FNCondition.h), but THREE IVARS KEPT THE OLD CLASS'S SPELLING and the forward
@@ -81,6 +83,8 @@ NS_CLASS_AVAILABLE_MAC(10_5)
 	BOOL _started;
 	NSOperationQueuePriority _queuePriority;
 	double _threadPriority;
+	NSString *_name;
+	NSQualityOfService _qualityOfService;
 	void (^_completionBlock)(void);	/* run once, after the operation stops executing */
 }
 
@@ -112,6 +116,16 @@ NS_CLASS_AVAILABLE_MAC(10_5)
 @property NSOperationQueuePriority queuePriority;
 @property double threadPriority NS_DEPRECATED_MAC(10_6, 10_10);
 - (BOOL)isConcurrent;
+
+/* "Whether the operation runs asynchronously" (10.8) — the modern name for the same question, and NO here for the same
+ * reason: `-start` runs `-main` to completion before it returns. */
+- (BOOL)isAsynchronous NS_AVAILABLE_MAC(10_8);
+
+/* THE LABEL AND THE SERVICE CLASS (10.10). Both are stated state: the name is a caller's label, and the service class is
+ * what the operation asks for — this queue orders by readiness, so nothing consults it, which is stated at the property
+ * rather than implied. */
+@property (copy, nullable) NSString *name NS_AVAILABLE_MAC(10_10);
+@property NSQualityOfService qualityOfService NS_AVAILABLE_MAC(10_10);
 
 - (NSString *)description;
 

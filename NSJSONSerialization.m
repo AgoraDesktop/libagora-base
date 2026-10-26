@@ -18,6 +18,8 @@
 #import <Foundation/NSNull.h>
 #import <Foundation/NSNumber.h>
 #import <Foundation/NSException.h>
+#import <Foundation/NSInputStream.h>
+#import <Foundation/NSOutputStream.h>
 #include <stdlib.h>	/* malloc/free/strtod */
 #include <string.h>
 #include <math.h>
@@ -1062,6 +1064,72 @@ static BOOL fn_json_value_is_valid(id object)
 		return YES;
 	}
 	return NO;
+}
+
+/* ---- THE TWO STREAM FORMS ---------------------------------------------------------------------------
+ *
+ * THE CALLER OWNS THE STREAM: it opens before and closes after (Apple's rule for both doors), so neither of these
+ * touches -open or -close. The reader collects the bytes until end-of-stream and hands them to the SAME parser the
+ * data door uses; the writer asks for the data the same way and writes every byte, answering the count Apple's
+ * NSInteger return reports.
+ */
++ (id)JSONObjectWithStream:(NSInputStream *)stream options:(NSJSONReadingOptions)options error:(NSError **)errorPtr
+{
+	NSMutableData *collected = [NSMutableData data];
+	uint8_t buffer[4096];
+	NSInteger got;
+
+	if (stream == nil) {
+		if (errorPtr != NULL) {
+			*errorPtr = [NSError errorWithDomain:@"NSCocoaErrorDomain" code:3840 userInfo:nil];
+		}
+		return nil;
+	}
+	for (;;) {
+		got = [stream read:buffer maxLength:sizeof buffer];
+		if (got > 0) {
+			[collected appendBytes:buffer length:(NSUInteger)got];
+			continue;
+		}
+		if (got < 0) {
+			if (errorPtr != NULL) {
+				*errorPtr = [stream streamError] != nil ? [stream streamError] :
+					[NSError errorWithDomain:@"NSCocoaErrorDomain" code:3840 userInfo:nil];
+			}
+			return nil;
+		}
+		break;	/* 0 is END OF STREAM */
+	}
+	return [self JSONObjectWithData:collected options:options error:errorPtr];
+}
+
++ (NSInteger)writeJSONObject:(id)object
+		    toStream:(NSOutputStream *)stream
+		     options:(NSJSONWritingOptions)options
+		       error:(NSError **)errorPtr
+{
+	NSData *data = [self dataWithJSONObject:object options:options error:errorPtr];
+	const uint8_t *bytes;
+	NSUInteger length, offset = 0;
+
+	if (data == nil || stream == nil) {
+		return -1;
+	}
+	bytes = [data bytes];
+	length = [data length];
+	while (offset < length) {
+		NSInteger wrote = [stream write:bytes + offset maxLength:length - offset];
+
+		if (wrote <= 0) {
+			if (errorPtr != NULL) {
+				*errorPtr = [stream streamError] != nil ? [stream streamError] :
+					[NSError errorWithDomain:@"NSCocoaErrorDomain" code:3840 userInfo:nil];
+			}
+			return -1;
+		}
+		offset += (NSUInteger)wrote;
+	}
+	return (NSInteger)length;
 }
 
 + (BOOL)isValidJSONObject:(id)object

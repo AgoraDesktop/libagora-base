@@ -97,6 +97,11 @@
 # 16 -> 22 (the two stored flags, the saving-computer name, and the replacement), NSFileCoordinator 14 -> 15 (the
 # asynchronous intent door). Missing 66 -> 52; methods-declared 4,309 -> 4,323. The version replacement is the wave's
 # acceptance: it runs inside an intent accessor, which is why W4 landed NSFileAccessIntent.
+# **W6e: the operation family, progress publishing, and the JSON stream doors.** NSOperation 16 -> 21 (name,
+# qualityOfService and their setters, isAsynchronous), NSOperationQueue 15 -> 19 (qualityOfService and its setter,
+# underlyingQueue and its setter), NSProgress 31 -> 36 (publish/unpublish, the subscriber pair, isOld), and
+# NSJSONSerialization 3 -> 5 (the two stream doors, whose heading said they needed a stream class the tree did not
+# have). Missing 52 -> 36; methods-declared 4,323 -> 4,339.
 classes-missing 0
 classes-offered 219
 classes-present 219
@@ -470,7 +475,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4323
+methods-declared 4339
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -585,7 +590,7 @@ sel:NSIndexSpecifier 3
 sel:NSInputStream 9
 sel:NSInvocation 14
 sel:NSInvocationOperation 4
-sel:NSJSONSerialization 3
+sel:NSJSONSerialization 5
 sel:NSKeyedArchiver 21
 sel:NSKeyedUnarchiver 20
 sel:NSLengthFormatter 11
@@ -623,8 +628,8 @@ sel:NSNotificationQueue 5
 sel:NSNull 1
 sel:NSNumber 51
 sel:NSNumberFormatter 136
-sel:NSOperation 16
-sel:NSOperationQueue 15
+sel:NSOperation 21
+sel:NSOperationQueue 19
 sel:NSOrderedSet 64
 sel:NSOrthography 10
 sel:NSOutputStream 10
@@ -722,7 +727,7 @@ sel:NSXMLElement 29
 sel:NSXMLNode 51
 sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
-sel:NSProgress 31
-selectors-missing 52
+sel:NSProgress 36
+selectors-missing 36
 selectors-offered 3744
-selectors-present 3692
+selectors-present 3708

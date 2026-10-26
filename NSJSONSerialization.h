@@ -45,9 +45,8 @@
  * JSON5's rules could not have been observed at all. Those inputs now fail, which is what Apple's
  * parser does.
  *
- * WHAT IS STILL NOT, named: the two STREAM forms (`+writeJSONObject:toStream:options:error:` and
- * `+JSONObjectWithStream:options:error:`), which need NSStream - a class this library does not have.
- * The data forms are the whole surface a program without streams can use.
+ * THE TWO STREAM FORMS LANDED IN W6, once NSStream did: they are the data forms over a stream's bytes, and the
+ * caller owns the stream's lifecycle (see the declarations).
  *
  * AND THE WRITING SIDE SHIPPED ON THE SAME DAY (§62.94), so that paragraph's other half is a record
  * too: the two writing options are declared and implemented, and BOTH turned out to be smaller than
@@ -69,6 +68,9 @@
 #import <Foundation/NSObject.h>
 #import <Foundation/NSData.h>
 #import <Foundation/NSError.h>
+
+@class NSInputStream;
+@class NSOutputStream;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -119,6 +121,19 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 + (nullable NSData *)dataWithJSONObject:(id)object
 				options:(NSJSONWritingOptions)options
 				  error:(NSError * _Nullable * _Nullable)errorPtr;
+
+/* THE TWO STREAM FORMS, which are the data forms with the bytes coming from or going to an NSStream. The caller OWNS
+ * THE STREAM'S LIFECYCLE — it opens it before the call and closes it after, which is Apple's rule for both doors and
+ * the reason neither of these opens or closes anything. The reader collects until end-of-stream and then parses with
+ * the same parser `+JSONObjectWithData:options:error:` uses; the writer writes every byte and answers the COUNT it
+ * wrote (Apple's NSInteger return), or -1 when the stream refused a write. */
++ (nullable id)JSONObjectWithStream:(NSInputStream *)stream
+			    options:(NSJSONReadingOptions)options
+			      error:(NSError * _Nullable * _Nullable)errorPtr;
++ (NSInteger)writeJSONObject:(id)object
+		    toStream:(NSOutputStream *)stream
+		     options:(NSJSONWritingOptions)options
+		       error:(NSError * _Nullable * _Nullable)errorPtr;
 
 + (BOOL)isValidJSONObject:(nullable id)object;
 

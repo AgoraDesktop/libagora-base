@@ -74,6 +74,7 @@ static void fn_set_current_queue(NSOperationQueue *queue)
 {
 	[_dependencies release];
 	[_condition release];
+	[_name release];
 	if (_completionBlock != nil) {
 		Block_release(_completionBlock);
 	}
@@ -183,6 +184,36 @@ static void fn_set_current_queue(NSOperationQueue *queue)
 - (BOOL)isConcurrent
 {
 	return NO;
+}
+
+/* THE 10.8 SPELLING OF THE SAME ANSWER, stated separately because a caller compiles against this name: an operation whose
+ * -main runs to completion inside -start has no asynchronous half. */
+- (BOOL)isAsynchronous
+{
+	return NO;
+}
+
+- (nullable NSString *)name
+{
+	return _name;
+}
+
+- (void)setName:(nullable NSString *)name
+{
+	NSString *copied = [name copy];
+
+	[_name release];
+	_name = copied;
+}
+
+- (NSQualityOfService)qualityOfService
+{
+	return _qualityOfService;
+}
+
+- (void)setQualityOfService:(NSQualityOfService)qualityOfService
+{
+	_qualityOfService = qualityOfService;
 }
 
 - (void)cancel
@@ -404,7 +435,17 @@ const NSInteger NSOperationQueueDefaultMaxConcurrentOperationCount = -1;
 		 * thread runs, so the next iteration of this loop - and the next caller - must not still
 		 * see it as ready. */
 		[_pending addObject:next];
-		[NSThread detachNewThreadSelector:@selector(fnRunOnQueue:) toTarget:self withObject:next];
+		/* THE UNDERLYING DISPATCH QUEUE, WHEN THERE IS ONE: the operation runs there instead of on a thread this queue
+		 * detaches. A SERIAL dispatch queue therefore really serializes the operations - the caller asked for that by
+		 * naming it - and the bookkeeping below stays this queue's, because the work still reports through
+		 * -fnRunOnQueue:. */
+		if (_underlyingQueue != NULL) {
+			dispatch_async(_underlyingQueue, ^{
+				[self fnRunOnQueue:next];
+			});
+		} else {
+			[NSThread detachNewThreadSelector:@selector(fnRunOnQueue:) toTarget:self withObject:next];
+		}
 	}
 }
 
@@ -544,6 +585,35 @@ const NSInteger NSOperationQueueDefaultMaxConcurrentOperationCount = -1;
 }
 
 
+- (NSQualityOfService)qualityOfService
+{
+	return _qualityOfService;
+}
+
+- (void)setQualityOfService:(NSQualityOfService)qualityOfService
+{
+	_qualityOfService = qualityOfService;
+}
+
+- (dispatch_queue_t)underlyingQueue
+{
+	return _underlyingQueue;
+}
+
+- (void)setUnderlyingQueue:(dispatch_queue_t)queue
+{
+	if (queue == _underlyingQueue) {
+		return;
+	}
+	if (queue != NULL) {
+		dispatch_retain(queue);
+	}
+	if (_underlyingQueue != NULL) {
+		dispatch_release(_underlyingQueue);
+	}
+	_underlyingQueue = queue;
+}
+
 - (void)dealloc
 {
 	/* THE QUEUE OWNS WHAT -init AND -setName: GAVE IT, and until now it released
@@ -554,6 +624,9 @@ const NSInteger NSOperationQueueDefaultMaxConcurrentOperationCount = -1;
 	[_operations release];
 	[_pending release];
 	[_condition release];
+	if (_underlyingQueue != NULL) {
+		dispatch_release(_underlyingQueue);
+	}
 	[super dealloc];
 }
 

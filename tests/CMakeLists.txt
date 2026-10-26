@@ -111,6 +111,14 @@ target_link_libraries(foundation_10_11_metadata_version PRIVATE Foundation CoreF
 
 add_test(NAME foundation_10_11_metadata_version COMMAND foundation_10_11_metadata_version)
 
+# THE OPERATION QUEUE'S SERVICE CLASS AND TARGET QUEUE, THE OPERATION'S 10.8/10.10 DOORS, PROGRESS PUBLISHING, AND THE
+# JSON STREAM ROUND-TRIP: an operation really runs on the dispatch queue the caller named, a published progress really
+# calls its subscriber and the unpublishing block, and a document round-trips through a stream pair.
+add_executable(foundation_10_11_operation_progress foundation_10_11_operation_progress.m)
+target_link_libraries(foundation_10_11_operation_progress PRIVATE Foundation CoreFoundation::CoreFoundation objc dispatch)
+
+add_test(NAME foundation_10_11_operation_progress COMMAND foundation_10_11_operation_progress)
+
 # THE NOTIFICATION VALUE, ITS ACTION, AND AN IN-PROCESS CENTRE (10.8-10.10): copied doors, a copy, scheduling state, the
 # delegate consultation, and delivery refusing by name.
 add_executable(foundation_10_11_user_notification foundation_10_11_user_notification.m)
