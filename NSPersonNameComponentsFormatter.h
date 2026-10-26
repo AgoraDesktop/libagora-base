@@ -62,14 +62,14 @@ typedef NS_OPTIONS(NSUInteger, NSPersonNameComponentsFormatterOptions) {
 
 /* The attribute `-annotatedStringFromPersonNameComponents:` puts on every run: its value is one of the seven keys
  * below, and a separator between two runs carries `NSPersonNameComponentDelimiter` instead. */
-extern NSString *const NSPersonNameComponentKey;
-extern NSString *const NSPersonNameComponentPrefix;
-extern NSString *const NSPersonNameComponentGivenName;
-extern NSString *const NSPersonNameComponentMiddleName;
-extern NSString *const NSPersonNameComponentFamilyName;
-extern NSString *const NSPersonNameComponentSuffix;
-extern NSString *const NSPersonNameComponentNickname;
-extern NSString *const NSPersonNameComponentDelimiter;
+extern NSString * _Nonnull const NSPersonNameComponentKey;
+extern NSString * _Nonnull const NSPersonNameComponentPrefix;
+extern NSString * _Nonnull const NSPersonNameComponentGivenName;
+extern NSString * _Nonnull const NSPersonNameComponentMiddleName;
+extern NSString * _Nonnull const NSPersonNameComponentFamilyName;
+extern NSString * _Nonnull const NSPersonNameComponentSuffix;
+extern NSString * _Nonnull const NSPersonNameComponentNickname;
+extern NSString * _Nonnull const NSPersonNameComponentDelimiter;
 
 NS_ASSUME_NONNULL_BEGIN
 

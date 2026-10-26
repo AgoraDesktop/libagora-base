@@ -66,6 +66,9 @@ typedef enum {
 	NSRelativeDateTimeFormatterUnitsStyleAbbreviated = 3
 } NSRelativeDateTimeFormatterUnitsStyle;
 
+/* AGORA_EXTENSION: macOS 10.15, later than this tree's 10.11 reference (COCOA-10.11-SURFACE-PLAN.md §4.1). */
+NS_CLASS_AVAILABLE_MAC(10_15)
+AGORA_EXTENSION
 @interface NSRelativeDateTimeFormatter : NSFormatter
 {
 	NSRelativeDateTimeFormatterStyle _dateTimeStyle;

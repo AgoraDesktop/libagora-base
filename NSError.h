@@ -226,12 +226,12 @@ NS_ASSUME_NONNULL_END
  * delegate was named.
  */
 @interface NSObject (NSErrorRecoveryAttempting)
-- (void)attemptRecoveryFromError:(NSError *)error
+- (void)attemptRecoveryFromError:(NSError * _Nonnull)error
 		     optionIndex:(NSUInteger)recoveryOptionIndex
 			delegate:(nullable id)delegate
 	      didRecoverSelector:(nullable SEL)didRecoverSelector
 		     contextInfo:(nullable void *)contextInfo;
-- (BOOL)attemptRecoveryFromError:(NSError *)error optionIndex:(NSUInteger)recoveryOptionIndex;
+- (BOOL)attemptRecoveryFromError:(NSError * _Nonnull)error optionIndex:(NSUInteger)recoveryOptionIndex;
 @end
 
 #endif /* FOUNDATION_NSERROR_H */

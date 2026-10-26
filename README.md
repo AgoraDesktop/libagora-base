@@ -197,13 +197,21 @@ visible.
 the facts of Apple's 10.11 Foundation (220 classes, 40 protocols, 185 functions, 3,763 selectors, plus the iOS-only
 class and the `NS_UNAVAILABLE` doors the census must not charge as gaps), and `tests/api-10.11-census.txt` pins what
 this tree answers of it — the second `foundation-api-10.11-census` gate runs the same instrument with a different
-denominator. **193 of 219 classes, 3,296 of 3,407 selectors, 30 of 40 protocols, 182 of 182 functions**, and every name
+denominator. **198 of 219 classes, 3,422 of 3,521 selectors, 31 of 40 protocols, 182 of 182 functions**, and every name
 still missing is 10.8–10.11: the 10.6 debt is closed. `FOUNDATION-10.11-PLAN.md` at the workspace root stages what
 remains, and `../libagora-app/tools/api-ledger selftest` holds the extractor's own regressions (three faults in that
 reader had undercounted this surface by 299 property accessors and invented two doors).
 
 The second tier of that surface is measured too. The availability macros used to be inert by decision; they now expand
 to clang's availability attribute, and every declaration this tree shares with Apple carries Apple's own version —
-`foundation-api-availability` pins 767 of 767, with a wrong version failing outright. `foundation-header-compile`
-compiles each of the 196 public headers ALONE as Objective-C, Objective-C++ and under ARC (plus the umbrella in each),
+`foundation-api-availability` pins 800 of 800, with a wrong version failing outright. `foundation-header-compile`
+compiles each of the 201 public headers ALONE as Objective-C, Objective-C++ and under ARC (plus the umbrella in each),
 which is the client's question rather than the library's.
+
+Two residues of that tier are closed and gated. **Nullability:** every pointer in every public header states
+`_Nonnull`/`_Nullable`/`_Null_unspecified`; `foundation-header-nullability` pins the count of declarations still
+missing one at **0**, deduped by `header:line:column` across all three modes (a warning-line count is misleading —
+clang repeats an included header once per probe). **Extensions:** API later than 10.11 is marked `AGORA_EXTENSION`
+with the version it really arrived in, expands to `unavailable` under `-DAG_TARGET_OS_X_10_11`, and
+`foundation-strict-surface` proves the strict umbrella still compiles while each marked declaration and no normal
+build's door is affected. `tests/api-10.11-nullability.txt` and the plan's §4.13 record the facts and the recipes.

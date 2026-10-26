@@ -252,6 +252,34 @@ if(Python3_Interpreter_FOUND)
             "-DINCLUDE=${_agora_include_dir};${CMAKE_INSTALL_PREFIX}/include"
             "-DWORK=${CMAKE_CURRENT_BINARY_DIR}"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/header_compile.cmake")
+
+  # **S2'S LAST RESIDUE: THE HEADERS STATE THEIR NULLABILITY.** The sweep's nine sites are recorded in
+  # api-10.11-nullability.txt and closed; this gate keeps them closed. It is a SEPARATE test from header-compile
+  # because the two ask different questions of the same 600 compilations — "does it compile" and "does it say which
+  # pointers may be nil" — and a header can pass one and fail the other. The pinned unit is a distinct declaration
+  # site, deduped across every probe and mode: a warning-line count repeats an included header once per probe.
+  add_test(NAME foundation-header-nullability
+    COMMAND "${CMAKE_COMMAND}"
+            "-DCLANG=${CMAKE_OBJC_COMPILER}"
+            "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/.."
+            "-DINCLUDE=${_agora_include_dir};${CMAKE_INSTALL_PREFIX}/include"
+            "-DWORK=${CMAKE_CURRENT_BINARY_DIR}"
+            "-DPIN=${CMAKE_CURRENT_SOURCE_DIR}/api-10.11-nullability.txt"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/header_nullability.cmake")
+
+  # **S2'S OTHER RESIDUE: THE POST-10.11 SURFACE IS MARKED, AND MARKED FOR REAL.** COCOA-10.11-SURFACE-PLAN.md §4.1
+  # keeps the tree's later-than-10.11 API behind AGORA_EXTENSION: the normal build keeps every door, and
+  # `-DAG_TARGET_OS_X_10_11` makes those declarations unavailable. This proves the umbrella still compiles under the
+  # strict define (one unmarked mention of an extension type breaks it), that each extension is actually unavailable
+  # there, and that the same use compiles in the normal build — a marker that HID a door rather than stating its
+  # version would be a removal, which §4.1 forbids.
+  add_test(NAME foundation-strict-surface
+    COMMAND "${CMAKE_COMMAND}"
+            "-DCLANG=${CMAKE_OBJC_COMPILER}"
+            "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/.."
+            "-DINCLUDE=${_agora_include_dir};${CMAKE_INSTALL_PREFIX}/include"
+            "-DWORK=${CMAKE_CURRENT_BINARY_DIR}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/strict_surface.cmake")
 else()
   message(STATUS
     "libagora-base: no Python3 interpreter, so the API census gates (10.6 and 10.11) and the ledger selftest are not "

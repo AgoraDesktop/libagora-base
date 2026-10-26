@@ -28,10 +28,10 @@
 @class NSMetadataItem;
 
 /* THE FOUR NOTIFICATIONS (10.4). Names are Apple's; the update one is posted by this provider's poll. */
-extern NSString *const NSMetadataQueryDidStartGatheringNotification;
-extern NSString *const NSMetadataQueryGatheringProgressNotification;
-extern NSString *const NSMetadataQueryDidFinishGatheringNotification;
-extern NSString *const NSMetadataQueryDidUpdateNotification;
+extern NSString * _Nonnull const NSMetadataQueryDidStartGatheringNotification;
+extern NSString * _Nonnull const NSMetadataQueryGatheringProgressNotification;
+extern NSString * _Nonnull const NSMetadataQueryDidFinishGatheringNotification;
+extern NSString * _Nonnull const NSMetadataQueryDidUpdateNotification;
 
 NS_ASSUME_NONNULL_BEGIN
 

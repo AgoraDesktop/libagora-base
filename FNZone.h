@@ -17,9 +17,9 @@
 
 /* RECORD (OR REPLACE) THE ZONE A POINTER BELONGS TO. `zone` may be NULL, which means the default zone; the
  * default zone is not stored (every unrecorded object is in it already), so this is a no-op for it. */
-void fn_zone_assign_pointer(void *pointer, NSZone * _Nullable zone);
+void fn_zone_assign_pointer(void * _Nonnull pointer, NSZone * _Nullable zone);
 
 /* FORGET A POINTER. Cheap when no custom-zone allocation has ever been made, which is the common case. */
-void fn_zone_forget_pointer(void *pointer);
+void fn_zone_forget_pointer(void * _Nonnull pointer);
 
 #endif /* FOUNDATION_FNZONE_H */

@@ -102,7 +102,9 @@ NS_CLASS_AVAILABLE_MAC(10_10)
 
 /* The same thing from an interval object: ONE date-pair door with two spellings, so a caller that
  * already holds an NSDateInterval does not have to take it apart. */
-- (nullable NSString *)stringFromDateInterval:(NSDateInterval *)dateInterval;
+/* AGORA_EXTENSION: the interval-taking spelling arrived with NSDateInterval in macOS 10.12, one release after this
+ * formatter; a strict 10.11 build hides it beside the class it names. */
+- (nullable NSString *)stringFromDateInterval:(NSDateInterval *)dateInterval AGORA_EXTENSION;
 
 @end
 

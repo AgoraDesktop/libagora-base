@@ -343,6 +343,21 @@ extern double NSFoundationVersionNumber;
  * slot of NS_CLASS_AVAILABLE, not a declaration. */
 #define NSURLSESSION_AVAILABLE	10_9
 #define NS_UNAVAILABLE	__attribute__((unavailable))
+/* AGORA_EXTENSION — A DECLARATION LATER THAN THE 10.11 REFERENCE (COCOA-10.11-SURFACE-PLAN.md §4.1).
+ *
+ * The tree keeps API that postdates 10.11, because removing a working door to satisfy an older reference is a
+ * regression. What it must not do is let such a door pass for 10.11: each of these classes carries this marker and
+ * the version it really arrived in, and the availability ledger reads both.
+ *
+ * UNDER `-DAG_TARGET_OS_X_10_11` THE MARKER IS A REAL ATTRIBUTE, unlike the availability spellings above. Those
+ * describe a macOS version clang on this host cannot warn about (the D12 deviation), while `unavailable` is an
+ * attribute it can act on. So a strict 10.11 build rejects a use BY NAME — the program still compiles far enough to be
+ * told WHICH declaration is later than the target, which a missing name cannot do, and a normal build is unchanged. */
+#if defined(AG_TARGET_OS_X_10_11)
+#	define AGORA_EXTENSION	__attribute__((unavailable("this declaration postdates the 10.11 surface")))
+#else
+#	define AGORA_EXTENSION
+#endif
 #define NS_DEPRECATED(_macIntro, _macDep, _iosIntro, _iosDep, ...) \
 	CF_DEPRECATED(_macIntro, _macDep, _iosIntro, _iosDep, __VA_ARGS__)
 #define NS_DEPRECATED_MAC(_macIntro, _macDep, ...) \
@@ -539,8 +554,8 @@ void * _Nullable NSReturnAddress(NSUInteger level);
  * methods of its own (it roots at the legacy `Object`), so Foundation supplies
  * these - GNUstep Base does the same for this runtime. */
 @interface Protocol (FNProtocolObject)
-@property (readonly, copy) NSString *name;
-@property (readonly, copy) NSString *description;
+@property (readonly, copy) NSString * _Nonnull name;
+@property (readonly, copy) NSString * _Nonnull description;
 @property (readonly) NSUInteger hash;
 - (BOOL)isEqual:(nullable id)object;
 @end

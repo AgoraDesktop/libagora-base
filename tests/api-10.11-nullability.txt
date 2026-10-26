@@ -1,0 +1,34 @@
+# THE NULLABILITY SWEEP — the S2 residue, measured and pinned at zero.
+#
+# Copyright © 2026 Kyle J. Cardoza.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#
+# COCOA-10.11-SURFACE-PLAN.md's S2 tier says an annotation is part of the surface, and nullability is the one every
+# Objective-C client feels: a pointer without `_Nonnull`/`_Nullable`/`_Null_unspecified` is a fact the header refuses to
+# state, and `-Wnullability-completeness` is the compiler's own measurement of it. This file pins that measurement.
+#
+# WHAT THE NUMBER MEANS. It is the count of DISTINCT DECLARATION SITES (`header:line:column`) that lack a specifier,
+# unioned over every public header and all three client modes (Objective-C, Objective-C++, ARC). It is not a warning
+# line count: clang repeats an included header's warnings in every probe that reaches it, so the first measurement of
+# the sweep — 423 lines across 199 probes — was nine declarations seen through many windows. The gate is
+# tests/header_nullability.cmake and it dedupes before comparing.
+#
+# WHAT IT WAS, AND HOW IT CLOSED. The sweep began with exactly nine sites in six headers, each one a declaration whose
+# file was already "audited" by other annotations — which is when clang checks the ones beside them:
+#
+#   NSObjCRuntime.h  542,543  Protocol's `-name`/`-description` properties, in a category whose `-isEqual:` is nullable
+#   FNZone.h          20, 23  the recorded object pointer, beside a NULLABLE zone argument
+#   NSError.h        229,234  the recovery protocol's error (the error is the subject, never absent)
+#   NSAttributedString.h 211  the RTFD writer seam: nullable RETURN and dictionary, nonnull string
+#   NSMetadata.h          31  the four notification names (the first stood for the run; all four were annotated)
+#   NSPersonNameComponentsFormatter.h 65  the eight attribute keys, the same way
+#
+# THE RECIPE, WHICH IS THE SURFACE PLAN'S OWN. Annotate what the IMPLEMENTATION ACCEPTS (F6), not what Apple's line
+# happens to say: a pointer an initializer treats as optional is `_Nullable`, a notification name is `_Nonnull`, and a
+# function-pointer return that may refuse is `_Nullable`. Where a run of globals shares one type, annotate the whole
+# run rather than the one the compiler first named — clang reports the first site and leaves the rest silent, so a
+# green gate can still hide an unannotated neighbour.
+#
+# MOVING THIS NUMBER IS A DELIBERATE ACT: annotate the declaration, or move the pin in the same commit and say which
+# header gained the pointer.
+nullability-sites 0

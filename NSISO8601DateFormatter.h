@@ -69,6 +69,9 @@ typedef unsigned long NSISO8601DateFormatOptions;
 #define NSISO8601DateFormatWithInternetDateTime		\
 	(NSISO8601DateFormatWithFullDate | NSISO8601DateFormatWithFullTime)
 
+/* AGORA_EXTENSION: macOS 10.12, later than this tree's 10.11 reference (COCOA-10.11-SURFACE-PLAN.md §4.1). */
+NS_CLASS_AVAILABLE_MAC(10_12)
+AGORA_EXTENSION
 NS_SWIFT_NAME(ISO8601DateFormatter)
 @interface NSISO8601DateFormatter : NSFormatter <NSSecureCoding>
 {

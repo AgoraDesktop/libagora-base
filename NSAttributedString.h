@@ -208,9 +208,9 @@ NS_CLASS_AVAILABLE_MAC(10_0)
  *
  * The writer returns the package directory; `-RTFDFromRange:documentAttributes:` serializes whatever it is given, so
  * the two doors cannot disagree either. */
-typedef NSFileWrapper *(*NSAttributedStringRTFDWriter)(NSAttributedString *string, NSRange range,
-						      NSDictionary *dict);
-extern void _NSAttributedStringSetRTFDWriter(NSAttributedStringRTFDWriter writer);
+typedef NSFileWrapper * _Nullable (*NSAttributedStringRTFDWriter)(NSAttributedString * _Nonnull string, NSRange range,
+								  NSDictionary * _Nullable dict);
+extern void _NSAttributedStringSetRTFDWriter(NSAttributedStringRTFDWriter _Nullable writer);
 - (nullable NSDictionary *)fileWrapperFromRange:(NSRange)range
 			   documentAttributes:(nullable NSDictionary *)dict
 					error:(NSError ** _Nullable)error;

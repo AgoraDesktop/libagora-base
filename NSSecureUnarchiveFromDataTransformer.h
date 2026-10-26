@@ -31,6 +31,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/* AGORA_EXTENSION: macOS 10.14, later than this tree's 10.11 reference (COCOA-10.11-SURFACE-PLAN.md §4.1). */
+NS_CLASS_AVAILABLE_MAC(10_14)
+AGORA_EXTENSION
 @interface NSSecureUnarchiveFromDataTransformer : NSValueTransformer
 
 /* THE ALLOWED CLASSES: the classes an archive this transformer reads may contain. A subclass overrides it to

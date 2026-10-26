@@ -48,6 +48,12 @@ NS_ASSUME_NONNULL_BEGIN
  * is an NSXPCConnection, this system has no XPC, and the door below therefore never produces one. The
  * declaration exists so that a program written against Apple's API COMPILES here; a program that tries to
  * USE the object finds out from the error. */
+/* AGORA_EXTENSION, AND WITHOUT A VERSION TOKEN ON PURPOSE. The class postdates this tree's 10.11 reference
+ * (COCOA-10.11-SURFACE-PLAN.md §4.1 and its F4 row call it an extension), but Apple's 10.11 Foundation headers do not
+ * declare it and this tree has no authoritative source for the minor release that introduced it — so no `10_1x` is
+ * invented for it. The rule that matters is the marker: a strict 10.11 build can hide this class, and no client is
+ * told a version this repository cannot source. */
+AGORA_EXTENSION
 @interface NSFileProviderService : NSObject
 {
 	NSString *_name;
