@@ -225,16 +225,25 @@ visible.
 the facts of Apple's 10.11 Foundation (220 classes, 40 protocols, 185 functions, 3,763 selectors, plus the iOS-only
 class and the `NS_UNAVAILABLE` doors the census must not charge as gaps), and `tests/api-10.11-census.txt` pins what
 this tree answers of it — the second `foundation-api-10.11-census` gate runs the same instrument with a different
-denominator. **198 of 219 classes, 3,422 of 3,521 selectors, 31 of 40 protocols, 182 of 182 functions**, and every name
-still missing is 10.8–10.11: the 10.6 debt is closed. `FOUNDATION-10.11-PLAN.md` at the workspace root stages what
-remains, and `../libagora-app/tools/api-ledger selftest` holds the extractor's own regressions (three faults in that
-reader had undercounted this surface by 299 property accessors and invented two doors).
+denominator. **219 of 219 classes, 3,744 of 3,744 selectors, 40 of 40 protocols, 182 of 182 functions**: W6 closed the
+selector surface, and `api-ledger missing` prints zero in every column. `FOUNDATION-10.11-PLAN.md` at the workspace
+root is the record, and `../libagora-app/tools/api-ledger selftest` holds the extractor's own regressions (three faults
+in that reader had undercounted this surface by 299 property accessors and invented two doors).
 
 The second tier of that surface is measured too. The availability macros used to be inert by decision; they now expand
 to clang's availability attribute, and every declaration this tree shares with Apple carries Apple's own version —
-`foundation-api-availability` pins 800 of 800, with a wrong version failing outright. `foundation-header-compile`
-compiles each of the 201 public headers ALONE as Objective-C, Objective-C++ and under ARC (plus the umbrella in each),
+`foundation-api-availability` pins 917 of 917, with a wrong version failing outright. `foundation-header-compile`
+compiles each of the 226 public headers ALONE as Objective-C, Objective-C++ and under ARC (plus the umbrella in each),
 which is the client's question rather than the library's.
+
+**W7 gave the surface Apple's NAMES.** The 17 header names that had no local file are now real files — the extension
+trio, seven scripting headers, three XML headers and six organisation headers (`FoundationErrors.h`, `NSRange.h`,
+`NSPathUtilities.h`, `NSPropertyList.h`, `NSHFSFileTypes.h`, `NSMetadataAttributes.h`) — and the behavioural categories
+live where Apple declares them: `NSValueGeometryExtensions` in `NSGeometry.h`, `NSValueRangeExtensions` in `NSRange.h`,
+`NSSortDescriptorSorting` in `NSSortDescriptor.h`, `NSXMLParserLocatorAdditions` in `NSXMLParser.h`. The umbrella
+re-admits the 10.11 families (the session family, notifications, XPC, extensions, item providers and the script
+tasks), so a client writes one import. `swift-interop-probe`'s `agora-import-probe` names one class and one function
+per family through that umbrella and passes.
 
 Two residues of that tier are closed and gated. **Nullability:** every pointer in every public header states
 `_Nonnull`/`_Nullable`/`_Null_unspecified`; `foundation-header-nullability` pins the count of declarations still
