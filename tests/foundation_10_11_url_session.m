@@ -552,6 +552,10 @@ int main(void)
 						isEqualToString:@"hello world"], "the delegate's body is the server's");
 		check([task countOfBytesReceived] == 11, "the bytes are counted on the task too");
 		[session finishTasksAndInvalidate];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		[delegate release];
 		event_destroy(&done);
@@ -595,6 +599,10 @@ int main(void)
 		check(delegate->sawBodyProgress && delegate->lastBytesSent == 7 && delegate->lastBytesExpected == 7,
 		      "and the upload-progress door reported them");
 		[session finishTasksAndInvalidate];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		[delegate release];
 		event_destroy(&done);
@@ -647,6 +655,10 @@ int main(void)
 								       encoding:NSUTF8StringEncoding] autorelease]
 						isEqualToString:@"final"], "the final body is the answer");
 		[session finishTasksAndInvalidate];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		[delegate release];
 		event_destroy(&done);
@@ -687,6 +699,10 @@ int main(void)
 		check([[[task currentRequest] URL].absoluteString hasSuffix:@"/refuse"],
 		      "and the request the task ran did not move");
 		[session finishTasksAndInvalidate];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		[delegate release];
 		event_destroy(&done);
@@ -728,6 +744,10 @@ int main(void)
 		check([task state] == NSURLSessionTaskStateCompleted, "and the task is completed");
 		check([task error] != nil && [[task error] code] == NSURLErrorCancelled, "the task carries the error too");
 		[session finishTasksAndInvalidate];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		[delegate release];
 		event_destroy(&done);
@@ -780,6 +800,10 @@ int main(void)
 		check(later == 0, "a finished task has left the outstanding list");
 		pthread_join(thread, NULL);
 		[session finishTasksAndInvalidate];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		event_destroy(&listed);
 		event_destroy(&after);
@@ -858,6 +882,10 @@ int main(void)
 		      "the file is removed once the delegate call returns");
 		[finishedURL release];
 		[session finishTasksAndInvalidate];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		[delegate release];
 		event_destroy(&done);
@@ -1027,6 +1055,10 @@ int main(void)
 		check(delegate->completionError != nil && [delegate->completionError code] == NSURLErrorCancelled,
 		      "as a cancellation");
 		[session finishTasksAndInvalidate];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		[delegate release];
 		[resumeData release];
@@ -1165,6 +1197,10 @@ int main(void)
 		check([task state] == NSURLSessionTaskStateCompleted, "and the task is complete once they are handed over");
 		[session finishTasksAndInvalidate];
 		[delegate release];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		event_destroy(&handed);
 	}
@@ -1397,6 +1433,10 @@ int main(void)
 		      "with a 200 and no error");
 		[session invalidateAndCancel];
 		[delegate release];
+		/* NO CALLBACK MAY OUTLIVE THE EVENT IT FIRES: the section waited for ONE message, and a later one
+		 * (a stream's completion behind didBecomeInputStream:, a cancelled task's completion) can still be
+		 * queued. Draining is what makes the event's lifetime the section's. */
+		[queue waitUntilAllOperationsAreFinished];
 		[queue release];
 		event_destroy(&done);
 	}
