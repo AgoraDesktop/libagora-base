@@ -90,10 +90,14 @@
 #
 # THE GATE is `foundation-api-availability` in tests/CMakeLists.txt, which runs `api-ledger availability` with `--pin`
 # and fails on drift in either direction as well as on a wrong version.
-annotations-candidates 800
+# **W3a: `NSURLSessionConfiguration`** adds nine facts — the class era (`NSURLSESSION_AVAILABLE`) and the eight
+# selector eras the reference carries for it (the deprecated background factory, the identifier factory, the
+# discretionary pair, the shared-container pair and the extended-idle pair). All nine are stated, so candidates and
+# present move together 800 -> 809.
+annotations-candidates 809
 annotations-extra 0
 annotations-missing 0
-annotations-present 800
+annotations-present 809
 annotations-wrong 0
 designated-candidates 143
 designated-extra 2

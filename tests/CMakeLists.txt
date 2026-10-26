@@ -61,6 +61,13 @@ target_link_libraries(foundation_10_11_person_name PRIVATE Foundation CoreFounda
 
 add_test(NAME foundation_10_11_person_name COMMAND foundation_10_11_person_name)
 
+# THE OPTIONS OBJECT A SESSION IS MADE WITH (10.9, with 10.10/10.11 doors): the defaults table, the three factories'
+# differences and the copy a session depends on — no transport, so the contract is entirely observable here.
+add_executable(foundation_10_11_session_configuration foundation_10_11_session_configuration.m)
+target_link_libraries(foundation_10_11_session_configuration PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_session_configuration COMMAND foundation_10_11_session_configuration)
+
 # Core Foundation's Unicode normalization, against Unicode's own test suite. A separate suite from the
 # bridge because it is a separate concern, and because it is a CONFORMANCE run first: `NormalizationTest.txt`
 # is 19,129 cases with six invariants each, and nothing else in the tree asks `CFStringNormalize` anything.
