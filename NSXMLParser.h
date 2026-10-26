@@ -160,6 +160,8 @@ typedef enum {
 	BOOL _processNamespaces;
 	BOOL _reportNamespacePrefixes;
 	BOOL _resolveExternalEntities;
+	NSArray *_allowedExternalEntityURLs;
+	NSXMLParserExternalEntityResolvingPolicy _externalEntityResolvingPolicy;
 	BOOL _aborted;
 	BOOL _abortedByDelegate;
 	BOOL _sawDocumentStart;
@@ -184,6 +186,15 @@ typedef enum {
 - (void)setShouldReportNamespacePrefixes:(BOOL)reportNamespacePrefixes;
 - (BOOL)shouldResolveExternalEntities;
 - (void)setShouldResolveExternalEntities:(BOOL)resolveExternalEntities;
+
+/* THE 10.9 EXTERNAL-ENTITY PAIR, STORED AND REPORTED. This parser opens no file and no URL for an external entity (the
+ * boundary XML-a states), so the policy describes the caller's intent and the allowed list records what it permitted;
+ * neither can admit a fetch that does not exist, and the header says so instead of implying a resolver behind them.
+ * The policy's default is `NSXMLParserResolveExternalEntitiesNever`, which is also what the parser actually does. */
+- (NSXMLParserExternalEntityResolvingPolicy)externalEntityResolvingPolicy NS_AVAILABLE_MAC(10_9);
+- (void)setExternalEntityResolvingPolicy:(NSXMLParserExternalEntityResolvingPolicy)policy NS_AVAILABLE_MAC(10_9);
+- (nullable NSArray *)allowedExternalEntityURLs NS_AVAILABLE_MAC(10_9);
+- (void)setAllowedExternalEntityURLs:(nullable NSArray *)urls NS_AVAILABLE_MAC(10_9);
 
 /* "Starts the event-driven parsing operation" - YES when the document parsed, NO when it did not, in which
  * case -parserError says why. */

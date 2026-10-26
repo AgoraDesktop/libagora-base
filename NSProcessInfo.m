@@ -432,7 +432,7 @@ NSString * const NSOSF1OperatingSystem = @"NSOSF1OperatingSystem";
  * this system has no low-power mode to be in. NO is not a placeholder: it is the true answer to "is this
  * process that kind of app" and "is low-power mode on" on a system where the answer must be no, the same way
  * -thermalState answers Nominal for a system with no thermal management. */
-- (BOOL)lowPowerModeEnabled
+- (BOOL)isLowPowerModeEnabled
 {
 	return NO;
 }

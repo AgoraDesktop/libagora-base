@@ -196,11 +196,11 @@ NS_CLASS_AVAILABLE_MAC(10_10)
 /* WHICH SYSTEM BEHAVIORS THE ACTIVITY MAY TAKE PART IN. Stored and answered — the activity owns these flags —
  * but the three engines that would READ them are absent here, and named where they are missed: the handoff
  * daemon (a second device), the CoreSpotlight index, and Siri's prediction/Shortcuts service. */
-- (BOOL)eligibleForHandoff;
+- (BOOL)isEligibleForHandoff NS_AVAILABLE_MAC(10_11);
 - (void)setEligibleForHandoff:(BOOL)flag NS_AVAILABLE_MAC(10_11);
-- (BOOL)eligibleForSearch;
+- (BOOL)isEligibleForSearch NS_AVAILABLE_MAC(10_11);
 - (void)setEligibleForSearch:(BOOL)flag NS_AVAILABLE_MAC(10_11);
-- (BOOL)eligibleForPublicIndexing;
+- (BOOL)isEligibleForPublicIndexing NS_AVAILABLE_MAC(10_11);
 - (void)setEligibleForPublicIndexing:(BOOL)flag NS_AVAILABLE_MAC(10_11);
 - (BOOL)eligibleForPrediction;
 - (void)setEligibleForPrediction:(BOOL)flag;

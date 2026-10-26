@@ -9,8 +9,9 @@
  * Publishing, resolving and browsing need a DNS-SD responder and a multicast resolver; this system has neither
  * (no Avahi client library is installed, and this library ships no mDNS stack). The subjects are still real: the
  * service's domain/type/name/port are stored, the TXT-record encoder and decoder are real (they are a wire format,
- * not a network call), and the run-loop scheduling is remembered. Every network operation reports
- * `NSNetServicesInvalidError` to the delegate instead of claiming a publication that never happened.
+ * not a network call), the run-loop scheduling is remembered, and the 10.10 `includesPeerToPeer` flags are stored and
+ * reported (peer-to-peer discovery is another thing the missing responder would provide). Every network operation
+ * reports `NSNetServicesInvalidError` to the delegate instead of claiming a publication that never happened.
  */
 #ifndef FOUNDATION_NSNETSERVICES_H
 #define FOUNDATION_NSNETSERVICES_H
@@ -75,6 +76,7 @@ typedef NSUInteger NSNetServiceOptions;
 	NSMutableArray *_schedules;
 	BOOL _published;
 	BOOL _resolving;
+	BOOL _includesPeerToPeer;
 }
 
 - (instancetype)initWithDomain:(NSString *)domain type:(NSString *)type name:(NSString *)name port:(NSInteger)port NS_DESIGNATED_INITIALIZER;
@@ -105,6 +107,10 @@ typedef NSUInteger NSNetServiceOptions;
 @property (nullable, readonly, copy) NSData *TXTRecordData;
 @property (nullable, copy) NSString *protocolSpecificInformation;
 
+/* 10.10: whether publishing or browsing includes peer-to-peer. STORED AND REPORTED — the DNS-SD responder that would
+ * carry it is the one thing this class cannot supply, so the flag describes the caller's request. */
+@property BOOL includesPeerToPeer NS_AVAILABLE_MAC(10_10);
+
 - (BOOL)getInputStream:(NSInputStream * _Nullable * _Nullable)inputStream
 	  outputStream:(NSOutputStream * _Nullable * _Nullable)outputStream;
 @end
@@ -126,6 +132,7 @@ typedef NSUInteger NSNetServiceOptions;
 	id _delegate;
 	NSMutableArray *_schedules;
 	BOOL _searching;
+	BOOL _includesPeerToPeer;
 }
 - (instancetype)init;
 @property (nullable, assign) id <NSNetServiceBrowserDelegate> delegate;
@@ -136,6 +143,9 @@ typedef NSUInteger NSNetServiceOptions;
 - (void)searchForAllDomains;
 - (void)searchForServicesOfType:(NSString *)serviceType inDomain:(NSString *)domainString;
 - (void)stop;
+
+/* 10.10, on the browser as on the service: stored and reported, for the reason the service's property states. */
+@property BOOL includesPeerToPeer NS_AVAILABLE_MAC(10_10);
 @end
 
 NS_ASSUME_NONNULL_END

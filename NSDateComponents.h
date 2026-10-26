@@ -129,7 +129,7 @@ NS_ASSUME_NONNULL_BEGIN
  * ignore them, while -copy carries them (a copy of a bag is the same bag, read the same way). */
 - (NSInteger)dayOfYear;
 - (void)setDayOfYear:(NSInteger)value;
-- (BOOL)leapMonth;
+- (BOOL)isLeapMonth NS_AVAILABLE_MAC(10_8);
 - (void)setLeapMonth:(BOOL)value NS_AVAILABLE_MAC(10_8);
 - (BOOL)repeatedDay;
 - (void)setRepeatedDay:(BOOL)value;
@@ -146,7 +146,7 @@ NS_ASSUME_NONNULL_BEGIN
  * the fields make no date); -validDate is -isValidDateInCalendar: asked of that same calendar, so the
  * two cannot disagree about what "this bag is a date" means. */
 - (nullable NSDate *)date NS_AVAILABLE_MAC(10_7);
-- (BOOL)validDate;
+- (BOOL)isValidDate NS_AVAILABLE_MAC(10_9);
 
 /* THE UNIT-ADDRESSABLE PAIR. Apple's words: "Sets/Returns a value for a given calendar unit" — a
  * SWITCH over the units a bag of fields can hold, which is the calendar-field and week-field units plus

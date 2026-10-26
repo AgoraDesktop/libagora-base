@@ -488,6 +488,98 @@ static NSString *fn_translate_named_groups(NSString *pattern, NSDictionary **out
 	return first != nil ? [first range] : NSMakeRange(NSNotFound, 0);
 }
 
+/* ONE TEMPLATE EXPANSION, shared by the replacing door and -replacementStringForResult:… so the two cannot spell a group
+ * differently. "$0" to "$9" are the ranges, "\\$" is a literal dollar, and anything else is itself. `offset` is Apple's
+ * parameter: it is added to each group range before the text is cut out of `string`. */
+- (void)fnAppendTemplate:(NSString *)template
+	       forResult:(NSTextCheckingResult *)match
+		inString:(NSString *)string
+		  offset:(NSInteger)offset
+		      to:(NSMutableString *)out
+{
+	NSUInteger j;
+
+	for (j = 0; j < [template length]; j++) {
+		unichar c = [template characterAtIndex:j];
+
+		if (c == '\\' && j + 1 < [template length]) {
+			[out appendString:[template substringWithRange:NSMakeRange(j + 1, 1)]];
+			j++;
+			continue;
+		}
+		if (c == '$' && j + 1 < [template length]) {
+			unichar digit = [template characterAtIndex:j + 1];
+
+			if (digit >= '0' && digit <= '9') {
+				NSRange group = [match rangeAtIndex:(NSUInteger)(digit - '0')];
+
+				if (group.location != NSNotFound) {
+					NSInteger location = (NSInteger)group.location + offset;
+					NSInteger end = location + (NSInteger)group.length;
+
+					if (location >= 0 && end >= location &&
+					    (NSUInteger)end <= [string length]) {
+						[out appendString:[string substringWithRange:
+							NSMakeRange((NSUInteger)location, (NSUInteger)(end - location))]];
+					}
+				}
+				j++;
+				continue;
+			}
+		}
+		[out appendString:[template substringWithRange:NSMakeRange(j, 1)]];
+	}
+}
+
+- (NSString *)replacementStringForResult:(NSTextCheckingResult *)result
+				inString:(NSString *)string
+				  offset:(NSInteger)offset
+				template:(NSString *)template
+{
+	NSMutableString *out = [NSMutableString string];
+
+	if (result == nil || string == nil || template == nil) {
+		return out;
+	}
+	[self fnAppendTemplate:template forResult:result inString:string offset:offset to:out];
+	return out;
+}
+
+/* THE ESCAPERS. A pattern escaper has to cover every character POSIX ERE gives a meaning to; a template escaper covers
+ * only the two a template gives one. Both keep their input's order, so a caller reading the result can find it. */
++ (NSString *)escapedPatternForString:(NSString *)string
+{
+	static NSString *const special = @"\\^$.|?*+()[]{}";
+	NSMutableString *out = [NSMutableString string];
+	NSUInteger i;
+
+	for (i = 0; i < [string length]; i++) {
+		unichar c = [string characterAtIndex:i];
+
+		if ([special rangeOfString:[NSString stringWithCharacters:&c length:1]].location != NSNotFound) {
+			[out appendString:@"\\"];
+		}
+		[out appendString:[NSString stringWithCharacters:&c length:1]];
+	}
+	return out;
+}
+
++ (NSString *)escapedTemplateForString:(NSString *)string
+{
+	NSMutableString *out = [NSMutableString string];
+	NSUInteger i;
+
+	for (i = 0; i < [string length]; i++) {
+		unichar c = [string characterAtIndex:i];
+
+		if (c == '$' || c == '\\') {
+			[out appendString:@"\\"];
+		}
+		[out appendString:[NSString stringWithCharacters:&c length:1]];
+	}
+	return out;
+}
+
 /* THE TEMPLATE: "$0" to "$9" are the ranges, "\\$" is a literal dollar, and anything else is itself.
  * A group that did not participate contributes nothing, which is what Cocoa does. */
 - (NSString *)stringByReplacingMatchesInString:(NSString *)string
@@ -508,34 +600,7 @@ static NSString *fn_translate_named_groups(NSString *pattern, NSDictionary **out
 			continue;
 		}
 		[out appendString:[string substringWithRange:NSMakeRange(cursor, whole.location - cursor)]];
-		{
-			NSUInteger j;
-
-			for (j = 0; j < [template length]; j++) {
-				unichar c = [template characterAtIndex:j];
-
-				if (c == '\\' && j + 1 < [template length]) {
-					[out appendString:[template substringWithRange:NSMakeRange(j + 1, 1)]];
-					j++;
-					continue;
-				}
-				if (c == '$' && j + 1 < [template length]) {
-					unichar digit = [template characterAtIndex:j + 1];
-
-					if (digit >= '0' && digit <= '9') {
-						NSRange group = [match rangeAtIndex:(NSUInteger)(digit - '0')];
-
-						if (group.location != NSNotFound &&
-						    group.location + group.length <= [string length]) {
-							[out appendString:[string substringWithRange:group]];
-						}
-						j++;
-						continue;
-					}
-				}
-				[out appendString:[template substringWithRange:NSMakeRange(j, 1)]];
-			}
-		}
+		[self fnAppendTemplate:template forResult:match inString:string offset:0 to:out];
 		cursor = whole.location + whole.length;
 	}
 	if (cursor < range.location + range.length && cursor <= [string length]) {

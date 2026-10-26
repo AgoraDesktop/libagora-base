@@ -102,6 +102,12 @@
 # underlyingQueue and its setter), NSProgress 31 -> 36 (publish/unpublish, the subscriber pair, isOld), and
 # NSJSONSerialization 3 -> 5 (the two stream doors, whose heading said they needed a stream class the tree did not
 # have). Missing 52 -> 36; methods-declared 4,323 -> 4,339.
+# **W6f: the tail's singles.** NSLinguisticTagger 9 -> 13 (the 10.7 language door, the batch tags, the lattice and the
+# edit notice), NSRegularExpression 12 -> 15 (the two escapers and one result's replacement), NSPointerArray 14 -> 18
+# (the four 10.5 factories), NSUserActivity 29 -> 32 and NSDateComponents 39 -> 41 and NSProcessInfo 28 -> 29 (getters
+# spelled with Apple's `is` prefix, which the ledger asks for), NSNetService 24 -> 26 and NSNetServiceBrowser 9 -> 11
+# (`includesPeerToPeer`), NSXMLParser 18 -> 22 (the external-entity policy and allowed list). Missing 36 -> 11 — only
+# the scripting family's `initWithCoder:` remains; methods-declared 4,339 -> 4,358.
 classes-missing 0
 classes-offered 219
 classes-present 219
@@ -475,7 +481,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4339
+methods-declared 4358
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -553,7 +559,7 @@ sel:NSCreateCommand 2
 sel:NSData 40
 sel:NSDataDetector 3
 sel:NSDate 31
-sel:NSDateComponents 39
+sel:NSDateComponents 41
 sel:NSDateComponentsFormatter 26
 sel:NSDateFormatter 78
 sel:NSDateIntervalFormatter 13
@@ -594,7 +600,7 @@ sel:NSJSONSerialization 5
 sel:NSKeyedArchiver 21
 sel:NSKeyedUnarchiver 20
 sel:NSLengthFormatter 11
-sel:NSLinguisticTagger 9
+sel:NSLinguisticTagger 13
 sel:NSLocale 23
 sel:NSLock 4
 sel:NSLogicalTest 3
@@ -620,8 +626,8 @@ sel:NSMutableSet 13
 sel:NSMutableString 10
 sel:NSMutableURLRequest 26
 sel:NSNameSpecifier 3
-sel:NSNetService 24
-sel:NSNetServiceBrowser 9
+sel:NSNetService 26
+sel:NSNetServiceBrowser 11
 sel:NSNotification 8
 sel:NSNotificationCenter 8
 sel:NSNotificationQueue 5
@@ -636,7 +642,7 @@ sel:NSOutputStream 10
 sel:NSPersonNameComponents 14
 sel:NSPersonNameComponentsFormatter 8
 sel:NSPipe 3
-sel:NSPointerArray 14
+sel:NSPointerArray 18
 sel:NSPointerFunctions 6
 sel:NSPort 12
 sel:NSPortCoder 8
@@ -644,14 +650,14 @@ sel:NSPortMessage 7
 sel:NSPortNameServer 5
 sel:NSPositionalSpecifier 9
 sel:NSPredicate 11
-sel:NSProcessInfo 28
+sel:NSProcessInfo 29
 sel:NSPropertyListSerialization 7
 sel:NSProtocolChecker 4
 sel:NSProxy 10
 sel:NSQuitCommand 1
 sel:NSRangeSpecifier 5
 sel:NSRecursiveLock 4
-sel:NSRegularExpression 12
+sel:NSRegularExpression 15
 sel:NSRelativeSpecifier 5
 sel:NSRunLoop 16
 sel:NSScanner 28
@@ -714,7 +720,7 @@ sel:NSUbiquitousKeyValueStore 20
 sel:NSUnarchiver 10
 sel:NSUndoManager 34
 sel:NSUniqueIDSpecifier 3
-sel:NSUserActivity 29
+sel:NSUserActivity 32
 sel:NSUserDefaults 38
 sel:NSUserUnixTask 7
 sel:NSValue 21
@@ -725,9 +731,9 @@ sel:NSXMLDTDNode 12
 sel:NSXMLDocument 32
 sel:NSXMLElement 29
 sel:NSXMLNode 51
-sel:NSXMLParser 18
+sel:NSXMLParser 22
 sel:NSByteCountFormatter 20
 sel:NSProgress 36
-selectors-missing 36
+selectors-missing 11
 selectors-offered 3744
-selectors-present 3708
+selectors-present 3733

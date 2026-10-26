@@ -64,6 +64,8 @@ static void fn_call_delegate(id delegate, SEL selector, id argument)
 - (NSString *)type { return _type; }
 - (NSString *)name { return _name; }
 - (NSInteger)port { return _port; }
+- (BOOL)includesPeerToPeer { return _includesPeerToPeer; }
+- (void)setIncludesPeerToPeer:(BOOL)flag { _includesPeerToPeer = flag; }
 - (NSArray *)addresses { return [NSArray array]; }
 - (NSString *)hostName { return nil; }
 
@@ -252,6 +254,9 @@ static void fn_call_delegate(id delegate, SEL selector, id argument)
 {
 	fn_call_delegate(_delegate, @selector(netServiceBrowser:didNotSearch:), self);
 }
+
+- (BOOL)includesPeerToPeer { return _includesPeerToPeer; }
+- (void)setIncludesPeerToPeer:(BOOL)flag { _includesPeerToPeer = flag; }
 
 - (void)searchForBrowsableDomains { [self fn_reportSearchFailure]; }
 - (void)searchForRegistrationDomains { [self fn_reportSearchFailure]; }

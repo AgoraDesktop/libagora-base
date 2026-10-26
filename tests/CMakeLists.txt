@@ -119,6 +119,14 @@ target_link_libraries(foundation_10_11_operation_progress PRIVATE Foundation Cor
 
 add_test(NAME foundation_10_11_operation_progress COMMAND foundation_10_11_operation_progress)
 
+# THE REMAINING W6 SINGLES: the linguistic tagger against FNTextBreaking (the same break iterator, so its token ranges
+# must be the bridge's), the regular expression escapers and one replacement, the pointer array's four factories, and
+# the stored properties on NSUserActivity, NSDateComponents, NSProcessInfo, NSNetService and NSXMLParser.
+add_executable(foundation_10_11_tail foundation_10_11_tail.m)
+target_link_libraries(foundation_10_11_tail PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_tail COMMAND foundation_10_11_tail)
+
 # THE NOTIFICATION VALUE, ITS ACTION, AND AN IN-PROCESS CENTRE (10.8-10.10): copied doors, a copy, scheduling state, the
 # delegate consultation, and delivery refusing by name.
 add_executable(foundation_10_11_user_notification foundation_10_11_user_notification.m)

@@ -35,9 +35,10 @@
  *     §62.21's `NSOrthography` already exposes as a LANGUAGE MAP, and it cannot say that a sentence is English.
  *     The scheme is therefore refused rather than approximated by a script guess that would be wrong for every
  *     language written in Latin script.
- *   * THE LATTICE DOOR, `-possibleTagsAtIndex:scheme:tokenRange:sentenceRange:scores:`, exists to hand back the
- *     ALTERNATIVES a tagger weighed. With no tagger there are no alternatives to weigh, and an array holding one
- *     invented answer would be a worse lie than an empty one.
+ *   * THE LATTICE DOOR, `-possibleTagsAtIndex:scheme:tokenRange:sentenceRange:scores:`, hands back the
+ *     alternatives a tagger weighed. For the two schemes this library ANSWERS there is exactly one alternative and
+ *     its score is 1.0, because the answer is a property of the token rather than a guess; for a refused scheme the
+ *     answer is nil, because there is nothing to weigh.
  *
  * AND ONE THING THIS HEADER DELIBERATELY DOES NOT DO: it does not spell the tag values as Apple's *strings* and
  * then pretend that is fidelity. Apple publishes the NAMES and their spellings ("Word", "LexicalClass", …), and
@@ -171,6 +172,11 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 + (nullable NSArray *)availableTagSchemesForUnit:(NSLinguisticTaggerUnit)unit
 							       language:(nullable NSString *)language;
 
+/* THE OLDER CLASS DOOR (10.7), before units were named: the schemes this library can answer for a LANGUAGE. It is
+ * the same answer as the word unit's — the two schemes are properties of a token — and it is here because a ported
+ * caller compiles against it. */
++ (NSArray *)availableTagSchemesForLanguage:(nullable NSString *)language NS_AVAILABLE_MAC(10_7);
+
 /* A TAGGER IS MADE FROM SCHEMES AND OPTIONS, and it holds no string until one is set (Apple's arrangement, and
  * the reason `-string` is nullable: a tagger with no string answers an EMPTY range rather than crashing). */
 - (instancetype)initWithTagSchemes:(NSArray *)tagSchemes
@@ -192,6 +198,14 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 			    tokenRange:(nullable NSRangePointer)tokenRange
 			 sentenceRange:(nullable NSRangePointer)sentenceRange NS_AVAILABLE_MAC(10_7);
 
+/* THE ALTERNATIVES AT A POSITION, with their scores. One alternative with a score of 1.0 where the tagger answers the
+ * scheme (the tag above); nil where the scheme is refused; `scores` receives the matching array of NSNumber. */
+- (nullable NSArray *)possibleTagsAtIndex:(NSUInteger)charIndex
+				  scheme:(NSLinguisticTagScheme)scheme
+			      tokenRange:(nullable NSRangePointer)tokenRange
+			   sentenceRange:(nullable NSRangePointer)sentenceRange
+				  scores:(NSArray * _Nullable * _Nullable)scores NS_AVAILABLE_MAC(10_7);
+
 /* AND THE ENUMERATION, which is the door most callers use: every tag in a range, one block call per token. */
 - (void)enumerateTagsInRange:(NSRange)range
 		       scheme:(NSLinguisticTagScheme)scheme
@@ -210,6 +224,19 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 /* THE SENTENCE THAT CONTAINS A RANGE, which is a break-iterator question rather than a tagging one and is
  * therefore answered even for a scheme this library refuses. */
 - (NSRange)sentenceRangeForRange:(NSRange)range NS_AVAILABLE_MAC(10_7);
+
+/* THE TAG ARRAY AND THE TOKEN RANGES BESIDE IT, Apple's batch form of the enumeration. `tokenRanges`, when asked for,
+ * receives NSValues, which is how Cocoa hands ranges back in an array. */
+- (NSArray *)tagsInRange:(NSRange)range
+		  scheme:(NSLinguisticTagScheme)scheme
+		 options:(NSLinguisticTaggerOptions)options
+	     tokenRanges:(NSArray * _Nullable * _Nullable)tokenRanges NS_AVAILABLE_MAC(10_7);
+
+/* THE EDIT NOTICE. This tagger holds a COPY of its string and tokenizes on demand, so there is no cache to invalidate;
+ * what the notice does is adjust the orthography's recorded range by the length change when the edit falls inside it.
+ * A caller that edits the string it handed over and does not re-set it therefore still gets the ranges it can rely on,
+ * and the header says exactly that rather than implying the text was repaired. */
+- (void)stringEditedInRange:(NSRange)range changeInLength:(NSInteger)delta NS_AVAILABLE_MAC(10_7);
 
 @end
 

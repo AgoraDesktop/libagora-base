@@ -80,7 +80,7 @@
 - (void)setYearForWeekOfYear:(NSInteger)value { _yearForWeekOfYear = value; }
 - (NSInteger)dayOfYear { return _dayOfYear; }
 - (void)setDayOfYear:(NSInteger)value { _dayOfYear = value; }
-- (BOOL)leapMonth { return _leapMonth; }
+- (BOOL)isLeapMonth { return _leapMonth; }
 - (void)setLeapMonth:(BOOL)value { _leapMonth = value; }
 - (BOOL)repeatedDay { return _repeatedDay; }
 - (void)setRepeatedDay:(BOOL)value { _repeatedDay = value; }
@@ -127,7 +127,7 @@
 	return [[self fnCalendarOrCurrent] dateFromComponents:self];
 }
 
-- (BOOL)validDate
+- (BOOL)isValidDate
 {
 	return [self isValidDateInCalendar:[self fnCalendarOrCurrent]];
 }
@@ -250,7 +250,7 @@
 	    && _weekdayOrdinal == [them weekdayOrdinal]
 	    && _weekOfMonth == [them weekOfMonth] && _weekOfYear == [them weekOfYear]
 	    && _yearForWeekOfYear == [them yearForWeekOfYear]
-	    && _dayOfYear == [them dayOfYear] && _leapMonth == [them leapMonth]
+	    && _dayOfYear == [them dayOfYear] && _leapMonth == [them isLeapMonth]
 	    && _repeatedDay == [them repeatedDay];
 }
 

@@ -261,6 +261,7 @@ static NSString *fn_xml_decode(NSString *raw, int *outFailure)
 	_at = 0;
 	_line = 1;
 	_column = 1;
+	_externalEntityResolvingPolicy = NSXMLParserResolveExternalEntitiesNever;
 	return self;
 }
 
@@ -297,6 +298,26 @@ static NSString *fn_xml_decode(NSString *raw, int *outFailure)
 - (BOOL)shouldReportNamespacePrefixes { return _reportNamespacePrefixes; }
 - (void)setShouldReportNamespacePrefixes:(BOOL)reportNamespacePrefixes { _reportNamespacePrefixes = reportNamespacePrefixes; }
 - (BOOL)shouldResolveExternalEntities { return _resolveExternalEntities; }
+
+- (NSXMLParserExternalEntityResolvingPolicy)externalEntityResolvingPolicy
+{
+	return _externalEntityResolvingPolicy;
+}
+
+- (void)setExternalEntityResolvingPolicy:(NSXMLParserExternalEntityResolvingPolicy)policy
+{
+	_externalEntityResolvingPolicy = policy;
+}
+
+- (NSArray *)allowedExternalEntityURLs { return _allowedExternalEntityURLs; }
+
+- (void)setAllowedExternalEntityURLs:(NSArray *)urls
+{
+	NSArray *copied = [urls copy];
+
+	[_allowedExternalEntityURLs release];
+	_allowedExternalEntityURLs = copied;
+}
 - (void)setShouldResolveExternalEntities:(BOOL)resolveExternalEntities { _resolveExternalEntities = resolveExternalEntities; }
 
 - (nullable NSError *)parserError
@@ -853,6 +874,7 @@ static NSString *fn_xml_decode(NSString *raw, int *outFailure)
 {
 	[_data release];
 	[_parserError release];
+	[_allowedExternalEntityURLs release];
 	[super dealloc];
 }
 

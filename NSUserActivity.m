@@ -221,11 +221,11 @@ static id fn_current_activity = nil;
 	_keywords = kept;
 }
 
-- (BOOL)eligibleForHandoff { return _eligibleForHandoff; }
+- (BOOL)isEligibleForHandoff { return _eligibleForHandoff; }
 - (void)setEligibleForHandoff:(BOOL)flag { _eligibleForHandoff = flag; }
-- (BOOL)eligibleForSearch { return _eligibleForSearch; }
+- (BOOL)isEligibleForSearch { return _eligibleForSearch; }
 - (void)setEligibleForSearch:(BOOL)flag { _eligibleForSearch = flag; }
-- (BOOL)eligibleForPublicIndexing { return _eligibleForPublicIndexing; }
+- (BOOL)isEligibleForPublicIndexing { return _eligibleForPublicIndexing; }
 - (void)setEligibleForPublicIndexing:(BOOL)flag { _eligibleForPublicIndexing = flag; }
 - (BOOL)eligibleForPrediction { return _eligibleForPrediction; }
 - (void)setEligibleForPrediction:(BOOL)flag { _eligibleForPrediction = flag; }

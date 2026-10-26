@@ -121,7 +121,7 @@ NS_SWIFT_NAME(ProcessInfo)
  * enters the mode, the same choice -thermalState makes for a system with no thermal management. Apple spells
  * the accessors with an `is` prefix (isLowPowerModeEnabled, isMacCatalystApp, isiOSAppOnMac, isiOSAppOnVision);
  * each door here is named by its PROPERTY name, which is the selector the ledger records. */
-- (BOOL)lowPowerModeEnabled;
+- (BOOL)isLowPowerModeEnabled;
 - (BOOL)macCatalystApp;
 - (BOOL)iOSAppOnMac;
 - (BOOL)iOSAppOnVision;

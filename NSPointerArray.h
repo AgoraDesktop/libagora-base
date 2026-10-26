@@ -76,6 +76,14 @@ NS_CLASS_AVAILABLE_MAC(10_5)
 + (instancetype)strongObjectsPointerArray NS_AVAILABLE_MAC(10_8);
 + (instancetype)weakObjectsPointerArray NS_AVAILABLE_MAC(10_8);
 
+/* THE 10.5 FACTORIES, Apple's original four. The two OBJECT forms are the deprecated ancestors of the pair above (the
+ * same configurations, so each is an alias); the two configuration forms are the general constructors the initializers
+ * already take. */
++ (instancetype)pointerArrayWithOptions:(NSPointerFunctionsOptions)options;
++ (instancetype)pointerArrayWithPointerFunctions:(NSPointerFunctions *)functions;
++ (instancetype)pointerArrayWithStrongObjects NS_DEPRECATED_MAC(10_5, 10_8);
++ (instancetype)pointerArrayWithWeakObjects NS_DEPRECATED_MAC(10_5, 10_8);
+
 /* The functions in use. It is the object the caller passed, or the one the options built. */
 - (NSPointerFunctions *)pointerFunctions;
 

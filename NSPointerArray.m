@@ -70,6 +70,26 @@
 	return self;
 }
 
++ (instancetype)pointerArrayWithOptions:(NSPointerFunctionsOptions)options
+{
+	return [[[self alloc] initWithOptions:options] autorelease];
+}
+
++ (instancetype)pointerArrayWithPointerFunctions:(NSPointerFunctions *)functions
+{
+	return [[[self alloc] initWithPointerFunctions:functions] autorelease];
+}
+
++ (instancetype)pointerArrayWithStrongObjects
+{
+	return [self strongObjectsPointerArray];
+}
+
++ (instancetype)pointerArrayWithWeakObjects
+{
+	return [self weakObjectsPointerArray];
+}
+
 + (instancetype)strongObjectsPointerArray
 {
 	return [[[self alloc] initWithOptions:NSPointerFunctionsObjectPersonality] autorelease];

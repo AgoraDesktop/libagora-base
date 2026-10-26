@@ -149,6 +149,18 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 				       options:(NSMatchingOptions)options
 					 range:(NSRange)range
 				  withTemplate:(NSString *)aTemplate;
+/* THE TEMPLATE MACHINERY, exposed the way Apple exposes it: the one replacement a single result would produce, and the
+ * two escapers that make a caller's literal text safe in a pattern and in a template. `offset` is added to the result's
+ * ranges before the matched text is cut out of `string`, which is Apple's meaning for the parameter. */
+- (NSString *)replacementStringForResult:(NSTextCheckingResult *)result
+				inString:(NSString *)string
+				  offset:(NSInteger)offset
+				template:(NSString *)aTemplate;
+
+/* A PATTERN THAT MATCHES `string` LITERALLY: every byte POSIX ERE gives a meaning to is backslash-escaped. */
++ (NSString *)escapedPatternForString:(NSString *)string;
+/* A TEMPLATE THAT PRODUCES `string` LITERALLY: only `$` and `\` are special in a template, so only those are escaped. */
++ (NSString *)escapedTemplateForString:(NSString *)string;
 - (NSUInteger)replaceMatchesInString:(NSMutableString *)string
 			     options:(NSMatchingOptions)options
 			       range:(NSRange)range

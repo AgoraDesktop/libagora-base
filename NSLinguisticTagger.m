@@ -16,6 +16,8 @@
 #import <Foundation/FNTextBreaking.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSString.h>
+#import <Foundation/NSNull.h>
+#import <Foundation/NSValue.h>
 #import <Foundation/NSOrthography.h>
 #import <Foundation/NSGeometry.h>
 
@@ -184,6 +186,15 @@ static NSLinguisticTag fn_token_script(const UChar *buffer, int32_t start, int32
 						NSLinguisticTagSchemeScript, nil];
 	}
 	return [NSArray array];
+}
+
++ (NSArray *)availableTagSchemesForLanguage:(NSString *)language
+{
+	(void)language;
+	/* THE OLDER DOOR, answered by the same list the word unit answers: TokenType and Script are properties of a token,
+	 * so a language has nothing to add to them. The morphological schemes are absent, which is where their refusal is
+	 * readable before a tagger is built. */
+	return [self availableTagSchemesForUnit:NSLinguisticTaggerUnitWord language:language];
 }
 
 - (instancetype)initWithTagSchemes:(NSArray *)tagSchemes options:(NSUInteger)options
@@ -380,6 +391,80 @@ static NSLinguisticTag fn_token_script(const UChar *buffer, int32_t start, int32
 			    scheme:scheme
 			   options:options
 			usingBlock:block];
+}
+
+/* THE LATTICE: one alternative with a score of 1.0 for a scheme this library answers, nil for a refused one. The
+ * ranges are filled from the same doors `-tagAtIndex:…` uses, so the two answers cannot disagree. */
+- (NSArray *)possibleTagsAtIndex:(NSUInteger)charIndex
+			  scheme:(NSLinguisticTagScheme)scheme
+		      tokenRange:(NSRangePointer)tokenRange
+		   sentenceRange:(NSRangePointer)sentenceRange
+			  scores:(NSArray **)scores
+{
+	NSLinguisticTag tag = [self tagAtIndex:charIndex
+					scheme:scheme
+				    tokenRange:tokenRange
+				 sentenceRange:sentenceRange];
+
+	if (tag == nil) {
+		if (scores != NULL) {
+			*scores = [NSArray array];
+		}
+		return nil;
+	}
+	if (scores != NULL) {
+		*scores = [NSArray arrayWithObject:[NSNumber numberWithDouble:1.0]];
+	}
+	return [NSArray arrayWithObject:tag];
+}
+
+/* THE BATCH FORM, over the enumeration door: one tag and one range per visited unit, in order. */
+- (NSArray *)tagsInRange:(NSRange)range
+		  scheme:(NSLinguisticTagScheme)scheme
+		 options:(NSLinguisticTaggerOptions)options
+	     tokenRanges:(NSArray **)tokenRanges
+{
+	NSMutableArray *tags = [NSMutableArray array];
+	NSMutableArray *ranges = [NSMutableArray array];
+
+	[self enumerateTagsInRange:range
+			    scheme:scheme
+			   options:options
+			usingBlock:^(NSLinguisticTag tag, NSRange tokenRange, BOOL *stop) {
+		(void)stop;
+		[tags addObject:tag != nil ? (id)tag : (id)[NSNull null]];
+		[ranges addObject:[NSValue valueWithRange:tokenRange]];
+	}];
+	if (tokenRanges != NULL) {
+		*tokenRanges = ranges;
+	}
+	return tags;
+}
+
+/* THE EDIT NOTICE: the orthography's recorded range moves with an edit inside it, and there is nothing else to do.
+ * This tagger holds a COPY of its string and breaks it on every question — no cache exists to invalidate — so a caller
+ * that wants the tagger to see new text sets `-string` again, which is Apple's own rule. */
+- (void)stringEditedInRange:(NSRange)range changeInLength:(NSInteger)delta
+{
+	NSUInteger start = _orthographyRange.location;
+	NSUInteger end = start + _orthographyRange.length;
+	NSInteger moved;
+
+	if (delta == 0 || range.location >= end) {
+		return;	/* an edit after the recorded range moves nothing inside it */
+	}
+	if (range.location + range.length <= start) {
+		/* ENTIRELY BEFORE THE RANGE: both ends shift by the length change. */
+		moved = (NSInteger)start + delta;
+		start = moved > 0 ? (NSUInteger)moved : 0;
+		moved = (NSInteger)end + delta;
+		end = moved > 0 ? (NSUInteger)moved : start;
+	} else {
+		/* OVERLAPPING THE RANGE: its length takes the change, and the start stays where the caller put it. */
+		moved = (NSInteger)(end - start) + delta;
+		end = start + (moved > 0 ? (NSUInteger)moved : 0);
+	}
+	_orthographyRange = NSMakeRange(start, end > start ? end - start : 0);
 }
 
 - (NSRange)sentenceRangeForRange:(NSRange)range
