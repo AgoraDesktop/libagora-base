@@ -40,6 +40,26 @@
 #import <Foundation/NSDate.h>
 #import <Foundation/NSFileManager.h>
 #import <Foundation/NSFileHandle.h>
+#import <Foundation/NSInputStream.h>
+#import <Foundation/NSOutputStream.h>
+#import <Foundation/NSNetServices.h>
+#import <Foundation/NSCachedURLResponse.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/select.h>
+#include <string.h>
+
+/* THE STREAMS' SOCKET INITIALIZER IS THE LIBRARY'S OWN (NSStream.m §63.232), and it takes ownership of the
+ * descriptor. A capture duplicates the socket twice so each stream closes its own copy. */
+@interface NSInputStream (FNSessionSocketDescriptor)
+- (instancetype)fnInitWithSocketDescriptor:(int)fd;
+@end
+@interface NSOutputStream (FNSessionSocketDescriptor)
+- (instancetype)fnInitWithSocketDescriptor:(int)fd;
+@end
 #import <Foundation/NSAutoreleasePool.h>
 
 #include <Block.h>		/* Block_copy/Block_release: a block is not owned with a message send */
@@ -90,6 +110,15 @@ static NSError *fn_url_error(NSInteger code, NSString *description)
 
 @interface NSURLSessionDownloadTask (FNPrivate)
 - (void)fnSetDownloadCompletion:(void (^)(NSURL *, NSURLResponse *, NSError *))completion;
+@end
+
+@interface NSURLSessionTask (FNScoped)
+- (NSMutableDictionary *)fnScopedCredentials;
+@end
+
+@interface NSURLSessionStreamTask (FNPrivate)
+- (instancetype)fnInitWithSession:(NSURLSession *)session hostName:(NSString *)host port:(NSInteger)port;
+- (void)fnCloseSocket;
 @end
 
 @implementation NSURLSession
@@ -319,6 +348,33 @@ static NSURLSession *fn_sharedSession = nil;
 	fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSession downloadTaskWithResumeData:completionHandler:] cannot resume a "
 			"transfer; resume data is a platform artefact this tree does not produce\n");
 	return nil;
+}
+
+- (NSURLSessionStreamTask *)streamTaskWithHostName:(NSString *)hostname port:(NSInteger)port
+{
+	NSURLSessionStreamTask *task;
+
+	if (_invalidated) {
+		fprintf(stderr, "FOUNDATION-REFUSE: a stream task was asked of a session that has been invalidated\n");
+		return nil;
+	}
+	task = [[NSURLSessionStreamTask alloc] fnInitWithSession:self hostName:hostname port:port];
+	[self fnRegisterTask:task];
+	return [task autorelease];
+}
+
+- (NSURLSessionStreamTask *)streamTaskWithNetService:(NSNetService *)service
+{
+	NSString *host = [service hostName];
+
+	if ([host length] == 0) {
+		/* RESOLVING A SERVICE NEEDS A RUN LOOP, and a session factory cannot block on one. A service that has not
+		 * been resolved is refused by name rather than made into a task that could never connect. */
+		fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSession streamTaskWithNetService:] needs a RESOLVED service; "
+				"resolve it through a run loop first, or name the host and port\n");
+		return nil;
+	}
+	return [self streamTaskWithHostName:host port:[service port]];
 }
 
 - (NSURLSessionDownloadTask *)fnDownloadTaskWithRequest:(NSURLRequest *)request
@@ -591,6 +647,7 @@ static NSURLSession *fn_sharedSession = nil;
 	[_protocol release];
 	[_receivedData release];
 	[_heldData release];
+	[_taskScopedCredentials release];
 	if (_completionHandler != NULL) {
 		Block_release(_completionHandler);
 	}
@@ -713,7 +770,11 @@ static NSURLSession *fn_sharedSession = nil;
 		return;
 	}
 	canonical = [protocolClass canonicalRequestForRequest:_currentRequest];
-	protocol = [[protocolClass alloc] initWithRequest:canonical cachedResponse:nil client:self];
+	/* THE TASK DOOR, not the request one: a protocol instance made through it answers `-task`, which is what Apple's
+	 * loader guarantees and what a custom protocol reads. `canonical` is still what the protocol's own
+	 * +canonicalRequestForRequest: said; the instance's request is the task's current one. */
+	(void)canonical;
+	protocol = [[protocolClass alloc] initWithTask:self cachedResponse:nil client:self];
 	if (protocol == nil) {
 		[self fnFinishWithError:fn_url_error(NSURLErrorUnsupportedURL,
 						     @"the NSURLProtocol class made no instance")];
@@ -811,6 +872,15 @@ static NSURLSession *fn_sharedSession = nil;
 - (NSURLSession *)fnSession
 {
 	return (NSURLSession *)_session;
+}
+
+/* THE CREDENTIAL CATEGORY'S STORE: made on first use, so a task that never touches it costs one nil ivar. */
+- (NSMutableDictionary *)fnScopedCredentials
+{
+	if (_taskScopedCredentials == nil) {
+		_taskScopedCredentials = [[NSMutableDictionary alloc] init];
+	}
+	return (NSMutableDictionary *)_taskScopedCredentials;
 }
 
 - (void)fnOrphan
@@ -1313,6 +1383,515 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend
 		}];
 	}
 	[self cancel];
+}
+
+@end
+
+/* ===================================================================================================
+ * THE STREAM TASK
+ *
+ * A connected socket and a SERIAL queue: every read and write is an operation on `_ioQueue`, so they run in the order
+ * they were asked for, which is Apple's contract. The completion handler runs on the session's delegate queue.
+ * =================================================================================================== */
+
+static int fn_stream_wait(int fd, BOOL forWriting, NSTimeInterval timeout)
+{
+	fd_set set;
+	struct timeval time;
+	struct timeval *limit = NULL;
+
+	FD_ZERO(&set);
+	FD_SET(fd, &set);
+	if (timeout > 0) {
+		time.tv_sec = (time_t)timeout;
+		time.tv_usec = (suseconds_t)((timeout - (double)time.tv_sec) * 1000000.0);
+		limit = &time;
+	}
+	return select(fd + 1, forWriting ? NULL : &set, forWriting ? &set : NULL, NULL, limit);
+}
+
+@implementation NSURLSessionStreamTask
+
+- (instancetype)fnInitWithSession:(NSURLSession *)session hostName:(NSString *)host port:(NSInteger)port
+{
+	self = [super fnInitWithSession:session request:nil completion:nil];
+	if (self == nil) {
+		return nil;
+	}
+	_hostName = [host copy];
+	_port = port;
+	_socket = -1;
+	_ioQueue = [[NSOperationQueue alloc] init];
+	[_ioQueue setMaxConcurrentOperationCount:1];
+	return self;
+}
+
+- (void)dealloc
+{
+	[self fnCloseSocket];
+	[_hostName release];
+	[_ioQueue release];
+	[super dealloc];
+}
+
+- (void)fnCloseSocket
+{
+	if (_socket >= 0) {
+		close(_socket);
+		_socket = -1;
+	}
+}
+
+/* THE BASE'S "START" IS OVERRIDDEN: a stream task has no request for a protocol to claim, so the transfer it starts
+ * is the CONNECTION. */
+- (void)fnStartTransfer
+{
+	[_ioQueue addOperationWithBlock:^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+		[self fnConnect];
+		[pool release];
+	}];
+}
+
+- (void)fnConnect
+{
+	struct addrinfo hints, *answer = NULL, *candidate;
+	char service[16];
+	int fd;
+
+	if (_socket >= 0) {
+		return;
+	}
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	snprintf(service, sizeof service, "%ld", (long)_port);
+	if (getaddrinfo([_hostName UTF8String], service, &hints, &answer) != 0 || answer == NULL) {
+		[self fnFinishWithError:fn_url_error(NSURLErrorCannotFindHost, @"the stream's host did not resolve")];
+		return;
+	}
+	for (candidate = answer; candidate != NULL; candidate = candidate->ai_next) {
+		fd = socket(candidate->ai_family, candidate->ai_socktype, candidate->ai_protocol);
+		if (fd < 0) {
+			continue;
+		}
+		if (connect(fd, candidate->ai_addr, candidate->ai_addrlen) == 0) {
+			_socket = fd;
+			break;
+		}
+		close(fd);
+	}
+	freeaddrinfo(answer);
+	if (_socket < 0) {
+		[self fnFinishWithError:fn_url_error(NSURLErrorCannotConnectToHost, @"the stream could not connect")];
+	}
+}
+
+- (void)fnDeliverStreamWork:(void (^)(void))work
+{
+	NSURLSession *session = [self fnSession];
+
+	if (session == nil) {
+		work();
+		return;
+	}
+	[[session fnDelegateQueue] addOperationWithBlock:^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+		work();
+		[pool release];
+	}];
+}
+
+- (void)cancel
+{
+	[self fnCloseSocket];
+	[super cancel];
+}
+
+- (void)readDataOfMinLength:(NSUInteger)minBytes
+		  maxLength:(NSUInteger)maxBytes
+		    timeout:(NSTimeInterval)timeout
+	  completionHandler:(void (^)(NSData *, BOOL, NSError *))completionHandler
+{
+	[_ioQueue addOperationWithBlock:^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		NSMutableData *data = [NSMutableData data];
+		NSError *error = nil;
+		BOOL atEOF = NO;
+		NSData *answer;
+
+		[self fnReadMin:minBytes max:maxBytes timeout:timeout data:data error:&error atEOF:&atEOF];
+		answer = [[data copy] autorelease];
+		[self fnDeliverStreamWork:^{
+			completionHandler(answer, atEOF, error);
+		}];
+		[error retain];
+		[pool release];
+		[error release];
+	}];
+}
+
+- (void)fnReadMin:(NSUInteger)minBytes
+	      max:(NSUInteger)maxBytes
+	  timeout:(NSTimeInterval)timeout
+	     data:(NSMutableData *)data
+	    error:(NSError **)outError
+	    atEOF:(BOOL *)outEOF
+{
+	NSTimeInterval deadline = (timeout > 0 ? [NSDate timeIntervalSinceReferenceDate] + timeout : 0);
+	char buffer[4096];
+	BOOL first = YES;
+
+	while (first || [data length] < minBytes) {
+		NSUInteger room = maxBytes - [data length];
+		NSTimeInterval remaining = 0;
+		ssize_t got;
+
+		if (room == 0) {
+			break;
+		}
+		if (deadline > 0) {
+			remaining = deadline - [NSDate timeIntervalSinceReferenceDate];
+			if (remaining <= 0) {
+				*outError = fn_url_error(NSURLErrorTimedOut, @"the read timed out");
+				return;
+			}
+		}
+		if (fn_stream_wait(_socket, NO, remaining) <= 0) {
+			*outError = fn_url_error(NSURLErrorTimedOut, @"the read timed out");
+			return;
+		}
+		got = read(_socket, buffer, MIN(room, sizeof buffer));
+		if (got < 0) {
+			*outError = fn_url_error(NSURLErrorNetworkConnectionLost, @"the stream read failed");
+			return;
+		}
+		if (got == 0) {
+			*outEOF = YES;
+			return;
+		}
+		[data appendBytes:buffer length:(NSUInteger)got];
+		first = NO;
+	}
+}
+
+- (void)writeData:(NSData *)data timeout:(NSTimeInterval)timeout completionHandler:(void (^)(NSError *))completionHandler
+{
+	[_ioQueue addOperationWithBlock:^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		NSError *error = [self fnWriteAll:data timeout:timeout];
+
+		[error retain];
+		[self fnDeliverStreamWork:^{
+			completionHandler(error);
+		}];
+		[error release];
+		[pool release];
+	}];
+}
+
+- (NSError *)fnWriteAll:(NSData *)data timeout:(NSTimeInterval)timeout
+{
+	const char *bytes = (const char *)[data bytes];
+	NSUInteger total = [data length];
+	NSUInteger sent = 0;
+	NSTimeInterval deadline = (timeout > 0 ? [NSDate timeIntervalSinceReferenceDate] + timeout : 0);
+
+	while (sent < total) {
+		NSTimeInterval remaining = 0;
+		ssize_t wrote;
+
+		if (deadline > 0) {
+			remaining = deadline - [NSDate timeIntervalSinceReferenceDate];
+			if (remaining <= 0) {
+				return fn_url_error(NSURLErrorTimedOut, @"the write timed out");
+			}
+		}
+		if (fn_stream_wait(_socket, YES, remaining) <= 0) {
+			return fn_url_error(NSURLErrorTimedOut, @"the write timed out");
+		}
+		wrote = write(_socket, bytes + sent, total - sent);
+		if (wrote <= 0) {
+			return fn_url_error(NSURLErrorNetworkConnectionLost, @"the stream write failed");
+		}
+		sent += (NSUInteger)wrote;
+	}
+	return nil;
+}
+
+- (void)closeRead
+{
+	[_ioQueue addOperationWithBlock:^{
+		if (_socket >= 0) {
+			shutdown(_socket, SHUT_RD);
+		}
+		_readClosed = 1;
+		[self fnNotifyStreamSelector:@selector(URLSession:readClosedForStreamTask:)];
+	}];
+}
+
+- (void)closeWrite
+{
+	[_ioQueue addOperationWithBlock:^{
+		if (_socket >= 0) {
+			shutdown(_socket, SHUT_WR);
+		}
+		_writeClosed = 1;
+		[self fnNotifyStreamSelector:@selector(URLSession:writeClosedForStreamTask:)];
+	}];
+}
+
+- (void)fnNotifyStreamSelector:(SEL)selector
+{
+	NSURLSession *session = [self fnSession];
+
+	[session fnSendToDelegate:selector
+			    block:^(id delegate) {
+		if (selector == @selector(URLSession:readClosedForStreamTask:)) {
+			[delegate URLSession:session readClosedForStreamTask:self];
+		} else {
+			[delegate URLSession:session writeClosedForStreamTask:self];
+		}
+	}];
+}
+
+- (void)captureStreams
+{
+	[_ioQueue addOperationWithBlock:^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		NSURLSession *session = [self fnSession];
+		NSInputStream *input;
+		NSOutputStream *output;
+		int inFD, outFD;
+
+		if (_socket < 0) {
+			[self fnFinishWithError:fn_url_error(NSURLErrorNetworkConnectionLost, @"the stream is not connected")];
+			[pool release];
+			return;
+		}
+		/* TWO DUPLICATES, because each stream closes what it owns and both ends are the SAME connection. */
+		inFD = dup(_socket);
+		outFD = dup(_socket);
+		if (inFD < 0 || outFD < 0) {
+			if (inFD >= 0) {
+				close(inFD);
+			}
+			if (outFD >= 0) {
+				close(outFD);
+			}
+			[self fnFinishWithError:fn_url_error(NSURLErrorNetworkConnectionLost, @"the socket could not be split")];
+			[pool release];
+			return;
+		}
+		input = [[[NSInputStream alloc] fnInitWithSocketDescriptor:inFD] autorelease];
+		output = [[[NSOutputStream alloc] fnInitWithSocketDescriptor:outFD] autorelease];
+		[self fnCloseSocket];
+		[session fnSendToDelegate:@selector(URLSession:streamTask:didBecomeInputStream:outputStream:)
+				    block:^(id delegate) {
+			[delegate URLSession:session streamTask:self didBecomeInputStream:input outputStream:output];
+		}];
+		[super fnFinishWithError:nil];	/* "the task is considered complete" once the streams are handed over */
+		[pool release];
+	}];
+}
+
+- (void)startSecureConnection
+{
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSessionStreamTask startSecureConnection] has no handshake to start; "
+			"this tree's TLS is libcurl's HTTP transfer, not a raw stream\n");
+}
+
+- (void)stopSecureConnection
+{
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSessionStreamTask stopSecureConnection] has no secure connection to "
+			"stop; this tree's TLS is libcurl's HTTP transfer, not a raw stream\n");
+}
+
+@end
+
+/* ===================================================================================================
+ * THE TASK-SCOPED CATEGORIES
+ * =================================================================================================== */
+
+@implementation NSURLCache (NSURLSessionTaskAdditions)
+
+- (void)getCachedResponseForDataTask:(NSURLSessionDataTask *)dataTask
+		   completionHandler:(void (^)(NSCachedURLResponse *))completionHandler
+{
+	NSURLSession *session = [(NSURLSessionTask *)dataTask fnSession];
+	NSCachedURLResponse *cached = [self cachedResponseForRequest:[dataTask currentRequest]];
+
+	if (session == nil) {
+		completionHandler(cached);
+		return;
+	}
+	[[session fnDelegateQueue] addOperationWithBlock:^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+		completionHandler(cached);
+		[pool release];
+	}];
+}
+
+- (void)storeCachedResponse:(NSCachedURLResponse *)cachedResponse forDataTask:(NSURLSessionDataTask *)dataTask
+{
+	[self storeCachedResponse:cachedResponse forRequest:[dataTask currentRequest]];
+}
+
+- (void)removeCachedResponseForDataTask:(NSURLSessionDataTask *)dataTask
+{
+	[self removeCachedResponseForRequest:[dataTask currentRequest]];
+}
+
+@end
+
+/* THE TASK'S OWN CREDENTIALS: keyed by the protection space's identity, held on the TASK, and never written through to
+ * the shared store. Apple's category exists for exactly that isolation. */
+
+static NSString *fn_protection_space_key(NSURLProtectionSpace *space)
+{
+	return [NSString stringWithFormat:@"%@|%@|%ld|%@", [space protocol], [space host], (long)[space port],
+					 [space realm] != nil ? [space realm] : @""];
+}
+
+@implementation NSURLCredentialStorage (NSURLSessionTaskAdditions)
+
+- (void)getCredentialsForProtectionSpace:(NSURLProtectionSpace *)protectionSpace
+				    task:(NSURLSessionTask *)task
+		       completionHandler:(void (^)(NSDictionary *))completionHandler
+{
+	NSURLSession *session = [task fnSession];
+	NSDictionary *stored = [[task fnScopedCredentials] objectForKey:fn_protection_space_key(protectionSpace)];
+	NSDictionary *answer = [[stored copy] autorelease];
+
+	if (session == nil) {
+		completionHandler(answer);
+		return;
+	}
+	[[session fnDelegateQueue] addOperationWithBlock:^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+		completionHandler(answer);
+		[pool release];
+	}];
+}
+
+- (void)getDefaultCredentialForProtectionSpace:(NSURLProtectionSpace *)space
+					  task:(NSURLSessionTask *)task
+			     completionHandler:(void (^)(NSURLCredential *))completionHandler
+{
+	NSURLSession *session = [task fnSession];
+	NSMutableDictionary *store = [task fnScopedCredentials];
+	NSURLCredential *answer = [[[store objectForKey:
+		[fn_protection_space_key(space) stringByAppendingString:@"|default"]] retain] autorelease];
+
+	if (session == nil) {
+		completionHandler(answer);
+		return;
+	}
+	[[session fnDelegateQueue] addOperationWithBlock:^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+		completionHandler(answer);
+		[pool release];
+	}];
+}
+
+- (void)setCredential:(NSURLCredential *)credential
+   forProtectionSpace:(NSURLProtectionSpace *)protectionSpace
+		 task:(NSURLSessionTask *)task
+{
+	NSMutableDictionary *store = [task fnScopedCredentials];
+	NSMutableDictionary *forSpace;
+
+	if (credential == nil) {
+		[store removeObjectForKey:fn_protection_space_key(protectionSpace)];
+		return;
+	}
+	forSpace = [store objectForKey:fn_protection_space_key(protectionSpace)];
+	if (forSpace == nil) {
+		forSpace = [NSMutableDictionary dictionary];
+		[store setObject:forSpace forKey:fn_protection_space_key(protectionSpace)];
+	}
+	[forSpace setObject:credential forKey:[credential user] != nil ? [credential user] : @""];
+}
+
+- (void)setDefaultCredential:(NSURLCredential *)credential
+	  forProtectionSpace:(NSURLProtectionSpace *)protectionSpace
+			task:(NSURLSessionTask *)task
+{
+	NSMutableDictionary *store = [task fnScopedCredentials];
+	NSString *key = [fn_protection_space_key(protectionSpace) stringByAppendingString:@"|default"];
+
+	if (credential == nil) {
+		[store removeObjectForKey:key];
+	} else {
+		[store setObject:credential forKey:key];
+	}
+}
+
+@end
+
+@implementation NSHTTPCookieStorage (NSURLSessionTaskAdditions)
+
+- (void)getCookiesForTask:(NSURLSessionTask *)task completionHandler:(void (^)(NSArray *))completionHandler
+{
+	NSURLSession *session = [task fnSession];
+	NSArray *answer = [self cookiesForURL:[[task currentRequest] URL]];
+
+	if (session == nil) {
+		completionHandler(answer);
+		return;
+	}
+	[[session fnDelegateQueue] addOperationWithBlock:^{
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+		completionHandler(answer);
+		[pool release];
+	}];
+}
+
+- (void)storeCookies:(NSArray *)cookies forTask:(NSURLSessionTask *)task
+{
+	[self setCookies:cookies forURL:[[task currentRequest] URL] mainDocumentURL:nil];
+}
+
++ (NSHTTPCookieStorage *)sharedCookieStorageForGroupContainerIdentifier:(NSString *)identifier
+{
+	/* NO APP GROUPS ON THIS SYSTEM, and a store that answered the shared one would leak cookies between containers.
+	 * The refusal is the honest answer; a caller with a container has no container here. */
+	(void)identifier;
+	fprintf(stderr, "FOUNDATION-REFUSE: +[NSHTTPCookieStorage sharedCookieStorageForGroupContainerIdentifier:] has no "
+			"app-group container on this system\n");
+	return nil;
+}
+
+@end
+
+@implementation NSURLProtocol (NSURLSessionTaskAdditions)
+
++ (BOOL)canInitWithTask:(NSURLSessionTask *)task
+{
+	/* APPLE'S OWN DEFAULT: a task is claimed when its request is. */
+	return [self canInitWithRequest:[task currentRequest]];
+}
+
+- (instancetype)initWithTask:(NSURLSessionTask *)task
+	      cachedResponse:(NSCachedURLResponse *)cachedResponse
+		      client:(id<NSURLProtocolClient>)client
+{
+	self = [self initWithRequest:[task currentRequest] cachedResponse:cachedResponse client:client];
+	if (self != nil) {
+		_task = task;		/* NOT retained: the task owns the protocol instance */
+	}
+	return self;
+}
+
+- (NSURLSessionTask *)task
+{
+	return (NSURLSessionTask *)_task;
 }
 
 @end

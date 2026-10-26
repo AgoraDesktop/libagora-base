@@ -177,6 +177,39 @@ static void *server_main(void *context)
 	return NULL;
 }
 
+static void *echo_stream_server(void *context)
+{
+	struct server_job *job = (struct server_job *)context;
+	char buffer[16];
+	ssize_t got;
+	int client = accept(job->listener.fd, NULL, NULL);
+
+	if (client >= 0) {
+		got = read(client, buffer, job->delay_ms > 0 ? (size_t)job->delay_ms : 4);
+		if (got > 0) {
+			(void)write(client, "pong", 4);
+		}
+		close(client);
+	}
+	close(job->listener.fd);
+	return NULL;
+}
+
+/* A GREETER WRITES AND CLOSES WITHOUT READING, which is what a capture test needs: the task hands its socket over
+ * without sending anything, and the server must not be left blocked in read(2) when the test joins its thread. */
+static void *greeting_stream_server(void *context)
+{
+	struct server_job *job = (struct server_job *)context;
+	int client = accept(job->listener.fd, NULL, NULL);
+
+	if (client >= 0) {
+		(void)write(client, "pong", 4);
+		close(client);
+	}
+	close(job->listener.fd);
+	return NULL;
+}
+
 static void job_start(struct server_job *job, const char *response, int delay_ms, size_t capture)
 {
 	memset(job, 0, sizeof *job);
@@ -209,6 +242,9 @@ static void job_start(struct server_job *job, const char *response, int delay_ms
 	NSURL *finishedLocation;
 	NSData *finishedContents;
 	int64_t lastWrittenTotal;
+	NSInputStream *capturedInput;
+	NSOutputStream *capturedOutput;
+	BOOL readClosedCalled, writeClosedCalled;
 	fn_event *done;
 }
 @end
@@ -286,6 +322,26 @@ totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
 	lastWrittenTotal = totalBytesWritten;
 }
 
+- (void)URLSession:(NSURLSession *)session
+	streamTask:(NSURLSessionStreamTask *)streamTask
+didBecomeInputStream:(NSInputStream *)inputStream
+      outputStream:(NSOutputStream *)outputStream
+{
+	capturedInput = [inputStream retain];
+	capturedOutput = [outputStream retain];
+	event_fire(done);
+}
+
+- (void)URLSession:(NSURLSession *)session readClosedForStreamTask:(NSURLSessionStreamTask *)streamTask
+{
+	readClosedCalled = YES;
+}
+
+- (void)URLSession:(NSURLSession *)session writeClosedForStreamTask:(NSURLSessionStreamTask *)streamTask
+{
+	writeClosedCalled = YES;
+}
+
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
 {
 	completionCalls++;
@@ -298,6 +354,8 @@ totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
 	[body release];
 	[finishedLocation release];
 	[finishedContents release];
+	[capturedInput release];
+	[capturedOutput release];
 	[responseHead release];
 	[redirectResponse release];
 	[completionError release];
@@ -922,6 +980,208 @@ int main(void)
 		[session finishTasksAndInvalidate];
 		pthread_join(thread, NULL);
 		event_destroy(&listed);
+	}
+
+	/* 15. A STREAM TASK: a write and a read over a connected socket, in the order they were asked for. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		NSURLSession *session;
+		NSURLSessionStreamTask *task;
+		__block fn_event wrote, readBack;
+		__block NSError *writeError = nil;
+		__block NSData *readData = nil;
+		__block NSError *readError = nil;
+
+		event_init(&wrote);
+		event_init(&readBack);
+		job_start(&job, NULL, 4, 0);
+		check(make_listener(&job.listener) == 0, "the stream listener bound a port");
+		pthread_create(&thread, NULL, echo_stream_server, &job);
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:nil
+						   delegateQueue:nil];
+		task = [session streamTaskWithHostName:@"127.0.0.1" port:job.listener.port];
+		check(task != nil && [task isKindOfClass:[NSURLSessionStreamTask class]], "a stream task is made");
+		[task resume];
+		usleep(100 * 1000);
+		[task writeData:[@"ping" dataUsingEncoding:NSUTF8StringEncoding] timeout:5.0
+	     completionHandler:^(NSError *e) {
+			writeError = [e retain];
+			event_fire(&wrote);
+		}];
+		check(event_wait(&wrote, 10), "the write completes");
+		check(writeError == nil, "without error");
+		[task readDataOfMinLength:4 maxLength:4 timeout:5.0
+		completionHandler:^(NSData *d, BOOL atEOF, NSError *e) {
+			(void)atEOF;
+			readData = [d retain];
+			readError = [e retain];
+			event_fire(&readBack);
+		}];
+		check(event_wait(&readBack, 10), "the read completes");
+		pthread_join(thread, NULL);
+		check(readError == nil && readData != nil &&
+		      [[[[NSString alloc] initWithData:readData encoding:NSUTF8StringEncoding] autorelease]
+			isEqualToString:@"pong"], "and answers the server's bytes");
+		[task cancel];
+		[readData release];
+		[readError release];
+		[writeError release];
+		event_destroy(&wrote);
+		event_destroy(&readBack);
+	}
+
+	/* 16. captureStreams: the socket becomes a stream pair, handed to the delegate, and the task completes. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		RecordingDelegate *delegate;
+		NSOperationQueue *queue;
+		NSURLSession *session;
+		NSURLSessionStreamTask *task;
+		__block fn_event handed;
+
+		event_init(&handed);
+		job_start(&job, NULL, 4, 0);
+		check(make_listener(&job.listener) == 0, "the capture listener bound a port");
+		pthread_create(&thread, NULL, greeting_stream_server, &job);
+		delegate = [[RecordingDelegate alloc] init];
+		delegate->done = &handed;
+		queue = [[NSOperationQueue alloc] init];
+		[queue setMaxConcurrentOperationCount:1];
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:delegate
+						   delegateQueue:queue];
+		task = [session streamTaskWithHostName:@"127.0.0.1" port:job.listener.port];
+		[task resume];
+		usleep(100 * 1000);
+		[task captureStreams];
+		check(event_wait(&handed, 10), "the capture hands the streams over");
+		pthread_join(thread, NULL);
+		check(delegate->capturedInput != nil && delegate->capturedOutput != nil,
+		      "both streams are real");
+		{
+			uint8_t buffer[8];
+			NSInteger got;
+
+			[delegate->capturedInput open];
+			got = [delegate->capturedInput read:buffer maxLength:4];
+			check(got == 4 && memcmp(buffer, "pong", 4) == 0,
+			      "and the input stream reads the bytes the server sent over the captured socket");
+			[delegate->capturedInput close];
+		}
+		check([task state] == NSURLSessionTaskStateCompleted, "and the task is complete once they are handed over");
+		[session finishTasksAndInvalidate];
+		[delegate release];
+		[queue release];
+		event_destroy(&handed);
+	}
+
+	/* 17. THE TASK-SCOPED CACHE: store, get and remove through the task doors. */
+	{
+		NSURLCache *cache = [NSURLCache sharedURLCache];
+		NSURLSessionDataTask *task = [[NSURLSession sharedSession]
+			dataTaskWithURL:[NSURL URLWithString:@"http://127.0.0.1:1/cached"]];
+		NSURLResponse *response = [[[NSURLResponse alloc] initWithURL:[[task currentRequest] URL]
+								   MIMEType:@"text/plain"
+						      expectedContentLength:2
+							   textEncodingName:nil] autorelease];
+		NSCachedURLResponse *cached = [[[NSCachedURLResponse alloc]
+			initWithResponse:response data:[@"hi" dataUsingEncoding:NSUTF8StringEncoding]] autorelease];
+		__block fn_event got, removed;
+		__block NSCachedURLResponse *answer = nil;
+		__block id removedAnswer = (id)0x1;
+
+		event_init(&got);
+		event_init(&removed);
+		[cache storeCachedResponse:cached forDataTask:task];
+		[cache getCachedResponseForDataTask:task completionHandler:^(NSCachedURLResponse *c) {
+			answer = [c retain];
+			event_fire(&got);
+		}];
+		check(event_wait(&got, 10), "the task-scoped cache answers");
+		check(answer != nil && [[answer data] isEqual:[@"hi" dataUsingEncoding:NSUTF8StringEncoding]],
+		      "with the response stored for the task's request");
+		[cache removeCachedResponseForDataTask:task];
+		[cache getCachedResponseForDataTask:task completionHandler:^(NSCachedURLResponse *c) {
+			removedAnswer = c;
+			event_fire(&removed);
+		}];
+		check(event_wait(&removed, 10), "and answers after the removal");
+		check(removedAnswer == nil, "with nothing");
+		[answer release];
+		event_destroy(&got);
+		event_destroy(&removed);
+	}
+
+	/* 18. THE TASK-SCOPED COOKIES, and the group-container refusal. */
+	{
+		NSHTTPCookieStorage *store = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+		NSURLSessionDataTask *task = [[NSURLSession sharedSession]
+			dataTaskWithURL:[NSURL URLWithString:@"http://cookies.example/path"]];
+		NSHTTPCookie *cookie = [NSHTTPCookie cookieWithProperties:
+			[NSDictionary dictionaryWithObjectsAndKeys:
+				@"name", NSHTTPCookieName, @"value", NSHTTPCookieValue,
+				@"/", NSHTTPCookiePath, @"cookies.example", NSHTTPCookieDomain, nil]];
+		__block fn_event got;
+		__block NSArray *answer = nil;
+
+		event_init(&got);
+		[store storeCookies:[NSArray arrayWithObject:cookie] forTask:task];
+		[store getCookiesForTask:task completionHandler:^(NSArray *cookies) {
+			answer = [cookies retain];
+			event_fire(&got);
+		}];
+		check(event_wait(&got, 10), "the task-scoped cookie doors answer");
+		check([answer count] == 1 && [[[answer objectAtIndex:0] name] isEqualToString:@"name"],
+		      "with the cookie stored for the task's URL");
+		check([NSHTTPCookieStorage sharedCookieStorageForGroupContainerIdentifier:@"group.example"] == nil,
+		      "the group-container store is refused by name");
+		[answer release];
+		event_destroy(&got);
+	}
+
+	/* 19. THE TASK-SCOPED CREDENTIALS: visible to the task, invisible to the shared store. */
+	{
+		NSURLCredentialStorage *storage = [NSURLCredentialStorage sharedCredentialStorage];
+		NSURLSessionDataTask *task = [[NSURLSession sharedSession]
+			dataTaskWithURL:[NSURL URLWithString:@"http://auth.example/"]];
+		NSURLProtectionSpace *space = [[[NSURLProtectionSpace alloc] initWithHost:@"auth.example"
+										    port:80
+										protocol:@"http"
+										   realm:@"realm"
+									  authenticationMethod:NSURLAuthenticationMethodHTTPBasic] autorelease];
+		NSURLCredential *credential = [NSURLCredential credentialWithUser:@"user"
+									 password:@"secret"
+								      persistence:NSURLCredentialPersistenceNone];
+		__block fn_event got;
+		__block NSDictionary *answer = nil;
+
+		event_init(&got);
+		[storage setCredential:credential forProtectionSpace:space task:task];
+		[storage getCredentialsForProtectionSpace:space task:task completionHandler:^(NSDictionary *credentials) {
+			answer = [credentials retain];
+			event_fire(&got);
+		}];
+		check(event_wait(&got, 10), "the task-scoped credential doors answer");
+		check([answer count] == 1, "with the credential set for the task");
+		check([[storage allCredentials] objectForKey:space] == nil,
+		      "and the shared store did not learn it");
+		[answer release];
+		event_destroy(&got);
+	}
+
+	/* 20. THE PROTOCOL'S TASK DOORS: the loader's own protocol answers them. */
+	{
+		NSURLSessionDataTask *task = [[NSURLSession sharedSession]
+			dataTaskWithURL:[NSURL URLWithString:@"http://127.0.0.1:1/protocol"]];
+		FNCURLURLProtocol *protocol;
+
+		check([FNCURLURLProtocol canInitWithTask:task], "the transport claims the task's request");
+		protocol = [[FNCURLURLProtocol alloc] initWithTask:task cachedResponse:nil client:nil];
+		check(protocol != nil && [protocol task] == task, "and an instance made for the task answers -task");
+		[protocol release];
 	}
 
 	printf("foundation_10_11_url_session: %d of %d cases passed, %d failed\n", g_pass, g_pass + g_fail, g_fail);

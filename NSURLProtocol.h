@@ -188,6 +188,7 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend;
 	NSURLRequest *_request;
 	NSCachedURLResponse *_cachedResponse;
 	id <NSURLProtocolClient> _client;
+	id _task;			/* the task this instance was made for, or nil (NSURLSessionTaskAdditions) */
 }
 
 /* --- THE OVERRIDE POINTS: a subclass answers YES for the requests it handles, and may canonicalise one

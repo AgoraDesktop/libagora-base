@@ -41,6 +41,10 @@
 #import <Foundation/NSURLSessionConfiguration.h>
 #import <Foundation/NSURLRequest.h>
 #import <Foundation/NSURLResponse.h>
+#import <Foundation/NSURLCache.h>
+#import <Foundation/NSHTTPCookieStorage.h>
+#import <Foundation/NSURLCredentialStorage.h>
+#import <Foundation/NSURLProtocol.h>
 
 @class NSCachedURLResponse;
 @class NSArray;
@@ -49,6 +53,7 @@
 @class NSHTTPURLResponse;
 @class NSInputStream;
 @class NSMutableData;
+@class NSNetService;
 @class NSOutputStream;
 @class NSOperationQueue;
 @class NSURLAuthenticationChallenge;
@@ -215,6 +220,7 @@ NS_CLASS_AVAILABLE_MAC(NSURLSESSION_AVAILABLE)
 	NSMutableData *_receivedData;
 	NSMutableArray *_heldData;	/* chunks that arrived while a response disposition was pending */
 	id _completionHandler;		/* the convenience door's block, if this task was made with one */
+	id _taskScopedCredentials;	/* NSMutableDictionary, made on first use by the credential category */
 }
 
 @property (readonly) NSUInteger taskIdentifier;
@@ -262,6 +268,35 @@ NS_CLASS_AVAILABLE_MAC(10_10)
  * re-attach), and this tree's engine has no resumable transfer. The handler is still CALLED, with nil, so a caller is
  * not left waiting; the task is then cancelled. */
 - (void)cancelByProducingResumeData:(void (^ _Nullable)(NSData * _Nullable resumeData))completionHandler;
+@end
+
+/* A STREAM TASK OWNS A CONNECTED SOCKET and answers reads and writes over it. The reads and writes are QUEUED and
+ * executed serially, which is Apple's contract; a read's timeout is the longest it waits for bytes. The two TLS doors
+ * refuse by name: this tree's TLS lives in libcurl's HTTP transfer, not in a raw stream, so there is no handshake to
+ * start or stop here. */
+NS_CLASS_AVAILABLE_MAC(10_11)
+@interface NSURLSessionStreamTask : NSURLSessionTask
+{
+@private
+	NSString *_hostName;
+	NSInteger _port;
+	int _socket;
+	signed char _readClosed;
+	signed char _writeClosed;
+	id _ioQueue;			/* NSOperationQueue, serial: the order reads and writes were asked in */
+}
+- (void)readDataOfMinLength:(NSUInteger)minBytes
+		  maxLength:(NSUInteger)maxBytes
+		    timeout:(NSTimeInterval)timeout
+	  completionHandler:(void (^)(NSData * _Nullable data, BOOL atEOF, NSError * _Nullable error))completionHandler;
+- (void)writeData:(NSData *)data
+	  timeout:(NSTimeInterval)timeout
+completionHandler:(void (^)(NSError * _Nullable error))completionHandler;
+- (void)captureStreams;
+- (void)closeRead;
+- (void)closeWrite;
+- (void)startSecureConnection;
+- (void)stopSecureConnection;
 @end
 
 /* ---- the session ------------------------------------------------------------- */
@@ -350,6 +385,59 @@ NS_CLASS_AVAILABLE_MAC(NSURLSESSION_AVAILABLE)
 					       completionHandler:(void (^)(NSURL * _Nullable location,
 									   NSURLResponse * _Nullable response,
 									   NSError * _Nullable error))completionHandler;
+
+/* STREAMS. The `NSNetService` form uses the service's already-resolved host when it has one; a service that has not
+ * been resolved refuses by name, because resolving it needs a run loop and a session factory cannot block on one. */
+- (nullable NSURLSessionStreamTask *)streamTaskWithHostName:(NSString *)hostname port:(NSInteger)port NS_AVAILABLE_MAC(10_11);
+- (nullable NSURLSessionStreamTask *)streamTaskWithNetService:(NSNetService *)service NS_AVAILABLE_MAC(10_11);
+@end
+
+/* ---- THE TASK-SCOPED CATEGORIES, where Apple declares them -------------------- */
+
+/* A CACHE ANSWER FOR ONE TASK: the request is the task's, and the completion handler runs on the session's delegate
+ * queue, which is why these doors live beside the session rather than in NSURLCache's own header. */
+@interface NSURLCache (NSURLSessionTaskAdditions)
+- (void)getCachedResponseForDataTask:(NSURLSessionDataTask *)dataTask
+		   completionHandler:(void (^)(NSCachedURLResponse * _Nullable cachedResponse))completionHandler NS_AVAILABLE_MAC(10_10);
+- (void)storeCachedResponse:(NSCachedURLResponse *)cachedResponse forDataTask:(NSURLSessionDataTask *)dataTask NS_AVAILABLE_MAC(10_10);
+- (void)removeCachedResponseForDataTask:(NSURLSessionDataTask *)dataTask NS_AVAILABLE_MAC(10_10);
+@end
+
+/* PER-TASK CREDENTIALS: a credential set here belongs to the task alone and never reaches the shared store, which is the
+ * difference between this category and the class's own doors. */
+@interface NSURLCredentialStorage (NSURLSessionTaskAdditions)
+- (void)getCredentialsForProtectionSpace:(NSURLProtectionSpace *)protectionSpace
+				    task:(NSURLSessionTask *)task
+		       completionHandler:(void (^)(NSDictionary * _Nullable credentials))completionHandler NS_AVAILABLE_MAC(10_10);
+- (void)getDefaultCredentialForProtectionSpace:(NSURLProtectionSpace *)space
+					  task:(NSURLSessionTask *)task
+			     completionHandler:(void (^)(NSURLCredential * _Nullable credential))completionHandler NS_AVAILABLE_MAC(10_10);
+- (void)setCredential:(NSURLCredential *)credential
+   forProtectionSpace:(NSURLProtectionSpace *)protectionSpace
+		 task:(NSURLSessionTask *)task NS_AVAILABLE_MAC(10_10);
+- (void)setDefaultCredential:(NSURLCredential *)credential
+	  forProtectionSpace:(NSURLProtectionSpace *)protectionSpace
+			task:(NSURLSessionTask *)task NS_AVAILABLE_MAC(10_10);
+@end
+
+/* COOKIES FOR A TASK: the task's URL is the question, and the store's own URL-based doors are the answer. The
+ * group-container factory refuses by name — this system has no app groups, and a store that shared one would leak
+ * cookies between them. */
+@interface NSHTTPCookieStorage (NSURLSessionTaskAdditions)
+- (void)getCookiesForTask:(NSURLSessionTask *)task
+	completionHandler:(void (^)(NSArray * _Nullable cookies))completionHandler NS_AVAILABLE_MAC(10_10);
+- (void)storeCookies:(NSArray *)cookies forTask:(NSURLSessionTask *)task NS_AVAILABLE_MAC(10_10);
++ (nullable NSHTTPCookieStorage *)sharedCookieStorageForGroupContainerIdentifier:(NSString *)identifier NS_AVAILABLE_MAC(10_11);
+@end
+
+/* AND THE PROTOCOL'S TASK DOORS. `+canInitWithTask:` defaults to the request-based door (Apple's own default), and
+ * `-task` answers the task the protocol instance was made for. */
+@interface NSURLProtocol (NSURLSessionTaskAdditions)
++ (BOOL)canInitWithTask:(NSURLSessionTask *)task NS_AVAILABLE_MAC(10_10);
+- (instancetype)initWithTask:(NSURLSessionTask *)task
+	      cachedResponse:(nullable NSCachedURLResponse *)cachedResponse
+		      client:(nullable id<NSURLProtocolClient>)client NS_AVAILABLE_MAC(10_10);
+@property (nullable, readonly, retain) NSURLSessionTask *task NS_AVAILABLE_MAC(10_10);
 @end
 
 NS_ASSUME_NONNULL_END

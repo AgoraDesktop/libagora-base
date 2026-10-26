@@ -74,9 +74,13 @@
 # the session's own doors 18 -> 29, and `selectors-missing` 112 -> 101: the download/upload half is answered, and only
 # the two stream factories remain missing from this class. `selectors-offered` moves by one — the download task's own
 # `cancelByProducingResumeData:`, which a class that did not exist could not offer.
-classes-missing 15
+# **W3d: `NSURLSessionStreamTask` and the thirteen task-scoped category doors.** classes 204 -> 205, selectors
+# 3,516 -> 3,538, missing 101 -> 86; offered 3,617 -> 3,624 (the stream task's own seven doors). The task-scoped doors
+# also move the four classes' `sel:` lines — NSURLCache 14 -> 17, NSURLCredentialStorage 9 -> 13, NSHTTPCookieStorage
+# 10 -> 13, NSURLProtocol 14 -> 17 — and NSURLSession 29 -> 31 for the two stream factories.
+classes-missing 14
 classes-offered 219
-classes-present 204
+classes-present 205
 fn:NSAllHashTableObjects 1
 fn:NSAllMapTableKeys 1
 fn:NSAllMapTableValues 1
@@ -447,7 +451,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4147
+methods-declared 4169
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -552,7 +556,7 @@ sel:NSFileWrapper 34
 sel:NSFormatter 6
 sel:NSGarbageCollector 10
 sel:NSHTTPCookie 17
-sel:NSHTTPCookieStorage 10
+sel:NSHTTPCookieStorage 13
 sel:NSHTTPURLResponse 4
 sel:NSHashTable 22
 sel:NSHost 12
@@ -651,19 +655,20 @@ sel:NSTimeZone 30
 sel:NSTimer 14
 sel:NSURL 80
 sel:NSURLAuthenticationChallenge 8
-sel:NSURLCache 14
+sel:NSURLCache 17
 sel:NSURLComponents 46
 sel:NSURLConnection 13
 sel:NSURLCredential 12
-sel:NSURLCredentialStorage 9
+sel:NSURLCredentialStorage 13
 sel:NSURLDownload 9
 sel:NSURLHandle 23
 sel:NSURLQueryItem 4
 sel:NSURLProtectionSpace 12
-sel:NSURLProtocol 14
+sel:NSURLProtocol 17
 sel:NSURLRequest 18
 sel:NSURLResponse 6
-sel:NSURLSession 29
+sel:NSURLSession 31
+sel:NSURLSessionStreamTask 7
 sel:NSURLSessionDownloadTask 1
 sel:NSURLSessionTask 17
 sel:NSURLSessionConfiguration 47
@@ -686,6 +691,6 @@ sel:NSXMLNode 51
 sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
 sel:NSProgress 31
-selectors-missing 101
-selectors-offered 3617
-selectors-present 3516
+selectors-missing 86
+selectors-offered 3624
+selectors-present 3538

@@ -97,10 +97,14 @@
 # selector eras the reference carries for it (the deprecated background factory, the identifier factory, the
 # discretionary pair, the shared-container pair and the extended-idle pair). All nine are stated, so candidates and
 # present move together 800 -> 809.
-annotations-candidates 815
+# **W3d: the stream task and the task-scoped categories** add sixteen facts: `NSURLSessionStreamTask` at 10_11, the
+# two stream factories at 10_11, the three `NSHTTPCookieStorage` doors (10_10, 10_11 for the group container, 10_10),
+# the three `NSURLCache` doors (10_10), the four `NSURLCredentialStorage` doors (10_10) and the three `NSURLProtocol`
+# doors (10_10).
+annotations-candidates 831
 annotations-extra 0
 annotations-missing 0
-annotations-present 815
+annotations-present 831
 annotations-wrong 0
 designated-candidates 143
 designated-extra 2
