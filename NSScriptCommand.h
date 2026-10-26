@@ -16,7 +16,9 @@
 
 #import <CoreFoundation/CFBase.h>
 #import <Foundation/NSObject.h>
+#import <Foundation/NSCoding.h>
 
+@class NSCoder;
 @class NSString;
 @class NSArray;
 @class NSDictionary;
@@ -34,7 +36,7 @@ typedef NS_ENUM(NSUInteger, NSSaveOptions) {
 	NSSaveOptionsAsk = 2
 };
 
-@interface NSScriptCommand : NSObject
+@interface NSScriptCommand : NSObject <NSCoding>
 {
 @protected
 	NSScriptCommandDescription *_commandDescription;
@@ -49,6 +51,11 @@ typedef NS_ENUM(NSUInteger, NSSaveOptions) {
 }
 
 - (instancetype)initWithCommandDescription:(NSScriptCommandDescription *)commandDescription NS_DESIGNATED_INITIALIZER;
+/* A COMMAND ARCHIVES, and the coder door is a CONVENIENCE initializer rather than a designated one: Apple's manifest
+ * does not mark it, so it reads the description first and hands it to the designated door, which is the funnel every
+ * other initializer uses. */
+- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (void)encodeWithCoder:(NSCoder *)coder;
 
 + (nullable NSScriptCommand *)currentCommand;
 
@@ -157,6 +164,8 @@ typedef NS_ENUM(NSUInteger, NSSaveOptions) {
 - (nullable instancetype)initWithSuiteName:(NSString *)suiteName
 			       commandName:(NSString *)commandName
 				dictionary:(nullable NSDictionary *)commandDeclaration NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
+- (void)encodeWithCoder:(NSCoder *)coder;
 @property (readonly, copy) NSString *suiteName;
 @property (readonly, copy) NSString *commandName;
 @property (readonly, copy) NSString *commandClassName;

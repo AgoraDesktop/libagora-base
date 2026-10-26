@@ -22,6 +22,7 @@
 #define FOUNDATION_NSSCRIPTWHOSETESTS_H
 
 #import <Foundation/NSObject.h>
+#import <Foundation/NSCoding.h>
 
 @class NSString;
 @class NSArray;
@@ -70,12 +71,16 @@ typedef NS_ENUM(NSUInteger, NSTestComparisonOperation) {
 	NSContainsComparison = 7
 };
 
+@class NSCoder;
 @class NSScriptObjectSpecifier;
 
 /* A QUESTION ABOUT A VALUE. `-isTrue` evaluates it; the base class answers NO, which is the only answer that cannot
- * turn a missing test into a match. */
-@interface NSScriptWhoseTest : NSObject
+ * turn a missing test into a match. It archives: a `whose` clause is part of a stored query as much as of a live one,
+ * and the subclasses below write their own state after the base's (which is none). */
+@interface NSScriptWhoseTest : NSObject <NSCoding>
 - (BOOL)isTrue;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
+- (void)encodeWithCoder:(NSCoder *)coder;
 @end
 
 @interface NSSpecifierTest : NSScriptWhoseTest
@@ -88,6 +93,7 @@ typedef NS_ENUM(NSUInteger, NSTestComparisonOperation) {
 - (instancetype)initWithObjectSpecifier:(nullable NSScriptObjectSpecifier *)objectSpecifier
 		     comparisonOperator:(NSTestComparisonOperation)comparisonOperator
 			     testObject:(nullable id)testObject NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 @end
 
 @interface NSLogicalTest : NSScriptWhoseTest
@@ -99,6 +105,7 @@ typedef NS_ENUM(NSUInteger, NSTestComparisonOperation) {
 - (instancetype)initAndTestWithTests:(NSArray *)subtests NS_DESIGNATED_INITIALIZER;
 - (instancetype)initOrTestWithTests:(NSArray *)subtests NS_DESIGNATED_INITIALIZER;
 - (instancetype)initNotTestWithTest:(NSScriptWhoseTest *)subtest NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 @end
 
 NS_ASSUME_NONNULL_END

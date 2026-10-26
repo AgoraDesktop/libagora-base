@@ -11,8 +11,22 @@
 #import <Foundation/NSArray.h>
 #import <Foundation/NSNumber.h>
 #import <Foundation/NSString.h>
+#import <Foundation/NSCoder.h>
 
 @implementation NSScriptWhoseTest
+
+/* THE BASE HAS NO STATE OF ITS OWN, so its coder pair is the designated funnel and nothing else: a subclass calls
+ * -super here and then writes what IT holds, which is why both doors exist on a class with no fields. */
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	(void)coder;
+	return [super init];
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	(void)coder;
+}
 
 - (BOOL)isTrue
 {
@@ -34,6 +48,26 @@
 		_testObject = [testObject retain];
 	}
 	return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [super initWithCoder:coder];
+	if (self != nil) {
+		_objectSpecifier = [[coder decodeObjectForKey:@"NSObjectSpecifier"] retain];
+		_comparisonOperator = (NSTestComparisonOperation)
+			[coder decodeIntegerForKey:@"NSComparisonOperator"];
+		_testObject = [[coder decodeObjectForKey:@"NSTestObject"] retain];
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[super encodeWithCoder:coder];
+	[coder encodeObject:_objectSpecifier forKey:@"NSObjectSpecifier"];
+	[coder encodeInteger:(NSInteger)_comparisonOperator forKey:@"NSComparisonOperator"];
+	[coder encodeObject:_testObject forKey:@"NSTestObject"];
 }
 
 - (void)dealloc
@@ -120,6 +154,23 @@
 		[self fnSetLogicalType:2 tests:[NSArray arrayWithObject:subtest]];
 	}
 	return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [super initWithCoder:coder];
+	if (self != nil) {
+		_logicalType = [coder decodeIntegerForKey:@"NSLogicalType"];
+		_subtests = [[coder decodeObjectForKey:@"NSSubtests"] copy];
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[super encodeWithCoder:coder];
+	[coder encodeInteger:_logicalType forKey:@"NSLogicalType"];
+	[coder encodeObject:_subtests forKey:@"NSSubtests"];
 }
 
 - (void)dealloc

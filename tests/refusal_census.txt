@@ -20,13 +20,15 @@
 # delivery); NSXPCConnection and NSUserScriptTask carry W5's whole families, which have no backing at all.
 # W6's tail adds the doors that name what this system cannot do even though the class is otherwise real:
 # NSAppleEventDescriptor's send (no AppleEvents transport — the descriptor is data) and NSProgress's publish without the
-# file-URL key that names what it would be published under.
-# total: 52
+# file-URL key that names what it would be published under, and NSDistantObject's two coder doors (a connection cannot be
+# rebuilt from an archive, so a proxy neither writes nor reads one).
+# total: 54
 NSExtension.m 3
 NSURLSession.m 16
 NSUserNotification.m 1
 NSXPCConnection.m 24
 NSUserScriptTask.m 4
 NSAppleEventDescriptor.m 1
+NSDistantObject.m 2
 NSProgress.m 1
 NSProxy.m 2

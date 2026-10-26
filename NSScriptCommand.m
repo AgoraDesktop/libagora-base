@@ -7,6 +7,7 @@
  * NSScriptCommand.m — execution, the nine standard commands, and the suite registries.
  */
 #import <Foundation/NSScriptCommand.h>
+#import <Foundation/NSCoder.h>
 #import <Foundation/NSScriptObjectSpecifiers.h>
 #import <Foundation/NSScriptClassDescription.h>
 #import <Foundation/NSAppleEventDescriptor.h>
@@ -30,6 +31,51 @@ static NSString *const FNCurrentCommandStackKey = @"NSScriptCommandStack";
 		_arguments = [[NSDictionary alloc] init];
 	}
 	return self;
+}
+
+/* THE CODER PAIR. The description is read FIRST and handed to the designated initializer, which is what makes this a
+ * convenience door rather than a second funnel. Everything else a command carries is an object or an integer, so the
+ * archive is the state itself.
+ *
+ * THE STANDARD SUITE'S KEY SPECIFIER travels with the command rather than through a coder door per subclass: the four
+ * commands that have one answer `-keySpecifier`, so the base asks and writes it when the receiver has one, and reads it
+ * back through `-setKeySpecifier:` the same way. That keeps ONE coder pair on the class Apple declares it on, and it
+ * archives the whole command rather than the base's half of it. */
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [self initWithCommandDescription:[coder decodeObjectForKey:@"NSCommandDescription"]];
+	if (self != nil) {
+		_directParameter = [[coder decodeObjectForKey:@"NSDirectParameter"] retain];
+		_receiversSpecifier = [[coder decodeObjectForKey:@"NSReceiversSpecifier"] retain];
+		_arguments = [[coder decodeObjectForKey:@"NSArguments"] copy];
+		_scriptErrorNumber = [coder decodeIntegerForKey:@"NSScriptErrorNumber"];
+		_scriptErrorString = [[coder decodeObjectForKey:@"NSScriptErrorString"] copy];
+		_scriptErrorExpectedTypeDescriptor =
+			[[coder decodeObjectForKey:@"NSScriptErrorExpectedTypeDescriptor"] retain];
+		_scriptErrorOffendingObjectDescriptor =
+			[[coder decodeObjectForKey:@"NSScriptErrorOffendingObjectDescriptor"] retain];
+		if ([self respondsToSelector:@selector(setKeySpecifier:)]) {
+			id specifier = [coder decodeObjectForKey:@"NSKeySpecifier"];
+
+			[self performSelector:@selector(setKeySpecifier:) withObject:specifier];
+		}
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[coder encodeObject:_commandDescription forKey:@"NSCommandDescription"];
+	[coder encodeObject:_directParameter forKey:@"NSDirectParameter"];
+	[coder encodeObject:_receiversSpecifier forKey:@"NSReceiversSpecifier"];
+	[coder encodeObject:_arguments forKey:@"NSArguments"];
+	[coder encodeInteger:_scriptErrorNumber forKey:@"NSScriptErrorNumber"];
+	[coder encodeObject:_scriptErrorString forKey:@"NSScriptErrorString"];
+	[coder encodeObject:_scriptErrorExpectedTypeDescriptor forKey:@"NSScriptErrorExpectedTypeDescriptor"];
+	[coder encodeObject:_scriptErrorOffendingObjectDescriptor forKey:@"NSScriptErrorOffendingObjectDescriptor"];
+	if ([self respondsToSelector:@selector(keySpecifier)]) {
+		[coder encodeObject:[self performSelector:@selector(keySpecifier)] forKey:@"NSKeySpecifier"];
+	}
 }
 
 - (void)dealloc
@@ -369,11 +415,47 @@ FN_KEY_SPECIFIER(NSMoveCommand)
 {
 	self = [super init];
 	if (self != nil) {
-		_suiteName = [suiteName copy];
-		_commandName = [commandName copy];
-		_declaration = [commandDeclaration copy];
+		[self fnAdoptSuiteName:suiteName commandName:commandName declaration:commandDeclaration];
 	}
 	return self;
+}
+
+/* THE DESCRIPTION'S CODER PAIR: the three strings it is made of, written and read back through the designated door so
+ * the declaration's own checks (a suite name, a command name) hold for a decoded one too. */
+/* A DESIGNATED INITIALIZER MAY NOT CHAIN TO ANOTHER ONE ON SELF, so the storage is a plain method both doors call -
+ * the house's own idiom (NSAppleScript's -fnAdoptSource: states it the same way). */
+- (void)fnAdoptSuiteName:(NSString *)suiteName
+	     commandName:(NSString *)commandName
+	      declaration:(NSDictionary *)declaration
+{
+	_suiteName = [suiteName copy];
+	_commandName = [commandName copy];
+	_declaration = [declaration copy];
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	NSString *suiteName = [coder decodeObjectForKey:@"NSSuiteName"];
+	NSString *commandName = [coder decodeObjectForKey:@"NSCommandName"];
+	NSDictionary *declaration = [coder decodeObjectForKey:@"NSCommandDeclaration"];
+
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	if (suiteName == nil || commandName == nil) {
+		[self release];
+		return nil;
+	}
+	[self fnAdoptSuiteName:suiteName commandName:commandName declaration:declaration];
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[coder encodeObject:_suiteName forKey:@"NSSuiteName"];
+	[coder encodeObject:_commandName forKey:@"NSCommandName"];
+	[coder encodeObject:_declaration forKey:@"NSCommandDeclaration"];
 }
 
 - (void)dealloc

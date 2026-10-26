@@ -11,6 +11,7 @@
  * value itself. That one sentence is the model, and every subclass below is a different index rule.
  */
 #import <Foundation/NSScriptObjectSpecifiers.h>
+#import <Foundation/NSCoder.h>
 #import <Foundation/NSScriptWhoseTests.h>
 #import <Foundation/NSScriptClassDescription.h>
 #import <Foundation/NSAppleEventDescriptor.h>
@@ -80,6 +81,44 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 - (instancetype)initWithContainerSpecifier:(NSScriptObjectSpecifier *)container key:(NSString *)property
 {
 	return [self initWithContainerClassDescription:nil containerSpecifier:container key:property];
+}
+
+/* THE CODER PAIR, SHARED BY THE WHOLE FAMILY. The base writes the eight fields every specifier has and each subclass
+ * writes its own below; a subclass's -initWithCoder: calls this one first, which is why this is the designated door.
+ *
+ * THE CONTAINER CLASS DESCRIPTION IS THE BOUNDARY, STATED HERE: it is a registry object with no NSCoding conformance,
+ * so an archive of a specifier that holds one would be an archive with a hole. The writer raises and names it rather
+ * than writing a graph a reader would silently halve. */
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [super init];
+	if (self != nil) {
+		_containerClassDescription = [[coder decodeObjectForKey:@"NSContainerClassDescription"] retain];
+		_containerSpecifier = [[coder decodeObjectForKey:@"NSContainerSpecifier"] retain];
+		_key = [[coder decodeObjectForKey:@"NSPropertyKey"] copy];
+		_childSpecifier = [[coder decodeObjectForKey:@"NSChildSpecifier"] retain];
+		_containerIsObjectBeingTested = [coder decodeBoolForKey:@"NSContainerIsObjectBeingTested"];
+		_containerIsRangeContainerObject = [coder decodeBoolForKey:@"NSContainerIsRangeContainerObject"];
+		_evaluationErrorNumber = [coder decodeIntegerForKey:@"NSEvaluationErrorNumber"];
+		_evaluationErrorSpecifier = [[coder decodeObjectForKey:@"NSEvaluationErrorSpecifier"] retain];
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	if (_containerClassDescription != nil) {
+		[NSException raise:NSInvalidArgumentException
+			    format:@"NSScriptObjectSpecifier: a specifier holding a container class description cannot be "
+				   "archived - a class description is a registry object with no coder"];
+	}
+	[coder encodeObject:_containerSpecifier forKey:@"NSContainerSpecifier"];
+	[coder encodeObject:_key forKey:@"NSPropertyKey"];
+	[coder encodeObject:_childSpecifier forKey:@"NSChildSpecifier"];
+	[coder encodeBool:_containerIsObjectBeingTested forKey:@"NSContainerIsObjectBeingTested"];
+	[coder encodeBool:_containerIsRangeContainerObject forKey:@"NSContainerIsRangeContainerObject"];
+	[coder encodeInteger:_evaluationErrorNumber forKey:@"NSEvaluationErrorNumber"];
+	[coder encodeObject:_evaluationErrorSpecifier forKey:@"NSEvaluationErrorSpecifier"];
 }
 
 - (void)dealloc
@@ -314,6 +353,23 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 - (NSInteger)index { return _index; }
 - (void)setIndex:(NSInteger)index { _index = index; }
 
+/* THE OVERRIDE CLANG ASKS FOR: this class marks a designated initializer, so it must say what the inherited
+ * -initWithCoder: means here - the base's fields, then the index. */
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [super initWithCoder:coder];
+	if (self != nil) {
+		_index = [coder decodeIntegerForKey:@"NSIndex"];
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[super encodeWithCoder:coder];
+	[coder encodeInteger:_index forKey:@"NSIndex"];
+}
+
 /* A NEGATIVE INDEX COUNTS FROM THE END, which is Apple's spelling for "the last one". */
 - (NSArray *)indicesOfObjectsByEvaluatingWithContainer:(id)container count:(NSInteger)count
 {
@@ -354,6 +410,21 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 		_name = [name copy];
 	}
 	return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [super initWithCoder:coder];
+	if (self != nil) {
+		_name = [[coder decodeObjectForKey:@"NSName"] copy];
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[super encodeWithCoder:coder];
+	[coder encodeObject:_name forKey:@"NSName"];
 }
 
 - (void)dealloc { [_name release]; [super dealloc]; }
@@ -411,6 +482,21 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 	return self;
 }
 
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [super initWithCoder:coder];
+	if (self != nil) {
+		_uniqueID = [[coder decodeObjectForKey:@"NSUniqueID"] retain];
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[super encodeWithCoder:coder];
+	[coder encodeObject:_uniqueID forKey:@"NSUniqueID"];
+}
+
 - (void)dealloc { [_uniqueID release]; [super dealloc]; }
 - (id)uniqueID { return _uniqueID; }
 - (void)setUniqueID:(id)value { [value retain]; [_uniqueID release]; _uniqueID = value; }
@@ -452,6 +538,23 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 		_endSpecifier = [endSpecifier retain];
 	}
 	return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [super initWithCoder:coder];
+	if (self != nil) {
+		_startSpecifier = [[coder decodeObjectForKey:@"NSStartSpecifier"] retain];
+		_endSpecifier = [[coder decodeObjectForKey:@"NSEndSpecifier"] retain];
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[super encodeWithCoder:coder];
+	[coder encodeObject:_startSpecifier forKey:@"NSStartSpecifier"];
+	[coder encodeObject:_endSpecifier forKey:@"NSEndSpecifier"];
 }
 
 - (void)dealloc
@@ -544,6 +647,23 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 	return self;
 }
 
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [super initWithCoder:coder];
+	if (self != nil) {
+		_relativePosition = (NSRelativePosition)[coder decodeIntegerForKey:@"NSRelativePosition"];
+		_baseSpecifier = [[coder decodeObjectForKey:@"NSBaseSpecifier"] retain];
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[super encodeWithCoder:coder];
+	[coder encodeInteger:(NSInteger)_relativePosition forKey:@"NSRelativePosition"];
+	[coder encodeObject:_baseSpecifier forKey:@"NSBaseSpecifier"];
+}
+
 - (void)dealloc { [_baseSpecifier release]; [super dealloc]; }
 - (NSRelativePosition)relativePosition { return _relativePosition; }
 - (void)setRelativePosition:(NSRelativePosition)position { _relativePosition = position; }
@@ -620,6 +740,31 @@ static id fn_collection_object(NSArray *collection, NSUInteger index)
 		_test = [test retain];
 	}
 	return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	self = [super initWithCoder:coder];
+	if (self != nil) {
+		_test = [[coder decodeObjectForKey:@"NSTest"] retain];
+		_startSubelementIdentifier = (NSWhoseSubelementIdentifier)
+			[coder decodeIntegerForKey:@"NSStartSubelementIdentifier"];
+		_startSubelementIndex = [coder decodeIntegerForKey:@"NSStartSubelementIndex"];
+		_endSubelementIdentifier = (NSWhoseSubelementIdentifier)
+			[coder decodeIntegerForKey:@"NSEndSubelementIdentifier"];
+		_endSubelementIndex = [coder decodeIntegerForKey:@"NSEndSubelementIndex"];
+	}
+	return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	[super encodeWithCoder:coder];
+	[coder encodeObject:_test forKey:@"NSTest"];
+	[coder encodeInteger:(NSInteger)_startSubelementIdentifier forKey:@"NSStartSubelementIdentifier"];
+	[coder encodeInteger:_startSubelementIndex forKey:@"NSStartSubelementIndex"];
+	[coder encodeInteger:(NSInteger)_endSubelementIdentifier forKey:@"NSEndSubelementIdentifier"];
+	[coder encodeInteger:_endSubelementIndex forKey:@"NSEndSubelementIndex"];
 }
 
 - (void)dealloc { [_test release]; [super dealloc]; }

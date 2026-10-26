@@ -15,7 +15,8 @@
 #import <Foundation/NSInvocation.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSException.h>
-#include <objc/runtime.h>	/* protocol_getMethodDescription: the proxy's own protocol doors */
+#include <objc/runtime.h>
+#include <stdio.h>		/* stdio, for the refusal lines' fprintf */	/* protocol_getMethodDescription: the proxy's own protocol doors */
 
 /* THE CONNECTION'S OWN DOOR, DECLARED HERE AND DEFINED IN NSConnection.m: a proxy sends its invocation and waits,
  * and the waiting belongs to the connection because the run loop does. */
@@ -23,6 +24,13 @@
 - (nullable id)fnSendInvocation:(NSInvocation *)invocation error:(NSString *_Nullable *_Nullable)outError;
 - (BOOL)fnIsService;
 @end
+
+/* NSProxy IS A ROOT CLASS WITH NO INITIALIZER (`objc_root_class`, and no `-init`), so clang's designated-initializer
+ * analysis has no super door to point at: `-initWithCoder:` is designated because Apple marks it so, the three
+ * constructors here initialize this class's own fields, and there is no superclass state to install. The diagnostic is
+ * suppressed for this file alone, with this comment as its reason rather than a blanket silence. */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-designated-initializers"
 
 @implementation NSDistantObject
 
@@ -53,6 +61,38 @@
 	_target = [target retain];		/* nil means "the far side's root object" */
 	_connection = [connection retain];
 	return self;
+}
+
+/* THE CODER DOORS REFUSE BY NAME. A proxy stands for an object at the other end of a connection, and what an archive
+ * would need to carry is the connection - which the per-process name server cannot rebuild (§62.54). Answering nil and
+ * raising is the honest reply; an archive that decoded into a proxy with no transport would be an object that looks
+ * usable and fails at its first call. */
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	(void)coder;
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSDistantObject initWithCoder:] cannot rebuild a proxy; a connection "
+			"cannot be re-established from an archive\n");
+	[self release];
+	return nil;
+}
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+	(void)coder;
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSDistantObject encodeWithCoder:] cannot write a proxy; a connection "
+			"cannot be carried in an archive\n");
+	[NSException raise:NSInvalidArgumentException
+		    format:@"NSDistantObject: a proxy cannot be archived - there is no connection to rebuild from the "
+			   "bytes"];
+}
+
+/* A PROXY'S CODER CLASS IS THE PROXY'S, not the target's: NSProxy is a root class and does not inherit NSObject's
+ * `-classForCoder`, so without this door an archiver asking a proxy would forward the question to the far-side object
+ * and get an answer about another process. Answering from the dynamic class is what lets the archiver name this class and
+ * reach the coder doors above, which refuse with a reason. */
+- (Class)classForCoder
+{
+	return [self class];
 }
 
 - (NSConnection *)connectionForProxy { return _connection; }
@@ -152,3 +192,6 @@
 }
 
 @end
+
+#pragma clang diagnostic pop
+

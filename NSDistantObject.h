@@ -23,22 +23,25 @@
  * far side implements. Without one the proxy answers no signature and the runtime reports an unrecognised selector,
  * which is the honest answer to "call this method I have not described".
  *
- * A PROXY IS NOT ARCHIVABLE HERE. Apple's `+distantObjectWithCoder:` would rebuild one from bytes, and there is
- * nothing in those bytes that could re-establish a connection: the name server is per-process (§62.54), so a
- * connection cannot be rebuilt in another process from a message. The door is NOT DECLARED rather than declared and
- * hollow, and a caller who needs to pass a reference to a remote object passes its NAME and asks the name server.
+ * A PROXY IS NOT ARCHIVABLE HERE, AND THE DOORS SAY SO. Apple declares `<NSCoding>` on this class because its coder
+ * can rebuild a proxy from bytes; there is nothing in those bytes that could re-establish a CONNECTION here, because
+ * the name server is per-process (§62.54). So the conformance is declared (a caller's `-conformsToProtocol:` gets
+ * Apple's answer) and both coder doors REFUSE BY NAME: `-initWithCoder:` answers nil and `-encodeWithCoder:` raises,
+ * rather than writing an archive a reader would decode into a proxy that cannot call. A caller who needs to pass a
+ * reference to a remote object passes its NAME and asks the name server.
  */
 
 #ifndef FOUNDATION_NSDISTANTOBJECT_H
 #define FOUNDATION_NSDISTANTOBJECT_H
 
 #import <Foundation/NSProxy.h>
+#import <Foundation/NSCoding.h>
 
-@class NSConnection, NSString;
+@class NSCoder, NSConnection, NSString;
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface NSDistantObject : NSProxy
+@interface NSDistantObject : NSProxy <NSCoding>
 {
 	NSObject *_target;		/* the LOCAL object this stands for, or nil when it stands for the far one */
 	/* RETAINED, WHICH THIS COMMENT GOT WRONG UNTIL §63.19: it said "not retained: a proxy does not keep its
@@ -67,6 +70,10 @@ NS_ASSUME_NONNULL_BEGIN
  * Nothing is lost - this file's own readers (the -respondsToSelector: and method-signature doors) take the
  * ivar directly, and a caller that wants the protocol is the caller that set it. */
 - (void)setProtocolForProxy:(nullable Protocol *)aProtocol;
+
+/* THE CODER DOORS, DECLARED AND REFUSING (see the header's note): a proxy cannot be rebuilt from bytes here. */
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
+- (void)encodeWithCoder:(NSCoder *)coder;
 
 @end
 

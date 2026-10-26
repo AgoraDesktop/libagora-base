@@ -127,6 +127,13 @@ target_link_libraries(foundation_10_11_tail PRIVATE Foundation CoreFoundation::C
 
 add_test(NAME foundation_10_11_tail COMMAND foundation_10_11_tail)
 
+# THE SCRIPTING FAMILY'S ELEVEN NSCoding CONFORMANCES (W6's last batch): a graph of every specifier kind, a command and
+# its description, and a standard command's key specifier survive an archive; a proxy's coder doors refuse by name.
+add_executable(foundation_10_11_scripting_archive foundation_10_11_scripting_archive.m)
+target_link_libraries(foundation_10_11_scripting_archive PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_scripting_archive COMMAND foundation_10_11_scripting_archive)
+
 # THE NOTIFICATION VALUE, ITS ACTION, AND AN IN-PROCESS CENTRE (10.8-10.10): copied doors, a copy, scheduling state, the
 # delegate consultation, and delivery refusing by name.
 add_executable(foundation_10_11_user_notification foundation_10_11_user_notification.m)

@@ -21,8 +21,10 @@
 
 #import <Foundation/NSObject.h>
 #import <Foundation/NSString.h>
+#import <Foundation/NSCoding.h>
 
 @class NSArray;
+@class NSCoder;
 @class NSScriptClassDescription;
 @class NSAppleEventDescriptor;
 
@@ -51,7 +53,11 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 
 /* ---- THE SPECIFIER TREE ---------------------------------------------------------------------------------------- */
 
-@interface NSScriptObjectSpecifier : NSObject
+/* THE CODER DOOR (§NSCoding). A specifier is a value a document and a script both keep, so it archives: the base class
+ * writes the shared fields and each subclass writes its own below. The CONTAINER CLASS DESCRIPTION is the one field
+ * that cannot be written — it is a registry object with no coder of its own — so a specifier that holds one cannot be
+ * archived, which the base's -encodeWithCoder: says by raising rather than writing half a graph. */
+@interface NSScriptObjectSpecifier : NSObject <NSCoding>
 {
 @protected
 	NSScriptClassDescription *_containerClassDescription;
@@ -69,6 +75,8 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 					    key:(NSString *)property NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithContainerSpecifier:(nullable NSScriptObjectSpecifier *)container
 				       key:(NSString *)property;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
+- (void)encodeWithCoder:(NSCoder *)coder;
 
 @property (nullable, strong) NSScriptClassDescription *containerClassDescription;
 @property (nullable, strong) NSScriptObjectSpecifier *containerSpecifier;
@@ -107,6 +115,9 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 					    key:(NSString *)property
 					  index:(NSInteger)index NS_DESIGNATED_INITIALIZER;
 @property NSInteger index;
+/* DESIGNATED TOO, because this class marks a designated initializer of its own: the inherited coder door has to be
+ * overridden as a designated one, which is what makes it an override rather than a convenience init calling super. */
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 @end
 
 @interface NSNameSpecifier : NSScriptObjectSpecifier
@@ -118,6 +129,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
 					   name:(NSString *)name NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 @property (copy) NSString *name;
 @end
 
@@ -130,6 +142,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
 				       uniqueID:(id)uniqueID NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 @property (strong) id uniqueID;
 @end
 
@@ -144,6 +157,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 					    key:(NSString *)property
 				 startSpecifier:(nullable NSScriptObjectSpecifier *)startSpecifier
 				   endSpecifier:(nullable NSScriptObjectSpecifier *)endSpecifier NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 @property (nullable, strong) NSScriptObjectSpecifier *startSpecifier;
 @property (nullable, strong) NSScriptObjectSpecifier *endSpecifier;
 @end
@@ -159,6 +173,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 					    key:(NSString *)property
 			       relativePosition:(NSRelativePosition)relPos
 				  baseSpecifier:(nullable NSScriptObjectSpecifier *)baseSpecifier NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 @property NSRelativePosition relativePosition;
 @property (nullable, strong) NSScriptObjectSpecifier *baseSpecifier;
 @end
@@ -184,6 +199,7 @@ typedef NS_ENUM(NSUInteger, NSPositioning) {
 			       containerSpecifier:(nullable NSScriptObjectSpecifier *)container
 					    key:(NSString *)property
 					   test:(NSScriptWhoseTest *)test NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 @property (strong) NSScriptWhoseTest *test;
 @property NSWhoseSubelementIdentifier startSubelementIdentifier;
 @property NSInteger startSubelementIndex;

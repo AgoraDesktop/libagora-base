@@ -108,6 +108,11 @@
 # spelled with Apple's `is` prefix, which the ledger asks for), NSNetService 24 -> 26 and NSNetServiceBrowser 9 -> 11
 # (`includesPeerToPeer`), NSXMLParser 18 -> 22 (the external-entity policy and allowed list). Missing 36 -> 11 — only
 # the scripting family's `initWithCoder:` remains; methods-declared 4,339 -> 4,358.
+# **W6g: the eleven NSCoding conformances, and the wave is complete.** Every scripting specifier, the two whose-tests,
+# the command and its description archive their own state; NSDistantObject declares the conformance and BOTH coder
+# doors refuse by name (a connection cannot be rebuilt from an archive). `selectors-missing` 11 -> **0 of 3,744**;
+# methods-declared 4,358 -> 4,376; designated 130/148 -> 140/158 present. The number cluster's 18 designated marks are
+# what remains, and they are W7's.
 classes-missing 0
 classes-offered 219
 classes-present 219
@@ -481,7 +486,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4358
+methods-declared 4376
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -568,7 +573,7 @@ sel:NSDecimalNumberHandler 3
 sel:NSDeleteCommand 2
 sel:NSDictionary 60
 sel:NSDirectoryEnumerator 5
-sel:NSDistantObject 6
+sel:NSDistantObject 7
 sel:NSDistantObjectRequest 4
 sel:NSDistributedLock 6
 sel:NSDistributedNotificationCenter 11
@@ -625,7 +630,7 @@ sel:NSMutableOrderedSet 33
 sel:NSMutableSet 13
 sel:NSMutableString 10
 sel:NSMutableURLRequest 26
-sel:NSNameSpecifier 3
+sel:NSNameSpecifier 4
 sel:NSNetService 26
 sel:NSNetServiceBrowser 11
 sel:NSNotification 8
@@ -655,26 +660,26 @@ sel:NSPropertyListSerialization 7
 sel:NSProtocolChecker 4
 sel:NSProxy 10
 sel:NSQuitCommand 1
-sel:NSRangeSpecifier 5
+sel:NSRangeSpecifier 6
 sel:NSRecursiveLock 4
 sel:NSRegularExpression 15
-sel:NSRelativeSpecifier 5
+sel:NSRelativeSpecifier 6
 sel:NSRunLoop 16
 sel:NSScanner 28
 sel:NSScriptClassDescription 21
 sel:NSScriptCoercionHandler 3
-sel:NSScriptCommand 25
-sel:NSScriptCommandDescription 14
+sel:NSScriptCommand 26
+sel:NSScriptCommandDescription 15
 sel:NSScriptExecutionContext 7
-sel:NSScriptObjectSpecifier 23
+sel:NSScriptObjectSpecifier 24
 sel:NSScriptSuiteRegistry 15
-sel:NSScriptWhoseTest 2
+sel:NSScriptWhoseTest 3
 sel:NSSet 40
 sel:NSSetCommand 2
 sel:NSSocketPort 11
 sel:NSSocketPortNameServer 9
 sel:NSSortDescriptor 14
-sel:NSSpecifierTest 1
+sel:NSSpecifierTest 2
 sel:NSSpellServer 5
 sel:NSStream 13
 sel:NSString 159
@@ -719,13 +724,13 @@ sel:NSUUID 6
 sel:NSUbiquitousKeyValueStore 20
 sel:NSUnarchiver 10
 sel:NSUndoManager 34
-sel:NSUniqueIDSpecifier 3
+sel:NSUniqueIDSpecifier 4
 sel:NSUserActivity 32
 sel:NSUserDefaults 38
 sel:NSUserUnixTask 7
 sel:NSValue 21
 sel:NSValueTransformer 7
-sel:NSWhoseSpecifier 11
+sel:NSWhoseSpecifier 12
 sel:NSXMLDTD 18
 sel:NSXMLDTDNode 12
 sel:NSXMLDocument 32
@@ -734,6 +739,6 @@ sel:NSXMLNode 51
 sel:NSXMLParser 22
 sel:NSByteCountFormatter 20
 sel:NSProgress 36
-selectors-missing 11
+selectors-missing 0
 selectors-offered 3744
-selectors-present 3733
+selectors-present 3744
