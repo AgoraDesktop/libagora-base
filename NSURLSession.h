@@ -206,6 +206,7 @@ NS_CLASS_AVAILABLE_MAC(NSURLSESSION_AVAILABLE)
 	signed char _cancelled;
 	signed char _started;
 	signed char _responsePending;
+	signed char _finishPending;	/* the transport finished while a response disposition was pending */
 	int64_t _bytesReceived;
 	int64_t _bytesSent;
 	int64_t _bytesExpectedToReceive;
@@ -238,6 +239,29 @@ NS_CLASS_AVAILABLE_MAC(NSURLSESSION_AVAILABLE)
  * LATER than the base (10.10), which is the reference's fact and the reason it carries its own era. */
 NS_CLASS_AVAILABLE_MAC(10_10)
 @interface NSURLSessionDataTask : NSURLSessionTask
+@end
+
+/* "An NSURLSessionUploadTask does not currently provide any additional functionality over an NSURLSessionDataTask":
+ * the kind is stated by the subclass so the task lists and the delegate doors can tell an upload from a data task.
+ * Apple annotates neither this class nor the download below (their era is the base's), so neither carries a macro. */
+@interface NSURLSessionUploadTask : NSURLSessionDataTask
+@end
+
+/* A DOWNLOAD'S BODY IS A FILE, and the class owns the three things that makes: the temporary path, the write handle,
+ * and the point at which the file is handed over and then removed (Apple: read or copy it inside the delegate call,
+ * because it is removed when that call returns). */
+@interface NSURLSessionDownloadTask : NSURLSessionTask
+{
+@private
+	NSString *_downloadPath;
+	id _downloadFile;		/* NSFileHandle, while the body is being written */
+	id _downloadCompletion;		/* the convenience door's block: (location, response, error) */
+	signed char _downloadDelivered;
+}
+/* THE RESUME DOOR IS A NAMED REFUSAL: resume data is a platform artefact (an offset into a transfer the system can
+ * re-attach), and this tree's engine has no resumable transfer. The handler is still CALLED, with nil, so a caller is
+ * not left waiting; the task is then cancelled. */
+- (void)cancelByProducingResumeData:(void (^ _Nullable)(NSData * _Nullable resumeData))completionHandler;
 @end
 
 /* ---- the session ------------------------------------------------------------- */
@@ -273,8 +297,8 @@ NS_CLASS_AVAILABLE_MAC(NSURLSESSION_AVAILABLE)
 - (void)invalidateAndCancel;
 - (void)resetWithCompletionHandler:(void (^)(void))completionHandler;
 - (void)flushWithCompletionHandler:(void (^)(void))completionHandler;
-/* The block receives the outstanding tasks of each kind; this slice has only data tasks, so the other two arrays
- * are empty rather than absent. */
+/* The block receives the outstanding tasks of each kind. The three arrays partition the same list: a download is not
+ * also a data task, and an upload is not either even though its class descends from NSURLSessionDataTask. */
 - (void)getTasksWithCompletionHandler:(void (^)(NSArray *dataTasks,
 						NSArray *uploadTasks,
 						NSArray *downloadTasks))completionHandler;
@@ -292,6 +316,40 @@ NS_CLASS_AVAILABLE_MAC(NSURLSESSION_AVAILABLE)
 		       completionHandler:(void (^)(NSData * _Nullable data,
 						   NSURLResponse * _Nullable response,
 						   NSError * _Nullable error))completionHandler;
+
+/* UPLOADS take their body from data or a file; a STREAMED request would need a body-stream read the transport does
+ * not have, so that door refuses by name instead of handing over a task that could never send. */
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request fromData:(nullable NSData *)bodyData;
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request fromFile:(NSURL *)fileURL;
+- (nullable NSURLSessionUploadTask *)uploadTaskWithStreamedRequest:(NSURLRequest *)request;
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request
+					 fromData:(nullable NSData *)bodyData
+				completionHandler:(void (^)(NSData * _Nullable data,
+							    NSURLResponse * _Nullable response,
+							    NSError * _Nullable error))completionHandler;
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request
+					 fromFile:(NSURL *)fileURL
+				completionHandler:(void (^)(NSData * _Nullable data,
+							    NSURLResponse * _Nullable response,
+							    NSError * _Nullable error))completionHandler;
+
+/* DOWNLOADS write the body to a temporary file and hand its URL over; the file is removed when the delegate call or
+ * the completion handler returns. `downloadTaskWithResumeData:` refuses by name (see the class above). */
+- (NSURLSessionDownloadTask *)downloadTaskWithRequest:(NSURLRequest *)request;
+- (NSURLSessionDownloadTask *)downloadTaskWithURL:(NSURL *)url;
+- (nullable NSURLSessionDownloadTask *)downloadTaskWithResumeData:(NSData *)resumeData;
+- (NSURLSessionDownloadTask *)downloadTaskWithRequest:(NSURLRequest *)request
+				    completionHandler:(void (^)(NSURL * _Nullable location,
+								NSURLResponse * _Nullable response,
+								NSError * _Nullable error))completionHandler;
+- (NSURLSessionDownloadTask *)downloadTaskWithURL:(NSURL *)url
+				completionHandler:(void (^)(NSURL * _Nullable location,
+							    NSURLResponse * _Nullable response,
+							    NSError * _Nullable error))completionHandler;
+- (nullable NSURLSessionDownloadTask *)downloadTaskWithResumeData:(NSData *)resumeData
+					       completionHandler:(void (^)(NSURL * _Nullable location,
+									   NSURLResponse * _Nullable response,
+									   NSError * _Nullable error))completionHandler;
 @end
 
 NS_ASSUME_NONNULL_END

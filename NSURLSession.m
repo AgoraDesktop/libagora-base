@@ -38,10 +38,13 @@
 #import <Foundation/NSURLCredentialStorage.h>
 #import <Foundation/NSURLProtectionSpace.h>
 #import <Foundation/NSDate.h>
+#import <Foundation/NSFileManager.h>
+#import <Foundation/NSFileHandle.h>
 #import <Foundation/NSAutoreleasePool.h>
 
 #include <Block.h>		/* Block_copy/Block_release: a block is not owned with a message send */
 #include <stdio.h>		/* the FOUNDATION-REFUSE line */
+#include <unistd.h>		/* getpid: the download file's name */
 
 const int64_t NSURLSessionTransferSizeUnknown = -1LL;
 const float NSURLSessionTaskPriorityDefault = 0.5f;
@@ -67,6 +70,8 @@ static NSError *fn_url_error(NSInteger code, NSString *description)
 - (NSOperationQueue *)fnDelegateQueue;
 - (BOOL)fnDelegateRespondsTo:(SEL)selector;
 - (void)fnSendToDelegate:(SEL)selector block:(void (^)(id delegate))work;
+- (NSURLSessionDownloadTask *)fnDownloadTaskWithRequest:(NSURLRequest *)request
+					    completion:(void (^)(NSURL *, NSURLResponse *, NSError *))completion;
 - (void)fnRegisterTask:(NSURLSessionTask *)task;
 - (void)fnTaskDidFinish:(NSURLSessionTask *)task;
 - (void)fnTaskDidBecomeInvalid:(NSURLSessionTask *)task;
@@ -79,6 +84,12 @@ static NSError *fn_url_error(NSInteger code, NSString *description)
 - (void)fnStartTransfer;
 - (void)fnFinishWithError:(NSError *)error;
 - (void)fnOrphan;
+- (BOOL)fnHasOwnCompletion;
+- (NSURLSession *)fnSession;
+@end
+
+@interface NSURLSessionDownloadTask (FNPrivate)
+- (void)fnSetDownloadCompletion:(void (^)(NSURL *, NSURLResponse *, NSError *))completion;
 @end
 
 @implementation NSURLSession
@@ -203,6 +214,128 @@ static NSURLSession *fn_sharedSession = nil;
 	return [self dataTaskWithRequest:[NSURLRequest requestWithURL:url] completionHandler:completionHandler];
 }
 
+/* ---- uploads ---------------------------------------------------------------- */
+
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request fromData:(NSData *)bodyData
+{
+	NSMutableURLRequest *mutable;
+
+	mutable = [[request mutableCopy] autorelease];
+	[mutable setHTTPBody:bodyData];
+	return (NSURLSessionUploadTask *)[self fnTaskOfClass:[NSURLSessionUploadTask class]
+						     request:mutable
+						  completion:nil];
+}
+
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request
+					 fromData:(NSData *)bodyData
+				completionHandler:(void (^)(NSData *, NSURLResponse *, NSError *))completionHandler
+{
+	NSMutableURLRequest *mutable;
+
+	mutable = [[request mutableCopy] autorelease];
+	[mutable setHTTPBody:bodyData];
+	return (NSURLSessionUploadTask *)[self fnTaskOfClass:[NSURLSessionUploadTask class]
+						     request:mutable
+						  completion:completionHandler];
+}
+
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request fromFile:(NSURL *)fileURL
+{
+	NSData *body = [NSData dataWithContentsOfURL:fileURL];
+
+	if (body == nil) {
+		/* A FILE THAT CANNOT BE READ IS REFUSED HERE rather than left to fail at transfer time: the caller learns
+		 * which path was wrong, and no task exists that could never send. */
+		fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSession uploadTaskWithRequest:fromFile:] could not read \"%s\"\n",
+			[[fileURL path] UTF8String]);
+		return nil;
+	}
+	return [self uploadTaskWithRequest:request fromData:body];
+}
+
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request
+					 fromFile:(NSURL *)fileURL
+				completionHandler:(void (^)(NSData *, NSURLResponse *, NSError *))completionHandler
+{
+	NSData *body = [NSData dataWithContentsOfURL:fileURL];
+
+	if (body == nil) {
+		fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSession uploadTaskWithRequest:fromFile:completionHandler:] "
+				"could not read \"%s\"\n", [[fileURL path] UTF8String]);
+		return nil;
+	}
+	return [self uploadTaskWithRequest:request fromData:body completionHandler:completionHandler];
+}
+
+- (NSURLSessionUploadTask *)uploadTaskWithStreamedRequest:(NSURLRequest *)request
+{
+	/* THE TRANSPORT HAS NO BODY-STREAM READ DOOR: curl is given a buffer, not a read callback, so a streamed upload
+	 * could not send what it was handed. Refusing by name is the plan's rule (§4.3); the data and file forms above
+	 * are the two that work. */
+	(void)request;
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSession uploadTaskWithStreamedRequest:] needs a body-stream read that "
+			"the transport does not have; make the task from data or a file\n");
+	return nil;
+}
+
+/* ---- downloads -------------------------------------------------------------- */
+
+- (NSURLSessionDownloadTask *)downloadTaskWithRequest:(NSURLRequest *)request
+{
+	return [self fnDownloadTaskWithRequest:request completion:nil];
+}
+
+- (NSURLSessionDownloadTask *)downloadTaskWithRequest:(NSURLRequest *)request
+				    completionHandler:(void (^)(NSURL *, NSURLResponse *, NSError *))completionHandler
+{
+	return [self fnDownloadTaskWithRequest:request completion:completionHandler];
+}
+
+- (NSURLSessionDownloadTask *)downloadTaskWithURL:(NSURL *)url
+{
+	return [self fnDownloadTaskWithRequest:[NSURLRequest requestWithURL:url] completion:nil];
+}
+
+- (NSURLSessionDownloadTask *)downloadTaskWithURL:(NSURL *)url
+				completionHandler:(void (^)(NSURL *, NSURLResponse *, NSError *))completionHandler
+{
+	return [self fnDownloadTaskWithRequest:[NSURLRequest requestWithURL:url] completion:completionHandler];
+}
+
+- (NSURLSessionDownloadTask *)downloadTaskWithResumeData:(NSData *)resumeData
+{
+	(void)resumeData;
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSession downloadTaskWithResumeData:] cannot resume a transfer; resume "
+			"data is a platform artefact this tree does not produce\n");
+	return nil;
+}
+
+- (NSURLSessionDownloadTask *)downloadTaskWithResumeData:(NSData *)resumeData
+				       completionHandler:(void (^)(NSURL *, NSURLResponse *, NSError *))completionHandler
+{
+	(void)resumeData;
+	(void)completionHandler;
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSession downloadTaskWithResumeData:completionHandler:] cannot resume a "
+			"transfer; resume data is a platform artefact this tree does not produce\n");
+	return nil;
+}
+
+- (NSURLSessionDownloadTask *)fnDownloadTaskWithRequest:(NSURLRequest *)request
+					    completion:(void (^)(NSURL *, NSURLResponse *, NSError *))completion
+{
+	NSURLSessionDownloadTask *task;
+
+	if (_invalidated) {
+		fprintf(stderr, "FOUNDATION-REFUSE: a download task was asked of a session that has been invalidated\n");
+		return nil;
+	}
+	task = [[NSURLSessionDownloadTask alloc] fnInitWithSession:self request:request completion:nil];
+	[task fnSetDownloadCompletion:completion];
+	[self fnRegisterTask:task];
+	return [task autorelease];
+}
+
 - (NSURLSessionTask *)fnTaskOfClass:(Class)taskClass
 			    request:(NSURLRequest *)request
 			 completion:(void (^)(NSData *, NSURLResponse *, NSError *))completion
@@ -315,9 +448,22 @@ static NSURLSession *fn_sharedSession = nil;
 	[_delegateQueue addOperationWithBlock:^{
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-		/* ONLY DATA TASKS EXIST IN THIS SLICE, so the two other arrays are empty rather than absent: a caller
-		 * that inspects them sees "none of that kind", which is true. */
-		completionHandler(snapshot, [NSArray array], [NSArray array]);
+		NSMutableArray *dataTasks = [NSMutableArray array];
+		NSMutableArray *uploadTasks = [NSMutableArray array];
+		NSMutableArray *downloadTasks = [NSMutableArray array];
+
+		/* THE CLASS DECIDES THE KIND, in the only order that is correct: an upload DESCENDS from the data task, so
+		 * it must be tested for first; a download descends from the base, so it is a separate test entirely. */
+		for (NSURLSessionTask *task in snapshot) {
+			if ([task isKindOfClass:[NSURLSessionDownloadTask class]]) {
+				[downloadTasks addObject:task];
+			} else if ([task isKindOfClass:[NSURLSessionUploadTask class]]) {
+				[uploadTasks addObject:task];
+			} else {
+				[dataTasks addObject:task];
+			}
+		}
+		completionHandler(dataTasks, uploadTasks, downloadTasks);
 		[snapshot release];
 		[pool release];
 	}];
@@ -589,12 +735,21 @@ static NSURLSession *fn_sharedSession = nil;
 {
 	NSURLSession *session;
 	id completion;
+	BOOL first = NO;
 
-	if (_state == NSURLSessionTaskStateCompleted) {
+	/* THE TRANSITION IS THE LOCK'S: a finish from the transport thread and a finish from a disposition's flush can
+	 * race, and only one of them may report an ending. */
+	[self retain];			/* the ending may be the release that frees the receiver */
+	@synchronized(self) {
+		if (_state != NSURLSessionTaskStateCompleted) {
+			_state = NSURLSessionTaskStateCompleted;
+			first = YES;
+		}
+	}
+	if (!first) {
+		[self release];
 		return;
 	}
-	[self retain];			/* the ending may be the release that frees the receiver */
-	_state = NSURLSessionTaskStateCompleted;
 	if (error != nil) {
 		[_error release];
 		_error = [error retain];
@@ -610,6 +765,9 @@ static NSURLSession *fn_sharedSession = nil;
 	session = (NSURLSession *)_session;
 	completion = _completionHandler;
 	_completionHandler = NULL;
+	/* THE ENDING IS ENQUEUED UNDER THE SAME LOCK THE DATA USES, so a flush on the delegate queue cannot slip a
+	 * chunk in behind the completion — the inversion the first version of this file produced. */
+	@synchronized(self) {
 	if (completion != NULL) {
 		/* THE CONVENIENCE DOOR'S BLOCK RUNS ON THE DELEGATE QUEUE EVEN WHEN THERE IS NO DELEGATE — that queue is
 		 * where Apple promises it, and the shared session has one for exactly this reason. */
@@ -627,17 +785,32 @@ static NSURLSession *fn_sharedSession = nil;
 				[pool release];
 			}];
 		}
-	} else {
+	} else if (![self fnHasOwnCompletion]) {
 		[session fnSendToDelegate:@selector(URLSession:task:didCompleteWithError:)
 				    block:^(id delegate) {
 			[delegate URLSession:session task:self didCompleteWithError:error];
 		}];
+	}
 	}
 	_session = nil;
 	if (session != nil) {
 		[session fnTaskDidFinish:self];
 	}
 	[self release];
+}
+
+/* A SUBCLASS WITH A COMPLETION HANDLER OF ITS OWN (the download) says so, and the base then leaves the delegate's
+ * didComplete door alone: a convenience door bypasses the delivery doors, which is Apple's rule for both kinds. */
+- (BOOL)fnHasOwnCompletion
+{
+	return NO;
+}
+
+/* THE SESSION, FOR A SUBCLASS: the base's ivar is @private, and a subclass that has to hand a file over (the
+ * download) needs it without widening the header's visibility. */
+- (NSURLSession *)fnSession
+{
+	return (NSURLSession *)_session;
 }
 
 - (void)fnOrphan
@@ -666,7 +839,9 @@ static NSURLSession *fn_sharedSession = nil;
 	if (![_session fnDelegateRespondsTo:@selector(URLSession:dataTask:didReceiveResponse:completionHandler:)]) {
 		return;
 	}
-	_responsePending = 1;
+	@synchronized(self) {
+		_responsePending = 1;
+	}
 	[_session fnSendToDelegate:@selector(URLSession:dataTask:didReceiveResponse:completionHandler:)
 			     block:^(id delegate) {
 		[delegate URLSession:(NSURLSession *)_session
@@ -680,21 +855,37 @@ static NSURLSession *fn_sharedSession = nil;
 
 - (void)fnResolveResponseWith:(NSURLSessionResponseDisposition)disposition
 {
-	NSArray *held;
+	NSArray *held = nil;
+	BOOL finishPending = NO;
 
+	/* THE HELD CHUNKS, THE PENDING FLAG AND THE DELIVERY QUEUE TRAVEL TOGETHER. The transport thread checks the
+	 * flag and appends while this method runs on the delegate's queue; without the lock a chunk could slip into a
+	 * NEW array after this one has been taken and be delivered by nobody. Holding it across the flush and the
+	 * finish also keeps the completion BEHIND the data it completed with. */
+	@synchronized(self) {
 	if (!_responsePending || _state == NSURLSessionTaskStateCompleted) {
 		return;
 	}
 	_responsePending = 0;
+	held = _heldData;
+	_heldData = nil;
+	if (disposition == NSURLSessionResponseAllow) {
+		finishPending = _finishPending;
+		_finishPending = 0;
+	}
 	switch (disposition) {
 	case NSURLSessionResponseAllow:
-		/* THE DATA THAT ARRIVED WHILE THE DELEGATE DECIDED IS DELIVERED NOW, in arrival order. */
-		held = _heldData;
-		_heldData = nil;
+		/* THE DATA THAT ARRIVED WHILE THE DELEGATE DECIDED IS DELIVERED NOW, in arrival order — and only THEN, if
+		 * the transport finished in the meantime, is the completion delivered. Doing it the other way round (the
+		 * finish reporting from the transport's thread while these dispatches are still queued) is how a delegate
+		 * sees "completed" before the data it completed with. */
 		for (NSData *chunk in held) {
 			[self fnSendData:chunk];
 		}
 		[held release];
+		if (finishPending) {
+			[self fnFinishWithError:nil];
+		}
 		break;
 	case NSURLSessionResponseCancel:
 		[self cancel];
@@ -709,6 +900,7 @@ static NSURLSession *fn_sharedSession = nil;
 		[self cancel];
 		break;
 	}
+	}
 }
 
 - (void)fnSendData:(NSData *)data
@@ -720,10 +912,14 @@ static NSURLSession *fn_sharedSession = nil;
 	if (![_session fnDelegateRespondsTo:@selector(URLSession:dataTask:didReceiveData:)]) {
 		return;
 	}
-	[_session fnSendToDelegate:@selector(URLSession:dataTask:didReceiveData:)
-			     block:^(id delegate) {
-		[delegate URLSession:(NSURLSession *)_session dataTask:(NSURLSessionDataTask *)self didReceiveData:data];
-	}];
+	@synchronized(self) {
+		[_session fnSendToDelegate:@selector(URLSession:dataTask:didReceiveData:)
+				     block:^(id delegate) {
+			[delegate URLSession:(NSURLSession *)_session
+				    dataTask:(NSURLSessionDataTask *)self
+			      didReceiveData:data];
+		}];
+	}
 }
 
 /* ---- NSURLProtocolClient ---------------------------------------------------- */
@@ -794,13 +990,20 @@ static NSURLSession *fn_sharedSession = nil;
 
 - (void)URLProtocol:(NSURLProtocol *)protocol didLoadData:(NSData *)data
 {
+	BOOL held = NO;
+
 	(void)protocol;
-	_bytesReceived += (int64_t)[data length];
-	if (_responsePending) {
-		if (_heldData == nil) {
-			_heldData = [[NSMutableArray alloc] init];
+	@synchronized(self) {
+		_bytesReceived += (int64_t)[data length];
+		if (_responsePending) {
+			if (_heldData == nil) {
+				_heldData = [[NSMutableArray alloc] init];
+			}
+			[_heldData addObject:data];
+			held = YES;
 		}
-		[_heldData addObject:data];
+	}
+	if (held) {
 		return;
 	}
 	[self fnSendData:data];
@@ -808,18 +1011,40 @@ static NSURLSession *fn_sharedSession = nil;
 
 - (void)URLProtocolDidFinishLoading:(NSURLProtocol *)protocol
 {
+	BOOL wait = NO;
+
 	(void)protocol;
-	if (_responsePending) {
-		/* THE DELEGATE NEVER ANSWERED THE RESPONSE. Ending now rather than hanging is the only answer that does
-		 * not leave the task running forever; the disposition was required and was not given. */
-		_responsePending = 0;
+	@synchronized(self) {
+		if (_responsePending) {
+			/* THE TRANSPORT FINISHED BEFORE THE DELEGATE ANSWERED THE RESPONSE, so the ending WAITS for the
+			 * disposition and is delivered behind the data the disposition releases. (The delegate must answer; one
+			 * that never does leaves the task pending, which is the contract it broke, not a transfer left
+			 * running.) */
+			_finishPending = 1;
+			wait = YES;
+		}
+	}
+	if (wait) {
+		return;
 	}
 	[self fnFinishWithError:nil];
 }
 
 - (void)URLProtocol:(NSURLProtocol *)protocol didFailWithError:(NSError *)error
 {
+	BOOL wait = NO;
+
 	(void)protocol;
+	@synchronized(self) {
+		if (_responsePending) {
+			/* THE SAME ORDERING RULE AS A SUCCESSFUL FINISH: the error is reported after the disposition's data. */
+			_finishPending = 1;
+			wait = YES;
+		}
+	}
+	if (wait) {
+		return;
+	}
 	[self fnFinishWithError:error];
 }
 
@@ -925,4 +1150,169 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend
 @end
 
 @implementation NSURLSessionDataTask
+@end
+
+/* "No additional functionality over NSURLSessionDataTask": the class states the KIND, and the body source is what
+ * the factory above put in the request. */
+@implementation NSURLSessionUploadTask
+@end
+
+/* ===================================================================================================
+ * THE DOWNLOAD
+ *
+ * The body goes to a temporary file as it arrives, the file's URL is the answer, and the file is removed when the
+ * delegate call or the completion block RETURNS — Apple's rule, and the reason the removal is inside the dispatched
+ * block rather than after it.
+ * =================================================================================================== */
+
+@implementation NSURLSessionDownloadTask
+
+- (void)fnSetDownloadCompletion:(void (^)(NSURL *, NSURLResponse *, NSError *))completion
+{
+	if (_downloadCompletion != NULL) {
+		Block_release(_downloadCompletion);
+	}
+	_downloadCompletion = (completion != nil ? Block_copy(completion) : NULL);
+}
+
+- (BOOL)fnHasOwnCompletion
+{
+	return _downloadCompletion != NULL;
+}
+
+- (void)dealloc
+{
+	if (_downloadFile != nil) {
+		[(NSFileHandle *)_downloadFile closeFile];
+		[(NSFileHandle *)_downloadFile release];
+	}
+	[_downloadPath release];
+	if (_downloadCompletion != NULL) {
+		Block_release(_downloadCompletion);
+	}
+	[super dealloc];
+}
+
+- (void)fnOpenDownloadFile
+{
+	NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:
+		[NSString stringWithFormat:@"agora-download-%ld-%lu", (long)getpid(), (unsigned long)[self taskIdentifier]]];
+
+	/* THE FILE IS MADE BEFORE THE HANDLE IS OPENED: `+fileHandleForWritingAtPath:` opens an EXISTING file, and an
+	 * empty write is the smallest way to create one. */
+	[[NSData data] writeToFile:path atomically:NO];
+	_downloadPath = [path copy];
+	_downloadFile = [[NSFileHandle fileHandleForWritingAtPath:path] retain];
+}
+
+- (void)fnSendData:(NSData *)data
+{
+	NSURLSession *session = [self fnSession];
+
+	if (_downloadFile == nil) {
+		[self fnOpenDownloadFile];
+	}
+	if (_downloadFile != nil) {
+		[(NSFileHandle *)_downloadFile writeData:data];
+	}
+	if (_downloadCompletion != NULL) {
+		return;			/* the convenience door bypasses the delivery doors */
+	}
+	if (![session fnDelegateRespondsTo:
+		@selector(URLSession:downloadTask:didWriteData:totalBytesWritten:totalBytesExpectedToWrite:)]) {
+		return;
+	}
+	[session fnSendToDelegate:@selector(URLSession:downloadTask:didWriteData:totalBytesWritten:totalBytesExpectedToWrite:)
+			    block:^(id delegate) {
+		[delegate URLSession:session
+			downloadTask:self
+			 didWriteData:(int64_t)[data length]
+		    totalBytesWritten:[self countOfBytesReceived]
+	   totalBytesExpectedToWrite:[self countOfBytesExpectedToReceive]];
+	}];
+}
+
+/* THE HANDOVER, AND THE REMOVAL THAT FOLLOWS IT. The path is captured (Block_copy retains it), so the block can
+ * outlive the task — which it may: the base's ending releases the task once the completion has been queued. */
+- (void)fnDeliverDownload
+{
+	NSURLSession *session = [self fnSession];
+	NSString *path = _downloadPath;
+	NSURL *location = [NSURL fileURLWithPath:path];
+	NSURLResponse *response = [self response];
+
+	if (session == nil) {
+		[[NSFileManager defaultManager] removeItemAtPath:path error:NULL];
+		return;
+	}
+	if (_downloadCompletion != NULL) {
+		void (^handler)(NSURL *, NSURLResponse *, NSError *) = _downloadCompletion;
+
+		_downloadCompletion = NULL;
+		[[session fnDelegateQueue] addOperationWithBlock:^{
+			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+			handler(location, response, nil);
+			Block_release(handler);
+			[[NSFileManager defaultManager] removeItemAtPath:path error:NULL];
+			[pool release];
+		}];
+		return;
+	}
+	if ([session fnDelegateRespondsTo:@selector(URLSession:downloadTask:didFinishDownloadingToURL:)]) {
+		[session fnSendToDelegate:@selector(URLSession:downloadTask:didFinishDownloadingToURL:)
+				    block:^(id delegate) {
+			[delegate URLSession:session downloadTask:self didFinishDownloadingToURL:location];
+			[[NSFileManager defaultManager] removeItemAtPath:path error:NULL];
+		}];
+		return;
+	}
+	/* NOBODY TO HAND THE FILE TO: removing it is the only answer that does not leave a temporary file behind. */
+	[[NSFileManager defaultManager] removeItemAtPath:path error:NULL];
+}
+
+- (void)fnFinishWithError:(NSError *)error
+{
+	if ([self state] == NSURLSessionTaskStateCompleted) {
+		return;
+	}
+	[self retain];
+	if (_downloadFile != nil) {
+		[(NSFileHandle *)_downloadFile closeFile];
+		[(NSFileHandle *)_downloadFile release];
+		_downloadFile = nil;
+	}
+	if (error == nil && _downloadPath != nil && !_downloadDelivered && [self state] != NSURLSessionTaskStateCanceling) {
+		_downloadDelivered = 1;
+		[self fnDeliverDownload];
+	} else if (_downloadPath != nil) {
+		/* AN ERROR, OR A CANCELLATION: there is no answer to hand over, so the half-written file goes. */
+		[[NSFileManager defaultManager] removeItemAtPath:_downloadPath error:NULL];
+	}
+	[super fnFinishWithError:error];
+	[self release];
+}
+
+- (void)cancelByProducingResumeData:(void (^)(NSData *))completionHandler
+{
+	/* A NAMED REFUSAL WITH A CALLBACK, which is Apple's contract for "cannot resume": the handler runs with nil and
+	 * the task is cancelled. Resume data would be a position in a transfer the engine could re-attach, and this
+	 * engine has no such thing. */
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSURLSessionDownloadTask cancelByProducingResumeData:] answers nil: this "
+			"engine has no resumable transfer, so there is no position to resume from\n");
+	if (completionHandler != nil) {
+		NSURLSession *session = [self fnSession];
+		void (^handler)(NSData *) = Block_copy(completionHandler);
+
+		[[session fnDelegateQueue] addOperationWithBlock:^{
+			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+			handler(nil);
+			Block_release(handler);
+			[pool release];
+		}];
+	}
+	[self cancel];
+}
+
 @end

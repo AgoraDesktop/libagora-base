@@ -189,7 +189,8 @@ static void job_start(struct server_job *job, const char *response, int delay_ms
 
 /* ---- a delegate that records what a task told it ---------------------------- */
 
-@interface RecordingDelegate : NSObject <NSURLSessionDelegate, NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
+@interface RecordingDelegate : NSObject <NSURLSessionDelegate, NSURLSessionTaskDelegate, NSURLSessionDataDelegate,
+				    NSURLSessionDownloadDelegate>
 {
 @public
 	NSMutableData *body;
@@ -203,6 +204,11 @@ static void job_start(struct server_job *job, const char *response, int delay_ms
 	BOOL sawBodyProgress;
 	int64_t lastBytesSent;
 	int64_t lastBytesExpected;
+	BOOL finishDownloadCalled;
+	BOOL writeProgressCalled;
+	NSURL *finishedLocation;
+	NSData *finishedContents;
+	int64_t lastWrittenTotal;
 	fn_event *done;
 }
 @end
@@ -258,6 +264,28 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend
 	lastBytesExpected = totalBytesExpectedToSend;
 }
 
+- (void)URLSession:(NSURLSession *)session
+      downloadTask:(NSURLSessionDownloadTask *)downloadTask
+didFinishDownloadingToURL:(NSURL *)location
+{
+	finishDownloadCalled = YES;
+	finishedLocation = [location retain];
+	/* READ IT NOW: Apple removes the file when this call returns, which is the contract the test asserts. */
+	finishedContents = [[NSData dataWithContentsOfURL:location] retain];
+}
+
+- (void)URLSession:(NSURLSession *)session
+      downloadTask:(NSURLSessionDownloadTask *)downloadTask
+      didWriteData:(int64_t)bytesWritten
+ totalBytesWritten:(int64_t)totalBytesWritten
+totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
+{
+	(void)bytesWritten;
+	(void)totalBytesExpectedToWrite;
+	writeProgressCalled = YES;
+	lastWrittenTotal = totalBytesWritten;
+}
+
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
 {
 	completionCalls++;
@@ -268,6 +296,8 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend
 - (void)dealloc
 {
 	[body release];
+	[finishedLocation release];
+	[finishedContents release];
 	[responseHead release];
 	[redirectResponse release];
 	[completionError release];
@@ -635,6 +665,263 @@ int main(void)
 		check(refused == nil, "a background session is refused by name rather than faked");
 		[a release];
 		[b release];
+	}
+
+	/* 9. A DOWNLOAD WITH A DELEGATE: the file exists and carries the body INSIDE the callback, and is gone after. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		RecordingDelegate *delegate;
+		NSOperationQueue *queue;
+		NSURLSession *session;
+		NSURLSessionDownloadTask *task;
+		__block fn_event done;
+		NSURL *finishedURL;
+		NSString *url;
+
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 14\r\nConnection: close\r\n\r\nhello download", 0, 0);
+		check(make_listener(&job.listener) == 0, "the download listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		delegate = [[RecordingDelegate alloc] init];
+		delegate->done = &done;
+		queue = [[NSOperationQueue alloc] init];
+		[queue setMaxConcurrentOperationCount:1];
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:delegate
+						   delegateQueue:queue];
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/download", job.listener.port];
+		task = [session downloadTaskWithURL:[NSURL URLWithString:url]];
+		[task resume];
+		check(event_wait(&done, 10), "the download completes");
+		pthread_join(thread, NULL);
+		check(delegate->finishDownloadCalled, "the download delegate was handed the file");
+		check(delegate->finishedContents != nil && [[[[NSString alloc] initWithData:delegate->finishedContents
+									     encoding:NSUTF8StringEncoding] autorelease]
+							    isEqualToString:@"hello download"],
+		      "and the file held the body at the moment of the call");
+		check(delegate->writeProgressCalled && delegate->lastWrittenTotal == 14,
+		      "the write-progress door reported the bytes");
+		check(delegate->completionError == nil, "and the task completed without error");
+		finishedURL = [delegate->finishedLocation retain];
+		usleep(200 * 1000);
+		check([[NSFileManager defaultManager] fileExistsAtPath:[finishedURL path]] == NO,
+		      "the file is removed once the delegate call returns");
+		[finishedURL release];
+		[session finishTasksAndInvalidate];
+		[queue release];
+		[delegate release];
+		event_destroy(&done);
+	}
+
+	/* 10. A DOWNLOAD WITH A COMPLETION HANDLER: same file, delivered to the block, and removed after it returns. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		__block fn_event done;
+		__block NSURL *location = nil;
+		__block NSData *contents = nil;
+		__block NSError *completionError = nil;
+		NSURLSessionDownloadTask *task;
+		NSString *url;
+
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nfinal", 0, 0);
+		check(make_listener(&job.listener) == 0, "the completion-download listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/d2", job.listener.port];
+		task = [[NSURLSession sharedSession]
+			downloadTaskWithURL:[NSURL URLWithString:url]
+			  completionHandler:^(NSURL *l, NSURLResponse *r, NSError *e) {
+			(void)r;
+			location = [l retain];
+			contents = [[NSData dataWithContentsOfURL:l] retain];
+			completionError = [e retain];
+			event_fire(&done);
+		}];
+		[task resume];
+		check(event_wait(&done, 10), "the download completion handler fires");
+		pthread_join(thread, NULL);
+		check(location != nil && contents != nil &&
+		      [[[[NSString alloc] initWithData:contents encoding:NSUTF8StringEncoding] autorelease]
+			isEqualToString:@"final"], "with a readable file carrying the body");
+		check(completionError == nil, "and no error");
+		/* APPLE'S RULE IS "REMOVED WHEN THE HANDLER RETURNS", so the check must let the block finish. */
+		usleep(200 * 1000);
+		check([[NSFileManager defaultManager] fileExistsAtPath:[location path]] == NO,
+		      "the file is removed once the handler returns");
+		[location release];
+		[contents release];
+		[completionError release];
+		event_destroy(&done);
+	}
+
+	/* 11. AN UPLOAD FROM DATA: the body reaches the server, and the response is the task's answer. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		__block fn_event done;
+		__block NSData *data = nil;
+		__block NSError *completionError = nil;
+		NSMutableURLRequest *request;
+		NSURLSessionUploadTask *task;
+		NSString *url;
+
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok", 0, sizeof job.captured);
+		check(make_listener(&job.listener) == 0, "the upload listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/u", job.listener.port];
+		request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+		[request setHTTPMethod:@"POST"];
+		task = [[NSURLSession sharedSession]
+			uploadTaskWithRequest:request
+				     fromData:[@"uploaded-body" dataUsingEncoding:NSUTF8StringEncoding]
+			    completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
+			(void)r;
+			data = [d retain];
+			completionError = [e retain];
+			event_fire(&done);
+		}];
+		check(task != nil && [task isKindOfClass:[NSURLSessionUploadTask class]], "an upload task is made");
+		[task resume];
+		check(event_wait(&done, 10), "the upload completes");
+		pthread_join(thread, NULL);
+		check(strstr(job.captured, "POST /u") != NULL, "the server saw the POST");
+		check(strstr(job.captured, "uploaded-body") != NULL, "with the data body the caller supplied");
+		check(data != nil && [[[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease]
+				      isEqualToString:@"ok"] && completionError == nil, "and answered the response body");
+		[data release];
+		[completionError release];
+		event_destroy(&done);
+	}
+
+	/* 12. AN UPLOAD FROM A FILE, and the two refusals: a streamed body and resume data. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		__block fn_event done;
+		NSMutableURLRequest *request;
+		NSString *file = @"/tmp/agora-session-upload.txt";
+		NSURLSessionUploadTask *task;
+		NSString *url;
+
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok", 0, sizeof job.captured);
+		check(make_listener(&job.listener) == 0, "the file-upload listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		[[@"from-file" dataUsingEncoding:NSUTF8StringEncoding] writeToFile:file atomically:NO];
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/uf", job.listener.port];
+		request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+		[request setHTTPMethod:@"POST"];
+		task = [[NSURLSession sharedSession]
+			uploadTaskWithRequest:request
+				     fromFile:[NSURL fileURLWithPath:file]
+			    completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
+			(void)d; (void)r; (void)e;
+			event_fire(&done);
+		}];
+		[task resume];
+		check(event_wait(&done, 10), "the file upload completes");
+		pthread_join(thread, NULL);
+		check(strstr(job.captured, "from-file") != NULL, "the file's bytes were the body");
+		[[NSFileManager defaultManager] removeItemAtPath:file error:NULL];
+
+		url = [NSString stringWithFormat:@"http://127.0.0.1:1/never", 0];
+		request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://127.0.0.1:1/never"]];
+		check([[NSURLSession sharedSession] uploadTaskWithStreamedRequest:request] == nil,
+		      "a streamed upload is refused by name (no body-stream read in the transport)");
+		check([[NSURLSession sharedSession] downloadTaskWithResumeData:[NSData data]] == nil,
+		      "a resume-data download is refused by name");
+		event_destroy(&done);
+	}
+
+	/* 13. A DOWNLOAD CANCELLED WITH RESUME DATA: the handler is told nil, and the task is cancelled. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		__block fn_event resumed;
+		__block fn_event done;
+		__block BOOL handlerCalled = NO;
+		__block NSData *resumeData = nil;
+		RecordingDelegate *delegate;
+		NSOperationQueue *queue;
+		NSURLSession *session;
+		NSURLSessionDownloadTask *task;
+		NSString *url;
+
+		event_init(&resumed);
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello", 400, 0);
+		check(make_listener(&job.listener) == 0, "the slow-download listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		delegate = [[RecordingDelegate alloc] init];
+		delegate->done = &done;
+		queue = [[NSOperationQueue alloc] init];
+		[queue setMaxConcurrentOperationCount:1];
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:delegate
+						   delegateQueue:queue];
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/slowdownload", job.listener.port];
+		task = [session downloadTaskWithURL:[NSURL URLWithString:url]];
+		[task resume];
+		usleep(100 * 1000);
+		[task cancelByProducingResumeData:^(NSData *d) {
+			handlerCalled = YES;
+			resumeData = [d retain];
+			event_fire(&resumed);
+		}];
+		check(event_wait(&resumed, 10), "the resume-data handler is called");
+		check(handlerCalled && resumeData == nil, "with nil, because there is no resumable transfer");
+		check(event_wait(&done, 10), "and the task completes");
+		pthread_join(thread, NULL);
+		check(delegate->completionError != nil && [delegate->completionError code] == NSURLErrorCancelled,
+		      "as a cancellation");
+		[session finishTasksAndInvalidate];
+		[queue release];
+		[delegate release];
+		[resumeData release];
+		event_destroy(&resumed);
+		event_destroy(&done);
+	}
+
+	/* 14. THE TASK LISTS PARTITION BY KIND: an upload is not a data task, a download is neither. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		NSURLSession *session;
+		NSURLSessionUploadTask *task;
+		__block fn_event listed;
+		__block NSUInteger datas = 0, uploads = 0, downloads = 0;
+		NSMutableURLRequest *request;
+		NSString *url;
+
+		event_init(&listed);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok", 300, 0);
+		check(make_listener(&job.listener) == 0, "the partition listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:nil
+						   delegateQueue:nil];
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/partition", job.listener.port];
+		request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+		[request setHTTPMethod:@"POST"];
+		task = [session uploadTaskWithRequest:request fromData:[@"x" dataUsingEncoding:NSUTF8StringEncoding]];
+		[task resume];
+		usleep(50 * 1000);
+		[session getTasksWithCompletionHandler:^(NSArray *d, NSArray *u, NSArray *dl) {
+			datas = [d count];
+			uploads = [u count];
+			downloads = [dl count];
+			event_fire(&listed);
+		}];
+		check(event_wait(&listed, 10), "the partition list answered");
+		check(datas == 0 && uploads == 1 && downloads == 0,
+		      "an outstanding upload is an upload, not a data task");
+		usleep(600 * 1000);
+		[session finishTasksAndInvalidate];
+		pthread_join(thread, NULL);
+		event_destroy(&listed);
 	}
 
 	printf("foundation_10_11_url_session: %d of %d cases passed, %d failed\n", g_pass, g_pass + g_fail, g_fail);

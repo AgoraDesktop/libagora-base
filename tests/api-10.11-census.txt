@@ -70,9 +70,13 @@
 # task's). `selectors-offered` moves UP by 48 and `selectors-missing` by 13, and that is not a regression: a class
 # that did not exist offered nothing, and declaring the session exposes the 13 download/upload/stream factories W3c/W3d
 # add — the census is now measuring them as missing rather than not counting them at all.
-classes-missing 17
+# **W3c: `NSURLSessionDownloadTask` and `NSURLSessionUploadTask`, plus the eleven factories.** classes 202 -> 204,
+# the session's own doors 18 -> 29, and `selectors-missing` 112 -> 101: the download/upload half is answered, and only
+# the two stream factories remain missing from this class. `selectors-offered` moves by one — the download task's own
+# `cancelByProducingResumeData:`, which a class that did not exist could not offer.
+classes-missing 15
 classes-offered 219
-classes-present 202
+classes-present 204
 fn:NSAllHashTableObjects 1
 fn:NSAllMapTableKeys 1
 fn:NSAllMapTableValues 1
@@ -443,7 +447,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4135
+methods-declared 4147
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -659,7 +663,8 @@ sel:NSURLProtectionSpace 12
 sel:NSURLProtocol 14
 sel:NSURLRequest 18
 sel:NSURLResponse 6
-sel:NSURLSession 18
+sel:NSURLSession 29
+sel:NSURLSessionDownloadTask 1
 sel:NSURLSessionTask 17
 sel:NSURLSessionConfiguration 47
 sel:NSUUID 6
@@ -681,6 +686,6 @@ sel:NSXMLNode 51
 sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
 sel:NSProgress 31
-selectors-missing 112
-selectors-offered 3616
-selectors-present 3504
+selectors-missing 101
+selectors-offered 3617
+selectors-present 3516
