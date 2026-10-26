@@ -96,6 +96,13 @@ target_link_libraries(foundation_10_11_extension PRIVATE Foundation CoreFoundati
 
 add_test(NAME foundation_10_11_extension COMMAND foundation_10_11_extension)
 
+# THE NOTIFICATION VALUE, ITS ACTION, AND AN IN-PROCESS CENTRE (10.8-10.10): copied doors, a copy, scheduling state, the
+# delegate consultation, and delivery refusing by name.
+add_executable(foundation_10_11_user_notification foundation_10_11_user_notification.m)
+target_link_libraries(foundation_10_11_user_notification PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_user_notification COMMAND foundation_10_11_user_notification)
+
 # Core Foundation's Unicode normalization, against Unicode's own test suite. A separate suite from the
 # bridge because it is a separate concern, and because it is a CONFORMANCE run first: `NormalizationTest.txt`
 # is 19,129 cases with six invariants each, and nothing else in the tree asks `CFStringNormalize` anything.
