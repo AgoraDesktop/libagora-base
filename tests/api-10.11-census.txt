@@ -65,9 +65,14 @@
 # **W3a: `NSURLSessionConfiguration` — the URLSession family's first class, its 47 doors all with bodies.** classes
 # 198 -> 199 and selectors 3,422 -> 3,469; the class is NOT in `Foundation.h` yet, because W7 takes the family into
 # the umbrella once all seven classes exist.
-classes-missing 20
+# **W3b: `NSURLSession`, `NSURLSessionTask` and `NSURLSessionDataTask`, plus the family's five delegate protocols.**
+# classes 199 -> 202, protocols 31 -> 36, selectors 3,469 -> 3,504 (18 of the session's 31 doors and all 17 of the
+# task's). `selectors-offered` moves UP by 48 and `selectors-missing` by 13, and that is not a regression: a class
+# that did not exist offered nothing, and declaring the session exposes the 13 download/upload/stream factories W3c/W3d
+# add — the census is now measuring them as missing rather than not counting them at all.
+classes-missing 17
 classes-offered 219
-classes-present 199
+classes-present 202
 fn:NSAllHashTableObjects 1
 fn:NSAllMapTableKeys 1
 fn:NSAllMapTableValues 1
@@ -438,7 +443,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4100
+methods-declared 4135
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -472,19 +477,19 @@ proto:NSURLConnectionDownloadDelegate 1
 proto:NSURLDownloadDelegate 1
 proto:NSURLHandleClient 1
 proto:NSURLProtocolClient 1
-proto:NSURLSessionDataDelegate 0
-proto:NSURLSessionDelegate 0
-proto:NSURLSessionDownloadDelegate 0
-proto:NSURLSessionStreamDelegate 0
-proto:NSURLSessionTaskDelegate 0
+proto:NSURLSessionDataDelegate 1
+proto:NSURLSessionDelegate 1
+proto:NSURLSessionDownloadDelegate 1
+proto:NSURLSessionStreamDelegate 1
+proto:NSURLSessionTaskDelegate 1
 proto:NSUserActivityDelegate 1
 proto:NSUserNotificationCenterDelegate 0
 proto:NSXMLParserDelegate 1
 proto:NSXPCListenerDelegate 0
 proto:NSXPCProxyCreating 0
-protocols-missing 9
+protocols-missing 4
 protocols-offered 40
-protocols-present 31
+protocols-present 36
 sel:NSAffineTransform 15
 sel:NSAppleEventDescriptor 43
 sel:NSAppleEventManager 11
@@ -654,6 +659,8 @@ sel:NSURLProtectionSpace 12
 sel:NSURLProtocol 14
 sel:NSURLRequest 18
 sel:NSURLResponse 6
+sel:NSURLSession 18
+sel:NSURLSessionTask 17
 sel:NSURLSessionConfiguration 47
 sel:NSUUID 6
 sel:NSUbiquitousKeyValueStore 20
@@ -674,6 +681,6 @@ sel:NSXMLNode 51
 sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
 sel:NSProgress 31
-selectors-missing 99
-selectors-offered 3568
-selectors-present 3469
+selectors-missing 112
+selectors-offered 3616
+selectors-present 3504

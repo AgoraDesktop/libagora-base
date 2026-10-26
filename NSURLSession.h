@@ -1,0 +1,299 @@
+/*
+ * NSURLSession.h
+ *
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ *
+ * `NSURLSession`, its task base and the data task — W3b of FOUNDATION-10.11-PLAN.md, over the transfer engine this
+ * library already has.
+ *
+ * THE DESIGN IS §4.1's, AND IT IS ONE SENTENCE: a session is a TASK STATE MACHINE OVER `NSURLProtocol`, not a second
+ * HTTP stack. `NSURLConnection` already drives one protocol instance per exchange with itself as the client; a task
+ * does the same, and the protocol's seven client doors become the session delegate's messages. So the bytes, the
+ * redirects, the challenges and the response are the ones `FNCURLURLProtocol` already produces, and this file adds
+ * what a session has that a connection does not: an identifier per task, a state machine, byte counts, a delegate
+ * QUEUE, and completion handlers.
+ *
+ * WHAT THIS SLICE DECLARES, AND WHAT IT DOES NOT. Apple's family is seven classes; this header carries the three the
+ * data path needs (`NSURLSession`, `NSURLSessionTask`, `NSURLSessionDataTask`) and all five delegate protocols, whose
+ * methods are declarations a client implements. The download, upload and stream CLASSES and the thirteen factory
+ * doors that return them are W3c/W3d: declaring a factory that cannot make its object would be the stub §4.3 forbids,
+ * so the class is present with the doors it can honour and the census counts the rest as missing until they land.
+ *
+ * THE DEVIATIONS, EACH STATED AT ITS DOOR RATHER THAN LEFT TO DISCOVERY:
+ *
+ *   * A SESSION RETAINS ITS DELEGATE, as Apple documents, until `-invalidate…` has told it the session is invalid.
+ *   * THE DELEGATE QUEUE IS ALWAYS REAL. A nil queue is a serial queue the session owns, which is Apple's rule; the
+ *     shared session has one too, so a completion handler has somewhere to run even with no delegate.
+ *   * A BACKGROUND CONFIGURATION IS REFUSED BY NAME at session creation: this tree has no background-transfer
+ *     daemon, and a session that accepted one would promise transfers across a process it cannot keep.
+ *   * `-suspend` STOPS THE TRANSFER AND `-resume` MAKES THE REQUEST AGAIN. The engine has no resumable transfer, so
+ *     "continue where it stopped" is not expressible; the task's bytes restart rather than pretending otherwise.
+ *   * A DATA TASK DOES NOT USE THE URL CACHE OR THE COOKIE STORES IN THIS SLICE. The stores are configuration and
+ *     the engine keeps its own cache; W3d adds the task-scoped doors that make the session's stores reachable.
+ */
+
+#ifndef FOUNDATION_NSURLSESSION_H
+#define FOUNDATION_NSURLSESSION_H
+
+#import <Foundation/NSObject.h>
+#import <Foundation/NSURLSessionConfiguration.h>
+#import <Foundation/NSURLRequest.h>
+#import <Foundation/NSURLResponse.h>
+
+@class NSCachedURLResponse;
+@class NSArray;
+@class NSData;
+@class NSError;
+@class NSHTTPURLResponse;
+@class NSInputStream;
+@class NSMutableData;
+@class NSOutputStream;
+@class NSOperationQueue;
+@class NSURLAuthenticationChallenge;
+@class NSURLCredential;
+@class NSURLSession;
+@class NSURLSessionDataTask;
+@class NSURLSessionDownloadTask;
+@class NSURLSessionStreamTask;
+@class NSURLSessionTask;
+@class NSString;
+@class NSURL;
+
+NS_ASSUME_NONNULL_BEGIN
+
+/* "It is not possible to know how many bytes will be transferred." Apple's value, and the reason the four byte
+ * counters are signed: a task may report this rather than zero. */
+FOUNDATION_EXPORT const int64_t NSURLSessionTransferSizeUnknown;
+
+/* 0 is the lowest, 1 the highest; the three names are the documented stops on that scale. */
+FOUNDATION_EXPORT const float NSURLSessionTaskPriorityDefault NS_AVAILABLE_MAC(10_10);
+FOUNDATION_EXPORT const float NSURLSessionTaskPriorityLow NS_AVAILABLE_MAC(10_10);
+FOUNDATION_EXPORT const float NSURLSessionTaskPriorityHigh NS_AVAILABLE_MAC(10_10);
+
+/* HOW A DELEGATE ANSWERS A CHALLENGE. The four cases are Apple's, and the values are Apple's too (0-3): a caller
+ * compares a disposition it received — or passes one it computed — and the numbers are not observable otherwise. */
+typedef NS_ENUM(NSInteger, NSURLSessionAuthChallengeDisposition) {
+	NSURLSessionAuthChallengeUseCredential = 0,
+	NSURLSessionAuthChallengePerformDefaultHandling = 1,
+	NSURLSessionAuthChallengeCancelAuthenticationChallenge = 2,
+	NSURLSessionAuthChallengeRejectProtectionSpace = 3
+};
+
+/* HOW A DATA DELEGATE ANSWERS A RESPONSE. Allow and Cancel are honoured here; the two conversions need the classes
+ * W3c/W3d add, so they are answered by a named refusal at the door. */
+typedef NS_ENUM(NSInteger, NSURLSessionResponseDisposition) {
+	NSURLSessionResponseCancel = 0,
+	NSURLSessionResponseAllow = 1,
+	NSURLSessionResponseBecomeDownload = 2,
+	NSURLSessionResponseBecomeStream = 3
+};
+
+/* A TASK IS BORN SUSPENDED AND MUST BE RESUMED. The numbers are Apple's (0-3) for the same reason the dispositions'. */
+typedef NS_ENUM(NSInteger, NSURLSessionTaskState) {
+	NSURLSessionTaskStateRunning = 0,
+	NSURLSessionTaskStateSuspended = 1,
+	NSURLSessionTaskStateCanceling = 2,
+	NSURLSessionTaskStateCompleted = 3
+};
+
+/* ---- the delegate protocols -------------------------------------------------- */
+
+/* SESSION-WIDE MESSAGES. The last one a session sends is `-didBecomeInvalid…`, after which nothing is delivered. */
+@protocol NSURLSessionDelegate <NSObject>
+@optional
+- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(nullable NSError *)error;
+- (void)URLSession:(NSURLSession *)session
+	didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+	  completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition,
+				      NSURLCredential * _Nullable credential))completionHandler;
+/* Background delivery only; this tree has no background session, so the door exists and is never sent. */
+- (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session;
+@end
+
+/* ONE TASK'S MESSAGES. The task's delegate is consulted BEFORE the session's, per Apple's ordering. */
+@protocol NSURLSessionTaskDelegate <NSURLSessionDelegate>
+@optional
+- (void)URLSession:(NSURLSession *)session
+	      task:(NSURLSessionTask *)task
+willPerformHTTPRedirection:(NSHTTPURLResponse *)response
+	newRequest:(NSURLRequest *)request
+ completionHandler:(void (^)(NSURLRequest * _Nullable))completionHandler;
+- (void)URLSession:(NSURLSession *)session
+	      task:(NSURLSessionTask *)task
+didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+ completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition,
+			     NSURLCredential * _Nullable credential))completionHandler;
+/* Called when a body stream was spent and the transfer needs a fresh, unopened one. This engine does not retry with a
+ * stream, so the door is declared for the shape and is not sent. */
+- (void)URLSession:(NSURLSession *)session
+	      task:(NSURLSessionTask *)task
+ needNewBodyStream:(void (^)(NSInputStream * _Nullable bodyStream))completionHandler;
+- (void)URLSession:(NSURLSession *)session
+	      task:(NSURLSessionTask *)task
+   didSendBodyData:(int64_t)bytesSent
+    totalBytesSent:(int64_t)totalBytesSent
+totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend;
+/* THE ENDING: sent for every task exactly once, error nil when it completed. */
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task
+				  didCompleteWithError:(nullable NSError *)error;
+@end
+
+/* A DATA TASK'S MESSAGES. `-didReceiveResponse:` BLOCKS the payload until the completion block answers, which is why
+ * the task buffers data that arrives while the disposition is pending. */
+@protocol NSURLSessionDataDelegate <NSURLSessionTaskDelegate>
+@optional
+- (void)URLSession:(NSURLSession *)session
+	  dataTask:(NSURLSessionDataTask *)dataTask
+didReceiveResponse:(NSURLResponse *)response
+ completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler;
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
+					      didBecomeDownloadTask:(NSURLSessionDownloadTask *)downloadTask;
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
+					      didBecomeStreamTask:(NSURLSessionStreamTask *)streamTask;
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data;
+- (void)URLSession:(NSURLSession *)session
+	  dataTask:(NSURLSessionDataTask *)dataTask
+willCacheResponse:(NSCachedURLResponse *)proposedResponse
+ completionHandler:(void (^)(NSCachedURLResponse * _Nullable cachedResponse))completionHandler;
+@end
+
+/* DECLARED WITH THE FAMILY because Apple declares them here; their task classes are W3c/W3d. */
+@protocol NSURLSessionDownloadDelegate <NSURLSessionTaskDelegate>
+@optional
+- (void)URLSession:(NSURLSession *)session
+      downloadTask:(NSURLSessionDownloadTask *)downloadTask
+didFinishDownloadingToURL:(NSURL *)location;
+- (void)URLSession:(NSURLSession *)session
+      downloadTask:(NSURLSessionDownloadTask *)downloadTask
+      didWriteData:(int64_t)bytesWritten
+ totalBytesWritten:(int64_t)totalBytesWritten
+totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite;
+- (void)URLSession:(NSURLSession *)session
+      downloadTask:(NSURLSessionDownloadTask *)downloadTask
+      didResumeAtOffset:(int64_t)fileOffset
+ expectedTotalBytes:(int64_t)expectedTotalBytes;
+@end
+
+@protocol NSURLSessionStreamDelegate <NSURLSessionTaskDelegate>
+@optional
+- (void)URLSession:(NSURLSession *)session readClosedForStreamTask:(NSURLSessionStreamTask *)streamTask;
+- (void)URLSession:(NSURLSession *)session writeClosedForStreamTask:(NSURLSessionStreamTask *)streamTask;
+- (void)URLSession:(NSURLSession *)session betterRouteDiscoveredForStreamTask:(NSURLSessionStreamTask *)streamTask;
+- (void)URLSession:(NSURLSession *)session
+	streamTask:(NSURLSessionStreamTask *)streamTask
+didBecomeInputStream:(NSInputStream *)inputStream
+      outputStream:(NSOutputStream *)outputStream;
+@end
+
+/* ---- the task base ----------------------------------------------------------- */
+
+NS_CLASS_AVAILABLE_MAC(NSURLSESSION_AVAILABLE)
+@interface NSURLSessionTask : NSObject <NSCopying>
+{
+@private
+	id _session;			/* the owning session, NOT retained: the session owns its tasks */
+	NSUInteger _taskIdentifier;
+	NSURLRequest *_originalRequest;
+	NSURLRequest *_currentRequest;
+	NSURLResponse *_response;
+	NSError *_error;
+	NSString *_taskDescription;
+	float _priority;
+	NSURLSessionTaskState _state;
+	signed char _suspendCount;
+	signed char _cancelled;
+	signed char _started;
+	signed char _responsePending;
+	int64_t _bytesReceived;
+	int64_t _bytesSent;
+	int64_t _bytesExpectedToReceive;
+	int64_t _bytesExpectedToSend;
+	id _protocol;			/* the NSURLProtocol instance, retained while it loads */
+	NSMutableData *_receivedData;
+	NSMutableArray *_heldData;	/* chunks that arrived while a response disposition was pending */
+	id _completionHandler;		/* the convenience door's block, if this task was made with one */
+}
+
+@property (readonly) NSUInteger taskIdentifier;
+@property (nullable, readonly, copy) NSURLRequest *originalRequest;
+@property (nullable, readonly, copy) NSURLRequest *currentRequest;
+@property (nullable, readonly, copy) NSURLResponse *response;
+@property (readonly) int64_t countOfBytesReceived;
+@property (readonly) int64_t countOfBytesSent;
+@property (readonly) int64_t countOfBytesExpectedToSend;
+@property (readonly) int64_t countOfBytesExpectedToReceive;
+@property (nullable, copy) NSString *taskDescription;
+@property (readonly) NSURLSessionTaskState state;
+@property (nullable, readonly, copy) NSError *error;
+@property float priority NS_AVAILABLE_MAC(10_10);
+
+- (void)cancel;
+- (void)suspend;
+- (void)resume;
+@end
+
+/* "No additional functionality over NSURLSessionTask": the subclass exists to name the kind — and it is ONE RELEASE
+ * LATER than the base (10.10), which is the reference's fact and the reason it carries its own era. */
+NS_CLASS_AVAILABLE_MAC(10_10)
+@interface NSURLSessionDataTask : NSURLSessionTask
+@end
+
+/* ---- the session ------------------------------------------------------------- */
+
+NS_CLASS_AVAILABLE_MAC(NSURLSESSION_AVAILABLE)
+@interface NSURLSession : NSObject
+{
+@private
+	NSURLSessionConfiguration *_configuration;
+	id<NSURLSessionDelegate> _delegate;	/* RETAINED until invalidation tells it the session is gone */
+	NSOperationQueue *_delegateQueue;
+	NSString *_sessionDescription;
+	NSMutableArray *_tasks;
+	NSUInteger _nextTaskIdentifier;
+	signed char _invalidated;
+	signed char _cancelOnInvalidate;
+	signed char _invalidationSent;
+}
+
+/* THE SHARED SESSION: the default configuration, no delegate, its own queue. */
++ (NSURLSession *)sharedSession;
++ (NSURLSession *)sessionWithConfiguration:(NSURLSessionConfiguration *)configuration;
++ (NSURLSession *)sessionWithConfiguration:(NSURLSessionConfiguration *)configuration
+				  delegate:(nullable id<NSURLSessionDelegate>)delegate
+			     delegateQueue:(nullable NSOperationQueue *)queue;
+
+@property (readonly, retain) NSOperationQueue *delegateQueue;
+@property (nullable, readonly, retain) id<NSURLSessionDelegate> delegate;
+@property (readonly, copy) NSURLSessionConfiguration *configuration;
+@property (nullable, copy) NSString *sessionDescription;
+
+- (void)finishTasksAndInvalidate;
+- (void)invalidateAndCancel;
+- (void)resetWithCompletionHandler:(void (^)(void))completionHandler;
+- (void)flushWithCompletionHandler:(void (^)(void))completionHandler;
+/* The block receives the outstanding tasks of each kind; this slice has only data tasks, so the other two arrays
+ * are empty rather than absent. */
+- (void)getTasksWithCompletionHandler:(void (^)(NSArray *dataTasks,
+						NSArray *uploadTasks,
+						NSArray *downloadTasks))completionHandler;
+- (void)getAllTasksWithCompletionHandler:(void (^)(NSArray *tasks))completionHandler NS_AVAILABLE_MAC(10_11);
+
+/* THE TASK FACTORIES THIS SLICE CAN HONOUR: the data task, in the delegate-delivered and completion forms. A task is
+ * born SUSPENDED; `-resume` is what starts it. */
+- (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request;
+- (NSURLSessionDataTask *)dataTaskWithURL:(NSURL *)url;
+- (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request
+			    completionHandler:(void (^)(NSData * _Nullable data,
+							NSURLResponse * _Nullable response,
+							NSError * _Nullable error))completionHandler;
+- (NSURLSessionDataTask *)dataTaskWithURL:(NSURL *)url
+		       completionHandler:(void (^)(NSData * _Nullable data,
+						   NSURLResponse * _Nullable response,
+						   NSError * _Nullable error))completionHandler;
+@end
+
+NS_ASSUME_NONNULL_END
+
+#endif /* FOUNDATION_NSURLSESSION_H */

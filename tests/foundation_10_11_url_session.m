@@ -1,0 +1,643 @@
+/*
+ * Copyright © 2026 Kyle J. Cardoza.
+ * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
+ * SPDX-License-Identifier: LGPL-3.0-or-later
+ *
+ * foundation_10_11_url_session.m — THE TASK STATE MACHINE, AGAINST A SERVER THIS TEST LISTENS ON (10.9/10.10).
+ *
+ * Every case is hermetic: the servers are POSIX sockets on 127.0.0.1 with a kernel-chosen port. What is measured is
+ * what a session promises that a connection does not — a task born suspended, an identifier, byte counts, delegate
+ * messages on the session's QUEUE, completion handlers, redirects the delegate decides, and cancellation that ends
+ * with NSURLErrorCancelled.
+ */
+
+#import <Foundation/Foundation.h>
+#import <Foundation/NSURLSession.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <signal.h>
+#include <time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+static int g_pass, g_fail;
+
+static void check(int ok, const char *what)
+{
+	if (ok) {
+		g_pass++;
+		return;
+	}
+	g_fail++;
+	fprintf(stderr, "FAIL: %s\n", what);
+}
+
+/* ---- a waitable event ------------------------------------------------------- */
+
+typedef struct {
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
+	int fired;
+} fn_event;
+
+static void event_init(fn_event *e)
+{
+	memset(e, 0, sizeof *e);
+	pthread_mutex_init(&e->mutex, NULL);
+	pthread_cond_init(&e->cond, NULL);
+}
+
+static void event_fire(fn_event *e)
+{
+	pthread_mutex_lock(&e->mutex);
+	e->fired = 1;
+	pthread_cond_broadcast(&e->cond);
+	pthread_mutex_unlock(&e->mutex);
+}
+
+static int event_wait(fn_event *e, int seconds)
+{
+	struct timespec deadline;
+	int fired;
+
+	clock_gettime(CLOCK_REALTIME, &deadline);
+	deadline.tv_sec += seconds;
+	pthread_mutex_lock(&e->mutex);
+	while (!e->fired) {
+		if (pthread_cond_timedwait(&e->cond, &e->mutex, &deadline) != 0) {
+			break;
+		}
+	}
+	fired = e->fired;
+	pthread_mutex_unlock(&e->mutex);
+	return fired;
+}
+
+static void event_destroy(fn_event *e)
+{
+	pthread_cond_destroy(&e->cond);
+	pthread_mutex_destroy(&e->mutex);
+}
+
+/* ---- a local HTTP server ---------------------------------------------------- */
+
+struct listener {
+	int fd;
+	int port;
+};
+
+struct server_job {
+	struct listener listener;
+	char response[1024];
+	int delay_ms;
+	char captured[4096];
+	size_t captured_len;
+};
+
+static int make_listener(struct listener *out)
+{
+	struct sockaddr_in address;
+	socklen_t length = sizeof address;
+	int fd = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (fd < 0) {
+		return -1;
+	}
+	memset(&address, 0, sizeof address);
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	address.sin_port = 0;
+	if (bind(fd, (struct sockaddr *)&address, sizeof address) != 0 ||
+	    listen(fd, 1) != 0 ||
+	    getsockname(fd, (struct sockaddr *)&address, &length) != 0) {
+		close(fd);
+		return -1;
+	}
+	out->fd = fd;
+	out->port = ntohs(address.sin_port);
+	return 0;
+}
+
+static void *server_main(void *context)
+{
+	struct server_job *job = (struct server_job *)context;
+	char request[4096];
+	int client;
+	ssize_t got;
+
+	client = accept(job->listener.fd, NULL, NULL);
+	if (client >= 0) {
+		/* READ THE WHOLE REQUEST, not whatever one read returned: a POST's body can arrive after its headers, and
+		 * a capture that stops at the header boundary would make the body check flaky. A receive timeout bounds
+		 * the loop, so a client that stops writing cannot hang the server. */
+		struct timeval timeout;
+		size_t used = 0;
+
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 200 * 1000;
+		setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
+		while (used < sizeof request - 1) {
+			got = read(client, request + used, sizeof request - 1 - used);
+			if (got <= 0) {
+				break;
+			}
+			used += (size_t)got;
+			if (strstr(request, "\r\n\r\n") != NULL) {
+				/* A COMPLETE HEADER IS ENOUGH FOR A GET; for a body, wait once more if Content-Length says there
+				 * is one. Two reads are enough for every request this suite sends. */
+				char *header = strstr(request, "\r\n\r\n");
+
+				if (strstr(request, "Content-Length:") == NULL || (used > (size_t)(header - request) + 4)) {
+					break;
+				}
+			}
+		}
+		request[used] = '\0';
+		got = (ssize_t)used;
+		if (got > 0 && job->captured_len > 0) {
+			size_t keep = (size_t)got < job->captured_len - 1 ? (size_t)got : job->captured_len - 1;
+
+			memcpy(job->captured, request, keep);
+			job->captured[keep] = '\0';
+		}
+		if (job->delay_ms > 0) {
+			usleep((useconds_t)job->delay_ms * 1000);
+		}
+		if (job->response[0] != '\0') {
+			(void)write(client, job->response, strlen(job->response));
+		}
+		close(client);
+	}
+	close(job->listener.fd);
+	return NULL;
+}
+
+static void job_start(struct server_job *job, const char *response, int delay_ms, size_t capture)
+{
+	memset(job, 0, sizeof *job);
+	if (response != NULL) {
+		snprintf(job->response, sizeof job->response, "%s", response);
+	}
+	job->delay_ms = delay_ms;
+	job->captured_len = capture;
+}
+
+/* ---- a delegate that records what a task told it ---------------------------- */
+
+@interface RecordingDelegate : NSObject <NSURLSessionDelegate, NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
+{
+@public
+	NSMutableData *body;
+	NSURLResponse *responseHead;
+	NSHTTPURLResponse *redirectResponse;
+	NSError *completionError;
+	NSUInteger responseCalls, dataCalls, completionCalls;
+	pthread_t firstCallbackThread;
+	BOOL threadsDiffer;
+	BOOL followRedirect;
+	BOOL sawBodyProgress;
+	int64_t lastBytesSent;
+	int64_t lastBytesExpected;
+	fn_event *done;
+}
+@end
+
+@implementation RecordingDelegate
+
+- (void)URLSession:(NSURLSession *)session
+	  dataTask:(NSURLSessionDataTask *)dataTask
+didReceiveResponse:(NSURLResponse *)response
+ completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler
+{
+	if (responseCalls++ == 0) {
+		firstCallbackThread = pthread_self();
+	} else if (!pthread_equal(firstCallbackThread, pthread_self())) {
+		threadsDiffer = YES;
+	}
+	[responseHead release];
+	responseHead = [response retain];
+	completionHandler(NSURLSessionResponseAllow);
+}
+
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data
+{
+	if (dataCalls++ == 0) {
+		firstCallbackThread = pthread_self();
+	} else if (!pthread_equal(firstCallbackThread, pthread_self())) {
+		threadsDiffer = YES;
+	}
+	if (body == nil) {
+		body = [[NSMutableData alloc] init];
+	}
+	[body appendData:data];
+}
+
+- (void)URLSession:(NSURLSession *)session
+	      task:(NSURLSessionTask *)task
+willPerformHTTPRedirection:(NSHTTPURLResponse *)response
+	newRequest:(NSURLRequest *)request
+ completionHandler:(void (^)(NSURLRequest *))completionHandler
+{
+	redirectResponse = [response retain];
+	completionHandler(followRedirect ? request : nil);
+}
+
+- (void)URLSession:(NSURLSession *)session
+	      task:(NSURLSessionTask *)task
+   didSendBodyData:(int64_t)bytesSent
+    totalBytesSent:(int64_t)totalBytesSent
+totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend
+{
+	sawBodyProgress = YES;
+	lastBytesSent = totalBytesSent;
+	lastBytesExpected = totalBytesExpectedToSend;
+}
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
+{
+	completionCalls++;
+	completionError = [error retain];
+	event_fire(done);
+}
+
+- (void)dealloc
+{
+	[body release];
+	[responseHead release];
+	[redirectResponse release];
+	[completionError release];
+	[super dealloc];
+}
+
+@end
+
+/* ---- the cases -------------------------------------------------------------- */
+
+int main(void)
+{
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+	signal(SIGPIPE, SIG_IGN);
+
+	/* 1. THE COMPLETION-HANDLER FORM, on the shared session (no delegate at all). */
+	{
+		struct server_job job;
+		pthread_t thread;
+		__block NSData *data = nil;
+		__block NSURLResponse *response = nil;
+		__block NSError *error = nil;
+		__block fn_event done;
+		NSString *url;
+
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello", 0, 0);
+		check(make_listener(&job.listener) == 0, "the completion-handler listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/one", job.listener.port];
+		{
+			NSURLSessionDataTask *task = [[NSURLSession sharedSession]
+				dataTaskWithURL:[NSURL URLWithString:url]
+			     completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
+				data = [d retain];
+				response = [r retain];
+				error = [e retain];
+				event_fire(&done);
+			}];
+
+			check([task state] == NSURLSessionTaskStateSuspended, "a new task is born suspended");
+			check([task taskIdentifier] > 0, "and has a session-assigned identifier");
+			[task resume];
+			check([task state] == NSURLSessionTaskStateRunning, "resume moves it to running");
+			check(event_wait(&done, 10), "the completion handler fires");
+			pthread_join(thread, NULL);
+			check(data != nil && [[[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]
+						autorelease] isEqualToString:@"hello"], "and carries the body");
+			check([response isKindOfClass:[NSHTTPURLResponse class]] &&
+			      [(NSHTTPURLResponse *)response statusCode] == 200, "with the HTTP response");
+			check(error == nil, "and no error");
+			check([task countOfBytesReceived] == 5, "the task counted the body bytes");
+			check([task countOfBytesExpectedToReceive] == 5, "and the expected length from the header");
+			check([task state] == NSURLSessionTaskStateCompleted, "and the task is completed");
+			[data release];
+			[response release];
+		}
+		event_destroy(&done);
+	}
+
+	/* 2. THE DELEGATE FORM on a session with a serial queue: every message arrives, on one thread, off this one. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		RecordingDelegate *delegate;
+		NSOperationQueue *queue;
+		NSURLSession *session;
+		NSURLSessionDataTask *task;
+		__block fn_event done;
+		NSString *url;
+		pthread_t here = pthread_self();
+
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 11\r\n"
+				"Connection: close\r\n\r\nhello world", 0, 0);
+		check(make_listener(&job.listener) == 0, "the delegate-form listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		delegate = [[RecordingDelegate alloc] init];
+		delegate->done = &done;
+		queue = [[NSOperationQueue alloc] init];
+		[queue setMaxConcurrentOperationCount:1];
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:delegate
+						   delegateQueue:queue];
+		check(session != nil, "a session with a delegate is made");
+		check([session delegate] == delegate, "and retains the delegate it was given");
+		check([session delegateQueue] == queue, "and reports the queue");
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/two", job.listener.port];
+		task = [session dataTaskWithURL:[NSURL URLWithString:url]];
+		check(task != nil, "the data-task factory answers a task");
+		[task resume];
+		check(event_wait(&done, 10), "the delegate hears the completion");
+		pthread_join(thread, NULL);
+		check(delegate->responseCalls == 1, "the response door was sent once");
+		check(delegate->dataCalls >= 1, "data arrived through the data door");
+		check(delegate->completionCalls == 1, "and completion exactly once");
+		check(delegate->completionError == nil, "with no error");
+		check(delegate->threadsDiffer == NO, "every callback ran on the serial queue, not on several threads");
+		check(pthread_equal(delegate->firstCallbackThread, here) == 0, "and none of them on the calling thread");
+		check(delegate->body != nil && [[[[NSString alloc] initWithData:delegate->body
+								       encoding:NSUTF8StringEncoding] autorelease]
+						isEqualToString:@"hello world"], "the delegate's body is the server's");
+		check([task countOfBytesReceived] == 11, "the bytes are counted on the task too");
+		[session finishTasksAndInvalidate];
+		[queue release];
+		[delegate release];
+		event_destroy(&done);
+	}
+
+	/* 3. A POST: the body is counted, and the transport reports its progress. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		RecordingDelegate *delegate;
+		NSOperationQueue *queue;
+		NSURLSession *session;
+		NSMutableURLRequest *request;
+		NSURLSessionDataTask *task;
+		__block fn_event done;
+		NSString *url;
+
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok", 0, sizeof job.captured);
+		check(make_listener(&job.listener) == 0, "the POST listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		delegate = [[RecordingDelegate alloc] init];
+		delegate->done = &done;
+		queue = [[NSOperationQueue alloc] init];
+		[queue setMaxConcurrentOperationCount:1];
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:delegate
+						   delegateQueue:queue];
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/post", job.listener.port];
+		request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+		[request setHTTPMethod:@"POST"];
+		[request setHTTPBody:[@"payload" dataUsingEncoding:NSUTF8StringEncoding]];
+		task = [session dataTaskWithRequest:request];
+		check([task countOfBytesExpectedToSend] == 7, "the expected send count is the body's length");
+		[task resume];
+		check(event_wait(&done, 10), "the POST completes");
+		pthread_join(thread, NULL);
+		check(strstr(job.captured, "POST /post") != NULL, "the server saw the method and path");
+		check(strstr(job.captured, "payload") != NULL, "and the body");
+		check([task countOfBytesSent] == 7, "the task counted the bytes it sent");
+		check(delegate->sawBodyProgress && delegate->lastBytesSent == 7 && delegate->lastBytesExpected == 7,
+		      "and the upload-progress door reported them");
+		[session finishTasksAndInvalidate];
+		[queue release];
+		[delegate release];
+		event_destroy(&done);
+	}
+
+	/* 4. A REDIRECT THE DELEGATE FOLLOWS: currentRequest moves, and the second server's body is the answer. */
+	{
+		struct server_job first, second;
+		pthread_t t1, t2;
+		RecordingDelegate *delegate;
+		NSOperationQueue *queue;
+		NSURLSession *session;
+		NSURLSessionDataTask *task;
+		__block fn_event done;
+		NSString *url;
+
+		event_init(&done);
+		job_start(&second, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nfinal", 0, 0);
+		check(make_listener(&second.listener) == 0, "the redirect target bound a port");
+		{
+			char response[512];
+
+			snprintf(response, sizeof response,
+				 "HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:%d/final\r\n"
+				 "Content-Length: 0\r\nConnection: close\r\n\r\n", second.listener.port);
+			job_start(&first, response, 0, 0);
+		}
+		check(make_listener(&first.listener) == 0, "the redirect source bound a port");
+		pthread_create(&t1, NULL, server_main, &first);
+		pthread_create(&t2, NULL, server_main, &second);
+		delegate = [[RecordingDelegate alloc] init];
+		delegate->done = &done;
+		delegate->followRedirect = YES;
+		queue = [[NSOperationQueue alloc] init];
+		[queue setMaxConcurrentOperationCount:1];
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:delegate
+						   delegateQueue:queue];
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/start", first.listener.port];
+		task = [session dataTaskWithURL:[NSURL URLWithString:url]];
+		[task resume];
+		check(event_wait(&done, 10), "the redirect run completes");
+		pthread_join(t1, NULL);
+		pthread_join(t2, NULL);
+		check(delegate->redirectResponse != nil && [delegate->redirectResponse statusCode] == 302,
+		      "the delegate was shown the 302");
+		check([[[task currentRequest] URL].absoluteString hasSuffix:@"/final"],
+		      "and currentRequest is the request the redirect chose");
+		check(delegate->body != nil && [[[[NSString alloc] initWithData:delegate->body
+								       encoding:NSUTF8StringEncoding] autorelease]
+						isEqualToString:@"final"], "the final body is the answer");
+		[session finishTasksAndInvalidate];
+		[queue release];
+		[delegate release];
+		event_destroy(&done);
+	}
+
+	/* 5. A REDIRECT THE DELEGATE REFUSES: the 3xx IS the answer, and currentRequest does not move. */
+	{
+		struct server_job first;
+		pthread_t t1;
+		RecordingDelegate *delegate;
+		NSOperationQueue *queue;
+		NSURLSession *session;
+		NSURLSessionDataTask *task;
+		__block fn_event done;
+		NSString *url;
+
+		event_init(&done);
+		job_start(&first, "HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:1/elsewhere\r\n"
+				  "Content-Length: 0\r\nConnection: close\r\n\r\n", 0, 0);
+		check(make_listener(&first.listener) == 0, "the refusing listener bound a port");
+		pthread_create(&t1, NULL, server_main, &first);
+		delegate = [[RecordingDelegate alloc] init];
+		delegate->done = &done;
+		delegate->followRedirect = NO;
+		queue = [[NSOperationQueue alloc] init];
+		[queue setMaxConcurrentOperationCount:1];
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:delegate
+						   delegateQueue:queue];
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/refuse", first.listener.port];
+		task = [session dataTaskWithURL:[NSURL URLWithString:url]];
+		[task resume];
+		check(event_wait(&done, 10), "the refused redirect completes");
+		pthread_join(t1, NULL);
+		check(delegate->completionError == nil, "a refused redirect is not an error");
+		check([task response] != nil && [(NSHTTPURLResponse *)[task response] statusCode] == 302,
+		      "the 3xx is the final response");
+		check([[[task currentRequest] URL].absoluteString hasSuffix:@"/refuse"],
+		      "and the request the task ran did not move");
+		[session finishTasksAndInvalidate];
+		[queue release];
+		[delegate release];
+		event_destroy(&done);
+	}
+
+	/* 6. CANCELLATION: the task ends with NSURLErrorCancelled, and the state says so. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		RecordingDelegate *delegate;
+		NSOperationQueue *queue;
+		NSURLSession *session;
+		NSURLSessionDataTask *task;
+		__block fn_event done;
+		NSString *url;
+
+		event_init(&done);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello", 400, 0);
+		check(make_listener(&job.listener) == 0, "the slow listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		delegate = [[RecordingDelegate alloc] init];
+		delegate->done = &done;
+		queue = [[NSOperationQueue alloc] init];
+		[queue setMaxConcurrentOperationCount:1];
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:delegate
+						   delegateQueue:queue];
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/slow", job.listener.port];
+		task = [session dataTaskWithURL:[NSURL URLWithString:url]];
+		[task resume];
+		usleep(100 * 1000);
+		[task cancel];
+		check([task state] == NSURLSessionTaskStateCanceling || [task state] == NSURLSessionTaskStateCompleted,
+		      "cancel moves the task out of running");
+		check(event_wait(&done, 10), "the cancellation is reported");
+		pthread_join(thread, NULL);
+		check(delegate->completionError != nil &&
+		      [delegate->completionError code] == NSURLErrorCancelled, "with NSURLErrorCancelled");
+		check([task state] == NSURLSessionTaskStateCompleted, "and the task is completed");
+		check([task error] != nil && [[task error] code] == NSURLErrorCancelled, "the task carries the error too");
+		[session finishTasksAndInvalidate];
+		[queue release];
+		[delegate release];
+		event_destroy(&done);
+	}
+
+	/* 7. THE OUTSTANDING-TASK LIST: a running task is in it, and a completed one is not. */
+	{
+		struct server_job job;
+		pthread_t thread;
+		NSOperationQueue *queue;
+		NSURLSession *session;
+		NSURLSessionDataTask *task;
+		__block fn_event listed, after;
+		__block NSUInteger during = 0, later = 0;
+		__block BOOL arraysPresent = NO;
+		NSString *url;
+
+		event_init(&listed);
+		event_init(&after);
+		job_start(&job, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok", 200, 0);
+		check(make_listener(&job.listener) == 0, "the list listener bound a port");
+		pthread_create(&thread, NULL, server_main, &job);
+		queue = [[NSOperationQueue alloc] init];
+		[queue setMaxConcurrentOperationCount:1];
+		session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+							delegate:nil
+						   delegateQueue:queue];
+		url = [NSString stringWithFormat:@"http://127.0.0.1:%d/list", job.listener.port];
+		task = [session dataTaskWithURL:[NSURL URLWithString:url]
+		       completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
+			(void)d; (void)r; (void)e;
+		}];
+		[task resume];
+		usleep(50 * 1000);
+		[session getTasksWithCompletionHandler:^(NSArray *dataTasks, NSArray *uploads, NSArray *downloads) {
+			during = [dataTasks count];
+			arraysPresent = (uploads != nil && downloads != nil);
+			event_fire(&listed);
+		}];
+		check(event_wait(&listed, 10), "the task list answered");
+		check(during == 1, "a running task is in the outstanding list");
+		check(arraysPresent, "and the other two lists are arrays, not nil");
+		usleep(500 * 1000);
+		[session getTasksWithCompletionHandler:^(NSArray *dataTasks, NSArray *uploads, NSArray *downloads) {
+			later = [dataTasks count];
+			(void)uploads; (void)downloads;
+			event_fire(&after);
+		}];
+		check(event_wait(&after, 10), "the second list answered");
+		check(later == 0, "a finished task has left the outstanding list");
+		pthread_join(thread, NULL);
+		[session finishTasksAndInvalidate];
+		[queue release];
+		event_destroy(&listed);
+		event_destroy(&after);
+	}
+
+	/* 8. THE TASK'S OWN VALUE DOORS, and the background refusal. */
+	{
+		NSURLSessionDataTask *a;
+		NSURLSessionDataTask *b;
+		NSURLSessionDataTask *copy;
+		NSURLSessionConfiguration *background;
+		NSURLSession *refused;
+
+		a = [[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:@"http://127.0.0.1:1/a"]];
+		b = [[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:@"http://127.0.0.1:1/b"]];
+		check([a taskIdentifier] != [b taskIdentifier], "two tasks get two identifiers");
+		[a setTaskDescription:@"probe"];
+		check([[a taskDescription] isEqualToString:@"probe"], "the description reads back");
+		[a setPriority:2.0f];
+		check([a priority] == 1.0f, "priority is clamped to Apple's range");
+		[a setPriority:-1.0f];
+		check([a priority] == 0.0f, "at both ends");
+		[a setPriority:NSURLSessionTaskPriorityHigh];
+		check([a priority] == NSURLSessionTaskPriorityHigh, "and the named constants are on it");
+		copy = [[a copy] autorelease];
+		check(copy != a && [copy state] == NSURLSessionTaskStateSuspended &&
+		      [[[copy currentRequest] URL] isEqual:[[a currentRequest] URL]] &&
+		      [[copy taskDescription] isEqual:@"probe"], "a copy is a new suspended task with the same request");
+
+		background = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:@"com.example.refused"];
+		refused = [NSURLSession sessionWithConfiguration:background];
+		check(refused == nil, "a background session is refused by name rather than faked");
+		[a release];
+		[b release];
+	}
+
+	printf("foundation_10_11_url_session: %d of %d cases passed, %d failed\n", g_pass, g_pass + g_fail, g_fail);
+	[pool release];
+	return g_fail == 0 ? 0 : 1;
+}

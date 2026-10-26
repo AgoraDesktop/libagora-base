@@ -82,6 +82,13 @@ target_link_libraries(foundation_10_11_session_configuration PRIVATE Foundation 
 
 add_test(NAME foundation_10_11_session_configuration COMMAND foundation_10_11_session_configuration)
 
+# THE TASK STATE MACHINE AND THE DATA PATH (10.9/10.10): a task born suspended, a delegate queue, byte counts, the
+# completion-handler forms, a redirect the delegate follows and one it refuses, cancellation, and the task lists.
+add_executable(foundation_10_11_url_session foundation_10_11_url_session.m)
+target_link_libraries(foundation_10_11_url_session PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_url_session COMMAND foundation_10_11_url_session)
+
 # Core Foundation's Unicode normalization, against Unicode's own test suite. A separate suite from the
 # bridge because it is a separate concern, and because it is a CONFORMANCE run first: `NormalizationTest.txt`
 # is 19,129 cases with six invariants each, and nothing else in the tree asks `CFStringNormalize` anything.
