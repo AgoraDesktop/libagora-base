@@ -48,7 +48,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithURL:(NSURL *)URL
 		   MIMEType:(nullable NSString *)MIMEType
 	expectedContentLength:(NSInteger)length
-	   textEncodingName:(nullable NSString *)name;
+	   textEncodingName:(nullable NSString *)name NS_DESIGNATED_INITIALIZER;
 
 @property (nullable, readonly, copy) NSURL *URL;
 @property (nullable, readonly, copy) NSString *MIMEType;

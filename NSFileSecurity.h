@@ -57,7 +57,7 @@ NS_ASSUME_NONNULL_BEGIN
 NS_CLASS_AVAILABLE_MAC(10_7)
 @interface NSFileSecurity : NSObject <NSCopying, NSSecureCoding>
 
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
 /* Immutable to the outside (nothing here can change it) but COPIED rather than shared: the type's facts
  * are SETTABLE through the bridge Apple documents, so a copy must be its own object. */

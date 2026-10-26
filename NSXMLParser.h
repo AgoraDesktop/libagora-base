@@ -167,7 +167,7 @@ typedef enum {
 	id <NSXMLParserDelegate> _delegate;	/* NOT retained: see -setDelegate: */
 }
 
-- (nullable instancetype)initWithData:(NSData *)data;
+- (nullable instancetype)initWithData:(NSData *)data NS_DESIGNATED_INITIALIZER;
 - (nullable instancetype)initWithContentsOfURL:(NSURL *)url;
 
 /* NOT RETAINED: Apple's own page says a parser does not retain its delegate, and a delegate that retained

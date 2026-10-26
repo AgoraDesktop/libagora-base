@@ -77,7 +77,7 @@ typedef NSUInteger NSNetServiceOptions;
 	BOOL _resolving;
 }
 
-- (instancetype)initWithDomain:(NSString *)domain type:(NSString *)type name:(NSString *)name port:(NSInteger)port;
+- (instancetype)initWithDomain:(NSString *)domain type:(NSString *)type name:(NSString *)name port:(NSInteger)port NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithDomain:(NSString *)domain type:(NSString *)type name:(NSString *)name;
 
 @property (nullable, assign) id <NSNetServiceDelegate> delegate;

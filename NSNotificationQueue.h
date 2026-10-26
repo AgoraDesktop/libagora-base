@@ -55,7 +55,7 @@ NS_SWIFT_NAME(NotificationQueue)
 + (NSNotificationQueue *)defaultQueue;
 
 /* Apple's designated initializer: the queue posts through the center it is given. */
-- (instancetype)initWithNotificationCenter:(NSNotificationCenter *)notificationCenter;
+- (instancetype)initWithNotificationCenter:(NSNotificationCenter *)notificationCenter NS_DESIGNATED_INITIALIZER;
 
 /* THE CONVENIENCE FORM, and Apple's own words for what it means: it "coalesces only notifications that match
  * both the notification's name and object", in `NSDefaultRunLoopMode`. */

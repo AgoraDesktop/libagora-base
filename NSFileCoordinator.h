@@ -180,7 +180,7 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 /* "This object is assumed to be performing the relevant file or directory operations and therefore does
  * NOT receive notifications about those operations" - so the coordinator's own presenter is excluded from
  * the notifications this coordinator causes, which is a rule 7c will need. */
-- (id)initWithFilePresenter:(nullable id)filePresenterOrNil;
+- (id)initWithFilePresenter:(nullable id)filePresenterOrNil NS_DESIGNATED_INITIALIZER;
 
 - (void)coordinateReadingItemAtURL:(nullable NSURL *)url
 			   options:(NSFileCoordinatorReadingOptions)options

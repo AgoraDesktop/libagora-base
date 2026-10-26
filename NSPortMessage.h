@@ -39,7 +39,7 @@ NS_SWIFT_NAME(PortMessage)
  * described as it was received. */
 - (instancetype)initWithSendPort:(nullable NSPort *)sendPort
 		     receivePort:(nullable NSPort *)receivePort
-		      components:(nullable NSArray *)components;
+		      components:(nullable NSArray *)components NS_DESIGNATED_INITIALIZER;
 
 - (nullable NSArray *)components;
 - (nullable NSPort *)receivePort;

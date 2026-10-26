@@ -191,7 +191,7 @@ typedef enum {
 /* -init is inherited from NSObject and is NOT re-declared: a nullable re-declaration
  * of it conflicts with the inherited nonnull specifier (the warning F10's first build
  * named, after F7 had carried it silently). */
-- (nullable id)initWithCalendarIdentifier:(NSString *)identifier;	/* nil for the refused ones */
+- (nullable id)initWithCalendarIdentifier:(NSString *)identifier NS_DESIGNATED_INITIALIZER;	/* nil for the refused ones */
 
 /* ⚠ `-identifier` STOOD HERE AND IS GONE (§63.68). Apple's name for that value is `-calendarIdentifier`, which
  * this class already declares and ships, so the house spelling was a second door onto one property — the same

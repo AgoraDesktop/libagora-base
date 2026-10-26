@@ -93,12 +93,12 @@ NS_ASSUME_NONNULL_BEGIN
  * published in a source this project may read). THE ENCODING TRAVELS WITH THE BYTES, because the encoding is
  * what says how many bytes there are — this class's own point, and the reason the pair cannot drop it. */
 - (void)encodeWithCoder:(NSCoder *)coder;
-- (instancetype)initWithCoder:(NSCoder *)coder;
+- (instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
 /* THE INSTANCE SPELLING OF THE RAW-BYTES DOOR, beside its class twin below: Apple offers
  * -initWithBytes:objCType: as the designated initializer, and both it and +valueWithBytes:objCType: funnel
  * through the same private -fnInitWithBytes:, so the two cannot diverge. */
-- (instancetype)initWithBytes:(const void *)value objCType:(const char *)type;
+- (instancetype)initWithBytes:(const void *)value objCType:(const char *)type NS_DESIGNATED_INITIALIZER;
 
 + (NSValue *)valueWithBytes:(const void *)value objCType:(const char *)type;
 /* The older spelling, still present in Cocoa's header, so it is here too. */

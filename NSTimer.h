@@ -65,7 +65,7 @@ NS_SWIFT_NAME(Timer)
 			  target:(id)target
 			selector:(SEL)selector
 			userInfo:(nullable id)userInfo
-			 repeats:(BOOL)repeats;
+			 repeats:(BOOL)repeats NS_DESIGNATED_INITIALIZER;
 
 - (void)fire;
 - (void)invalidate;

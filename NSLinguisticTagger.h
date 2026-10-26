@@ -174,7 +174,7 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 /* A TAGGER IS MADE FROM SCHEMES AND OPTIONS, and it holds no string until one is set (Apple's arrangement, and
  * the reason `-string` is nullable: a tagger with no string answers an EMPTY range rather than crashing). */
 - (instancetype)initWithTagSchemes:(NSArray *)tagSchemes
-			   options:(NSUInteger)options NS_AVAILABLE_MAC(10_7);
+			   options:(NSUInteger)options NS_AVAILABLE_MAC(10_7) NS_DESIGNATED_INITIALIZER;
 
 @property (readonly, copy) NSArray *tagSchemes NS_AVAILABLE_MAC(10_7);
 

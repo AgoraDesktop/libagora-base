@@ -30,7 +30,7 @@ NS_CLASS_AVAILABLE_MAC(10_4)
 	NSArray *_subpredicates;
 }
 
-- (id)initWithType:(NSCompoundPredicateType)type subpredicates:(NSArray *)subpredicates;
+- (id)initWithType:(NSCompoundPredicateType)type subpredicates:(NSArray *)subpredicates NS_DESIGNATED_INITIALIZER;
 
 - (NSCompoundPredicateType)compoundPredicateType;
 - (NSArray *)subpredicates;

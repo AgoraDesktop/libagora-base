@@ -201,7 +201,7 @@ NS_SWIFT_NAME(UserDefaults)
 
 /* The app domain becomes `suiteName` instead of NSGlobalDomain. NOTHING HAPPENS when `suiteName` is nil,
  * which is Apple's contract: "If you pass nil, the method has no effect" — so the result is `-init`. */
-- (nullable instancetype)initWithSuiteName:(nullable NSString *)suitename NS_AVAILABLE_MAC(10_9);
+- (nullable instancetype)initWithSuiteName:(nullable NSString *)suitename NS_AVAILABLE_MAC(10_9) NS_DESIGNATED_INITIALIZER;
 
 /* Merge `registrationDictionary` into NSRegistrationDomain. Nothing is written to disk and nothing can be
  * removed this way: the registration domain is the fallback, so it may be added to or replaced, never

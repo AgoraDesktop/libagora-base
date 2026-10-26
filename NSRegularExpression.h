@@ -110,7 +110,7 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 						error:(NSError ** _Nullable)error;
 - (nullable instancetype)initWithPattern:(NSString *)pattern
 				 options:(NSRegularExpressionOptions)options
-				   error:(NSError ** _Nullable)error;
+				   error:(NSError ** _Nullable)error NS_DESIGNATED_INITIALIZER;
 
 - (NSString *)pattern;
 - (NSRegularExpressionOptions)options;

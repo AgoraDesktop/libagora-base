@@ -95,7 +95,7 @@ NS_SWIFT_NAME(Process)
 /* --- creating and initializing ------------------------------------------- */
 
 /* The environment of the current process, and nothing launched: Apple's `-init`. */
-- (instancetype)init;
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
 
 /* "Creates and runs a task with a specified executable and arguments." RAISES NSInvalidArgumentException
  * when `arguments` is nil — Apple's own sentence — and answers nil with an error when the launch fails. */

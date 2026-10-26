@@ -86,7 +86,7 @@ extern NSInteger const NSFileProviderErrorDeletionRejected;
 
 - (nullable id)initWithDomain:(NSErrorDomain)domain
 		code:(NSInteger)code
-	    userInfo:(nullable NSDictionary *)userInfo;
+	    userInfo:(nullable NSDictionary *)userInfo NS_DESIGNATED_INITIALIZER;
 
 @property (readonly, copy) NSErrorDomain domain;
 @property (readonly) NSInteger code;

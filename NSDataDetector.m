@@ -785,6 +785,30 @@ static void fn_scan_dates(NSString *text, NSRange limit, NSCalendar *calendar, N
 	return [[[self alloc] initWithTypes:checkingTypes error:error] autorelease];
 }
 
+/* THE INHERITED DESIGNATED DOOR, RESTATED (batch 9). `NSRegularExpression -initWithPattern:options:error:` is
+ * designated, so a subclass that declares a designated door of its own must override it. A data detector has no
+ * pattern, so the honest override is a refusal in this class's own style: nil plus an error that names the door to
+ * use. Apple's NSDataDetector page says the same thing in prose ("do not create data detectors with the
+ * NSRegularExpression initializer"). */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-designated-initializers"
+- (nullable instancetype)initWithPattern:(NSString *)pattern
+				 options:(NSRegularExpressionOptions)options
+				   error:(NSError ** _Nullable)error
+{
+	(void)pattern;
+	(void)options;
+	if (error != NULL) {
+		*error = [NSError errorWithDomain:NSDataDetectorErrorDomain
+					     code:NSDataDetectorTypeNotADataDetectorCode
+					 userInfo:@{ NSLocalizedDescriptionKey :
+						     @"a data detector has no pattern; use -initWithTypes:error:" }];
+	}
+	[self release];
+	return nil;
+}
+#pragma clang diagnostic pop
+
 - (nullable instancetype)initWithTypes:(NSTextCheckingTypes)checkingTypes
 				 error:(NSError ** _Nullable)error
 {
@@ -824,7 +848,10 @@ static void fn_scan_dates(NSString *text, NSRange limit, NSCalendar *calendar, N
 		[self release];
 		return nil;
 	}
-	self = [super init];
+	/* THE SUPER'S DESIGNATED DOOR, because a designated initializer has to chain to one. The state it installs is
+	 * never read here — every matching door on this class routes through the -matchesInString:… override below — so
+	 * the pattern is the empty one, which compiles and matches nothing a detector will ask about. */
+	self = [super initWithPattern:@"" options:0 error:NULL];
 	if (self == nil) {
 		return nil;
 	}

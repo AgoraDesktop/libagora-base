@@ -59,7 +59,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /* A nil `data` is a PROGRAMMING ERROR, not an empty archive, and it raises `NSInvalidArgumentException`
  * (Apple's own contract). */
-- (instancetype)initForWritingWithMutableData:(nullable NSMutableData *)data;
+- (instancetype)initForWritingWithMutableData:(nullable NSMutableData *)data NS_DESIGNATED_INITIALIZER;
 
 /* WRITE THE GRAPH. Sending this TWICE raises `NSInvalidArgumentException`: one archive holds one root, and
  * a second root would be a second archive wearing the first one's header. */
@@ -102,7 +102,7 @@ NS_ASSUME_NONNULL_BEGIN
  * a caller can act on — but a nil ARGUMENT is a programming error and raises, as on the writing side. */
 + (nullable id)unarchiveObjectWithData:(NSData *)data;
 + (nullable id)unarchiveObjectWithFile:(NSString *)path;
-- (nullable instancetype)initForReadingWithData:(nullable NSData *)data;
+- (nullable instancetype)initForReadingWithData:(nullable NSData *)data NS_DESIGNATED_INITIALIZER;
 
 /* Whether the reader is at the end of the archive — the door that tells a caller whether the object it
  * just decoded was the WHOLE archive. */

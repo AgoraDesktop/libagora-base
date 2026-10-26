@@ -67,17 +67,26 @@
 # Batch 8 closed the "extract or flip" group: NSAppleScript, NSComparisonPredicate, NSLocale, NSNotification,
 # NSHashTable, NSMapTable and NSPointerArray each have TWO designated doors where one used to chain to the other, so the
 # shared install became a plain method and each door states it; NSExpression's coder door routes through the designated
-# type door; NSFileHandle's coder door is a raise-only refusal and keeps a local pragma. The residue waits for the
-# same pass, class by class, for the reason the note below gives. `designated-init` is a
-# different kind of fact from an era: it carries no version, it says which initializer defines the class's state. Apple
-# marks 182 in the 10.11 Foundation; 178 reach the manifest after ownership and availability filtering, and 135 of them
-# are on declarations this tree makes. Sweeping them was ATTEMPTED and the result is recorded rather than hidden: with
-# the marks in place the library still builds, but clang emits **208 distinct `-Wobjc-designated-initializers` warnings**
-# — "designated initializer should only invoke a designated initializer on 'super'", "convenience initializer missing a
-# 'self' call to another initializer", and so on. Those warnings are TRUE: this tree's initializers do not follow the
-# graph Apple's marks describe, and marking the header without fixing the bodies would state a contract the
-# implementations break in 208 places. The facts are committed and the count is pinned; the sweep waits for the
-# implementation pass, which is its own slice.
+# type door; NSFileHandle's coder door is a raise-only refusal and keeps a local pragma.
+# Batch 9 placed the last 29 marks, all of them declarations whose bodies already conformed (the measurement found no
+# warnings), with one knock-on: NSDataDetector is an NSRegularExpression subclass, so marking NSRegularExpression's
+# designated pattern door obliged the detector to override it. A data detector has no pattern, so that override is a
+# refusal with an error naming -initWithTypes:error:, and the detector's own designated door chains to the super's with
+# the empty pattern (state every matching door on the class bypasses).
+#
+# **THE SWEEP IS FINISHED, AND THE ONLY MARKS LEFT OUT ARE THE NUMBER CLUSTER'S.** `designated-init` is a different
+# kind of fact from an era: it carries no version, it says which initializer defines the class's state. Apple marks 182
+# in the 10.11 Foundation; 178 reach the manifest after ownership and availability filtering, and 143 of them are on
+# declarations this tree makes. Sweeping them was ATTEMPTED first and the result recorded rather than hidden: with the
+# marks in place the library built, but clang emitted **202 distinct declaration sites** of
+# `-Wobjc-designated-initializers` — "designated initializer should only invoke a designated initializer on 'super'",
+# "convenience initializer missing a 'self' call to another initializer", and so on. Those warnings were TRUE: this
+# tree's initializers did not follow the graph Apple's marks describe, and marking the header without fixing the bodies
+# would have stated a contract the implementations broke. Nine batches later the bodies comply and the library emits
+# **zero** such diagnostics with every mark placed. The 18 missing marks are deliberate: `NSNumber`'s 16 and
+# `NSDecimalNumber`'s 2, the re-routing class cluster refused by decision in FOUNDATION-10.11-PLAN.md §4.15 — Apple's
+# marks describe a cluster whose storage lives in Core Foundation, where no clang rule applies; this cluster's storage
+# lives here.
 #
 # THE GATE is `foundation-api-availability` in tests/CMakeLists.txt, which runs `api-ledger availability` with `--pin`
 # and fails on drift in either direction as well as on a wrong version.
@@ -88,6 +97,6 @@ annotations-present 800
 annotations-wrong 0
 designated-candidates 143
 designated-extra 2
-designated-missing 47
-designated-present 96
+designated-missing 18
+designated-present 125
 

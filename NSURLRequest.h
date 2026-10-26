@@ -127,7 +127,7 @@ typedef NS_ENUM(NSUInteger, NSURLRequestAttribution) {
 - (instancetype)initWithURL:(NSURL *)URL;
 - (instancetype)initWithURL:(NSURL *)URL
 		cachePolicy:(NSURLRequestCachePolicy)cachePolicy
-	    timeoutInterval:(NSTimeInterval)timeoutInterval;
+	    timeoutInterval:(NSTimeInterval)timeoutInterval NS_DESIGNATED_INITIALIZER;
 
 /* `URL` is nullable because a request may be built without one (Apple declares it nullable too), and the
  * initializers above take a nonnull URL — a request with no URL is reachable only by mutating one back. */

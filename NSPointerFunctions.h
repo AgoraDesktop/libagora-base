@@ -104,7 +104,7 @@ NS_CLASS_AVAILABLE_MAC(10_5)
 
 /* THE OPTIONS WORD IS THE WHOLE CONFIGURATION. The callouts it selects are readable below and may be
  * replaced one at a time, which is how a caller keeps Apple's personality but changes one decision. */
-- (instancetype)initWithOptions:(NSPointerFunctionsOptions)options;
+- (instancetype)initWithOptions:(NSPointerFunctionsOptions)options NS_DESIGNATED_INITIALIZER;
 + (instancetype)pointerFunctionsWithOptions:(NSPointerFunctionsOptions)options;
 
 /* PERSONALITY: how the pointer is hashed, compared, measured and described. */

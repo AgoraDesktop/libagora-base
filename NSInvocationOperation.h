@@ -63,7 +63,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable instancetype)initWithTarget:(id)target selector:(SEL)sel object:(nullable id)arg;
 
 /* THE DESIGNATED INITIALIZER, which retains the invocation's arguments for the run ahead of it. */
-- (instancetype)initWithInvocation:(NSInvocation *)inv;
+- (instancetype)initWithInvocation:(NSInvocation *)inv NS_DESIGNATED_INITIALIZER;
 
 @property (readonly, retain) NSInvocation *invocation;
 

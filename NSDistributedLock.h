@@ -45,7 +45,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 + (nullable NSDistributedLock *)lockWithPath:(NSString *)path;
-- (instancetype)initWithPath:(NSString *)path;
+- (instancetype)initWithPath:(NSString *)path NS_DESIGNATED_INITIALIZER;
 
 - (BOOL)tryLock;
 - (void)unlock;

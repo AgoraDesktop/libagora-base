@@ -74,7 +74,7 @@ NS_CLASS_AVAILABLE_MAC(10_10)
 /* APPLE'S OWN RULE FOR THE ARGUMENT, ENFORCED AT THE DOOR: "a unique string, in reverse DNS notation, that
  * identifies the activity ... nil and zero-length strings are NOT ALLOWED" — so both raise
  * NSInvalidArgumentException rather than producing a scheduler the system could not track. */
-- (instancetype)initWithIdentifier:(NSString *)identifier;
+- (instancetype)initWithIdentifier:(NSString *)identifier NS_DESIGNATED_INITIALIZER;
 
 @property (readonly, copy) NSString *identifier;
 /* The suggested interval between scheduling and invoking the activity, and "for repeating activities ... also

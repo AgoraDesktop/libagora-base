@@ -218,7 +218,7 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend;
  * may be started with no cached answer and with no listener, and must cope with both. */
 - (instancetype)initWithRequest:(NSURLRequest *)request
 		 cachedResponse:(nullable NSCachedURLResponse *)cachedResponse
-			 client:(nullable id <NSURLProtocolClient>)client;
+			 client:(nullable id <NSURLProtocolClient>)client NS_DESIGNATED_INITIALIZER;
 
 - (void)startLoading;
 - (void)stopLoading;

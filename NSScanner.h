@@ -104,7 +104,7 @@ NS_SWIFT_NAME(Scanner)
  * written against Apple's header that assigns the answer to something else must keep compiling. */
 + (id)localizedScannerWithString:(NSString *)string;
 
-- (instancetype)initWithString:(NSString *)string;
+- (instancetype)initWithString:(NSString *)string NS_DESIGNATED_INITIALIZER;
 
 @property (readonly, copy) NSString *string;
 @property NSUInteger scanLocation;

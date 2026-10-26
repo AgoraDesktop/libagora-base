@@ -82,7 +82,7 @@ NS_CLASS_AVAILABLE_MAC(10_6)
 /* THE DESIGNATED DOOR, and the one that ENFORCES the invariant: the dominant script must be a key of the map, and
  * that key's array must not be empty. Apple's pages describe this initializer as the way to OVERRIDE the script a
  * language is usually written in, which is why a caller still has to name one. */
-- (instancetype)initWithDominantScript:(NSString *)script languageMap:(NSDictionary *)map NS_AVAILABLE_MAC(10_6);
+- (instancetype)initWithDominantScript:(NSString *)script languageMap:(NSDictionary *)map NS_AVAILABLE_MAC(10_6) NS_DESIGNATED_INITIALIZER;
 + (instancetype)orthographyWithDominantScript:(NSString *)script languageMap:(NSDictionary *)map NS_AVAILABLE_MAC(10_6);
 
 /* THE DOMINANT SCRIPT, and the first language of ITS array (never nil: the invariant is what guarantees it). */

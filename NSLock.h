@@ -88,7 +88,7 @@ NS_ASSUME_NONNULL_BEGIN
 	NSString *_name;
 }
 
-- (instancetype)initWithCondition:(NSInteger)condition;
+- (instancetype)initWithCondition:(NSInteger)condition NS_DESIGNATED_INITIALIZER;
 
 /* "The condition" - read UNDER THE LOCK, because a value read without it is a value that has already changed. */
 - (NSInteger)condition;

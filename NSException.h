@@ -81,7 +81,7 @@ extern NSString *const NSMallocException;
 
 - (nullable id)initWithName:(NSString *)name
 	    reason:(nullable NSString *)reason
-	  userInfo:(nullable NSDictionary *)userInfo;
+	  userInfo:(nullable NSDictionary *)userInfo NS_DESIGNATED_INITIALIZER;
 
 - (NSString *)name;
 - (nullable NSString *)reason;
