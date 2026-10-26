@@ -141,12 +141,8 @@ static void fn_append(NSIndexSet *set, unsigned long location, unsigned long len
 
 - (id)initWithIndex:(NSUInteger)value
 {
-	self = [super init];
-	if (self == nil) {
-		return nil;
-	}
-	fn_append(self, value, 1);
-	return self;
+	/* A CONVENIENCE door routes to a designated one (batch 7): one index is the range door with a length of one. */
+	return [self initWithIndexesInRange:NSMakeRange(value, 1)];
 }
 
 - (id)initWithIndexesInRange:(NSRange)range

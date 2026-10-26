@@ -95,17 +95,13 @@ static int fn_out_writable(int fd)
 
 - (nullable instancetype)initToFileAtPath:(NSString *)path append:(BOOL)shouldAppend
 {
-	self = [super init];
-	if (self != nil) {
-		if (path == nil) {
-			[self release];
-			return nil;
-		}
-		_path = [path retain];		/* OPENED AT -open, Apple's rule for a stream */
-		_append = shouldAppend;
-		_fd = -1;
+	/* A CONVENIENCE door routes to a designated one (batch 7): a path is a file URL, and the URL door is what
+	 * keeps `_path`, `_append` and the open-at-open rule in one place. */
+	if (path == nil) {
+		[self release];
+		return nil;
 	}
-	return self;
+	return [self initWithURL:[NSURL fileURLWithPath:path] append:shouldAppend];
 }
 
 - (nullable instancetype)initWithURL:(NSURL *)url append:(BOOL)shouldAppend

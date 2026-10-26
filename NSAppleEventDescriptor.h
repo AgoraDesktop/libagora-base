@@ -80,6 +80,11 @@ enum {
 						     returnID:(AEReturnID)returnID
 						transactionID:(AETransactionID)transactionID;
 
+/* THE TREE-LOCAL DOOR, RESTATED. Apple marks `-initWithAEDescNoCopy:` designated; that door can only REFUSE here
+ * (this library has no Carbon AEDesc), so the initializer that actually defines this class's state is `-init`,
+ * which Apple inherits from NSObject and does not mark. Stating it is what lets every other door on the class route
+ * through a designated one; the refusal below keeps its own mark and its nil answer. */
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
 - (instancetype)initListDescriptor;
 - (instancetype)initRecordDescriptor;
 - (nullable instancetype)initWithDescriptorType:(DescType)type bytes:(nullable const void *)bytes length:(NSUInteger)length;
@@ -89,7 +94,7 @@ enum {
 			   targetDescriptor:(nullable NSAppleEventDescriptor *)target
 				   returnID:(AEReturnID)returnID
 			      transactionID:(AETransactionID)transactionID;
-- (nullable instancetype)initWithAEDescNoCopy:(const void *)desc;
+- (nullable instancetype)initWithAEDescNoCopy:(const void *)desc NS_DESIGNATED_INITIALIZER;
 
 @property (readonly) DescType descriptorType;
 @property (nullable, readonly, copy) NSData *data;

@@ -48,12 +48,8 @@ static void fn_hold(NSIndexPath *path, const NSUInteger *indexes, NSUInteger len
 
 - (id)initWithIndex:(NSUInteger)index
 {
-	self = [super init];
-	if (self == nil) {
-		return nil;
-	}
-	fn_hold(self, &index, 1);
-	return self;
+	/* A CONVENIENCE door routes to a designated one (batch 7): one index is the list door with a list of one. */
+	return [self initWithIndexes:&index length:1];
 }
 
 - (id)initWithIndexes:(const NSUInteger [])indexes length:(NSUInteger)length

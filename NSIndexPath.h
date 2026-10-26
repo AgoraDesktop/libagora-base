@@ -57,7 +57,7 @@ NS_ASSUME_NONNULL_BEGIN
 			      length:(NSUInteger)length;
 
 - (id)initWithIndex:(NSUInteger)index;
-- (id)initWithIndexes:(const NSUInteger [_Nonnull])indexes length:(NSUInteger)length;
+- (id)initWithIndexes:(const NSUInteger [_Nonnull])indexes length:(NSUInteger)length NS_DESIGNATED_INITIALIZER;
 
 - (NSIndexPath *)indexPathByAddingIndex:(NSUInteger)index;
 - (NSIndexPath *)indexPathByRemovingLastIndex;	/* empty path: NSRangeException */

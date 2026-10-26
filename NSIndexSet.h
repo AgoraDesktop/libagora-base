@@ -40,8 +40,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)indexSetWithIndexesInRange:(NSRange)range;
 
 - (id)initWithIndex:(NSUInteger)value;
-- (id)initWithIndexesInRange:(NSRange)range;
-- (id)initWithIndexSet:(NSIndexSet *)other;
+- (id)initWithIndexesInRange:(NSRange)range NS_DESIGNATED_INITIALIZER;
+- (id)initWithIndexSet:(NSIndexSet *)other NS_DESIGNATED_INITIALIZER;
 
 - (BOOL)containsIndex:(NSUInteger)value;
 - (BOOL)containsIndexesInRange:(NSRange)range;

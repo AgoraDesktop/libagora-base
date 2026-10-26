@@ -94,16 +94,13 @@ static NSError *fn_stream_error(int err)
 
 - (nullable instancetype)initWithFileAtPath:(NSString *)path
 {
-	self = [super init];
-	if (self != nil) {
-		if (path == nil) {
-			[self release];
-			return nil;
-		}
-		_path = [path retain];		/* OPENED AT -open, because Apple opens the resource at open time */
-		_fd = -1;
+	/* A CONVENIENCE door routes to a designated one (batch 7): a path is a file URL, and the URL door is what
+	 * keeps `_path` and the open-at-open rule in one place. */
+	if (path == nil) {
+		[self release];
+		return nil;
 	}
-	return self;
+	return [self initWithURL:[NSURL fileURLWithPath:path]];
 }
 
 - (nullable instancetype)initWithURL:(NSURL *)url

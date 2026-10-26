@@ -207,12 +207,18 @@ static NSArray *fn_urls_for_paths(NSArray *paths)
 	NSString *layout;
 
 	if (path == nil) {
+		[self release];
 		return nil;
 	}
-	layout = fn_layout_for_path(path);
-	if (layout == nil) {
+	/* THE EMPTY PATH IS THE BARE BUNDLE, and that is the one spelling -init has always asked for: it names no
+	 * directory to read a manifest from, which is what "a path with no layout" means. Any OTHER path must be a
+	 * bundle or the answer is nil. */
+	layout = ([path length] == 0) ? nil : fn_layout_for_path(path);
+	if (layout == nil && [path length] != 0) {
 		/* NOT A BUNDLE, and the contract is nil rather than an object that answers nothing: a caller checks
-		 * for the bundle's existence with "did I get one". */
+		 * for the bundle's existence with "did I get one". The receiver is released because an initializer that
+		 * answers nil has promised the caller nothing. */
+		[self release];
 		return nil;
 	}
 	self = [super init];
@@ -247,7 +253,9 @@ static NSArray *fn_urls_for_paths(NSArray *paths)
 
 - (instancetype)init
 {
-	return [self fnInitBareWithPath:@""];
+	/* A CONVENIENCE door routes to the designated one (batch 7): the empty path is the designated door's spelling
+	 * for a bundle with no manifest, so this door is a route rather than a second constructor. */
+	return [self initWithPath:@""];
 }
 
 + (instancetype _Nullable)bundleWithPath:(NSString *)path

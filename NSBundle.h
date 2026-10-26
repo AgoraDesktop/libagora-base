@@ -84,7 +84,7 @@ NS_SWIFT_NAME(Bundle)
 + (NSBundle *)mainBundle;
 
 + (instancetype _Nullable)bundleWithPath:(NSString *)path;
-- (instancetype _Nullable)initWithPath:(NSString *)path;
+- (instancetype _Nullable)initWithPath:(NSString *)path NS_DESIGNATED_INITIALIZER;
 
 /* The bundles this process has OPENED, which is what Apple's +bundleWithIdentifier: searches. A bundle that
  * has never been created cannot be found by identifier, and the header says so rather than implying a search of

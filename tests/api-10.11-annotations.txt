@@ -57,7 +57,13 @@
 # NSMachPort's three restated socket doors are not counted: they are inherited selectors. `NSSocketPort` then marked
 # its three doors (local address, local socket, remote address) in batch 5b: `-init` and `-initWithTCPPort:` route to
 # the local address door, and `initRemoteWithTCPPort:host:` walks `getaddrinfo`'s answer list and hands the descriptor
-# that connected to the designated socket door. The residue waits for the
+# that connected to the designated socket door. Batch 6 then marked `NSDataDetector`'s one door (nothing else in that
+# class initialises), `NSDate`'s reference-date door (which became the storage constructor, with 1970 as a convenience
+# route), and `NSString`'s `-init`/`-initWithCoder:`; the string front's re-routing convenience doors each delegate to
+# the designated `-init` before handing off to `NSOwnedString`, which is what a cluster's door has to say out loud.
+# Batch 7 closed the "route to a marked door" group (NSIndexPath, NSIndexSet, NSInputStream, NSOutputStream, NSBundle)
+# and `NSAppleEventDescriptor`, whose Apple-marked door can only refuse here, so that header RESTATES and marks `-init`
+# as this tree's constructor — which is why methods-declared moved 4,045 -> 4,046. The residue waits for the
 # same pass, class by class, for the reason the note below gives. `designated-init` is a
 # different kind of fact from an era: it carries no version, it says which initializer defines the class's state. Apple
 # marks 182 in the 10.11 Foundation; 178 reach the manifest after ownership and availability filtering, and 135 of them
@@ -78,6 +84,6 @@ annotations-present 800
 annotations-wrong 0
 designated-candidates 143
 designated-extra 2
-designated-missing 73
-designated-present 70
+designated-missing 63
+designated-present 80
 
