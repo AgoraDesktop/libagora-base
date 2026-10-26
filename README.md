@@ -31,7 +31,9 @@ REGULAR FILE is refused as one because a readiness source is ALWAYS ready for it
 a busy loop rather than a notification. `tests/runloop_cf.m` holds all of it to its contract. **And the loop is what
 an application waits in:** `-fnRunMode:forSeconds:returnAfterWork:` is the frame's pass — CoreFoundation's
 `CFRunLoopRunInMode` with the work counter, so a timer callout returns it too — and the AppKit makes the compositor's
-descriptor one of its sources, which is how one wait now covers the connection, the timers and the main queue.
+descriptor one of its sources, which is how one wait now covers the connection, the timers and the main queue. An
+empty mode has nothing to wait on and CoreFoundation says so at once, so that answer pauses for the old fifty-millisecond
+cap rather than spinning — a deadline is a deadline, not a busy loop.
 
 **Zones are implemented.** `NSZone` is an opaque allocator handle (`NSZone.h`), with
 `NSCreateZone`, `NSZoneMalloc`/`Calloc`/`Realloc`/`Free`, `NSZoneName` and

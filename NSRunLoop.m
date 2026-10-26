@@ -1218,6 +1218,21 @@ static void fn_register_loop_with_thread(NSRunLoop *loop, NSThread *thread)
 	before = _workCount;
 	result = CFRunLoopRunInMode(fn_cf_mode(self, _currentMode), seconds,
 				    stopAfterWork ? true : false);
+	if (result == kCFRunLoopRunFinished && seconds > 0.0) {
+		/* **AN EMPTY LOOP HAS NOTHING TO WAIT ON, AND MUST STILL WAIT.** CoreFoundation answers
+		 * `kCFRunLoopRunFinished` at once when the mode holds no sources and no timers, and a caller passing a
+		 * deadline would otherwise get an immediate answer and spin around it — an application whose only source
+		 * is the compositor would burn a core the moment no window existed. The pause is capped exactly as the
+		 * waiting doors cap theirs, so a caller that asked for a long deadline still notices a request from
+		 * another thread (a `-performSelector:onThread:` enqueue wakes the loop with a signal, not with this
+		 * pause, but a flag somebody set has no signal to give). */
+		struct timespec pause;
+		double capped = (seconds < 0.05) ? seconds : 0.05;
+
+		pause.tv_sec = (time_t)capped;
+		pause.tv_nsec = (long)((capped - (double)pause.tv_sec) * 1.0e9);
+		nanosleep(&pause, NULL);
+	}
 	return (result == kCFRunLoopRunHandledSource) || (_workCount != before);
 }
 
