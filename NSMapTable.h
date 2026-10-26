@@ -64,10 +64,10 @@ NS_CLASS_AVAILABLE_MAC(10_5)
 
 - (instancetype)initWithKeyOptions:(NSMapTableOptions)keyOptions
 		       valueOptions:(NSMapTableOptions)valueOptions
-			   capacity:(NSUInteger)initialCapacity;
+			   capacity:(NSUInteger)initialCapacity NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithKeyPointerFunctions:(NSPointerFunctions *)keyFunctions
 		     valuePointerFunctions:(NSPointerFunctions *)valueFunctions
-				  capacity:(NSUInteger)initialCapacity;
+				  capacity:(NSUInteger)initialCapacity NS_DESIGNATED_INITIALIZER;
 
 + (NSMapTable<KeyType, ObjectType> *)mapTableWithKeyOptions:(NSMapTableOptions)keyOptions
 			  valueOptions:(NSMapTableOptions)valueOptions;

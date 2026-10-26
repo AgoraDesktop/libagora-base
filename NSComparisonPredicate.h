@@ -73,10 +73,10 @@ NS_CLASS_AVAILABLE_MAC(10_4)
              rightExpression:(NSExpression *)rhs
                     modifier:(NSComparisonPredicateModifier)modifier
                         type:(NSPredicateOperatorType)type
-                     options:(NSUInteger)options;
+                     options:(NSUInteger)options NS_DESIGNATED_INITIALIZER;
 - (id)initWithLeftExpression:(NSExpression *)lhs
              rightExpression:(NSExpression *)rhs
-             customSelector:(SEL)selector;
+             customSelector:(SEL)selector NS_DESIGNATED_INITIALIZER;
 
 - (NSPredicateOperatorType)predicateOperatorType;
 - (NSComparisonPredicateModifier)comparisonPredicateModifier;

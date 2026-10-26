@@ -32,8 +32,8 @@ NS_CLASS_AVAILABLE_MAC(10_2)
 	BOOL _compiled;
 }
 
-- (instancetype)initWithSource:(NSString *)source;
-- (nullable instancetype)initWithContentsOfURL:(NSURL *)url error:(NSError **)error;
+- (instancetype)initWithSource:(NSString *)source NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithContentsOfURL:(NSURL *)url error:(NSError **)error NS_DESIGNATED_INITIALIZER;
 
 @property (nullable, readonly, copy) NSString *source;
 @property (readonly, getter=isCompiled) BOOL compiled;

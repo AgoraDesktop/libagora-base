@@ -25,12 +25,21 @@ static void fn_script_error(NSError **error, NSString *what)
 
 @implementation NSAppleScript
 
+/* THE INSTALL, AS A METHOD (batch 8). Both doors below are DESIGNATED in Apple's graph, and a designated initializer
+ * may not chain to another initializer on `self` — so the state they share is written here instead of the URL door
+ * routing through the source door. */
+- (void)fnAdoptSource:(NSString *)source
+{
+	[_source release];
+	_source = [source copy];
+	_compiled = source != nil;
+}
+
 - (instancetype)initWithSource:(NSString *)source
 {
 	self = [super init];
 	if (self != nil) {
-		_source = [source copy];
-		_compiled = source != nil;
+		[self fnAdoptSource:source];
 	}
 	return self;
 }
@@ -52,7 +61,12 @@ static void fn_script_error(NSError **error, NSString *what)
 		[self release];
 		return nil;
 	}
-	return [self initWithSource:source];
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	[self fnAdoptSource:source];
+	return self;
 }
 
 - (void)dealloc

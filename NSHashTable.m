@@ -43,11 +43,25 @@
 	return [NSHashTable class];
 }
 
+/* THE INSTALL, AS A METHOD (batch 8): both options-taking doors are DESIGNATED in Apple's graph, so neither may
+ * chain to the other on `self`; they state the storage here instead. */
+- (void)fnAdoptFunctions:(NSPointerFunctions *)functions capacity:(NSUInteger)initialCapacity
+{
+	_table = [[FNPointerTable alloc] initWithKeyFunctions:functions
+					     valueFunctions:nil
+						   capacity:initialCapacity];
+	_mutations = 1;
+}
+
 - (instancetype)initWithOptions:(NSHashTableOptions)options capacity:(NSUInteger)initialCapacity
 {
-	return [self initWithPointerFunctions:
-		[[[NSPointerFunctions alloc] initWithOptions:options] autorelease]
-		capacity:initialCapacity];
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	[self fnAdoptFunctions:[[[NSPointerFunctions alloc] initWithOptions:options] autorelease]
+		      capacity:initialCapacity];
+	return self;
 }
 
 - (instancetype)initWithPointerFunctions:(NSPointerFunctions *)functions
@@ -57,10 +71,7 @@
 	if (self == nil) {
 		return nil;
 	}
-	_table = [[FNPointerTable alloc] initWithKeyFunctions:functions
-					     valueFunctions:nil
-						   capacity:initialCapacity];
-	_mutations = 1;
+	[self fnAdoptFunctions:functions capacity:initialCapacity];
 	return self;
 }
 

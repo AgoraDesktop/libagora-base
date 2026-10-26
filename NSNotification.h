@@ -59,7 +59,7 @@ typedef NSString *NSNotificationName NS_TYPED_EXTENSIBLE_ENUM;
  *
  * THREE KEYS, ONE PER PART, because a notification IS its three parts: the name (copied), the object
  * (retained, and legitimately nil — the sender is optional) and the userInfo (copied, and legitimately nil). */
-- (nullable instancetype)initWithCoder:(NSCoder *)coder;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 - (void)encodeWithCoder:(NSCoder *)coder;
 
 + (instancetype)notificationWithName:(NSString *)name object:(nullable id)object;
@@ -73,7 +73,7 @@ typedef NSString *NSNotificationName NS_TYPED_EXTENSIBLE_ENUM;
  * lives — which, for a posted one, is the delivery. */
 - (instancetype)initWithName:(NSNotificationName)name
 		      object:(nullable id)object
-		    userInfo:(nullable NSDictionary *)userInfo NS_AVAILABLE_MAC(10_6);
+		    userInfo:(nullable NSDictionary *)userInfo NS_AVAILABLE_MAC(10_6) NS_DESIGNATED_INITIALIZER;
 
 @property (readonly, copy) NSNotificationName name;
 @property (readonly, nullable) id object;

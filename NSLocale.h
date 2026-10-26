@@ -87,7 +87,7 @@ extern NSString *const NSLocaleCountryCode;
  * below already is — and an identifier the archive does not carry leaves -initWithLocaleIdentifier: free to
  * answer nil, its own documented answer, rather than this door inventing a locale. */
 - (void)encodeWithCoder:(NSCoder *)coder;
-- (instancetype)initWithCoder:(NSCoder *)coder;
+- (instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
 + (instancetype)currentLocale;
 + (nullable instancetype)localeWithLocaleIdentifier:(NSString *)identifier NS_AVAILABLE_MAC(10_6);
@@ -129,7 +129,7 @@ extern NSString *const NSLocaleCountryCode;
 + (NSString *)canonicalLanguageIdentifierFromString:(NSString *)string;
 + (NSString *)canonicalLocaleIdentifierFromString:(NSString *)string;
 
-- (nullable id)initWithLocaleIdentifier:(NSString *)identifier;		/* designated */
+- (nullable id)initWithLocaleIdentifier:(NSString *)identifier NS_DESIGNATED_INITIALIZER;		/* designated */
 
 - (NSString *)localeIdentifier;
 - (nullable id)objectForKey:(NSString *)key;	/* the four SUBTAG keys; nil for a DATA key */

@@ -36,18 +36,10 @@
 	return [NSPointerArray class];
 }
 
-- (instancetype)initWithOptions:(NSPointerFunctionsOptions)options
+/* THE INSTALL, AS A METHOD (batch 8): both options-taking doors are DESIGNATED in Apple's graph, so neither may
+ * chain to the other on `self`; they state the storage here instead. */
+- (void)fnAdoptFunctions:(NSPointerFunctions *)functions
 {
-	return [self initWithPointerFunctions:
-		[[[NSPointerFunctions alloc] initWithOptions:options] autorelease]];
-}
-
-- (instancetype)initWithPointerFunctions:(NSPointerFunctions *)functions
-{
-	self = [super init];
-	if (self == nil) {
-		return nil;
-	}
 	_functions = [functions retain];
 	_capacity = FN_POINTER_ARRAY_INITIAL_CAPACITY;
 	_count = 0;
@@ -56,6 +48,25 @@
 		[self release];
 		[NSException raise:NSMallocException format:@"NSPointerArray: no room for its slots"];
 	}
+}
+
+- (instancetype)initWithOptions:(NSPointerFunctionsOptions)options
+{
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	[self fnAdoptFunctions:[[[NSPointerFunctions alloc] initWithOptions:options] autorelease]];
+	return self;
+}
+
+- (instancetype)initWithPointerFunctions:(NSPointerFunctions *)functions
+{
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	[self fnAdoptFunctions:functions];
 	return self;
 }
 

@@ -790,8 +790,13 @@ static void fn_make_standard_handles(void)
 
 /* ---- archiving, refused in both directions ------------------------------ */
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-designated-initializers"
 - (instancetype)initWithCoder:(NSCoder *)coder
 {
+	/* A REFUSAL, NOT A CONSTRUCTION: this door's whole body raises, so there is no initializer to chain to and the
+	 * checker's rule cannot be honoured. Suppressed HERE, for this door only (the same note NSMachPort's
+	 * initWithMachPort: doors and NSURL's bookmark door carry). */
 	(void)coder;
 	[NSException raise:NSInvalidArgumentException
 		    format:@"NSFileHandle does not support archiving: Apple publishes no wire format for a "
@@ -800,6 +805,7 @@ static void fn_make_standard_handles(void)
 	[self release];
 	return nil;
 }
+#pragma clang diagnostic pop
 
 - (void)encodeWithCoder:(NSCoder *)coder
 {

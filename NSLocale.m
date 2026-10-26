@@ -394,11 +394,18 @@ static NSCharacterSet *fn_character_set(USet *set)
 
 - (id)initWithCoder:(NSCoder *)coder
 {
-		if (![coder containsValueForKey:@"NS.localeIdentifier"]) {
+	if (![coder containsValueForKey:@"NS.localeIdentifier"]) {
 		[NSException raise:NSInvalidArgumentException
 			    format:@"NSLocale: the archive has no \"NS.localeIdentifier\" — it is not one this class wrote"];
 	}
-	return [self initWithLocaleIdentifier:[coder decodeObjectForKey:@"NS.localeIdentifier"]];
+	/* BOTH DOORS ARE DESIGNATED (batch 8), so the coder door cannot route through the identifier door; it chains to
+	 * super and states the same install. */
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	[self fnAdoptIdentifier:[coder decodeObjectForKey:@"NS.localeIdentifier"]];
+	return self;
 }
 
 NSString *const NSCurrentLocaleDidChangeNotification = @"NSCurrentLocaleDidChangeNotification";
@@ -504,13 +511,19 @@ NSString *const NSLocaleVariantCode = @"NSLocaleVariantCode";
 	return fn_canonical(string);
 }
 
+- (void)fnAdoptIdentifier:(NSString *)identifier
+{
+	[_identifier release];
+	_identifier = fn_canonical(identifier);
+}
+
 - (id)initWithLocaleIdentifier:(NSString *)identifier
 {
 	self = [super init];
 	if (self == nil) {
 		return nil;
 	}
-	_identifier = fn_canonical(identifier);
+	[self fnAdoptIdentifier:identifier];
 	return self;
 }
 

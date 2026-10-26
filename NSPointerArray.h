@@ -70,8 +70,8 @@ NS_CLASS_AVAILABLE_MAC(10_5)
 }
 
 /* THE TWO WAYS TO CHOOSE THE FUNCTIONS: by options, or by handing over a configured object. */
-- (instancetype)initWithOptions:(NSPointerFunctionsOptions)options;
-- (instancetype)initWithPointerFunctions:(NSPointerFunctions *)functions;
+- (instancetype)initWithOptions:(NSPointerFunctionsOptions)options NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithPointerFunctions:(NSPointerFunctions *)functions NS_DESIGNATED_INITIALIZER;
 
 + (instancetype)strongObjectsPointerArray NS_AVAILABLE_MAC(10_8);
 + (instancetype)weakObjectsPointerArray NS_AVAILABLE_MAC(10_8);

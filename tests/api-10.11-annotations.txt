@@ -63,7 +63,11 @@
 # the designated `-init` before handing off to `NSOwnedString`, which is what a cluster's door has to say out loud.
 # Batch 7 closed the "route to a marked door" group (NSIndexPath, NSIndexSet, NSInputStream, NSOutputStream, NSBundle)
 # and `NSAppleEventDescriptor`, whose Apple-marked door can only refuse here, so that header RESTATES and marks `-init`
-# as this tree's constructor — which is why methods-declared moved 4,045 -> 4,046. The residue waits for the
+# as this tree's constructor — which is why methods-declared moved 4,045 -> 4,046.
+# Batch 8 closed the "extract or flip" group: NSAppleScript, NSComparisonPredicate, NSLocale, NSNotification,
+# NSHashTable, NSMapTable and NSPointerArray each have TWO designated doors where one used to chain to the other, so the
+# shared install became a plain method and each door states it; NSExpression's coder door routes through the designated
+# type door; NSFileHandle's coder door is a raise-only refusal and keeps a local pragma. The residue waits for the
 # same pass, class by class, for the reason the note below gives. `designated-init` is a
 # different kind of fact from an era: it carries no version, it says which initializer defines the class's state. Apple
 # marks 182 in the 10.11 Foundation; 178 reach the manifest after ownership and availability filtering, and 135 of them
@@ -84,6 +88,6 @@ annotations-present 800
 annotations-wrong 0
 designated-candidates 143
 designated-extra 2
-designated-missing 63
-designated-present 80
+designated-missing 47
+designated-present 96
 

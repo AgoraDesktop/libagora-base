@@ -131,6 +131,21 @@ static BOOL FNMatchesRegularExpression(NSString *subject, NSString *pattern, BOO
 	return [[[self alloc] initWithLeftExpression:lhs rightExpression:rhs customSelector:selector] autorelease];
 }
 
+/* THE INSTALL, AS A METHOD (batch 8): both constructor doors are DESIGNATED in Apple's graph, and a designated
+ * initializer may not chain to another one on `self`, so the pair they share is written here. */
+- (void)fnAdoptLeft:(NSExpression *)lhs
+    rightExpression:(NSExpression *)rhs
+	   modifier:(NSComparisonPredicateModifier)modifier
+	       type:(NSPredicateOperatorType)type
+	    options:(NSUInteger)options
+{
+	_lhs = [lhs retain];
+	_rhs = [rhs retain];
+	_modifier = modifier;
+	_operatorType = type;
+	_options = options;
+}
+
 - (id)initWithLeftExpression:(NSExpression *)lhs
              rightExpression:(NSExpression *)rhs
                     modifier:(NSComparisonPredicateModifier)modifier
@@ -139,11 +154,7 @@ static BOOL FNMatchesRegularExpression(NSString *subject, NSString *pattern, BOO
 {
 	self = [super init];
 	if (self != nil) {
-		_lhs = [lhs retain];
-		_rhs = [rhs retain];
-		_modifier = modifier;
-		_operatorType = type;
-		_options = options;
+		[self fnAdoptLeft:lhs rightExpression:rhs modifier:modifier type:type options:options];
 	}
 	return self;
 }
@@ -152,9 +163,12 @@ static BOOL FNMatchesRegularExpression(NSString *subject, NSString *pattern, BOO
              rightExpression:(NSExpression *)rhs
              customSelector:(SEL)selector
 {
-	self = [self initWithLeftExpression:lhs rightExpression:rhs modifier:NSDirectPredicateModifier
-	                               type:NSCustomSelectorPredicateOperatorType options:0];
-	if (self != nil) { _customSelector = selector; }
+	self = [super init];
+	if (self != nil) {
+		[self fnAdoptLeft:lhs rightExpression:rhs modifier:NSDirectPredicateModifier
+			     type:NSCustomSelectorPredicateOperatorType options:0];
+		_customSelector = selector;
+	}
 	return self;
 }
 

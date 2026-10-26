@@ -70,9 +70,9 @@ NS_CLASS_AVAILABLE_MAC(10_5)
 	unsigned long _mutations;
 }
 
-- (instancetype)initWithOptions:(NSHashTableOptions)options capacity:(NSUInteger)initialCapacity;
+- (instancetype)initWithOptions:(NSHashTableOptions)options capacity:(NSUInteger)initialCapacity NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithPointerFunctions:(NSPointerFunctions *)functions
-				capacity:(NSUInteger)initialCapacity;
+				capacity:(NSUInteger)initialCapacity NS_DESIGNATED_INITIALIZER;
 
 + (NSHashTable<ObjectType> *)weakObjectsHashTable NS_AVAILABLE_MAC(10_8);
 + (NSHashTable<ObjectType> *)hashTableWithOptions:(NSHashTableOptions)options;

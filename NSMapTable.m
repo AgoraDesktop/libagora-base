@@ -36,15 +36,30 @@
 
 @implementation NSMapTable
 
+/* THE INSTALL, AS A METHOD (batch 8): both options-taking doors are DESIGNATED in Apple's graph, so neither may
+ * chain to the other on `self`; they state the storage here instead. */
+- (void)fnAdoptKeyFunctions:(NSPointerFunctions *)keyFunctions
+	 valueFunctions:(NSPointerFunctions *)valueFunctions
+	      capacity:(NSUInteger)initialCapacity
+{
+	_table = [[FNPointerTable alloc] initWithKeyFunctions:keyFunctions
+					     valueFunctions:valueFunctions
+						   capacity:initialCapacity];
+	_mutations = 1;
+}
+
 - (instancetype)initWithKeyOptions:(NSMapTableOptions)keyOptions
 		       valueOptions:(NSMapTableOptions)valueOptions
 			   capacity:(NSUInteger)initialCapacity
 {
-	return [self initWithKeyPointerFunctions:
-			[[[NSPointerFunctions alloc] initWithOptions:keyOptions] autorelease]
-		     valuePointerFunctions:
-			[[[NSPointerFunctions alloc] initWithOptions:valueOptions] autorelease]
-				  capacity:initialCapacity];
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	[self fnAdoptKeyFunctions:[[[NSPointerFunctions alloc] initWithOptions:keyOptions] autorelease]
+		   valueFunctions:[[[NSPointerFunctions alloc] initWithOptions:valueOptions] autorelease]
+			 capacity:initialCapacity];
+	return self;
 }
 
 - (instancetype)initWithKeyPointerFunctions:(NSPointerFunctions *)keyFunctions
@@ -55,10 +70,7 @@
 	if (self == nil) {
 		return nil;
 	}
-	_table = [[FNPointerTable alloc] initWithKeyFunctions:keyFunctions
-					     valueFunctions:valueFunctions
-						   capacity:initialCapacity];
-	_mutations = 1;
+	[self fnAdoptKeyFunctions:keyFunctions valueFunctions:valueFunctions capacity:initialCapacity];
 	return self;
 }
 

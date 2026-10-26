@@ -56,6 +56,18 @@ NSNotificationName const NSUbiquityIdentityDidChangeNotification = @"NSUbiquityI
 	return [[[self alloc] initWithName:name object:object userInfo:userInfo] autorelease];
 }
 
+/* THE INSTALL, AS A METHOD (batch 8): both the name door and the coder door are DESIGNATED in Apple's graph, so the
+ * coder cannot route through the name door; each states the same three-part ownership rule here. */
+- (void)fnAdoptName:(NSString *)name object:(nullable id)object userInfo:(nullable NSDictionary *)userInfo
+{
+	[_name release];
+	[_object release];
+	[_userInfo release];
+	_name = [name copy];
+	_object = [object retain];
+	_userInfo = [userInfo copy];
+}
+
 - (instancetype)initWithName:(NSString *)name
 		      object:(nullable id)object
 		    userInfo:(nullable NSDictionary *)userInfo
@@ -64,9 +76,7 @@ NSNotificationName const NSUbiquityIdentityDidChangeNotification = @"NSUbiquityI
 	if (self == nil) {
 		return nil;
 	}
-	_name = [name copy];
-	_object = [object retain];
-	_userInfo = [userInfo copy];
+	[self fnAdoptName:name object:object userInfo:userInfo];
 	return self;
 }
 
@@ -102,9 +112,14 @@ static NSString *const kUserInfoKey = @"NS.userInfo";
 		[NSException raise:NSInvalidArgumentException
 			    format:@"NSNotification: the archive carries no name"];
 	}
-	/* THROUGH THE DESIGNATED DOOR, so the class's own ownership rules apply on the way back rather than being
-	 * trusted from the archive: the name and the userInfo are COPIED here, whatever the coder handed over. */
-	return [self initWithName:name object:object userInfo:userInfo];
+	/* THE CLASS'S OWN OWNERSHIP RULES APPLY ON THE WAY BACK rather than being trusted from the archive: the name
+	 * and the userInfo are COPIED by the shared install, whatever the coder handed over. */
+	self = [super init];
+	if (self == nil) {
+		return nil;
+	}
+	[self fnAdoptName:name object:object userInfo:userInfo];
+	return self;
 }
 
 - (NSString *)name

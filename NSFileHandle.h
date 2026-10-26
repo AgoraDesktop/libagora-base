@@ -117,7 +117,7 @@ NS_SWIFT_NAME(FileHandle)
 
 /* Neither of these owns `fd`: the caller made the descriptor, so the caller closes it. */
 - (instancetype)initWithFileDescriptor:(int)fd;
-- (instancetype)initWithFileDescriptor:(int)fd closeOnDealloc:(BOOL)flag;
+- (instancetype)initWithFileDescriptor:(int)fd closeOnDealloc:(BOOL)flag NS_DESIGNATED_INITIALIZER;
 
 /* THE CREATORS OWN WHAT THEY OPEN, and answer nil when the open fails. None of them CREATES a file: the
  * reading, writing and updating doors are `open(2)` with O_RDONLY, O_WRONLY and O_RDWR, so a caller that

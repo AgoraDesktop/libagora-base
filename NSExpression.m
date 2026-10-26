@@ -263,9 +263,10 @@
 
 - (id)initWithCoder:(NSCoder *)coder
 {
-	self = [super init];
+	/* THROUGH THE DESIGNATED DOOR (batch 8): the type is the only state it installs, and the coder door is the
+	 * class's own code, so it decodes the type first and lets the designated constructor write it. */
+	self = [self initWithExpressionType:(NSExpressionType)[coder decodeIntegerForKey:@"NSExpressionType"]];
 	if (self != nil) {
-		_type = (NSExpressionType)[coder decodeIntegerForKey:@"NSExpressionType"];
 		_constantValue = [[coder decodeObjectForKey:@"NSConstantValue"] retain];
 		_keyPath = [[coder decodeObjectForKey:@"NSKeyPath"] retain];
 		_variable = [[coder decodeObjectForKey:@"NSVariable"] retain];

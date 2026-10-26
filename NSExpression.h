@@ -117,7 +117,7 @@ NS_CLASS_AVAILABLE_MAC(10_4)
 + (NSExpression *)expressionWithFormat:(NSString *)format
                         argumentArray:(NSArray *)arguments NS_AVAILABLE_MAC(10_6);
 
-- (id)initWithExpressionType:(NSExpressionType)type;
+- (id)initWithExpressionType:(NSExpressionType)type NS_DESIGNATED_INITIALIZER;
 
 - (NSExpressionType)expressionType;
 - (nullable id)constantValue;
