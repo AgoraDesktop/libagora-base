@@ -103,6 +103,14 @@ target_link_libraries(foundation_10_11_ordered_set PRIVATE Foundation CoreFounda
 
 add_test(NAME foundation_10_11_ordered_set COMMAND foundation_10_11_ordered_set)
 
+# THE QUERY'S 10.9 DOORS, AN ITEM BY URL, AND A VERSION REPLACED THROUGH A COORDINATED INTENT: searchItems as the scope,
+# the two block walks, the six store-free NSFileVersion doors, and the asynchronous intent door driving a real
+# replacement on a real queue.
+add_executable(foundation_10_11_metadata_version foundation_10_11_metadata_version.m)
+target_link_libraries(foundation_10_11_metadata_version PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_metadata_version COMMAND foundation_10_11_metadata_version)
+
 # THE NOTIFICATION VALUE, ITS ACTION, AND AN IN-PROCESS CENTRE (10.8-10.10): copied doors, a copy, scheduling state, the
 # delegate consultation, and delivery refusing by name.
 add_executable(foundation_10_11_user_notification foundation_10_11_user_notification.m)

@@ -158,8 +158,8 @@ NS_CLASS_AVAILABLE_MAC(10_7)
  * coordinator waits asynchronously to get access to the files and then INVOKES THE ACCESSOR BLOCK ON THE
  * SPECIFIED QUEUE. ... If an error occurs while waiting for access, AN ERROR MESSAGE IS PASSED TO THE BLOCK.
  * You must check the block's error parameter before accessing any of the files." So the accessor takes the
- * intents and an error, and "the system UPDATES this URL property to account for any changes to the
- * underlying files" is why the intents handed to it are the coordinated ones.
+ * ERROR and reads the intents from the array it was given, and "the system UPDATES this URL property to
+ * account for any changes to the underlying files" is why the intents handed to it are the coordinated ones.
  *
  * THE QUEUE "MUST NOT BE" nil, and this door has NO error of its own to refuse with - so a nil queue or an
  * empty intent array answers by DOING NOTHING, which is written here rather than left to a crash. And the
@@ -179,6 +179,13 @@ NS_CLASS_AVAILABLE_MAC(10_7)
  * afterwards. Apple's own REASON for the door - "because file coordination requires interprocess
  * communication, it is much more efficient to batch changes to large numbers of files" - is the half this
  * system cannot need, since there is no interprocess communication to batch (see the boundary above). */
+/* THE ASYNCHRONOUS INTENT DOOR (10.10), declared here with the batch door whose shape it shares. The handshake runs
+ * on the queue, one intent at a time, and the accessor is called with nil on success or the named error when a wait
+ * was cancelled; a nil queue or an empty intent array does nothing (the paragraph above says why). */
+- (void)coordinateAccessWithIntents:(NSArray *)intents
+			      queue:(NSOperationQueue *)queue
+			 byAccessor:(void (^)(NSError * _Nullable error))accessor NS_AVAILABLE_MAC(10_10);
+
 - (void)prepareForReadingItemsAtURLs:(nullable NSArray *)readingURLs
 			     options:(NSFileCoordinatorReadingOptions)readingOptions
 		writingItemsAtURLs:(nullable NSArray *)writingURLs

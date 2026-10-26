@@ -23,18 +23,23 @@
  *
  *   A STORE IS NEEDED, AND THEREFORE REGISTERED (§11.6.1 D14 did the same for the coordinator family):
  *   +addVersionOfItemAtURL:withContentsOfURL:options:error: (nothing to add a version TO),
- *   -replaceItemAtURL:options:error: and -removeAndReturnError: (both act on the store; the CURRENT
- *   version cannot be removed and says so with an error rather than by pretending),
- *   +temporaryDirectoryURLForNewVersionOfItemAtURL: (the directory exists to stage a version FOR THE
- *   STORE), and +versionOfItemAtURL:forPersistentIdentifier: beyond the identifier this class itself hands
- *   out. Each of those answers NIL AND AN ERROR where Apple gives the door an error parameter, so the
- *   refusal is NAMED rather than silent.
+ *   -removeAndReturnError: (the CURRENT version cannot be removed and says so with an error rather than by
+ *   pretending), +temporaryDirectoryURLForNewVersionOfItemAtURL: (the directory exists to stage a version
+ *   FOR THE STORE), and +versionOfItemAtURL:forPersistentIdentifier: beyond the identifier this class
+ *   itself hands out. Each of those answers NIL AND AN ERROR where Apple gives the door an error parameter,
+ *   so the refusal is NAMED rather than silent.
  *
- *   AND THE CONFLICT MACHINERY IS REGISTERED RATHER THAN DECLARED: -isResolved/-setResolved:,
- *   -localizedNameOfSavingComputer, -isDiscardable and the version browser's business exist only to talk
- *   about CONFLICT versions and about who saved what on which computer - and there are no conflict versions
- *   and no saving computers here. A getter that answered YES or NO to "is this conflict resolved" would be
- *   inventing a fact, which is worse than not having the getter.
+ *   -replaceItemAtURL:options:error: IS NOT ONE OF THEM, because its subject is a real file: THIS version's
+ *   version IS the item at its own URL (there is no store hiding a snapshot), so replacing another item with
+ *   it is a real copy of those bytes - or a move, when the caller asks for one. The door is what a caller
+ *   runs INSIDE a coordinated write accessor (NSFileCoordinator's `-coordinateAccessWithIntents:queue:
+ *   byAccessor:`), and the probe drives it that way.
+ *
+ *   THE CONFLICT AND VERSION-BROWSER FLAGS ARE STORED, NOT INVENTED: -isResolved/-setResolved: and
+ *   -isDiscardable/-setDiscardable: keep what the caller set and report it back. What they do NOT do is
+ *   change any behaviour, because there are no conflict versions for "resolved" to settle and no store to
+ *   discard a version from - and the declarations say so. -localizedNameOfSavingComputer answers nil: this
+ *   system records no saving computer, and a made-up name would be worse than an absent one.
  *
  * TWO CHOICES ARE OURS AND ARE WRITTEN AT THE DECLARATIONS: -localizedName is the item's own name (this
  * system has no localisation database, the same rule -displayNameAtPath: and NSURLLocalizedNameKey follow),
@@ -72,6 +77,8 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 	NSURL *_url;			/* the item this version describes (retained) */
 	NSDate *_modificationDate;	/* when the item was last modified (retained) */
 	NSString *_identifier;		/* OURS, opaque: see -persistentIdentifier */
+	BOOL _resolved;			/* the caller's flag; no conflict machinery acts on it */
+	BOOL _discardable;		/* the caller's flag; no store discards it */
 }
 
 /* "Returns the version object representing the current version of the file or directory at the specified
@@ -123,6 +130,27 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 /* "Removes this version from the store" - REFUSED, and the current version is why: the store cannot lose
  * the version that IS the file. */
 - (BOOL)removeAndReturnError:(NSError ** _Nullable)outError;
+
+/* "Replaces the contents of the item at the specified URL with the contents of this version" - a REAL copy of the
+ * bytes (or a move, under NSFileVersionReplacingByMoving), because this version's content is the item at its own
+ * URL. Run it inside a coordinated write accessor, which is what the coordinator's intent door is for. */
+- (BOOL)replaceItemAtURL:(NSURL *)url
+		 options:(NSFileVersionReplacingOptions)options
+		   error:(NSError ** _Nullable)outError;
+
+/* "Whether the conflict version has been resolved" - a STORED flag on a class with no conflict versions. It reports
+ * what was set and changes nothing else; the header says why that is the honest answer rather than a YES/NO guess. */
+- (BOOL)isResolved;
+- (void)setResolved:(BOOL)resolved;
+
+/* "Whether the version is discardable" - a STORED hint. Nothing on this system discards a version, so setting it is a
+ * record rather than an instruction. */
+- (BOOL)isDiscardable NS_AVAILABLE_MAC(10_7);
+- (void)setDiscardable:(BOOL)discardable NS_AVAILABLE_MAC(10_7);
+
+/* "The name of the computer that saved the version" - nil, because nothing here saves versions and no computer is
+ * recorded. A property Apple itself allows to be nil. */
+- (nullable NSString *)localizedNameOfSavingComputer;
 
 @end
 

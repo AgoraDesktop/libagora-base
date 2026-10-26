@@ -101,13 +101,13 @@
 # two stream factories at 10_11, the three `NSHTTPCookieStorage` doors (10_10, 10_11 for the group container, 10_10),
 # the three `NSURLCache` doors (10_10), the four `NSURLCredentialStorage` doors (10_10) and the three `NSURLProtocol`
 # doors (10_10).
-annotations-candidates 874
+annotations-candidates 884
 annotations-extra 0
 annotations-missing 0
-annotations-present 874
+annotations-present 884
 annotations-wrong 0
-designated-candidates 147
+designated-candidates 148
 designated-extra 2
 designated-missing 18
-designated-present 129
+designated-present 130
 

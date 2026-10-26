@@ -18,6 +18,7 @@
 #import <Foundation/NSSet.h>
 #import <Foundation/NSRunLoop.h>
 #import <Foundation/NSTimer.h>
+#import <Foundation/NSOperationQueue.h>
 #include <dirent.h>
 #include <sys/stat.h>
 
@@ -30,13 +31,59 @@ static NSString *const NSMetadataItemContentCreationDateKey = @"kMDItemContentCr
 static NSString *const NSMetadataItemContentTypeKey = @"kMDItemContentType";
 static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 
+/* ONE PLACE THAT TURNS A PATH INTO THE kMDItem SET THIS LIBRARY CAN OBSERVE, so `-initWithURL:` and the query's walk
+ * cannot report different facts about the same file. A path that is not there has no file facts, so the dictionary is
+ * empty rather than invented. */
+static NSDictionary *fn_attributes_for_path(NSString *path)
+{
+	struct stat info;
+	NSString *name;
+	NSMutableDictionary *attributes = [NSMutableDictionary dictionary];
+
+	if (path == nil || lstat([path fileSystemRepresentation], &info) != 0) {
+		return attributes;
+	}
+	name = [path lastPathComponent];
+	[attributes setObject:name forKey:NSMetadataItemFSNameKey];
+	[attributes setObject:path forKey:NSMetadataItemPathKey];
+	[attributes setObject:[NSNumber numberWithUnsignedLongLong:(unsigned long long)info.st_size]
+		       forKey:NSMetadataItemFSSizeKey];
+	[attributes setObject:[NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)info.st_mtime]
+		       forKey:NSMetadataItemContentModificationDateKey];
+	[attributes setObject:[NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)info.st_ctime]
+		       forKey:NSMetadataItemContentCreationDateKey];
+	[attributes setObject:([name pathExtension].length > 0 ? [name pathExtension] : @"public.data")
+		       forKey:NSMetadataItemContentTypeKey];
+	[attributes setObject:([name pathExtension].length > 0 ? [name pathExtension] : @"File")
+		       forKey:NSMetadataItemKindKey];
+	return attributes;
+}
+
+/* TWO INITIALIZERS THAT BOTH DEFINE THE ITEM'S STATE: the attribute dictionary (used by the walk) and the URL (Apple's
+ * designated one). Both are marked designated so the compiler enforces the funnel rather than letting the URL door call
+ * a convenience initializer, which is what it warns about when only one of them is marked. */
 @implementation NSMetadataItem
 
+/* THE ATTRIBUTES DOOR IS THE INTERNAL ONE (not public surface, so not an initializer a caller can name): it starts from
+ * the inherited -init and installs the dictionary the walk or the URL door built. */
 - (instancetype)initWithAttributes:(NSDictionary *)attributes
+{
+	self = [self init];
+	if (self != nil) {
+		_attributes = [attributes copy];
+	}
+	return self;
+}
+
+/* THE ITEM FOR ONE URL (10.9), Apple's designated initializer: it defines the item's state itself rather than chaining
+ * through the internal door, and the URL's path goes through the same attribute builder the walk uses. */
+- (instancetype)initWithURL:(NSURL *)url
 {
 	self = [super init];
 	if (self != nil) {
-		_attributes = [attributes copy];
+		NSString *path = [url isFileURL] ? [url path] : nil;
+
+		_attributes = [fn_attributes_for_path(path) copy];
 	}
 	return self;
 }
@@ -178,6 +225,20 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 	[_searchScopes release];
 	_searchScopes = scopes;
 }
+- (NSArray *)searchItems { return _searchItems; }
+- (void)setSearchItems:(NSArray *)items
+{
+	[items retain];
+	[_searchItems release];
+	_searchItems = items;
+}
+- (NSOperationQueue *)operationQueue { return _operationQueue; }
+- (void)setOperationQueue:(NSOperationQueue *)queue
+{
+	[queue retain];
+	[_operationQueue release];
+	_operationQueue = queue;
+}
 - (NSArray *)valueListAttributes { return _valueListAttributes; }
 - (void)setValueListAttributes:(NSArray *)attributes
 {
@@ -220,6 +281,37 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 	return [[self resultAtIndex:index] valueForAttribute:attribute];
 }
 
+/* THE BLOCK WALKS (10.9), over a SNAPSHOT of the results so the caller's block sees one consistent set: the poll can
+ * replace `_results` from a timer, and a walk that read the ivar on every step could mix two gathers. `NSEnumerationReverse`
+ * changes the direction and the index stays the result's own, exactly as the array and ordered-set doors state. */
+- (void)enumerateResultsWithOptions:(NSEnumerationOptions)options
+			 usingBlock:(void (^)(id result, NSUInteger index, BOOL *stop))block
+{
+	NSArray *snapshot;
+	NSUInteger i;
+	BOOL stop = NO;
+
+	if (block == NULL) {
+		return;
+	}
+	snapshot = [[self results] copy];
+	if ((options & NSEnumerationReverse) != 0) {
+		for (i = [snapshot count]; i > 0 && !stop; i--) {
+			block([snapshot objectAtIndex:i - 1], i - 1, &stop);
+		}
+	} else {
+		for (i = 0; i < [snapshot count] && !stop; i++) {
+			block([snapshot objectAtIndex:i], i, &stop);
+		}
+	}
+	[snapshot release];
+}
+
+- (void)enumerateResultsUsingBlock:(void (^)(id result, NSUInteger index, BOOL *stop))block
+{
+	[self enumerateResultsWithOptions:0 usingBlock:block];
+}
+
 /* THE WALK. `-fnGatherAtPath:` recurses; a file becomes an item with the attributes this library can observe. A
  * directory is walked but is not itself a result, which matches what a content query returns for a file system. */
 - (void)fnGatherAtPath:(NSString *)path into:(NSMutableArray *)items
@@ -246,23 +338,7 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 			[self fnGatherAtPath:child into:items];
 			continue;
 		}
-		{
-			NSMutableDictionary *attributes = [NSMutableDictionary dictionary];
-
-			[attributes setObject:name forKey:NSMetadataItemFSNameKey];
-			[attributes setObject:child forKey:NSMetadataItemPathKey];
-			[attributes setObject:[NSNumber numberWithUnsignedLongLong:(unsigned long long)info.st_size]
-				      forKey:NSMetadataItemFSSizeKey];
-			[attributes setObject:[NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)info.st_mtime]
-				      forKey:NSMetadataItemContentModificationDateKey];
-			[attributes setObject:[NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)info.st_ctime]
-				      forKey:NSMetadataItemContentCreationDateKey];
-			[attributes setObject:([name pathExtension].length > 0 ? [name pathExtension] : @"public.data")
-				      forKey:NSMetadataItemContentTypeKey];
-			[attributes setObject:([name pathExtension].length > 0 ? [name pathExtension] : @"File")
-				      forKey:NSMetadataItemKindKey];
-			[items addObject:[[[NSMetadataItem alloc] initWithAttributes:attributes] autorelease]];
-		}
+		[items addObject:[[[NSMetadataItem alloc] initWithAttributes:fn_attributes_for_path(child)] autorelease]];
 	}
 	closedir(dir);
 }
@@ -280,7 +356,7 @@ static NSString *const NSMetadataItemKindKey = @"kMDItemKind";
 - (NSArray *)fnGatherNow
 {
 	NSMutableArray *items = [NSMutableArray array];
-	NSArray *scopes = _searchScopes;
+	NSArray *scopes = _searchItems != nil && [_searchItems count] > 0 ? _searchItems : _searchScopes;
 	NSUInteger i;
 
 	if (scopes == nil || [scopes count] == 0) {

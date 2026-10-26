@@ -193,6 +193,57 @@ static NSError *fn_version_error(int err, NSString *what)
 	return NO;
 }
 
+/* A REPLACEMENT IS A COPY (or a move) OF THIS VERSION'S BYTES, because the version IS the file: there is no store
+ * holding a snapshot, so what "replace the item with this version" means is the file operation itself. A file is
+ * written ATOMICALLY through NSData (so a reader never sees half of it), a directory is copied, and
+ * NSFileVersionReplacingByMoving moves the version's own item onto the target - each leaving the error the file system
+ * gave, rather than a summarised one. */
+- (BOOL)replaceItemAtURL:(NSURL *)url options:(NSFileVersionReplacingOptions)options error:(NSError **)outError
+{
+	NSFileManager *manager = [NSFileManager defaultManager];
+	NSData *contents;
+
+	if (outError != NULL) {
+		*outError = nil;
+	}
+	if (url == nil || ![url isFileURL] || _url == nil) {
+		if (outError != NULL) {
+			*outError = fn_version_error(EINVAL, @"a replacement needs a file URL");
+		}
+		return NO;
+	}
+	if ([[_url path] isEqualToString:[url path]]) {
+		return YES;	/* the version already IS the item */
+	}
+	if ((options & NSFileVersionReplacingByMoving) != 0) {
+		/* A REPLACEMENT REPLACES, while -[NSFileManager moveItemAtURL:…] REFUSES an existing destination (its own
+		 * contract, and the reason this is two calls): the target is removed and the version's item takes its place. */
+		[manager removeItemAtURL:url error:NULL];
+		return [manager moveItemAtURL:_url toURL:url error:outError];
+	}
+	contents = [NSData dataWithContentsOfURL:_url];
+	if (contents != nil) {
+		return [contents writeToURL:url options:NSDataWritingAtomic error:outError];
+	}
+	/* NOT A REGULAR FILE (a directory, or a file that could not be read): copy the item over the target, replacing a
+	 * target that is there. A directory cannot be written through NSData, and a caller asking to replace one is asking
+	 * for the file operation. */
+	[manager removeItemAtURL:url error:NULL];
+	if ([manager copyItemAtURL:_url toURL:url error:outError]) {
+		return YES;
+	}
+	if (outError != NULL && *outError == nil) {
+		*outError = fn_version_error(EIO, @"the version's item could not be read");
+	}
+	return NO;
+}
+
+- (BOOL)isResolved { return _resolved; }
+- (void)setResolved:(BOOL)resolved { _resolved = resolved; }
+- (BOOL)isDiscardable { return _discardable; }
+- (void)setDiscardable:(BOOL)discardable { _discardable = discardable; }
+- (nullable NSString *)localizedNameOfSavingComputer { return nil; }
+
 - (void)dealloc
 {
 	[_url release];

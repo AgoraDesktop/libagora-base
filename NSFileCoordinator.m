@@ -31,6 +31,12 @@ extern void _Block_release(const void *aBlock);
 #include <stdlib.h>
 #include <string.h>
 
+/* THE INTENT'S KIND IS PRIVATE TO NSFileAccessIntent, so the coordinator asks the class itself which handshake an
+ * intent needs. Declared here because the method is written in the class's own @implementation below. */
+@interface NSFileAccessIntent (FNPrivate)
+- (BOOL)fnIsWriting;
+@end
+
 /* AN ERROR THE WAY THIS LIBRARY MAKES THEM. */
 static NSError *fn_coordinator_error(int err, NSString *what)
 {
@@ -333,6 +339,38 @@ static pthread_cond_t fn_handshake_cond = PTHREAD_COND_INITIALIZER;
 	fnReacquire(&reacquirers);
 }
 
+- (void)coordinateAccessWithIntents:(NSArray *)intents
+			      queue:(NSOperationQueue *)queue
+			 byAccessor:(void (^)(NSError *error))accessor
+{
+	NSArray *held;
+	void (^copied)(NSError *);
+
+	if (queue == nil || accessor == NULL || intents == nil || [intents count] == 0) {
+		return;
+	}
+	_cancelled = 0;		/* this becomes the ACTIVE call (see -cancel) */
+	held = [intents copy];
+	copied = _Block_copy(accessor);
+	[queue addOperationWithBlock:^{
+		struct fn_reacquirers reacquirers = { NULL, 0, 0 };
+		BOOL proceed = YES;
+		NSUInteger i;
+
+		for (i = 0; i < [held count] && proceed; i++) {
+			NSFileAccessIntent *intent = [held objectAtIndex:i];
+
+			proceed = [self fnHandshakeForURL:[intent URL]
+						  writing:[intent fnIsWriting]
+					      reacquirers:&reacquirers];
+		}
+		copied(proceed ? nil : fn_coordinator_error(ECANCELED, @"the coordinate access was cancelled"));
+		fnReacquire(&reacquirers);
+	}];
+	[held release];
+	_Block_release(copied);		/* the queued operation's copy holds its own reference */
+}
+
 - (void)cancel
 {
 	/* "it returns immediately without waiting for the file coordinator object to respond" - so this only
@@ -590,6 +628,8 @@ static void fnReacquire(struct fn_reacquirers *reacquirers)
 @end
 
 @implementation NSFileAccessIntent
+
+- (BOOL)fnIsWriting { return _writing != 0; }
 
 - (void)dealloc
 {
