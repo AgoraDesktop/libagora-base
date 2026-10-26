@@ -145,6 +145,28 @@ NS_CLASS_AVAILABLE_MAC(10_7)
 		  options:(NSBinarySearchingOptions)options
 	      usingComparator:(NSComparator)comparator;
 
+/* THE OPTIONS FORMS OF THE TEST DOORS, WHICH NSArray HAS HAD SINCE §63.45 AND THIS CLASS DID NOT. The options are the
+ * same two: `NSEnumerationReverse` changes the DIRECTION, `NSEnumerationConcurrent` is a hint this library does not take.
+ * Each is written over THIS class's own `-enumerateObjectsWithOptions:usingBlock:` and
+ * `-enumerateObjectsAtIndexes:options:usingBlock:` above, so the walk, its stop flag and its range rule are the ones
+ * that already exist rather than a second walk that could disagree with them. */
+- (NSUInteger)indexOfObjectWithOptions:(NSEnumerationOptions)opts
+			   passingTest:(BOOL (^)(ObjectType object, NSUInteger idx, BOOL *stop))predicate;
+- (NSUInteger)indexOfObjectAtIndexes:(NSIndexSet *)s
+			     options:(NSEnumerationOptions)opts
+			 passingTest:(BOOL (^)(ObjectType object, NSUInteger idx, BOOL *stop))predicate;
+- (NSIndexSet *)indexesOfObjectsWithOptions:(NSEnumerationOptions)opts
+				passingTest:(BOOL (^)(ObjectType object, NSUInteger idx, BOOL *stop))predicate;
+- (NSIndexSet *)indexesOfObjectsAtIndexes:(NSIndexSet *)s
+				  options:(NSEnumerationOptions)opts
+			      passingTest:(BOOL (^)(ObjectType object, NSUInteger idx, BOOL *stop))predicate;
+
+/* THE LOCALE DESCRIPTION DOORS, which NSArray has and this class did not. Same LAYOUT rule and same element renderer as
+ * NSArray's: an element that answers `-descriptionWithLocale:indent:` is asked, anything else answers `-description`,
+ * and a string element is not quoted (the named deviation NSArray's door records). */
+- (NSString *)descriptionWithLocale:(nullable id)locale;
+- (NSString *)descriptionWithLocale:(nullable id)locale indent:(NSUInteger)level;
+
 - (BOOL)isEqual:(nullable id)other;
 - (NSUInteger)hash;
 - (NSString *)description;

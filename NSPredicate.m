@@ -19,6 +19,8 @@
 #import <Foundation/NSString.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSSet.h>
+#import <Foundation/NSOrderedSet.h>
+#import <Foundation/NSMutableOrderedSet.h>
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSEnumerator.h>
 #import <Foundation/NSCoder.h>
@@ -227,6 +229,46 @@
 - (void)filterUsingPredicate:(NSPredicate *)predicate
 {
 	NSArray *all = [self allObjects];
+	NSUInteger i, n = [all count];
+
+	for (i = 0; i < n; i++) {
+		id v = [all objectAtIndex:i];
+		if (![predicate evaluateWithObject:v]) {
+			[self removeObject:v];
+		}
+	}
+}
+
+@end
+
+/* THE ORDERED SET'S PAIR. The filtered form APPENDS the members that pass, so the result keeps the receiver's order,
+ * which is the one thing an ordered set adds to a set; and the mutable form removes in place over a SNAPSHOT
+ * (`-array` builds a fresh array), so a removal cannot shorten the walk underneath itself. */
+@implementation NSOrderedSet (NSPredicateSupport)
+
+- (NSOrderedSet *)filteredOrderedSetUsingPredicate:(NSPredicate *)predicate
+{
+	NSMutableOrderedSet *out = [[NSMutableOrderedSet alloc] init];
+	NSUInteger i, n = [self count];
+
+	for (i = 0; i < n; i++) {
+		id v = [self objectAtIndex:i];
+		if ([predicate evaluateWithObject:v]) {
+			[out addObject:v];
+		}
+	}
+	/* AN IMMUTABLE ANSWER, as Apple's name promises: the accumulation is mutable because appending is what a filter
+	 * does, and the result is the immutable front built from it. */
+	return [[[NSOrderedSet alloc] initWithOrderedSet:out] autorelease];
+}
+
+@end
+
+@implementation NSMutableOrderedSet (NSPredicateSupport)
+
+- (void)filterUsingPredicate:(NSPredicate *)predicate
+{
+	NSArray *all = [self array];
 	NSUInteger i, n = [all count];
 
 	for (i = 0; i < n; i++) {

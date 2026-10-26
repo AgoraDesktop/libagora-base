@@ -692,6 +692,128 @@ static NSArray *fn_from_varargs(id firstObject, va_list args)
 			     usingComparator:comparator];
 }
 
+/* THE OPTIONS FORMS, written over this class's own block walks — so the direction, the stop flag and the index-set
+ * range rule are the ones `-enumerateObjectsWithOptions:usingBlock:` and its indexed twin already state. A nil predicate
+ * answers NSNotFound / an empty set rather than raising, the same answer the plain forms give. */
+- (NSUInteger)indexOfObjectWithOptions:(NSEnumerationOptions)options
+			   passingTest:(BOOL (^)(id object, NSUInteger index, BOOL *stop))predicate
+{
+	__block NSUInteger found = NSNotFound;
+
+	if (predicate == NULL) {
+		return NSNotFound;
+	}
+	[self enumerateObjectsWithOptions:options
+			       usingBlock:^(id object, NSUInteger index, BOOL *stop) {
+		if (predicate(object, index, stop)) {
+			found = index;
+			*stop = YES;
+		}
+	}];
+	return found;
+}
+
+- (NSUInteger)indexOfObjectAtIndexes:(NSIndexSet *)indexes
+			     options:(NSEnumerationOptions)options
+			 passingTest:(BOOL (^)(id object, NSUInteger index, BOOL *stop))predicate
+{
+	__block NSUInteger found = NSNotFound;
+
+	if (predicate == NULL) {
+		return NSNotFound;
+	}
+	[self enumerateObjectsAtIndexes:indexes
+				options:options
+			     usingBlock:^(id object, NSUInteger index, BOOL *stop) {
+		if (predicate(object, index, stop)) {
+			found = index;
+			*stop = YES;
+		}
+	}];
+	return found;
+}
+
+- (NSIndexSet *)indexesOfObjectsWithOptions:(NSEnumerationOptions)options
+				passingTest:(BOOL (^)(id object, NSUInteger index, BOOL *stop))predicate
+{
+	NSMutableIndexSet *matches = [NSMutableIndexSet indexSet];
+
+	if (predicate == NULL) {
+		return matches;
+	}
+	[self enumerateObjectsWithOptions:options
+			       usingBlock:^(id object, NSUInteger index, BOOL *stop) {
+		if (predicate(object, index, stop)) {
+			[matches addIndex:index];
+		}
+	}];
+	return matches;
+}
+
+- (NSIndexSet *)indexesOfObjectsAtIndexes:(NSIndexSet *)indexes
+				  options:(NSEnumerationOptions)options
+			      passingTest:(BOOL (^)(id object, NSUInteger index, BOOL *stop))predicate
+{
+	NSMutableIndexSet *matches = [NSMutableIndexSet indexSet];
+
+	if (predicate == NULL) {
+		return matches;
+	}
+	[self enumerateObjectsAtIndexes:indexes
+				options:options
+			     usingBlock:^(id object, NSUInteger index, BOOL *stop) {
+		if (predicate(object, index, stop)) {
+			[matches addIndex:index];
+		}
+	}];
+	return matches;
+}
+
+/* THE LOCALE DESCRIPTION, the same layout and element rule as NSArray's door (§63.45): four spaces per level, an element
+ * asked for `-descriptionWithLocale:indent:` when it answers it, `-description` otherwise, and the set's own braces. */
+- (void)fnAppendElement:(id)element to:(NSMutableString *)out locale:(nullable id)locale level:(NSUInteger)level
+{
+	NSUInteger i;
+
+	for (i = 0; i < level; i++) {
+		[out appendString:@"    "];
+	}
+	if (element == nil) {
+		[out appendString:@"<nil>"];
+		return;
+	}
+	if ([element respondsToSelector:@selector(descriptionWithLocale:indent:)]) {
+		[out appendString:[element descriptionWithLocale:locale indent:level]];
+		return;
+	}
+	[out appendString:[element description]];
+}
+
+- (NSString *)descriptionWithLocale:(nullable id)locale indent:(NSUInteger)level
+{
+	NSMutableString *out = [[NSMutableString alloc] initWithUTF8String:"{("];
+	NSUInteger i, n = [self count];
+
+	[out appendString:@"\n"];
+	for (i = 0; i < n; i++) {
+		[self fnAppendElement:[self objectAtIndex:i] to:out locale:locale level:level + 1];
+		if (i + 1 < n) {
+			[out appendString:@","];
+		}
+		[out appendString:@"\n"];
+	}
+	for (i = 0; i < level; i++) {
+		[out appendString:@"    "];
+	}
+	[out appendString:@")}"];
+	return out;
+}
+
+- (NSString *)descriptionWithLocale:(nullable id)locale
+{
+	return [self descriptionWithLocale:locale indent:0];
+}
+
 - (BOOL)isEqual:(nullable id)other
 {
 	if (other == self) {

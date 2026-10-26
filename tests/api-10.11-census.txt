@@ -89,6 +89,9 @@
 # **W6b: the `NSAppleEventDescriptor` type doors.** The eight 10.11 factories and accessors — double, date, file URL,
 # the two application-name forms, the process identifier and `+currentProcessDescriptor` — plus `-isRecordDescriptor`
 # and the send that refuses by name. Missing 86 -> 74; methods-declared 4,289 -> 4,301.
+# **W6c: the ordered set's predicate and enumeration half.** NSOrderedSet 57 -> 64 (the four options forms of the test
+# searches and the two locale descriptions), NSMutableOrderedSet 32 -> 33 (`-filterUsingPredicate:`); missing 74 -> 66.
+# The predicates are declared in NSPredicate.h where Apple declares them; methods-declared 4,301 -> 4,309.
 classes-missing 0
 classes-offered 219
 classes-present 219
@@ -462,7 +465,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4301
+methods-declared 4309
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -602,7 +605,7 @@ sel:NSMutableCharacterSet 26
 sel:NSMutableData 14
 sel:NSMutableDictionary 17
 sel:NSMutableIndexSet 8
-sel:NSMutableOrderedSet 32
+sel:NSMutableOrderedSet 33
 sel:NSMutableSet 13
 sel:NSMutableString 10
 sel:NSMutableURLRequest 26
@@ -617,7 +620,7 @@ sel:NSNumber 51
 sel:NSNumberFormatter 136
 sel:NSOperation 16
 sel:NSOperationQueue 15
-sel:NSOrderedSet 57
+sel:NSOrderedSet 64
 sel:NSOrthography 10
 sel:NSOutputStream 10
 sel:NSPersonNameComponents 14
@@ -715,6 +718,6 @@ sel:NSXMLNode 51
 sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
 sel:NSProgress 31
-selectors-missing 74
+selectors-missing 66
 selectors-offered 3744
-selectors-present 3670
+selectors-present 3678

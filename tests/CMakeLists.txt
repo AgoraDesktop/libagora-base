@@ -96,6 +96,13 @@ target_link_libraries(foundation_10_11_extension PRIVATE Foundation CoreFoundati
 
 add_test(NAME foundation_10_11_extension COMMAND foundation_10_11_extension)
 
+# THE ORDERED SET'S PREDICATE AND ENUMERATION HALF (10.7): a filtered ordered set that keeps the order, the four
+# options forms of the test searches, and the locale description's layout.
+add_executable(foundation_10_11_ordered_set foundation_10_11_ordered_set.m)
+target_link_libraries(foundation_10_11_ordered_set PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_ordered_set COMMAND foundation_10_11_ordered_set)
+
 # THE NOTIFICATION VALUE, ITS ACTION, AND AN IN-PROCESS CENTRE (10.8-10.10): copied doors, a copy, scheduling state, the
 # delegate consultation, and delivery refusing by name.
 add_executable(foundation_10_11_user_notification foundation_10_11_user_notification.m)

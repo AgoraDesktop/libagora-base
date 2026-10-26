@@ -24,6 +24,8 @@
 #import <Foundation/NSCoding.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSSet.h>
+#import <Foundation/NSOrderedSet.h>
+#import <Foundation/NSMutableOrderedSet.h>
 #include <stdarg.h>
 
 @class NSString;
@@ -77,6 +79,17 @@ NS_CLASS_AVAILABLE_MAC(10_4)
 
 @interface NSMutableSet<ObjectType> (NSPredicateSupport)
 - (void)filterUsingPredicate:(NSPredicate *)predicate NS_AVAILABLE_MAC(10_5);
+@end
+
+/* THE ORDERED SET'S TWO, declared here because Apple declares them here — beside the other collections' predicate
+ * support rather than on the class. A filtered ordered set KEEPS THE ORDER of the members that pass, which is why it can
+ * be built by appending to a mutable ordered set (whose set rule already drops a duplicate). */
+@interface NSOrderedSet<ObjectType> (NSPredicateSupport)
+- (NSOrderedSet<ObjectType> *)filteredOrderedSetUsingPredicate:(NSPredicate *)predicate NS_AVAILABLE_MAC(10_7);
+@end
+
+@interface NSMutableOrderedSet<ObjectType> (NSPredicateSupport)
+- (void)filterUsingPredicate:(NSPredicate *)predicate NS_AVAILABLE_MAC(10_7);
 @end
 
 NS_ASSUME_NONNULL_END
