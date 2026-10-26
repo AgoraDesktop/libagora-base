@@ -59,6 +59,13 @@ __attribute__((objc_root_class))
 - (NSZone *)zone;
 - (void)setZone:(nullable NSZone *)zone;
 - (void)finalize;
+
+/* UNAVAILABLE IN THE REFERENCE, AND STILL BODIED. Apple marks these two UNAVAILABLE on NSProxy, and this tree declares
+ * them with a BODY THAT REFUSES rather than leaving them declared and unimplemented: `methods-declared-not-implemented`
+ * is pinned at zero, and a declaration with no body anywhere is exactly what that pin forbids. A caller cannot reach
+ * them through the compiler (NS_UNAVAILABLE), and a caller that reaches them through the runtime is told why. */
+- (BOOL)allowsWeakReference NS_UNAVAILABLE;
+- (BOOL)retainWeakReference NS_UNAVAILABLE;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -18,9 +18,10 @@
 # The entries, by wave: NSURLSession/NSUserNotification/NSExtension carry W3's and W4's (background sessions, streamed
 # uploads, resume data, stream TLS, group containers, unresolved NetServices, extension requests, notification
 # delivery); NSXPCConnection and NSUserScriptTask carry W5's whole families, which have no backing at all.
-# total: 48
+# total: 50
 NSExtension.m 3
 NSURLSession.m 16
 NSUserNotification.m 1
 NSXPCConnection.m 24
 NSUserScriptTask.m 4
+NSProxy.m 2

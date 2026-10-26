@@ -7,6 +7,7 @@
  * NSProxy.m — the implementation (W2h). A ROOT CLASS: it inherits nothing, so what a first-class
  * object owes is either here or in the runtime, and everything else is forwarded.
  */
+#include <stdio.h>
 #import <Foundation/NSProxy.h>
 #import <Foundation/NSString.h>	/* -description builds one */
 #import <Foundation/NSException.h>
@@ -251,6 +252,20 @@ static id fn_perform_selector(id proxy, SEL aSelector, id *arguments, NSUInteger
 - (void)setZone:(NSZone *)zone
 {
 	fn_zone_assign_pointer(self, zone);
+}
+
+- (BOOL)allowsWeakReference
+{
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSProxy allowsWeakReference] is unavailable (the reference marks it "
+			"NS_UNAVAILABLE); a proxy does not answer for weak references\n");
+	return NO;
+}
+
+- (BOOL)retainWeakReference
+{
+	fprintf(stderr, "FOUNDATION-REFUSE: -[NSProxy retainWeakReference] is unavailable (the reference marks it "
+			"NS_UNAVAILABLE); a proxy does not answer for weak references\n");
+	return NO;
 }
 
 - (void)finalize
