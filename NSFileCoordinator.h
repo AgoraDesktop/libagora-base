@@ -67,6 +67,22 @@ typedef enum {
 	NSFileCoordinatorWritingContentIndependentMetadataOnly = 1 << 4,
 } NSFileCoordinatorWritingOptions;
 
+/* AN ACCESS INTENT: the URL and the kind of access a coordinated read or write will ask for. A value object, made by
+ * the two class methods and read back; NSFileCoordinator consumes one in W6's replacement path. */
+NS_CLASS_AVAILABLE_MAC(10_10)
+@interface NSFileAccessIntent : NSObject
+{
+@private
+	NSURL *_url;
+	NSUInteger _options;
+	signed char _writing;
+}
++ (instancetype)readingIntentWithURL:(NSURL *)url options:(NSFileCoordinatorReadingOptions)options;
++ (instancetype)writingIntentWithURL:(NSURL *)url options:(NSFileCoordinatorWritingOptions)options;
+@property (readonly, copy) NSURL *URL;
+@end
+
+
 /* ---- THE COORDINATOR ITSELF (W8 slice 7b): THE SYNCHRONOUS ACCESSOR DOORS -------------------------
  *
  * APPLE'S OWN WORDS FOR WHAT A COORDINATED OPERATION IS, measured from the doors' page: "the actual URL

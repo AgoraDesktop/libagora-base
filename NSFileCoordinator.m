@@ -588,3 +588,37 @@ static void fnReacquire(struct fn_reacquirers *reacquirers)
 }
 
 @end
+
+@implementation NSFileAccessIntent
+
+- (void)dealloc
+{
+	[_url release];
+	[super dealloc];
+}
+
++ (instancetype)readingIntentWithURL:(NSURL *)url options:(NSFileCoordinatorReadingOptions)options
+{
+	NSFileAccessIntent *intent = [[[self alloc] init] autorelease];
+
+	intent->_url = [url copy];
+	intent->_options = (NSUInteger)options;
+	return intent;
+}
+
++ (instancetype)writingIntentWithURL:(NSURL *)url options:(NSFileCoordinatorWritingOptions)options
+{
+	NSFileAccessIntent *intent = [[[self alloc] init] autorelease];
+
+	intent->_url = [url copy];
+	intent->_options = (NSUInteger)options;
+	intent->_writing = 1;
+	return intent;
+}
+
+- (NSURL *)URL
+{
+	return _url;
+}
+
+@end

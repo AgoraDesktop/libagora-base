@@ -89,6 +89,13 @@ target_link_libraries(foundation_10_11_url_session PRIVATE Foundation CoreFounda
 
 add_test(NAME foundation_10_11_url_session COMMAND foundation_10_11_url_session)
 
+# THE EXTENSION VALUE, ITS HOST, ITEMS BY TYPE, AND AN ACCESS INTENT (10.8-10.10): secure coding, refusal by name,
+# registered load handlers, and a value with a URL and a kind.
+add_executable(foundation_10_11_extension foundation_10_11_extension.m)
+target_link_libraries(foundation_10_11_extension PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+
+add_test(NAME foundation_10_11_extension COMMAND foundation_10_11_extension)
+
 # Core Foundation's Unicode normalization, against Unicode's own test suite. A separate suite from the
 # bridge because it is a separate concern, and because it is a CONFORMANCE run first: `NormalizationTest.txt`
 # is 19,129 cases with six invariants each, and nothing else in the tree asks `CFStringNormalize` anything.

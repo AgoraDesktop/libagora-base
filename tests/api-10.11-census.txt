@@ -78,9 +78,12 @@
 # 3,516 -> 3,538, missing 101 -> 86; offered 3,617 -> 3,624 (the stream task's own seven doors). The task-scoped doors
 # also move the four classes' `sel:` lines — NSURLCache 14 -> 17, NSURLCredentialStorage 9 -> 13, NSHTTPCookieStorage
 # 10 -> 13, NSURLProtocol 14 -> 17 — and NSURLSession 29 -> 31 for the two stream factories.
-classes-missing 14
+# **W4a: the extension value and host, the item provider and the file-access intent.** classes 205 -> 209,
+# protocols 36 -> 37, selectors 3,538 -> 3,562; offered 3,624 -> 3,648 and missing unchanged at 86 (every new class's
+# SDK selectors arrived with it).
+classes-missing 10
 classes-offered 219
-classes-present 205
+classes-present 209
 fn:NSAllHashTableObjects 1
 fn:NSAllMapTableKeys 1
 fn:NSAllMapTableValues 1
@@ -451,7 +454,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4169
+methods-declared 4193
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56
@@ -461,7 +464,7 @@ proto:NSConnectionDelegate 1
 proto:NSCopying 1
 proto:NSDecimalNumberBehaviors 1
 proto:NSDiscardableContent 1
-proto:NSExtensionRequestHandling 0
+proto:NSExtensionRequestHandling 1
 proto:NSFastEnumeration 1
 proto:NSFileManagerDelegate 1
 proto:NSFilePresenter 1
@@ -495,9 +498,9 @@ proto:NSUserNotificationCenterDelegate 0
 proto:NSXMLParserDelegate 1
 proto:NSXPCListenerDelegate 0
 proto:NSXPCProxyCreating 0
-protocols-missing 4
+protocols-missing 3
 protocols-offered 40
-protocols-present 36
+protocols-present 37
 sel:NSAffineTransform 15
 sel:NSAppleEventDescriptor 43
 sel:NSAppleEventManager 11
@@ -669,6 +672,10 @@ sel:NSURLRequest 18
 sel:NSURLResponse 6
 sel:NSURLSession 31
 sel:NSURLSessionStreamTask 7
+sel:NSExtensionContext 4
+sel:NSExtensionItem 8
+sel:NSFileAccessIntent 3
+sel:NSItemProvider 9
 sel:NSURLSessionDownloadTask 1
 sel:NSURLSessionTask 17
 sel:NSURLSessionConfiguration 47
@@ -692,5 +699,5 @@ sel:NSXMLParser 18
 sel:NSByteCountFormatter 20
 sel:NSProgress 31
 selectors-missing 86
-selectors-offered 3624
-selectors-present 3538
+selectors-offered 3648
+selectors-present 3562
