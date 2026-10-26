@@ -54,7 +54,10 @@
 # class done: its eight doors are marked, its parse became a plain method so each door could be its own constructor
 # (the rule in §4.15 of the plan), and this file moved from 135/2 to 127/10 in that commit.
 # `designated-extra` counts a tree-local mark only when the selector is CLASS-OWNED in the manifest, so
-# NSMachPort's three restated socket doors are not counted: they are inherited selectors. The residue waits for the
+# NSMachPort's three restated socket doors are not counted: they are inherited selectors. `NSSocketPort` then marked
+# its three doors (local address, local socket, remote address) in batch 5b: `-init` and `-initWithTCPPort:` route to
+# the local address door, and `initRemoteWithTCPPort:host:` walks `getaddrinfo`'s answer list and hands the descriptor
+# that connected to the designated socket door. The residue waits for the
 # same pass, class by class, for the reason the note below gives. `designated-init` is a
 # different kind of fact from an era: it carries no version, it says which initializer defines the class's state. Apple
 # marks 182 in the 10.11 Foundation; 178 reach the manifest after ownership and availability filtering, and 135 of them
@@ -75,6 +78,6 @@ annotations-present 800
 annotations-wrong 0
 designated-candidates 143
 designated-extra 2
-designated-missing 80
-designated-present 63
+designated-missing 77
+designated-present 66
 

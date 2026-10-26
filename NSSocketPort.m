@@ -174,48 +174,32 @@ static NSData *fn_sockaddr_data(NSSocketNativeHandle fd, BOOL peer)
 {
 	struct sockaddr_in local;
 
-	self = [super init];
-	if (self == nil) {
-		return nil;
-	}
-	if (![self fnMakeSocket:AF_INET type:SOCK_STREAM protocol:0]) {
-		[self release];
-		return nil;
-	}
+	/* A CONVENIENCE DOOR ROUTES TO A DESIGNATED ONE (batch 5b): the address "any, port 0, listening" is the
+	 * designated address door's own shape, and its `fnBind:listen:` is where the port is picked (see the
+	 * measured kernel fact above). Nothing is added here that the designated door does not already do. */
 	memset(&local, 0, sizeof(local));
 	local.sin_family = AF_INET;
 	local.sin_addr.s_addr = htonl(INADDR_ANY);
 	local.sin_port = 0;			/* EPHEMERAL: the kernel picks, and -address reports it */
-	if (![self fnBind:[NSData dataWithBytes:&local length:sizeof(local)] listen:YES]) {
-		[self release];
-		return nil;
-	}
-	_address = [fn_sockaddr_data(_socket, NO) retain];
-	return self;
+	return [self initWithProtocolFamily:AF_INET
+				 socketType:SOCK_STREAM
+				   protocol:0
+				    address:[NSData dataWithBytes:&local length:sizeof(local)]];
 }
 
 - (instancetype)initWithTCPPort:(unsigned short)port
 {
 	struct sockaddr_in local;
 
-	self = [super init];
-	if (self == nil) {
-		return nil;
-	}
-	if (![self fnMakeSocket:AF_INET type:SOCK_STREAM protocol:0]) {
-		[self release];
-		return nil;
-	}
+	/* The same route with the port named instead of 0; the designated door applies SO_REUSEADDR and listen(2). */
 	memset(&local, 0, sizeof(local));
 	local.sin_family = AF_INET;
 	local.sin_addr.s_addr = htonl(INADDR_ANY);
 	local.sin_port = htons(port);
-	if (![self fnBind:[NSData dataWithBytes:&local length:sizeof(local)] listen:YES]) {
-		[self release];
-		return nil;
-	}
-	_address = [fn_sockaddr_data(_socket, NO) retain];
-	return self;
+	return [self initWithProtocolFamily:AF_INET
+				 socketType:SOCK_STREAM
+				   protocol:0
+				    address:[NSData dataWithBytes:&local length:sizeof(local)]];
 }
 
 - (instancetype)initWithProtocolFamily:(int)family
@@ -255,70 +239,6 @@ static NSData *fn_sockaddr_data(NSSocketNativeHandle fd, BOOL peer)
 	_protocol = protocol;
 	_ownsSocket = NO;		/* THE CALLER MADE IT, SO THE CALLER CLOSES IT */
 	_address = [fn_sockaddr_data(_socket, NO) retain];
-	return self;
-}
-
-- (instancetype)initWithRemoteWithTCPPort:(unsigned short)port host:(NSString *)hostName
-{
-	struct addrinfo hints, *answer = NULL, *candidate;
-	char portText[8];
-	BOOL connected = NO;
-	const char *host = (hostName != nil ? [hostName UTF8String] : "127.0.0.1");
-	int resolved;
-
-	self = [super init];
-	if (self == nil) {
-		return nil;
-	}
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;		/* a name may answer both, and the first that CONNECTS wins */
-	hints.ai_socktype = SOCK_STREAM;
-	snprintf(portText, sizeof(portText), "%u", (unsigned)port);
-	resolved = getaddrinfo(host, portText, &hints, &answer);
-	if (resolved != 0 || answer == NULL) {
-		[self release];
-		return nil;
-	}
-	for (candidate = answer; candidate != NULL; candidate = candidate->ai_next) {
-		if ([self fnMakeSocket:candidate->ai_family
-				  type:candidate->ai_socktype
-			      protocol:candidate->ai_protocol] &&
-		    [self fnConnect:[NSData dataWithBytes:candidate->ai_addr
-						    length:candidate->ai_addrlen]]) {
-			/* THE ADDRESS THE INITIALIZER CONNECTED TO, kept because that is what `-address` means for
-			 * a remote port — and because asking the kernel instead is not the same question (see §43). */
-			[_address release];
-			_address = [[NSData alloc] initWithBytes:candidate->ai_addr
-							  length:candidate->ai_addrlen];
-			connected = YES;
-			break;
-		}
-	}
-	freeaddrinfo(answer);
-	if (!connected) {
-		[self fnCloseSocket];
-		[self release];
-		return nil;
-	}
-	return self;
-}
-
-- (instancetype)initWithRemoteWithProtocolFamily:(int)family
-				       socketType:(int)type
-					 protocol:(int)protocol
-					  address:(NSData *)address
-{
-	self = [super init];
-	if (self == nil) {
-		return nil;
-	}
-	if (![self fnMakeSocket:family type:type protocol:protocol] || ![self fnConnect:address]) {
-		[self fnCloseSocket];
-		[self release];
-		return nil;
-	}
-	[_address release];
-	_address = [address copy];		/* the peer this port was built to talk to */
 	return self;
 }
 
@@ -626,40 +546,91 @@ static NSData *fn_port_frame(uint32_t msgid, NSArray *components)
 	if (self == nil) {
 		return nil;
 	}
-	if (![self fnMakeSocket:family type:type protocol:protocol]) {
+	if (![self fnMakeSocket:family type:type protocol:protocol] || ![self fnConnect:address]) {
+		[self fnCloseSocket];
 		[self release];
 		return nil;
 	}
-	if (connect(_socket, (const struct sockaddr *)[address bytes], (socklen_t)[address length]) != 0) {
-		[self release];
-		return nil;
+	/* THE PEER, NOT THIS END: `-address` of a remote port is the address it connected TO (the header says
+	 * getpeername; a fresh object's ivar is nil, so there is nothing stale to release). */
+	_address = [fn_sockaddr_data(_socket, YES) retain];
+	if (_address == nil) {
+		_address = [address copy];
 	}
-	_address = [fn_sockaddr_data(_socket, NO) retain];
 	return self;
 }
 
 - (instancetype)initRemoteWithTCPPort:(unsigned short)port host:(NSString *)hostName
 {
-	/* RESOLVE, THEN DELEGATE: the first getaddrinfo answer becomes the address the remote initialiser connects
-	 * to, so there is one connect path and not two. */
-	struct addrinfo hints;
-	struct addrinfo *answer = NULL;
+	/* RESOLVE, WALK, THEN DELEGATE. `getaddrinfo(3)` may answer a name in two families and several addresses,
+	 * and the first socket that CONNECTS is the one kept; every earlier attempt is closed. The descriptor that
+	 * survives is handed to the DESIGNATED socket door, which wraps a descriptor this door made — the ownership
+	 * then follows with `-fnTakeOwnership`, exactly as `NSMachPort -init` does with its pair. */
+	struct addrinfo hints, *answer = NULL, *candidate;
 	char service[16];
-	NSData *address;
-	int family, type, protocol;
+	int connected = -1;
+	int family = AF_UNSPEC, type = SOCK_STREAM, protocol = 0;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_UNSPEC;		/* a name may answer both, and the first that CONNECTS wins */
 	hints.ai_socktype = SOCK_STREAM;
 	snprintf(service, sizeof(service), "%u", (unsigned)port);
-	if (getaddrinfo([hostName UTF8String], service, &hints, &answer) != 0 || answer == NULL) {
+	if (getaddrinfo((hostName != nil ? [hostName UTF8String] : "127.0.0.1"), service, &hints, &answer) != 0 ||
+	    answer == NULL) {
+		[self release];
 		return nil;
 	}
-	address = [NSData dataWithBytes:answer->ai_addr length:(NSUInteger)answer->ai_addrlen];
-	family = answer->ai_family;
-	type = answer->ai_socktype;
-	protocol = answer->ai_protocol;
+	for (candidate = answer; candidate != NULL; candidate = candidate->ai_next) {
+		int fd = socket(candidate->ai_family, candidate->ai_socktype, candidate->ai_protocol);
+
+		if (fd < 0) {
+			continue;
+		}
+		if (connect(fd, candidate->ai_addr, candidate->ai_addrlen) != 0) {
+			close(fd);
+			continue;
+		}
+		connected = fd;
+		family = candidate->ai_family;
+		type = candidate->ai_socktype;
+		protocol = candidate->ai_protocol;
+		break;
+	}
 	freeaddrinfo(answer);
+	if (connected < 0) {
+		[self release];
+		return nil;
+	}
+	self = [self initWithProtocolFamily:family
+				 socketType:type
+				   protocol:protocol
+				     socket:connected];
+	if (self == nil) {
+		close(connected);
+		return nil;
+	}
+	[self fnTakeOwnership];		/* this door made the descriptor, so this port closes it */
+	[_address release];
+	_address = [fn_sockaddr_data(connected, YES) retain];	/* the peer it connected to */
+	return self;
+}
+
+/* ---- THE OLDER SPELLINGS, KEPT AS ALIASES ----------------------------------------------------------- */
+
+/* THE HEADER DECLARED `initWithRemote...` BEFORE §63.217 ADDED APPLE'S `initRemote...` DOORS, and both spellings are
+ * declared, so both are built. Each is a CONVENIENCE door routing to the designated door of its family: one connect
+ * path, no second set of ivars, and a caller of either spelling gets the same port. */
+
+- (instancetype)initWithRemoteWithProtocolFamily:(int)family
+				       socketType:(int)type
+					 protocol:(int)protocol
+					  address:(NSData *)address
+{
 	return [self initRemoteWithProtocolFamily:family socketType:type protocol:protocol address:address];
+}
+
+- (instancetype)initWithRemoteWithTCPPort:(unsigned short)port host:(NSString *)hostName
+{
+	return [self initRemoteWithTCPPort:port host:hostName];
 }
 @end

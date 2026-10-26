@@ -86,13 +86,13 @@ NS_SWIFT_NAME(SocketPort)
 - (nullable instancetype)initWithProtocolFamily:(int)family
 				    socketType:(int)type
 				      protocol:(int)protocol
-				       address:(NSData *)address;
+				       address:(NSData *)address NS_DESIGNATED_INITIALIZER;
 
 /* "A previously created local socket": no socket(2), no bind(2), no OWNERSHIP. */
 - (nullable instancetype)initWithProtocolFamily:(int)family
 				    socketType:(int)type
 				      protocol:(int)protocol
-					socket:(NSSocketNativeHandle)socket;
+					socket:(NSSocketNativeHandle)socket NS_DESIGNATED_INITIALIZER;
 
 /* A TCP/IP socket that CONNECTS to a remote host. `hostName` may be a name or a numeric address and may
  * be nil, which means the loopback address. */
@@ -126,7 +126,7 @@ NS_SWIFT_NAME(SocketPort)
 - (nullable instancetype)initRemoteWithProtocolFamily:(int)family
 					   socketType:(int)type
 					     protocol:(int)protocol
-					      address:(NSData *)address;
+					      address:(NSData *)address NS_DESIGNATED_INITIALIZER;
 - (nullable instancetype)initRemoteWithTCPPort:(unsigned short)port
 					 host:(nullable NSString *)hostName;
 @end
