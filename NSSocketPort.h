@@ -40,10 +40,10 @@
  *   * `-init` PICKS ITS OWN EPHEMERAL PORT, because `bind(2)` to port 0 on this system returns 0 and the
  *     `listen(2)` that follows returns -1 — so "bind an ephemeral port and listen" is not expressible
  *     here. A port is chosen out of the IANA ephemeral range and the bind is retried upward from there.
- *   * A LISTENING PORT CANNOT BE A RUN-LOOP SOURCE HERE: `select(2)` does not report a listening
- *     descriptor as readable while a peer waits on it, even though `accept(2)` returns that connection.
- *     A CONNECTED one is a source like any other — which is what the probe's scheduling checks use — so
- *     a server on this system has to notice connections by asking `accept(2)` rather than by waiting.
+ *   * A LISTENING PORT IS A RUN-LOOP SOURCE NOW, AND IT WAS NOT BEFORE: the loop watches descriptors through a
+ *     dispatch source, whose selector DOES report a listening descriptor as readable (measured: one accept per
+ *     connection). While the loop waited in `select(2)` it did not, and a server on this system had to notice
+ *     connections by asking `accept(2)` rather than by waiting. A CONNECTED port is a source either way.
  *
  * THE HOST NAME IS RESOLVED WITH `getaddrinfo(3)`, which answers a numeric address with no lookup at all —
  * so `initWithRemoteWithTCPPort:host:` on "127.0.0.1" touches no network, which is what makes the probe's

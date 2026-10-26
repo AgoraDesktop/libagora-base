@@ -17,18 +17,18 @@
  * modes is carried by every mode — which is the whole of what "common" means here, and it is now ONE function
  * (§62.62, FNRunLoopModes.h) rather than a rule each kind of entry spelled for itself.
  *
- * HOW IT WAITS, and this one is a kernel fact worth stating where a caller can read it: the loop's
- * wait is `select(2)` with a timeout, because THIS KERNEL RETURNS FROM `nanosleep(2)` EARLY (measured
- * during F13.17's work). If select's timeout is not honoured either, the loop still fires on time —
- * it re-checks the clock after every wait rather than trusting it — but it will spin, and the CPU
- * cost of that is the C library's and the kernel's to fix, not this class's to hide.
+ * HOW IT WAITS: IT DOES NOT. The waiting is CoreFoundation's, which is the design this header now documents — a
+ * timer is a `CFRunLoopTimer`, an fd source is a `CFRunLoopSource` fed by a `dispatch_source`, a performer is a
+ * signalled source, and the loop's wait is `CFRunLoopRunInMode`. That is one mechanism for all four, and it is the
+ * same one that services the main dispatch queue, so `dispatch_async(dispatch_get_main_queue(), ^{…})` runs on the
+ * next pass of an application's loop. `-getCFRunLoop` answers the loop it always refused to fake:
+ * `tests/runloop_cf.m` holds that identity, a timer's delivery, a signalled source, an fd source and the dispatch
+ * main queue to their contracts, and `libagora-app` proves a timer fires inside `-[NSApplication run]`.
  *
- * WHAT IS NOT HERE, named, AND THIS LIST SHRANK RATHER THAN GREW (§62.62 corrected it): run-loop OBSERVERS
- * (`-addObserver:forKeyPath:…` and the activity notifications), `-runLoop`/`-getCFRunLoop` — which are
- * CoreFoundation doors and this system has NO CoreFoundation, so there is nothing for them to answer (the same
- * ground §11.6.1's D13 register gives NSFileSecurity), and `NSRunLoopCommonModes` as a real mode SET rather than
- * the single name it is treated as. It no longer names the SOURCES (they landed in §43) or the PERFORMERS
- * (they land with this comment).
+ * WHAT IS STILL NOT HERE, named rather than left to be discovered: run-loop OBSERVERS as a public API
+ * (`-addObserver:forKeyPath:…` and the activity notifications) — the loop installs its own observer internally, for
+ * the notification queue's phases — `-performSelector:target:argument:order:modes:` on the NSObject side, and
+ * `NSRunLoopCommonModes` as a mode SET rather than the single name it is treated as.
  */
 
 #ifndef FOUNDATION_NSRUNLOOP_H
@@ -59,17 +59,34 @@ typedef NSString * NSRunLoopMode;
 @class NSArray;
 @class NSMutableArray;
 @class NSPort;
+@class NSTimer;
+@class NSRunLoop;
 
 NS_SWIFT_NAME(RunLoop)
 NS_CLASS_AVAILABLE_MAC(10_5)
 @interface NSRunLoop : NSObject
 {
-	NSMutableArray *_timers;	/* NSTimer, in no particular order; the loop sorts at each wait */
-	NSMutableArray *_modes;		/* the mode each timer in _timers was added for */
-	NSString *_currentMode;
+	/* **THE LOOP IS CORE FOUNDATION'S, AND THAT IS THE WHOLE DESIGN.** This class used to keep its own
+	 * arrays of timers, fd sources and performers and wait in `select(2)`; it is now a façade over
+	 * `CFRunLoop`, so a timer's date, an fd source's readiness, the loop's own wait and the main dispatch
+	 * queue are one mechanism rather than four. `_cfLoop` is `CFRunLoopGetCurrent()` at init, retained.
+	 *
+	 * `_timers` is ONLY A LIFETIME HOLDER: CF's run loop retains a timer for as long as it is scheduled, but an
+	 * `NSTimer` is an Objective-C object whose dealloc releases the `CFRunLoopTimer` it owns, so this array is
+	 * what keeps a scheduled timer's NSTimer alive across a caller that let go of it. Invalidated timers are
+	 * pruned at the top of every pass. */
+	CFRunLoopRef _cfLoop;		/* RETAINED */
+	NSMutableArray *_timers;	/* NSTimer, scheduled anywhere; pruned when invalid */
+	NSString *_currentMode;		/* RETAINED: the mode the last pass ran in */
 	BOOL _running;
 	NSMutableArray *_sources;	/* FNRunLoopSource, created on first use */
 	NSMutableArray *_performers;	/* FNPerformer, created on first use (§62.62) */
+	/* AND THE TWO THINGS THIS CLASS NOW CONTRIBUTES TO THE LOOP RATHER THAN IMPLEMENTING: the source performers
+	 * are delivered through, and the observer that gives NSNotificationQueue its two phases. Both live in
+	 * `kCFRunLoopCommonModes`, so they are live in every mode the loop runs. */
+	CFRunLoopSourceRef _performerSource;	/* RETAINED */
+	CFRunLoopObserverRef _phaseObserver;	/* RETAINED */
+	unsigned long _workCount;	/* bumped by every timer, source and performer this loop delivers */
 }
 
 + (NSRunLoop *)currentRunLoop;

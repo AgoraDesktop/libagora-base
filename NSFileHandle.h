@@ -38,18 +38,19 @@
  *     until it is set to nil, which is Apple's *"typically executed repeatedly until the entire contents of
  *     the file have been read"*. Apple describes the mechanism as a *dispatch source*; there is no GCD in
  *     this tree, so OURS IS THE RUN LOOP, and the handler runs on the thread whose loop monitors it.
- *   * **AND ONE IS OURS: `-acceptConnectionInBackgroundAndNotify` CANNOT FIRE ON THIS SYSTEM AT ALL.**
- *     `select(2)` does not report a LISTENING descriptor as readable — §43 measured it, with `accept(2)`
- *     returning the connection in the same run — so the method is implemented exactly as Apple describes and
- *     is USELESS HERE. That is written down rather than left for a caller to discover: accepting connections
- *     on this system means polling `accept(2)`, which is what `NSSocketPort`'s own check does.
+ *   * **`-acceptConnectionInBackgroundAndNotify` FIRES NOW, AND IT DID NOT BEFORE.** The run loop watches
+ *     descriptors through a dispatch source, and a LISTENING socket is reported ready by the selector libdispatch
+ *     uses — so accepting a connection in the background works. It did not while the loop waited in `select(2)`,
+ *     which never reports a listening descriptor as readable (§43 measured that, with `accept(2)` returning the
+ *     connection in the same run). The door is unchanged; the mechanism under it was replaced.
  *
- *   * **AND A REGULAR FILE'S DESCRIPTOR IS NOT A USABLE SOURCE ON THIS SYSTEM EITHER.** `select(2)`
- *     here answers "not readable" for a file that has data waiting (measured: `r=0` for an open file at
- *     offset 0 — the same shape as the listening-socket gap §43 found), so the four background operations
- *     and both handlers FIRE ON PIPES AND SOCKETS and NEVER ON A FILE. Apple's own
- *     `-readabilityHandler` page describes reading a file to the end, which is the one thing this system
- *     cannot do that way: the file is still fully usable SYNCHRONOUSLY, and the probe pins that side.
+ *   * **AND A REGULAR FILE'S DESCRIPTOR IS STILL NOT A SOURCE — FOR THE OPPOSITE REASON.** `select(2)` never
+ *     called a file readable; the dispatch source's selector calls one ALWAYS readable (MEASURED: 9673 firings in
+ *     400 ms on an open file), which would be a busy loop rather than a notification. So a regular file is
+ *     recognised and given no readiness watch: the four background operations and both handlers FIRE ON PIPES AND
+ *     SOCKETS and NEVER ON A FILE, which is the contract this header has always stated. Apple's own
+ *     `-readabilityHandler` page describes reading a file to the end, which is the one thing this system cannot do
+ *     that way: the file is still fully usable SYNCHRONOUSLY, and the probe pins that side.
  *
  * ARCHIVING REFUSES IN BOTH DIRECTIONS, as NSPort's does and for the same kind of reason: Apple documents
  * that a file handle conforms to `NSCoding` and `NSSecureCoding` and publishes **no wire format** for one,

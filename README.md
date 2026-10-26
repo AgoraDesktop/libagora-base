@@ -18,6 +18,18 @@ a standalone Objective-C Foundation on libobjc2 — deliberately **without** Cor
 
 **Imported, building, running, and toll-free bridged to `libagora-core`.**
 
+**AND THE RUN LOOP IS `libagora-core`'S, WHICH IS THE BRIDGE THAT MATTERED MOST.** `NSRunLoop` used to be its own
+implementation — a timer array, an fd-source array and a `select(2)` wait — with `-getCFRunLoop` raising, because
+Core Foundation's loop was a different loop. It is now a façade: an `NSTimer` owns a `CFRunLoopTimer`, an fd source
+is a `CFRunLoopSource` whose readiness a `dispatch_source` reports (so `NSFileHandle`'s background reads fire, on the
+loop's thread), a performer is one signalled source in the common modes, and the notification queue's two phases are
+a `CFRunLoopObserver` at BeforeWaiting. The waiting is Core Foundation's, which means the main dispatch queue's port
+is watched by the same wait: `dispatch_async(dispatch_get_main_queue(), ^{…})` runs on the next pass of an
+application's loop, and `dispatch_source` on a descriptor works. Two measured consequences are recorded in place
+rather than left to be found: a LISTENING socket is a source now (epoll reports it; `select(2)` never did), and a
+REGULAR FILE is refused as one because a readiness source is ALWAYS ready for it (9673 firings in 400 ms), which is
+a busy loop rather than a notification. `tests/runloop_cf.m` holds all of it to its contract.
+
 **Zones are implemented.** `NSZone` is an opaque allocator handle (`NSZone.h`), with
 `NSCreateZone`, `NSZoneMalloc`/`Calloc`/`Realloc`/`Free`, `NSZoneName` and
 `NSZoneFromPointer`; `NSAllocateObject` records the zone an object was allocated in, and

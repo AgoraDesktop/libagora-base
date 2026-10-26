@@ -18,8 +18,9 @@
  *     concrete stream hands the base a descriptor through the private `-fnStreamDescriptor` hook, and the
  *     base registers it with the run loop's own file-descriptor source, so `NSStreamEventHasBytesAvailable`
  *     arrives as an EVENT instead of a read blocking the thread. This tree needs no new substrate for that:
- *     `NSRunLoop` already has `-addSourceForFileDescriptor:mode:readable:target:selector:` and a select(2)
- *     wait that ends early on a ready descriptor (§45-Y's finding).
+ *     `NSRunLoop` already has `-addSourceForFileDescriptor:mode:readable:target:selector:`, and the wait under it
+ *     is CoreFoundation's, which ends as soon as the descriptor is ready (§45-Y's finding, re-based on the
+ *     dispatch source the loop installs now).
  *
  * A SUBSTREAM SUBCLASSES `NSStream` AND OVERRIDES THE FOUR PRIMITIVES: `-fnStreamDescriptor` (the file
  * descriptor, or -1), `-fnStreamOpen`, `-fnStreamClose`, and the bytes/space operations. The base's own

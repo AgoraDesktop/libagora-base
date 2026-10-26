@@ -31,6 +31,11 @@
 
 @class NSString;
 
+/* **THE CORE FOUNDATION TIMER THIS ONE OWNS.** Forward-declared as the struct rather than typed as `CFRunLoopTimerRef`
+ * so that this header does not have to import CFRunLoop.h: a timer is CoreFoundation's now (see NSRunLoop.m), and
+ * the ivar is the one object this class holds rather than a second implementation of its schedule. */
+struct __CFRunLoopTimer;
+
 NS_ASSUME_NONNULL_BEGIN
 
 NS_SWIFT_NAME(Timer)
@@ -47,6 +52,7 @@ NS_SWIFT_NAME(Timer)
 	NSTimeInterval _tolerance;
 	id _block;		/* a BLOCK timer's body, heap-copied */
 	id _invocation;		/* an INVOCATION timer's body, retained */
+	struct __CFRunLoopTimer *_cfTimer;	/* OWNED: the real timer, created in -init and released in -dealloc */
 }
 
 + (NSTimer *)timerWithTimeInterval:(NSTimeInterval)interval

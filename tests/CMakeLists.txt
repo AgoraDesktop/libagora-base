@@ -63,6 +63,13 @@ add_test(NAME foundation_10_11_person_name COMMAND foundation_10_11_person_name)
 
 # THE OPTIONS OBJECT A SESSION IS MADE WITH (10.9, with 10.10/10.11 doors): the defaults table, the three factories'
 # differences and the copy a session depends on — no transport, so the contract is entirely observable here.
+# THE RUN LOOP IS CORE FOUNDATION'S: identity, a one-shot and a repeating timer, -limitDateForMode:, an fd source,
+# a delayed perform, a performer sent from another thread, the mode rule, the one-pass door, the main dispatch
+# queue and a caller's own CFRunLoopTimer landing in the same loop.
+add_executable(runloop_cf runloop_cf.m)
+target_link_libraries(runloop_cf PRIVATE Foundation CoreFoundation::CoreFoundation objc dispatch)
+add_test(NAME runloop_cf COMMAND runloop_cf)
+
 add_executable(foundation_10_11_session_configuration foundation_10_11_session_configuration.m)
 target_link_libraries(foundation_10_11_session_configuration PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 
