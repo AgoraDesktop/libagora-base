@@ -28,7 +28,10 @@ is watched by the same wait: `dispatch_async(dispatch_get_main_queue(), ^{…})`
 application's loop, and `dispatch_source` on a descriptor works. Two measured consequences are recorded in place
 rather than left to be found: a LISTENING socket is a source now (epoll reports it; `select(2)` never did), and a
 REGULAR FILE is refused as one because a readiness source is ALWAYS ready for it (9673 firings in 400 ms), which is
-a busy loop rather than a notification. `tests/runloop_cf.m` holds all of it to its contract.
+a busy loop rather than a notification. `tests/runloop_cf.m` holds all of it to its contract. **And the loop is what
+an application waits in:** `-fnRunMode:forSeconds:returnAfterWork:` is the frame's pass — CoreFoundation's
+`CFRunLoopRunInMode` with the work counter, so a timer callout returns it too — and the AppKit makes the compositor's
+descriptor one of its sources, which is how one wait now covers the connection, the timers and the main queue.
 
 **Zones are implemented.** `NSZone` is an opaque allocator handle (`NSZone.h`), with
 `NSCreateZone`, `NSZoneMalloc`/`Calloc`/`Realloc`/`Free`, `NSZoneName` and

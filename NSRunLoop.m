@@ -1205,6 +1205,22 @@ static void fn_register_loop_with_thread(NSRunLoop *loop, NSThread *thread)
 	return (_workCount != before) || [self fnHasLiveWorkForMode:_currentMode];
 }
 
+/* **THE FRAME'S OWN PASS: WAIT IN COREFOUNDATION, RETURN WHEN SOMETHING HAPPENED.** `seconds` is the frame's deadline
+ * and `stopAfterWork` makes a handled source end the wait; `_workCount` is the second half, because a TIMER callout
+ * is delivered by the same run without making CF return early. */
+- (BOOL)fnRunMode:(NSString *)mode forSeconds:(double)seconds returnAfterWork:(BOOL)stopAfterWork
+{
+	unsigned long before;
+	SInt32 result;
+
+	[self fnSetCurrentMode:mode];
+	[self fnPruneTimers];
+	before = _workCount;
+	result = CFRunLoopRunInMode(fn_cf_mode(self, _currentMode), seconds,
+				    stopAfterWork ? true : false);
+	return (result == kCFRunLoopRunHandledSource) || (_workCount != before);
+}
+
 /* THE WAITING PASSES ARE COREFOUNDATION'S TOO, and nothing is polled: `CFRunLoopRunInMode` blocks in an epoll
  * selector that already contains the loop's wakeup port (so `-performSelector:onThread:` and
  * `CFRunLoopSourceSignal` reach it at once) and, on the main loop, the dispatch main queue's port. The one case it

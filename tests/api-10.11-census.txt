@@ -438,7 +438,7 @@ functions-defined-not-declared 0
 functions-missing 0
 functions-offered 182
 functions-present 182
-methods-declared 4093
+methods-declared 4094
 methods-declared-not-implemented 0
 methods-external 3
 methods-informal 56

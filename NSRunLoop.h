@@ -120,6 +120,17 @@ NS_CLASS_AVAILABLE_MAC(10_5)
 /* ONE PASS: fire what is due, then answer whether the loop should keep going. The limit is NULLABLE
  * because a caller may want the pass without a deadline, which is exactly what -run does. */
 - (BOOL)runMode:(NSString *)mode beforeDate:(nullable NSDate *)limit;
+
+/* **A PASS THAT MAY WAIT, AND RETURNS AS SOON AS SOMETHING WAS DELIVERED — which is the shape an application's frame
+ * loop wants and no Apple door provides.** `-runMode:beforeDate:` is one pass with NO wait (documented as such, and
+ * what a frame that has already decided how long to sleep uses); `-runUntilDate:` runs until a deadline even when
+ * work arrives. This is CoreFoundation's `CFRunLoopRunInMode` with `returnAfterSourceHandled`, plus this class's own
+ * work counter: a TIMER callout does not make CF return early on its own, and a frame that waited out its whole
+ * slice after a timer fired would paint a frame late. YES when work was delivered, NO when the wait expired.
+ *
+ * INTERNAL: it exists so `NSApplication` can make the compositor's descriptor one source among its timers instead of
+ * polling it with a deadline. */
+- (BOOL)fnRunMode:(NSString *)mode forSeconds:(double)seconds returnAfterWork:(BOOL)stopAfterWork;
 - (void)runUntilDate:(nullable NSDate *)limit;
 - (void)run;
 
