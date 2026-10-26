@@ -63,6 +63,13 @@ add_test(NAME foundation_10_11_person_name COMMAND foundation_10_11_person_name)
 
 # THE OPTIONS OBJECT A SESSION IS MADE WITH (10.9, with 10.10/10.11 doors): the defaults table, the three factories'
 # differences and the copy a session depends on — no transport, so the contract is entirely observable here.
+# THE PSEUDO-TERMINAL: a child with a pty for a controlling terminal — isatty, `tty(1)`, its own session, the line
+# discipline's echo and ^C, a size set before the launch and SIGWINCH after it, and the master read through a
+# readability handler and a run-loop wait.
+add_executable(nstask_pseudoterminal nstask_pseudoterminal.m)
+target_link_libraries(nstask_pseudoterminal PRIVATE Foundation CoreFoundation::CoreFoundation objc)
+add_test(NAME nstask-pseudoterminal COMMAND nstask_pseudoterminal)
+
 # THE RUN LOOP IS CORE FOUNDATION'S: identity, a one-shot and a repeating timer, -limitDateForMode:, an fd source,
 # a delayed perform, a performer sent from another thread, the mode rule, the one-pass door, the main dispatch
 # queue and a caller's own CFRunLoopTimer landing in the same loop.

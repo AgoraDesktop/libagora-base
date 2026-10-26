@@ -3,6 +3,13 @@
  * SPDX-FileCopyrightText: 2026 Kyle J. Cardoza
  * SPDX-License-Identifier: LGPL-3.0-or-later
  */
+/* **`posix_openpt`/`grantpt`/`unlockpt`/`ptsname` ARE XSI, AND A TRANSLATION UNIT HAS TO ASK FOR THEM BEFORE ITS
+ * FIRST INCLUDE.** glibc hides their declarations behind `_XOPEN_SOURCE >= 600` unless `_GNU_SOURCE` is set, and the
+ * failure is an "implicit declaration" pointing at functions the C library already has — the pty would then be built
+ * from an `int` returned by a function the compiler believed did not exist. */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
 /*
  * NSTask.m — a subprocess, a reaper thread, and one handshake. The design is in NSTask.h; what is HERE is
  * the three orders that decide whether it works.
@@ -43,11 +50,14 @@
 #import <Foundation/NSURL.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <unistd.h>
 
 /* THE PROCESS'S OWN ENVIRONMENT, declared where it is used as NSProcessInfo.m does it. */
@@ -163,6 +173,47 @@ static void fn_task_free_vector(char **vector, BOOL owned)
 
 /* A SIGNAL TO THE CHILD'S PROCESS GROUP, which is how "and all of its subtasks" is honoured — with a
  * fallback, because a kernel without process groups should still get the child itself. */
+/* **THE PSEUDO-TERMINAL, OPENED WITHOUT libutil.** `posix_openpt`, `grantpt`, `unlockpt` and `ptsname` are libc, so
+ * this adds no dependency; `openpty(3)` is the same three calls behind one name. The master is opened `O_CLOEXEC` so
+ * the CHILD cannot inherit it — a child holding the master is a pty that never reports its own end of file. The
+ * slave is opened by the parent and handed over, because a path lookup is not something the child should do after
+ * `fork(2)`.
+ *
+ * TWO THINGS ARE SET BEFORE ANYBODY CAN ASK: the WINDOW SIZE, because `posix_openpt` leaves it 0x0 and every program
+ * that reads `COLUMNS` believes what it is told, and `IUTF8`, so the line discipline erases a CHARACTER on kill/erase
+ * rather than a byte — the difference between backspace working and backspace leaving half a codepoint behind. */
+static int fn_pty_open(char *slave_name, size_t name_size, unsigned short rows, unsigned short columns)
+{
+	struct winsize size;
+	struct termios settings;
+	const char *name;
+	int master;
+
+	master = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
+	if (master < 0) {
+		return -1;
+	}
+	if (grantpt(master) != 0 || unlockpt(master) != 0) {
+		(void)close(master);
+		return -1;
+	}
+	name = ptsname(master);
+	if (name == NULL || strlen(name) + 1 > name_size) {
+		(void)close(master);
+		return -1;
+	}
+	memcpy(slave_name, name, strlen(name) + 1);
+	memset(&size, 0, sizeof(size));
+	size.ws_row = (unsigned short)(rows > 0 ? rows : 24);
+	size.ws_col = (unsigned short)(columns > 0 ? columns : 80);
+	(void)ioctl(master, TIOCSWINSZ, &size);
+	if (tcgetattr(master, &settings) == 0) {
+		settings.c_iflag |= IUTF8;
+		(void)tcsetattr(master, TCSANOW, &settings);
+	}
+	return master;
+}
+
 static int fn_task_signal(pid_t pid, int sig)
 {
 	if (kill(-pid, sig) != 0) {
@@ -212,6 +263,9 @@ static void *fn_task_reaper(void *context)
 	if (self != nil) {
 		_qualityOfService = NSQualityOfServiceDefault;
 		_condition = [[FNCondition alloc] init];
+		_ptyMaster = -1;
+		_ptyRows = 24;
+		_ptyColumns = 80;
 	}
 	return self;
 }
@@ -358,6 +412,8 @@ static void *fn_task_reaper(void *context)
 	char **envp;
 	BOOL envpOwned;
 	int inFd, outFd, errFd, inFar, outFar, errFar;
+	int ptyMaster = -1, ptySlave = -1;
+	char ptySlaveName[128];
 	pthread_t reaper;
 	pid_t pid;
 
@@ -388,17 +444,46 @@ static void *fn_task_reaper(void *context)
 		fn_task_free_vector(envp, envpOwned);
 		return fn_task_failed(errorPtr, ENOMEM);
 	}
-	inFd = fn_standard_child_fd(_standardInput, YES);
-	inFar = fn_standard_far_fd(_standardInput, YES);
-	outFd = fn_standard_child_fd(_standardOutput, NO);
-	outFar = fn_standard_far_fd(_standardOutput, NO);
-	errFd = fn_standard_child_fd(_standardError, NO);
-	errFar = fn_standard_far_fd(_standardError, NO);
+	if (_usesPseudoTerminal) {
+		/* **A TERMINAL IS ALL THREE DESCRIPTORS OR NONE.** The three stdio slots are not consulted in this mode
+		 * (the header says so): the slave is stdin, stdout and stderr, and the caller's end is the master. Both
+		 * halves are opened here, BEFORE the fork, so the child does no path lookup and no allocation. */
+		ptyMaster = fn_pty_open(ptySlaveName, sizeof(ptySlaveName), _ptyRows, _ptyColumns);
+		if (ptyMaster < 0) {
+			fn_task_free_vector(argv, YES);
+			fn_task_free_vector(envp, envpOwned);
+			return fn_task_failed(errorPtr, errno);
+		}
+		ptySlave = open(ptySlaveName, O_RDWR);
+		if (ptySlave < 0) {
+			int err = errno;
+
+			(void)close(ptyMaster);
+			fn_task_free_vector(argv, YES);
+			fn_task_free_vector(envp, envpOwned);
+			return fn_task_failed(errorPtr, err);
+		}
+		inFd = outFd = errFd = ptySlave;
+		inFar = outFar = errFar = -1;
+	} else {
+		inFd = fn_standard_child_fd(_standardInput, YES);
+		inFar = fn_standard_far_fd(_standardInput, YES);
+		outFd = fn_standard_child_fd(_standardOutput, NO);
+		outFar = fn_standard_far_fd(_standardOutput, NO);
+		errFd = fn_standard_child_fd(_standardError, NO);
+		errFar = fn_standard_far_fd(_standardError, NO);
+	}
 
 	pid = fork();
 	if (pid < 0) {
 		int err = errno;
 
+		if (ptyMaster >= 0) {
+			(void)close(ptyMaster);
+		}
+		if (ptySlave >= 0) {
+			(void)close(ptySlave);
+		}
 		fn_task_free_vector(argv, YES);
 		fn_task_free_vector(envp, envpOwned);
 		return fn_task_failed(errorPtr, err);
@@ -430,13 +515,37 @@ static void *fn_task_reaper(void *context)
 				(void)chdir(directory);
 			}
 		}
-		(void)setpgid(0, 0);		/* its own group, so one signal reaches the subtree */
+		/* **A PSEUDO-TERMINAL NEEDS A SESSION, AND THE ORDER IS LOAD-BEARING.** `setsid(2)` makes this process a
+		 * session leader with NO controlling terminal; `TIOCSCTTY` on the slave (now fd 0) then names this pty as
+		 * that terminal — which is what lets the line discipline signal the foreground group and what makes
+		 * `isatty(3)` true. `setpgid` is NOT called in this mode: a session leader is already its own process
+		 * group, and the call would fail with `EPERM`. The master is closed in the child, because one holder of it
+		 * is the parent and a second is a terminal that never reports EOF. */
+		if (ptyMaster >= 0) {
+			(void)close(ptyMaster);
+			(void)setsid();
+			(void)ioctl(STDIN_FILENO, TIOCSCTTY, 0);
+		} else {
+			(void)setpgid(0, 0);	/* its own group, so one signal reaches the subtree */
+		}
 		execve([path UTF8String], argv, envp);
 		_exit(127);			/* the shell's own "cannot execute" */
 	}
 
 	fn_task_free_vector(argv, YES);
 	fn_task_free_vector(envp, envpOwned);
+
+	if (ptySlave >= 0) {
+		/* THE PARENT MUST NOT HOLD THE SLAVE: a second holder of the child's own end is a master that never
+		 * reports EOF after the child exits. */
+		(void)close(ptySlave);
+	}
+	if (ptyMaster >= 0) {
+		_ptyMaster = ptyMaster;
+		/* THE TASK OWNS THE DESCRIPTOR (the handle does not close it), so the fd's lifetime is the task's and a
+		 * caller's handle cannot outlive the number it names by releasing the handle first. */
+		_ptyHandle = [[NSFileHandle alloc] initWithFileDescriptor:ptyMaster closeOnDealloc:NO];
+	}
 
 	_pid = pid;
 	_launched = YES;
@@ -543,6 +652,58 @@ static void *fn_task_reaper(void *context)
 	return NSTaskTerminationReasonExit;
 }
 
+/* ---- the pseudo-terminal's doors ---------------------------------------- */
+
+- (BOOL)usesPseudoTerminal
+{
+	return _usesPseudoTerminal;
+}
+
+- (void)setUsesPseudoTerminal:(BOOL)flag
+{
+	/* A LAUNCHED TASK'S DESCRIPTORS ARE ITS CHILD'S: flipping the mode after the fork would describe a process that
+	 * does not exist. Setting it on a launched task is a no-op rather than an exception, because the alternative is
+	 * an exception in a callback. */
+	if (_launched) {
+		return;
+	}
+	_usesPseudoTerminal = flag;
+}
+
+- (NSFileHandle *)pseudoterminalHandle
+{
+	return _ptyHandle;
+}
+
+- (BOOL)setPseudoterminalRows:(unsigned short)rows columns:(unsigned short)columns
+{
+	struct winsize size;
+
+	if (rows == 0 || columns == 0) {
+		return NO;	/* a terminal with no size is worse than one with the default */
+	}
+	_ptyRows = rows;
+	_ptyColumns = columns;
+	if (_ptyMaster < 0) {
+		return YES;	/* stored: the launch applies it before the child can ask */
+	}
+	memset(&size, 0, sizeof(size));
+	size.ws_row = rows;
+	size.ws_col = columns;
+	/* THE KERNEL DOES THE REST: a size change on a pty sends SIGWINCH to the foreground process group. */
+	return (ioctl(_ptyMaster, TIOCSWINSZ, &size) == 0) ? YES : NO;
+}
+
+- (unsigned short)pseudoterminalRows
+{
+	return _ptyRows;
+}
+
+- (unsigned short)pseudoterminalColumns
+{
+	return _ptyColumns;
+}
+
 - (void)dealloc
 {
 	/* REACHED ONLY WHEN THE REAPER HAS RELEASED ITS REFERENCE, so a running task's object is never torn
@@ -555,6 +716,11 @@ static void *fn_task_reaper(void *context)
 	[_standardOutput release];
 	[_standardError release];
 	[_condition release];
+	[_ptyHandle release];
+	if (_ptyMaster >= 0) {
+		(void)close(_ptyMaster);
+		_ptyMaster = -1;
+	}
 	if (_terminationHandler != NULL) {
 		_Block_release(_terminationHandler);
 	}

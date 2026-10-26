@@ -35,6 +35,17 @@ descriptor one of its sources, which is how one wait now covers the connection, 
 empty mode has nothing to wait on and CoreFoundation says so at once, so that answer pauses for the old fifty-millisecond
 cap rather than spinning — a deadline is a deadline, not a busy loop.
 
+**AND A TASK CAN HAVE A TERMINAL, WHICH IS THE ONE THING `NSTask` COULD NOT EXPRESS AND A TERMINAL CANNOT DO WITHOUT.**
+`-setUsesPseudoTerminal:` makes `-launchAndReturnError:` open a pty pair, put the child in a NEW SESSION with the slave as
+its CONTROLLING terminal (`setsid(2)`, then `TIOCSCTTY` — the same pair `window-server/src/session-vt.c` uses for the
+compositor's own session), and give it that slave on stdin, stdout and stderr; `-pseudoterminalHandle` is the master, and
+`-setPseudoterminalRows:columns:` sets the size before the launch (so the child's first `TIOCGWINSZ` is right) and after
+it (which is what makes the kernel send `SIGWINCH`). The line discipline is then real: `isatty(3)` is true, what is
+written to the master is echoed, `^C` kills the foreground group with SIGINT, and `-interrupt`/`-terminate` still reach the
+subtree. No `forkpty` and no libutil — `posix_openpt`/`grantpt`/`unlockpt`/`ptsname` are libc. `tests/nstask_pseudoterminal.m`
+holds each of those to its own check, reading the master through a readability handler and the run loop, which is a
+terminal's own read path.
+
 **Zones are implemented.** `NSZone` is an opaque allocator handle (`NSZone.h`), with
 `NSCreateZone`, `NSZoneMalloc`/`Calloc`/`Realloc`/`Free`, `NSZoneName` and
 `NSZoneFromPointer`; `NSAllocateObject` records the zone an object was allocated in, and

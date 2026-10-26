@@ -55,6 +55,7 @@
 @class FNCondition;	/* the reaper's handshake with -waitUntilExit — first-party since §63.170 */
 @class NSDictionary;
 @class NSError;
+@class NSFileHandle;
 @class NSString;
 @class NSURL;
 
@@ -90,6 +91,16 @@ NS_SWIFT_NAME(Process)
 	int _status;			/* the RAW wait(2) status */
 	FNCondition *_condition;
 	BOOL _reaperStarted;
+	/* **THE PSEUDO-TERMINAL, WHICH APPLE'S CLASS CANNOT EXPRESS AND A TERMINAL CANNOT DO WITHOUT.** `_ptyMaster`
+	 * is the end this process reads and writes, `-1` until a launch that asked for one; `_ptyHandle` wraps it for
+	 * the caller and is retained here, because the descriptor is the task's to close. The size is stored so that a
+	 * caller may set it BEFORE the launch — the child's first `TIOCGWINSZ` has to be right, since that is what a
+	 * shell reads for `COLUMNS`/`LINES`. */
+	BOOL _usesPseudoTerminal;
+	int _ptyMaster;
+	NSFileHandle *_ptyHandle;
+	unsigned short _ptyRows;
+	unsigned short _ptyColumns;
 }
 
 /* --- creating and initializing ------------------------------------------- */
@@ -150,6 +161,37 @@ NS_SWIFT_NAME(Process)
 - (void)setStandardOutput:(nullable id)object;
 - (nullable id)standardError;
 - (void)setStandardError:(nullable id)object;
+
+/* --- the pseudo-terminal (OURS: Apple's NSTask cannot make one) ------------------------------------ */
+
+/* **A TERMINAL IS NOT THREE PIPES, AND THIS CLASS COULD ONLY MAKE THREE PIPES.** With this set,
+ * `-launchAndReturnError:` creates a pty pair, puts the child in a NEW SESSION with the slave as its CONTROLLING
+ * TERMINAL (`setsid(2)`, then `TIOCSCTTY`), and gives it the slave on stdin, stdout and stderr. That is what makes
+ * the line discipline work rather than a pipe's byte stream: `^C` and `^Z` become signals to the child's foreground
+ * process group, `tcsetpgrp` has a group to name, `isatty(3)` is true, and `TIOCSWINSZ` delivers `SIGWINCH`.
+ *
+ * THE THREE STDIO SLOTS ARE IGNORED IN THIS MODE, which is stated rather than discovered: one terminal is one
+ * device, and three halves sharing one line discipline cannot be told apart. The child's group is the session's
+ * (so `-interrupt` and `-terminate`, which signal the group, still reach the subtree).
+ *
+ * A PTY'S OWNER IS THE TASK. `-pseudoterminalHandle` is the master, retained by the task and closed when the task
+ * is deallocated — so a reader that wants EOF keeps the task alive, the same rule Apple's class has for a pipe. The
+ * handle is nil before the launch, and for a task that does not use one. */
+@property BOOL usesPseudoTerminal;
+
+/* The master end, or nil. Retained by the task; the caller may set `-readabilityHandler:` on it, which is how a
+ * terminal reads what the child wrote (the run loop wakes on it, because a pty is a character device and not a
+ * regular file). */
+- (nullable NSFileHandle *)pseudoterminalHandle;
+
+/* **THE WINDOW SIZE, A TERMINAL'S ONLY OTHER CHANNEL TO ITS CHILD.** Before the launch the size is stored and
+ * applied to the pty, so the child's FIRST `TIOCGWINSZ` is right; after the launch it is written to the terminal,
+ * which is what makes the kernel send `SIGWINCH` to the child's foreground group. Answers NO for a zero dimension:
+ * a pty with no size is one whose programs believe they have no columns, which is worse than a default. The
+ * default is 24 rows by 80 columns. */
+- (BOOL)setPseudoterminalRows:(unsigned short)rows columns:(unsigned short)columns;
+- (unsigned short)pseudoterminalRows;
+- (unsigned short)pseudoterminalColumns;
 
 /* CARRIED AND REPORTED, NOT APPLIED: there is no scheduler class to hand a quality of service to, so the
  * value is stored and answered and the launch does not consult it. Stated because a caller could
