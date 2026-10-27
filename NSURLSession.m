@@ -51,6 +51,7 @@
 #include <errno.h>
 #include <sys/select.h>
 #include <string.h>
+#include <stdlib.h>		/* getenv, for the temporary directory the download picks */
 
 /* THE STREAMS' SOCKET INITIALIZER IS THE LIBRARY'S OWN (NSStream.m §63.232), and it takes ownership of the
  * descriptor. A capture duplicates the socket twice so each stream closes its own copy. */
@@ -110,6 +111,7 @@ static NSError *fn_url_error(NSInteger code, NSString *description)
 
 @interface NSURLSessionDownloadTask (FNPrivate)
 - (void)fnSetDownloadCompletion:(void (^)(NSURL *, NSURLResponse *, NSError *))completion;
+- (BOOL)fnOpenDownloadFile;
 @end
 
 @interface NSURLSessionTask (FNScoped)
@@ -1274,24 +1276,64 @@ totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend
 	[super dealloc];
 }
 
-- (void)fnOpenDownloadFile
+- (BOOL)fnOpenDownloadFile
 {
-	NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:
-		[NSString stringWithFormat:@"agora-download-%ld-%lu", (long)getpid(), (unsigned long)[self taskIdentifier]]];
+	NSString *name = [NSString stringWithFormat:@"agora-download-%ld-%lu",
+					  (long)getpid(), (unsigned long)[self taskIdentifier]];
+	const char *environment = getenv("TMPDIR");
+	NSFileManager *manager = [NSFileManager defaultManager];
+	NSString *candidates[3];
+	NSUInteger i;
 
-	/* THE FILE IS MADE BEFORE THE HANDLE IS OPENED: `+fileHandleForWritingAtPath:` opens an EXISTING file, and an
-	 * empty write is the smallest way to create one. */
-	[[NSData data] writeToFile:path atomically:NO];
-	_downloadPath = [path copy];
-	_downloadFile = [[NSFileHandle fileHandleForWritingAtPath:path] retain];
+	/* **THE TEMPORARY DIRECTORY THIS TREE ANSWERS NEED NOT EXIST.** `NSTemporaryDirectory()` is the FSH's
+	 * `/System/Temporary Files/`, which a complete installation creates and a hosted one may not. MEASURED: on a
+	 * bare CI runner nothing is there, the file was never made, and the download still handed the delegate a URL to
+	 * it — the failed creation was not read back, so a broken transfer looked like a delivered one. So the door
+	 * walks the ladder libagora-app's `-openTempFile` walks: `$TMPDIR`, then the platform path, then `/tmp`, and the
+	 * first candidate that accepts the file is the answer. */
+	candidates[0] = (environment != NULL && environment[0] != '\0')
+		? [NSString stringWithUTF8String:environment] : nil;
+	candidates[1] = NSTemporaryDirectory();
+	candidates[2] = @"/tmp";
+	for (i = 0; i < 3; i++) {
+		NSString *directory = candidates[i];
+		BOOL isDirectory = NO;
+		NSString *path;
+		NSFileHandle *handle;
+
+		if ([directory length] == 0
+		    || ![manager fileExistsAtPath:directory isDirectory:&isDirectory] || !isDirectory) {
+			continue;
+		}
+		path = [directory stringByAppendingPathComponent:name];
+		/* THE FILE IS MADE BEFORE THE HANDLE IS OPENED: `+fileHandleForWritingAtPath:` opens an EXISTING file, and
+		 * an empty write is the smallest way to create one. THE ANSWER IS READ, unlike before: a directory that
+		 * refuses the file is the NEXT candidate, not a download that reports success with no bytes behind it. */
+		if (![[NSData data] writeToFile:path atomically:NO]) {
+			continue;
+		}
+		handle = [NSFileHandle fileHandleForWritingAtPath:path];
+		if (handle == nil) {
+			[manager removeItemAtPath:path error:NULL];
+			continue;
+		}
+		_downloadPath = [path copy];
+		_downloadFile = [handle retain];
+		return YES;
+	}
+	return NO;
 }
 
 - (void)fnSendData:(NSData *)data
 {
 	NSURLSession *session = [self fnSession];
 
-	if (_downloadFile == nil) {
-		[self fnOpenDownloadFile];
+	if (_downloadFile == nil && ![self fnOpenDownloadFile]) {
+		/* NO WRITABLE TEMPORARY DIRECTORY IS A FAILED TRANSFER, and it is reported as one: Apple's own list has
+		 * the code for it, and the delegate sees an error instead of a location where nothing was written. */
+		[self fnFinishWithError:fn_url_error(NSURLErrorCannotWriteToFile,
+			@"no writable temporary directory for the download")];
+		return;
 	}
 	if (_downloadFile != nil) {
 		[(NSFileHandle *)_downloadFile writeData:data];
