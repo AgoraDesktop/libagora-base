@@ -454,7 +454,18 @@ static void *fn_task_reaper(void *context)
 			fn_task_free_vector(envp, envpOwned);
 			return fn_task_failed(errorPtr, errno);
 		}
-		ptySlave = open(ptySlaveName, O_RDWR);
+		/* **`O_NOCTTY` HERE IS LOAD-BEARING, AND ITS ABSENCE WAS A TERMINAL WITH NO JOB CONTROL.** A slave opened
+		 * without it becomes the CONTROLLING TERMINAL OF THE OPENING PROCESS'S SESSION — which is harmless when the
+		 * opener already has one, and is exactly what happens when it does not: an application started by a session
+		 * manager, under `setsid`, or from a service has no controlling terminal, so this `open` gave the COPY the
+		 * pty as its own. The child's `setsid` then made a new session, and its `TIOCSCTTY` — which does not STEAL a
+		 * terminal from another session — failed, leaving the shell with a tty for its stdio and no controlling
+		 * terminal for its job control. MEASURED on the terminal application's first live run, launched under
+		 * `setsid`: `bash: cannot set terminal process group (-1): Inappropriate ioctl for device` and
+		 * `bash: no job control in this shell`, while the same code passed every test run from an ordinary shell.
+		 * `O_CLOEXEC` rides along for the same reason in miniature: the child closes its copy at `exec`, and the
+		 * duplicates on 0/1/2 keep the terminal open. */
+		ptySlave = open(ptySlaveName, O_RDWR | O_NOCTTY | O_CLOEXEC);
 		if (ptySlave < 0) {
 			int err = errno;
 

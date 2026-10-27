@@ -68,7 +68,10 @@ add_test(NAME foundation_10_11_person_name COMMAND foundation_10_11_person_name)
 # readability handler and a run-loop wait.
 add_executable(nstask_pseudoterminal nstask_pseudoterminal.m)
 target_link_libraries(nstask_pseudoterminal PRIVATE Foundation CoreFoundation::CoreFoundation objc)
-add_test(NAME nstask-pseudoterminal COMMAND nstask_pseudoterminal)
+# AND IT RUNS WITHOUT A CONTROLLING TERMINAL, because that is the shape the application is launched in and the only
+# one in which the slave's O_NOCTTY flag matters — see the runner's own header.
+add_test(NAME nstask-pseudoterminal
+	 COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run-nstask-pseudoterminal.sh" "$<TARGET_FILE:nstask_pseudoterminal>")
 
 # THE RUN LOOP IS CORE FOUNDATION'S: identity, a one-shot and a repeating timer, -limitDateForMode:, an fd source,
 # a delayed perform, a performer sent from another thread, the mode rule, the one-pass door, the main dispatch
