@@ -130,6 +130,18 @@ static void pump_until(NSRunLoop *loop, int *flag, double limit)
 	}
 }
 
+/* **PUMPED IN A NAMED MODE, AND THAT IS DIFFERENT FROM PUMPING THE DEFAULT ONE.** A mode is what the caller asks the
+ * loop to run, so a check about a mode has to run THAT mode — `-runUntilDate:` would run the default one and never
+ * reach the timer the check is about. */
+static void pump_mode_until(NSRunLoop *loop, NSString *mode, int *flag, double limit)
+{
+	double deadline = [[NSDate date] timeIntervalSinceReferenceDate] + limit;
+
+	while (*flag == 0 && [[NSDate date] timeIntervalSinceReferenceDate] < deadline) {
+		[loop runMode:mode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.02]];
+	}
+}
+
 /* A PERFORMER FROM ANOTHER THREAD: this is `-performSelectorOnMainThread:`'s real use, and the path that used to
  * deadlock because the main loop never looked at its queue. */
 @interface Sender : NSObject
@@ -295,11 +307,23 @@ int main(void)
 
 		[loop addTimer:common forMode:NSRunLoopCommonModes];
 		[loop addTimer:other forMode:@"AgTestRunLoopMode"];
-		/* ONE PASS IN THE DEFAULT MODE: the common-mode entry is due, the named-mode one is not this mode's. */
-		[loop runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
+		/* **PUMPED, BECAUSE A ZERO-SECOND PASS IS A POLL AND A POLL CAN MISS.** `-runMode:beforeDate:` runs
+		 * `CFRunLoopRunInMode(mode, 0.0, true)`, and in this tree's CFRunLoop a zero duration sets `termTSR = 0`,
+		 * which makes the pass a poll: the wait set is serviced with a zero timeout (`poll` in `__CFRunLoopRun`),
+		 * the run ends `TimedOut` when nothing is ready, and TIMERS ARE DONE ONLY FROM THE TIMER-PORT BRANCH. So a
+		 * timer added microseconds earlier — a 0.0-interval one especially — can still be pending when that poll
+		 * returns, and the pass ends without firing it. That is what reddened the x86-64 clang-19 leg of the
+		 * "pointer types" workflow on this one check while the other two legs passed, and why a single pass is not
+		 * something this file can assert on.
+		 *
+		 * THE SUBJECT HERE IS THE MODE RULE, and pumping does not weaken it: the common entry must fire in the
+		 * default mode, the named entry must NOT fire there, and it must fire when the loop runs its own mode — no
+		 * number of extra passes in a mode can make another mode's timer fire in it. "One pass" has its own
+		 * assertion below, where a pass is given a five-second deadline and must return at once. */
+		pump_mode_until(loop, NSDefaultRunLoopMode, &modeProbe->timers, 0.5);
 		check(modeProbe->timers == 1, "a common-mode timer fires in the default mode");
 		check(modeProbe->repeats == 0, "a timer added for another mode does not");
-		[loop runMode:@"AgTestRunLoopMode" beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
+		pump_mode_until(loop, @"AgTestRunLoopMode", &modeProbe->repeats, 0.5);
 		check(modeProbe->repeats == 1, "and it fires when the loop runs its own mode");
 		[modeProbe release];
 	}
