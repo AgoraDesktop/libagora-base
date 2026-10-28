@@ -39,7 +39,7 @@ set(CMAKE_INSTALL_RPATH "\$ORIGIN")
 
 # The toll-free bridge is a JOINT property of this component and libagora-core, and the only
 # thing that can see the pairing is a consumer of both -- see tests/bridges.m.
-enable_testing()
+include(CTest)	# defines BUILD_TESTING (ON by default) and enables testing with it
 
 include(GNUInstallDirs)
 
@@ -157,7 +157,11 @@ target_link_libraries(Foundation
         CURL::libcurl
         OpenSSL::Crypto)
 
-add_subdirectory(tests)
+# **THE TESTS ARE A DEVELOPMENT ARTEFACT, AND A RELEASE DOES NOT BUILD THEM**: `-DBUILD_TESTING=OFF`, which
+# is what the release driver passes, must configure and compile no test executable at all.
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
 
 install(DIRECTORY . DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Foundation
         FILES_MATCHING PATTERN "*.h")
