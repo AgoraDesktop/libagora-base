@@ -93,6 +93,8 @@ static unichar *fn_string_character_copy(NSString *other, NSUInteger *length)
  * The engine emits through a sink so the ATTRIBUTED formatter walks the SAME spec grammar and the SAME va_arg
  * table instead of growing a second, divergent copy of them. With `recorder` nil the two emitters call EXACTLY
  * the messages the engine called before, so this seam changes no behaviour on the plain path. */
+static size_t utf8_seq_length(unsigned char lead);
+
 static void fn_format_emit_bytes(fn_format_sink *sink, const char *utf8, NSUInteger pos)
 {
 	if (sink->recorder != nil) {
@@ -162,13 +164,25 @@ void fn_string_append_format_sink(fn_format_sink *sink, NSString *format, va_lis
 		char spec[48];
 		char conv;
 
+		/* **A LITERAL CHUNK IS A WHOLE CHARACTER, NOT A BYTE.** This emitted ONE byte per pass, and a character whose
+		 * UTF-8 form is longer than that was therefore handed to the sink as its several bytes SEPARATELY: a format
+		 * string containing an em dash (E2 80 94) arrived as three units U+00E2, U+0080, U+0094, and drew as `â` followed
+		 * by a box per remaining byte. That is the "the raster draws the first byte of a non-ASCII character" finding —
+		 * the raster was innocent; the format scanner split the character before it ever reached a glyph. */
 		if (c != '%') {
-			char one[2];
+			size_t sequence = utf8_seq_length(c);
+			char chunk[5];
+			size_t k;
 
-			one[0] = (char)c;
-			one[1] = '\0';
-			fn_format_emit_bytes(sink, one, i);
-			i++;
+			if (i + sequence > size) {
+				sequence = 1;		/* a truncated tail is one byte, and the sink's decoder will say so */
+			}
+			for (k = 0; k < sequence; k++) {
+				chunk[k] = (char)[format byteAtIndex:i + k];
+			}
+			chunk[sequence] = '\0';
+			fn_format_emit_bytes(sink, chunk, i);
+			i += sequence;
 			continue;
 		}
 		start = i;

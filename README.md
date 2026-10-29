@@ -268,3 +268,18 @@ clang repeats an included header once per probe). **Extensions:** API later than
 with the version it really arrived in, expands to `unavailable` under `-DAG_TARGET_OS_X_10_11`, and
 `foundation-strict-surface` proves the strict umbrella still compiles while each marked declaration and no normal
 build's door is affected. `tests/api-10.11-nullability.txt` and the plan's §4.13 record the facts and the recipes.
+
+### A format string carries whole characters, not bytes
+
+**`-stringWithFormat:` SPLIT EVERY NON-ASCII CHARACTER OF ITS FORMAT INTO UTF-8 BYTES, AND THAT IS WHERE "THE RASTER CANNOT
+DRAW UNICODE" CAME FROM.** The scanner walked the format's bytes with `-byteAtIndex:` and, for a literal chunk, emitted
+*one byte* per pass. A format containing an em dash (`E2 80 94`) therefore reached the sink as three separate chunks, which
+decoded to U+00E2, U+0080, U+0094 — so a Forge window title built as `@"%@ — %@"` read `Hello â( main.m`, with a box per
+byte left over. The raster, CoreText and HarfBuzz were all innocent: `@"café.m"` has always drawn correctly as a literal,
+and so does the same text read from a file.
+
+The scanner takes the whole UTF-8 sequence now (`utf8_seq_length` on the lead byte), with a truncated tail falling back to
+one byte so the sink's decoder can say so. `tests/constant_string_units.m` pins it from the layer where the two meet: an em
+dash literal is ONE character and U+2014, a mixed literal's length counts characters, a *formatted* title carries U+2014 on
+both sides of the file name, a surrogate pair is two units, and ASCII is unchanged.
+

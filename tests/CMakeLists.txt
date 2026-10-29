@@ -448,6 +448,10 @@ add_executable(string_trimming string_trimming.m)
 target_link_libraries(string_trimming PRIVATE Foundation objc)
 add_test(NAME string_trimming COMMAND string_trimming)
 
+add_executable(constant_string_units constant_string_units.m)
+target_link_libraries(constant_string_units PRIVATE Foundation objc)
+add_test(NAME constant_string_units COMMAND constant_string_units)
+
 # **THE UMBRELLA, MEASURED: THAT IT COMPILES, AND THAT IT NAMES EVERY INSTALLED HEADER.** The library installs its
 # headers with a glob, so a header joins the public surface the moment its file exists — and an umbrella that stopped
 # naming them would be a directory listing pretending to be an interface. It found `NSFastEnumeration.h`,
