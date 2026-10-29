@@ -51,6 +51,15 @@
 #import <Foundation/NSDecimal.h>
 #import <Foundation/NSDecimalNumber.h>
 #import <Foundation/NSDateInterval.h>
+/* **THE FAST-ENUMERATION PROTOCOL AND THE GEOMETRY BRIDGES ARE PART OF THE SURFACE, NOT OF THE IMPLEMENTATION.**
+ * `for (id x in collection)` compiles against `NSFastEnumeration.h`, and `-valueWithRect:` and the coder's geometry
+ * doors live in their own two headers; all three were installed and unnamed, which is the exact drift this umbrella
+ * exists to prevent. Named here rather than left to be found by grep. */
+#import <Foundation/NSFastEnumeration.h>
+#import <Foundation/NSValueCGGeometry.h>
+#import <Foundation/NSCoderCGGeometry.h>
+/* `NSURLComponents.h` is written on this C helper, so a consumer that asks for the class gets the helper it needs. */
+#import <Foundation/FNURLComponents.h>
 #import <Foundation/NSValueTransformer.h>
 #import <Foundation/NSAffineTransform.h>
 #import <Foundation/NSAutoreleasePool.h>

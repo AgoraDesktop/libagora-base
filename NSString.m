@@ -2516,28 +2516,32 @@ static NSComparisonResult fn_compare_numeric(NSString *left, NSString *right, NS
 	return [parts autorelease];
 }
 
+/* **THE RANGE IS IN CHARACTERS, AND THIS DOOR USED TO BUILD IT OUT OF BYTE OFFSETS.** The walk counted UTF-8 bytes
+ * (`utf8_seq_length`/`byteAtIndex:`) and handed those numbers to `-substringWithRange:`, whose `NSRange` is in
+ * CHARACTERS — so any string with a non-ASCII character before the end over-ran by the bytes it took, and a string
+ * with a leading space and one two-byte character threw `NSRangeException` on a range one element past the end.
+ * MEASURED by the AppKit umbrella's own census, which trims the lines of a header whose copyright line reads
+ * " * Copyright © 2026 Kyle J. Cardoza." — the first line of every file in this tree.
+ *
+ * The walk is over characters now, which is the only index space this class's ranges use. The bytes were never
+ * helping: the question is "which characters are members", and `-characterAtIndex:` is how that is asked. */
 - (NSString *)stringByTrimmingCharactersInSet:(NSCharacterSet *)set
 {
-	size_t offset = 0;
-	size_t character = 0;
-	size_t start = 0;
-	size_t end = 0;
-	int leading = 1;
+	NSUInteger length = [self length];
+	NSUInteger start = 0;
+	NSUInteger end = 0;
+	BOOL leading = YES;
+	NSUInteger i;
 
-	while (offset < [self lengthOfBytesUsingEncoding:NSUTF8StringEncoding]) {
-		size_t width = utf8_seq_length([self byteAtIndex:offset]);
-		BOOL member = [set characterIsMember:[self characterAtIndex:character]];
-
-		if (member) {
+	for (i = 0; i < length; i++) {
+		if ([set characterIsMember:[self characterAtIndex:i]]) {
 			if (leading) {
-				start = offset + width;
+				start = i + 1;
 			}
 		} else {
-			leading = 0;
-			end = offset + width;
+			leading = NO;
+			end = i + 1;
 		}
-		offset += width;
-		character++;
 	}
 	if (start > end) {
 		start = end;

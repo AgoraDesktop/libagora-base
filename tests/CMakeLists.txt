@@ -439,3 +439,22 @@ add_test(NAME foundation_behaviour_3 COMMAND foundation_behaviour_3)
 add_executable(foundation_behaviour_4 foundation_behaviour_4.m)
 target_link_libraries(foundation_behaviour_4 PRIVATE Foundation CoreFoundation::CoreFoundation objc pthread)
 add_test(NAME foundation_behaviour_4 COMMAND foundation_behaviour_4)
+
+# **THE TRIM'S RANGE IS IN CHARACTERS.** `-stringByTrimmingCharactersInSet:` walked UTF-8 bytes and handed those
+# offsets to `-substringWithRange:`, whose range is in characters — so any line with a leading space and a multi-byte
+# character in it threw `NSRangeException`. It was found by the AppKit's umbrella census, which trims the lines of a
+# header (whose first line is " * Copyright © …"), and no test here covered the door at all.
+add_executable(string_trimming string_trimming.m)
+target_link_libraries(string_trimming PRIVATE Foundation objc)
+add_test(NAME string_trimming COMMAND string_trimming)
+
+# **THE UMBRELLA, MEASURED: THAT IT COMPILES, AND THAT IT NAMES EVERY INSTALLED HEADER.** The library installs its
+# headers with a glob, so a header joins the public surface the moment its file exists — and an umbrella that stopped
+# naming them would be a directory listing pretending to be an interface. It found `NSFastEnumeration.h`,
+# `NSValueCGGeometry.h` and `NSCoderCGGeometry.h` unnamed on its first run.
+add_executable(umbrella umbrella.m)
+target_link_libraries(umbrella PRIVATE Foundation objc)
+target_compile_definitions(umbrella PRIVATE
+  FOUNDATION_UMBRELLA="${CMAKE_CURRENT_SOURCE_DIR}/../Foundation.h"
+  FOUNDATION_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/..")
+add_test(NAME foundation_umbrella COMMAND umbrella)
