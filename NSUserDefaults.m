@@ -101,9 +101,10 @@ enum {
 };
 
 /* **WHERE THE STORE'S TREE BEGINS: THE INSTALLED SYSTEM'S ROOT, OR THIS VARIABLE'S DIRECTORY.** Empty is `/` — an
- * Agora install lays down the Mac OS X like directories (`/System`, `/Library`, `/Users`, `/Applications`), so the
- * scopes below are real paths on an installed machine and are created on demand there. A checkout has no such tree,
- * so a session or a probe points this at a scratch directory and touches nothing in the image. */
+ * Agora install lays down the Mac OS X like directories (`/System`, `/Library`, `/Applications`, and the homes its host
+ * uses), so the scopes below are real paths on an installed machine and are created on demand there. A checkout has no
+ * such tree, so a session or a probe points this at a scratch directory and touches nothing in the image; the account's
+ * own home is then placed INSIDE that root, which is what `fn_path_in_root` is for. */
 static NSString *fn_config_root(void)
 {
 	const char *root = getenv("AGORA_CONFIG_ROOT");
@@ -128,13 +129,62 @@ static NSString *fn_config_user(void)
 	return @"root";
 }
 
+/* **AND WHERE AN ACCOUNT LIVES IS THE HOST'S ANSWER, NOT THIS TREE'S.** The SCOPES are the FSH's, but the directory
+ * above a home is the system's: macOS and its kin keep accounts in `/Users`, Linux and the BSDs in `/home`, and an
+ * Agora install ADOPTS whichever the machine already has. A hardcoded `Users` therefore names a directory that does
+ * not exist on a Linux host — the store created nothing and a write could not land — so the home comes from the
+ * account's own record (`getpwuid`, or `getpwnam` for a named one), then from `$HOME`, then from whichever of the two
+ * parents this machine has. A named account whose record is unknown inherits the parent this host uses. */
+static NSString *fn_home_directory(NSString *name)
+{
+	struct passwd *pw = ([name length] > 0) ? getpwnam([name UTF8String]) : getpwuid(getuid());
+	NSString *home = nil;
+
+	if (pw != NULL && pw->pw_dir != NULL && pw->pw_dir[0] == '/') {
+		home = [NSString stringWithUTF8String:pw->pw_dir];
+	}
+	if (home == nil && [name length] == 0) {
+		const char *environment = getenv("HOME");
+
+		if (environment != NULL && environment[0] == '/') {
+			home = [NSString stringWithUTF8String:environment];
+		}
+	}
+	if (home == nil) {
+		NSString *parent = [[NSFileManager defaultManager] fileExistsAtPath:@"/Users"] ? @"/Users" : @"/home";
+
+		home = [parent stringByAppendingPathComponent:([name length] > 0) ? name : fn_config_user()];
+	}
+	return home;
+}
+
+/* A path as it exists INSIDE the configuration root: the root is the image of a system, and an absolute path from this
+ * host is placed inside it. An empty root is the installed system itself. */
+static NSString *fn_path_in_root(NSString *absolute)
+{
+	NSString *root = fn_config_root();
+
+	while ([root hasSuffix:@"/"]) {
+		root = [root substringToIndex:[root length] - 1];
+	}
+	return [NSString stringWithFormat:@"%@%@", root, absolute];
+}
+
+/* The scope directory for a NAMED account, which is the one every device-independent lookup goes through. */
+static NSString *fn_user_scope_for(NSString *name)
+{
+	NSString *home = ([name length] > 0) ? fn_home_directory(name) : fn_home_directory(nil);
+
+	return [fn_path_in_root(home) stringByAppendingPathComponent:@"Configuration"];
+}
+
 static NSString *fn_scope_directory(int scope)
 {
 	NSString *root = fn_config_root();
 
 	switch (scope) {
 	case FN_SCOPE_USER:
-		return [NSString stringWithFormat:@"%@/Users/%@/Configuration", root, fn_config_user()];
+		return fn_user_scope_for(fn_config_user());
 	case FN_SCOPE_SHARED:
 		return [NSString stringWithFormat:@"%@/Shared/Configuration", root];
 	default:
@@ -1050,7 +1100,7 @@ static void fn_make_standard_lock(void)
 - (NSString *)fnUserScopeDirectory
 {
 	if (_userName != nil && [_userName length] > 0) {
-		return [NSString stringWithFormat:@"%@/Users/%@/Configuration", fn_config_root(), _userName];
+		return fn_user_scope_for(_userName);
 	}
 	return fn_scope_directory(FN_SCOPE_USER);
 }

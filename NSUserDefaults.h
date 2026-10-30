@@ -13,23 +13,28 @@
  * THE STORE IS ONE PROPERTY LIST PER DOMAIN IN THE FSH'S `Configuration/` SCOPES (user, 2026-09-20). Apple
  * writes `<bundle-id>.plist` under `~/Library/Preferences`; the equivalent here is
  *
- *     <root>/Users/<user>/Configuration/<domain>.plist     the USER scope — where a WRITE lands
+ *     <root><home>/Configuration/<domain>.plist            the USER scope — where a WRITE lands
  *     <root>/Shared/Configuration/<domain>.plist           the SHARED scope — shipped defaults
  *     <root>/System/Configuration/<domain>.plist           the SYSTEM scope — an administrator's value
  *
- * where `<root>` is `getenv("AGORA_CONFIG_ROOT")` or empty, and `<user>` is `getpwuid(getuid())->pw_name`,
- * then `getenv("USER")`, then `"root"`. The directories are CREATED on demand, and the files are XML
- * property lists written atomically through `NSPropertyListSerialization` — the tree's own plist core,
- * which is not libconfig.
+ * where `<root>` is `getenv("AGORA_CONFIG_ROOT")` or empty, and `<home>` is THE ACCOUNT'S OWN HOME DIRECTORY AS THIS
+ * HOST HAS IT — `/home/<user>` on Linux and the BSDs, `/Users/<user>` on a macOS-like install — taken from the passwd
+ * record (`getpwuid`, or `getpwnam` for `-initWithUser:`), then from `$HOME`, then from whichever of those two parents
+ * exists. The parent is NOT this tree's to choose: a hardcoded `Users` names a directory no Linux host has, and a
+ * store that cannot create its directory cannot write at all. The directories are CREATED on demand, and the files
+ * are XML property lists written atomically through `NSPropertyListSerialization` — the tree's own plist core, which
+ * is not libconfig.
  *
- * **AN EMPTY ROOT IS THE INSTALLED TREE, AND AN AGORA INSTALL HAS THE Mac OS X LIKE DIRECTORIES.** An install
- * lays down `/System`, `/Library`, `/Users`, `/Applications` and the rest — the same shape Apple's own system has,
- * and the reason these scopes are `/Users/<user>/…` and `/System/…` rather than `$HOME` and `/etc`. So with the
- * variable unset the store lands where a real install puts it, and the directories are created on demand: a
- * machine that has never run a login has no `/Users/<name>/Configuration` yet, and the first write makes it. A
- * DEVELOPMENT checkout has no such tree — `/` is the host's, and its `/Users` is root-owned — so a session or a
- * probe points `AGORA_CONFIG_ROOT` at a directory of its own with `setenv(3)` and touches nothing in the image.
- * The variable is Agora's own name for that door; it was once an unrelated project's, and nothing here reads that
+ * **AN EMPTY ROOT IS THE INSTALLED TREE, AND AN AGORA INSTALL HAS THE Mac OS X LIKE DIRECTORIES.** An install lays
+ * down `/System`, `/Library`, `/Applications` and the rest — the same shape Apple's own system has, which is why these
+ * scopes are `<home>/…` and `/System/…` rather than `$HOME`-relative dotfiles and `/etc`. The homes themselves stay
+ * where the host put them, so on a Linux machine the user scope is `/home/<user>/Configuration` and on a macOS-like
+ * one `/Users/<user>/Configuration`; either way the variable unset means the real installed paths, created on demand
+ * (a machine that has never run a login has no `<home>/Configuration` yet, and the first write makes it). A
+ * DEVELOPMENT checkout has no such tree — `/` is the host's, and its `/home` or `/Users` is root-owned — so a session
+ * or a probe points `AGORA_CONFIG_ROOT` at a directory of its own with `setenv(3)` and touches nothing in the image;
+ * the host's home is then placed INSIDE that root, so a probe writes `<scratch>/home/<user>/Configuration/…`. The
+ * variable is Agora's own name for that door; it was once an unrelated project's, and nothing here reads that
  * project's tree.
  *
  * THE SCOPE AXIS IS OURS, NOT APPLE'S, AND IT IS WHAT `-objectIsForcedForKey:` MEANS. Apple models one file
