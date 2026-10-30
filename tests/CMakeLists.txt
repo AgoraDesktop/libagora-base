@@ -193,7 +193,7 @@ add_test(NAME string_split COMMAND string_split)
 # the store sends the manual pair itself. The probe observes an arbitrary key string (`NSWindow Frame probe`, which is
 # what AppKit stores), writes it through every door, and checks the three rules the announcements rest on: one write is
 # one notification (a KVC write is not announced twice), a removal of an absent key announces nothing, and a registered
-# default announces only when its EFFECTIVE value moved. It points the store at a scratch root with FNX_CONFIG_ROOT.
+# default announces only when its EFFECTIVE value moved. It points the store at a scratch root with AGORA_CONFIG_ROOT.
 add_executable(user_defaults_kvo user_defaults_kvo.m)
 target_link_libraries(user_defaults_kvo PRIVATE Foundation CoreFoundation::CoreFoundation objc)
 add_test(NAME user_defaults_kvo COMMAND user_defaults_kvo)

@@ -209,7 +209,7 @@ main(int argc, char **argv)
 	}
 	pool = [[NSAutoreleasePool alloc] init];
 	if (mkdtemp(configRoot) != NULL) {
-		setenv("FNX_CONFIG_ROOT", configRoot, 1);
+		setenv("AGORA_CONFIG_ROOT", configRoot, 1);
 	}
 
 	/* ============================== SECURE CODING ============================================= */

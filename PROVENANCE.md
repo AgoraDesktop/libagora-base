@@ -212,5 +212,5 @@ and does not expose; the header says so at the class rather than leaving a calle
 `tests/user_defaults_kvo.m` is the instrument: **25 cases**, one notification per writing door, the KVC write's single
 announcement, `NSNull` for an absent old value, the removal of an absent key's silence, the registration's
 effective-value rule (new, same, replaced, shadowed), the non-property-list refusal's silence, two observers with one
-removed, and Prior's two-notification bracket. The probe points the store at a scratch root with `FNX_CONFIG_ROOT`, so
+removed, and Prior's two-notification bracket. The probe points the store at a scratch root with `AGORA_CONFIG_ROOT`, so
 it touches nothing in the image.

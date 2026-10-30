@@ -95,10 +95,10 @@ main(void)
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	char configRoot[] = "/tmp/agora-defaults-XXXXXX";
 
-	/* THE DEFAULTS STORE'S ROOT IS THE INSTALLATION'S CONFIGURATION TREE (FNX_CONFIG_ROOT), not the process's HOME:
+	/* THE DEFAULTS STORE'S ROOT IS THE INSTALLATION'S CONFIGURATION TREE (AGORA_CONFIG_ROOT), not the process's HOME:
 	 * point it at a scratch directory so the probe cannot write to the real install. */
 	if (mkdtemp(configRoot) != NULL) {
-		setenv("FNX_CONFIG_ROOT", configRoot, 1);
+		setenv("AGORA_CONFIG_ROOT", configRoot, 1);
 	}
 
 	/* ============================== CALENDAR ================================================== */

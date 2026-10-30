@@ -17,11 +17,20 @@
  *     <root>/Shared/Configuration/<domain>.plist           the SHARED scope — shipped defaults
  *     <root>/System/Configuration/<domain>.plist           the SYSTEM scope — an administrator's value
  *
- * where `<root>` is `getenv("FNX_CONFIG_ROOT")` or empty, and `<user>` is `getpwuid(getuid())->pw_name`,
+ * where `<root>` is `getenv("AGORA_CONFIG_ROOT")` or empty, and `<user>` is `getpwuid(getuid())->pw_name`,
  * then `getenv("USER")`, then `"root"`. The directories are CREATED on demand, and the files are XML
  * property lists written atomically through `NSPropertyListSerialization` — the tree's own plist core,
- * which is not libconfig. `FNX_CONFIG_ROOT` exists for the same reason libconfig has it: a probe points the
- * whole store at a scratch directory with `setenv(3)` and touches nothing in the image.
+ * which is not libconfig.
+ *
+ * **AN EMPTY ROOT IS THE INSTALLED TREE, AND AN AGORA INSTALL HAS THE Mac OS X LIKE DIRECTORIES.** An install
+ * lays down `/System`, `/Library`, `/Users`, `/Applications` and the rest — the same shape Apple's own system has,
+ * and the reason these scopes are `/Users/<user>/…` and `/System/…` rather than `$HOME` and `/etc`. So with the
+ * variable unset the store lands where a real install puts it, and the directories are created on demand: a
+ * machine that has never run a login has no `/Users/<name>/Configuration` yet, and the first write makes it. A
+ * DEVELOPMENT checkout has no such tree — `/` is the host's, and its `/Users` is root-owned — so a session or a
+ * probe points `AGORA_CONFIG_ROOT` at a directory of its own with `setenv(3)` and touches nothing in the image.
+ * The variable is Agora's own name for that door; it was once an unrelated project's, and nothing here reads that
+ * project's tree.
  *
  * THE SCOPE AXIS IS OURS, NOT APPLE'S, AND IT IS WHAT `-objectIsForcedForKey:` MEANS. Apple models one file
  * per domain and answers "did an administrator provide this?" from a managed-device flag. Here one domain

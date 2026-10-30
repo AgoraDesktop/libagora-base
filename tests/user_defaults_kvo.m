@@ -101,12 +101,12 @@ int main(void)
 		NSDictionary *registered;
 
 		/* **THE STORE IS POINTED AT A SCRATCH ROOT BEFORE ANY DEFAULTS OBJECT EXISTS**, which is what
-		 * `FNX_CONFIG_ROOT` is for: the probe touches nothing in the image. */
+		 * `AGORA_CONFIG_ROOT` is for: the probe touches nothing in the image. */
 		if (mkdtemp(scratch) == NULL) {
 			printf("user_defaults_kvo: cannot make a scratch directory\n");
 			return 1;
 		}
-		setenv("FNX_CONFIG_ROOT", scratch, 1);
+		setenv("AGORA_CONFIG_ROOT", scratch, 1);
 		defaults = [[NSUserDefaults alloc] initWithSuiteName:@"AgoraDefaultsKVOProbe"];
 
 		/* --------------------------------------------------------------------------------- *

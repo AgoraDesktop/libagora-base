@@ -100,15 +100,19 @@ enum {
 	FN_SCOPE_SYSTEM = 2	/* the administrator's value: the highest precedence */
 };
 
+/* **WHERE THE STORE'S TREE BEGINS: THE INSTALLED SYSTEM'S ROOT, OR THIS VARIABLE'S DIRECTORY.** Empty is `/` — an
+ * Agora install lays down the Mac OS X like directories (`/System`, `/Library`, `/Users`, `/Applications`), so the
+ * scopes below are real paths on an installed machine and are created on demand there. A checkout has no such tree,
+ * so a session or a probe points this at a scratch directory and touches nothing in the image. */
 static NSString *fn_config_root(void)
 {
-	const char *root = getenv("FNX_CONFIG_ROOT");
+	const char *root = getenv("AGORA_CONFIG_ROOT");
 
 	return [NSString stringWithUTF8String:(root != NULL ? root : "")];
 }
 
-/* The same order libconfig uses, because these are the same directories and an app's settings must not
- * change owner depending on which library asked. */
+/* The user's own name, in the order the FSH's owner directory needs it: the passwd entry, then `USER`, then the
+ * fallback every accountless container ends up as. */
 static NSString *fn_config_user(void)
 {
 	struct passwd *pw = getpwuid(getuid());
