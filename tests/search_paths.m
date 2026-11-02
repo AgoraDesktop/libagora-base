@@ -168,6 +168,39 @@ int main(void)
 			}
 		}
 	}
+	/* 9. **`NSHomeDirectory()` ANSWERS `$HOME` FIRST, AND THE DOOR THAT NAMES A USER DOES NOT.** A launcher, a test or
+	 *    a sandbox redirects a process's home through the environment, and Apple's own documentation says this door reads
+	 *    it; reading the account database alone made `HOME=/tmp/scratch` invisible to every caller in this tree while
+	 *    everything outside honoured it. `NSHomeDirectoryForUser:` keeps the database's answer, because naming a user is
+	 *    naming an account and not a process. */
+	{
+		NSString *databaseHome = NSHomeDirectory();
+		const char *saved = getenv("HOME");
+		char savedCopy[4096] = "";
+		bool hadHome = (saved != NULL);
+
+		if (hadHome) snprintf(savedCopy, sizeof savedCopy, "%s", saved);
+		setenv("HOME", "/tmp/agora-home-from-environment", 1);
+		check([[NSHomeDirectory() stringByStandardizingPath]
+		       isEqual:@"/tmp/agora-home-from-environment"],
+		      "NSHomeDirectory reads HOME when a process has set it");
+		check([[NSHomeDirectoryForUser(NSUserName()) stringByStandardizingPath] isEqual:databaseHome]
+		      || NSUserName() == nil,
+		      "while NSHomeDirectoryForUser still answers the account database");
+
+		setenv("HOME", "", 1);
+		check([NSHomeDirectory() isEqual:databaseHome],
+		      "an EMPTY HOME is not a home: the account database answers instead");
+
+		/* AND IT NEVER FAILS, which is Apple's contract for this door. */
+		unsetenv("HOME");
+		check([NSHomeDirectory() length] > 0, "and with HOME unset it still answers something");
+
+		if (hadHome) {
+			setenv("HOME", savedCopy, 1);
+		}
+	}
+
 	printf("%s\n", g_failed == 0 ? "search_paths: all checks passed" : "search_paths: FAILED");
 	return g_failed == 0 ? 0 : 1;
 }

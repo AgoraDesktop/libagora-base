@@ -2205,10 +2205,29 @@ NSString *NSFullUserName(void)
 	return [NSString stringWithUTF8String:pw->pw_gecos];
 }
 
+/* **`$HOME` WINS, WHICH IS APPLE'S OWN RULE AND THE ONLY WAY A PROCESS CHOOSES ITS OWN HOME.** A home directory is
+ * the pw_dir the account database answers — that has not changed — but `NSHomeDirectory()` is the one of the pair that
+ * a launcher, a test or a sandbox can redirect: Apple's documentation says it answers the `HOME` environment variable
+ * when that is set, and only otherwise the account database. Reading the database alone meant `HOME=/tmp/scratch` was
+ * silently ignored by every caller in the tree — the desktop, the file window, the Trash and the Dock's bin all went on
+ * naming the account's home — while `$HOME` itself was honoured by everything outside it. `NSHomeDirectoryForUser:`
+ * keeps the database's answer, because naming a USER is naming an account and not a process.
+ *
+ * Empty is not set, an environment value that is not UTF-8 falls through to the database, and the answer is never nil:
+ * Apple documents this door as one that does not fail. */
 NSString *NSHomeDirectory(void)
 {
-	struct passwd *pw = getpwuid(getuid());
+	const char *fromEnvironment = getenv("HOME");
+	struct passwd *pw;
 
+	if (fromEnvironment != NULL && fromEnvironment[0] != '\0') {
+		NSString *answer = [NSString stringWithUTF8String:fromEnvironment];
+
+		if (answer != nil) {
+			return answer;
+		}
+	}
+	pw = getpwuid(getuid());
 	if (pw == NULL || pw->pw_dir == NULL || pw->pw_dir[0] == '\0') {
 		return @"/";
 	}

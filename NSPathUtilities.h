@@ -90,6 +90,12 @@ NSString *NSTemporaryDirectory(void);
  * NSFileManager's own account-name code and NSUserDefaults already use. A home directory is therefore NOT a
  * policy this class invents: it is the pw_dir the account database answers, exactly as Apple's does. An
  * unknown user answers nil (Apple's contract for NSHomeDirectoryForUser:).
+ *
+ * **AND `NSHomeDirectory()` ANSWERS `$HOME` FIRST, WHICH IS APPLE'S OWN RULE.** The two doors differ on purpose: the
+ * one that names the CURRENT user answers the environment when a launcher, a test or a sandbox has set it, and the
+ * account database otherwise; the one that names A USER answers the database, because naming a user is naming an
+ * account and not a process. Reading the database alone made `HOME=/tmp/scratch` invisible to every caller in this
+ * tree while everything outside it honoured it.
  */
 extern NSString * _Nullable NSUserName(void);
 extern NSString * _Nullable NSFullUserName(void);
