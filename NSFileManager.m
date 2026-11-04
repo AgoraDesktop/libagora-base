@@ -871,12 +871,26 @@ typedef enum {
 				}
 				continue;
 			}
-			if ([prefix lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 1 || ([prefix lengthOfBytesUsingEncoding:NSUTF8StringEncoding] == 1 && [prefix isEqualToString:@"/"])) {
+			/* **THE SLASH GOES BETWEEN COMPONENTS, EXCEPT AT THE ROOT** — and the question is whether the prefix already
+			 * ENDS in one, not how long it is. The old rule tested the length, which treats `.` as if it were the root:
+			 * `./dir/a` became `.dir` and then `.dira`, so every component was glued to the one before it and the
+			 * directories were made in the CURRENT directory under names nobody could see — while the method answered YES,
+			 * because every `mkdir` it ran was real. MEASURED: `./dotdir/a/b` created `.dotdirab` and reported success, and
+			 * a file manager extracting an archive into `./folder` left nothing behind and said it had worked. */
+			if ([prefix length] > 0 && ![prefix hasSuffix:@"/"]) {
 				[prefix appendString:@"/"];
 			}
 			[prefix appendString:part];
-			if (mkdir([prefix UTF8String], 0777) != 0 && errno != EEXIST) {
-				return fn_failed(error, errno);
+			if (mkdir([prefix UTF8String], 0777) != 0) {
+				int saved = errno;
+				struct stat made;
+
+				if (saved != EEXIST || stat([prefix UTF8String], &made) != 0 || !S_ISDIR(made.st_mode)) {
+					/* **AN EEXIST THAT IS NOT A DIRECTORY IS A FAILURE**, which is Apple's own sentence for the
+					 * intermediates case: a FILE standing where a prefix should be is not a directory that already
+					 * exists. */
+					return fn_failed(error, (saved == EEXIST) ? ENOTDIR : saved);
+				}
 			}
 		}
 	} else if (mkdir([path UTF8String], 0777) != 0 && errno != EEXIST) {

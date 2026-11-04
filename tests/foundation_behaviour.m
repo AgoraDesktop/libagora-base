@@ -365,6 +365,45 @@ main(void)
 		      "-removeItemAtPath:error:");
 	}
 	{
+		/* **A RELATIVE PATH IS A PATH TOO.** The prefix walk glued every component to the one before it whenever the
+		 * prefix was one character long, which is exactly `.`: `./deep/a/b` made `.deepa` in the current directory and
+		 * answered YES. MEASURED by a file manager that extracted an archive into `./folder` and left nothing behind
+		 * while reporting success. The check runs in a directory of its own, because the bug's whole symptom is where
+		 * the directories landed. */
+		NSFileManager *manager = [NSFileManager defaultManager];
+		NSString *here = [scratchDirectory() stringByAppendingPathComponent:@"relative"];
+		char previous[1024];
+		BOOL hadDirectory = (getcwd(previous, sizeof previous) != NULL);
+
+		[manager removeItemAtPath:here error:NULL];
+		[manager createDirectoryAtPath:here withIntermediateDirectories:YES attributes:nil error:NULL];
+		if (hadDirectory && chdir([here fileSystemRepresentation]) == 0) {
+			check([manager createDirectoryAtPath:@"./deep/a/b" withIntermediateDirectories:YES
+						      attributes:nil error:NULL],
+			      "-createDirectoryAtPath: with a ./-relative path says it made it");
+			check([manager fileExistsAtPath:@"./deep/a/b"],
+			      "and the directories are where the path names them");
+			check(![manager fileExistsAtPath:@".deep"] && ![manager fileExistsAtPath:@".deepa/b"],
+			      "not as a hidden tree glued together in the current directory");
+			check([manager createDirectoryAtPath:@"plain//x" withIntermediateDirectories:YES
+						      attributes:nil error:NULL],
+			      "a doubled slash is a separator, not a component");
+			check([manager fileExistsAtPath:@"plain/x"], "and the folder is where it says");
+			{
+				/* A FILE WHERE A PREFIX SHOULD BE IS A FAILURE, not an EEXIST to shrug at. */
+				NSError *blocked = nil;
+
+				[manager createFileAtPath:@"plain/x/a-file" contents:nil attributes:nil];
+				check(![manager createDirectoryAtPath:@"plain/x/a-file/below"
+					 withIntermediateDirectories:YES attributes:nil error:&blocked]
+				      && blocked != nil,
+				      "a file standing where a prefix should be is refused");
+			}
+			(void)chdir(previous);
+		}
+		[manager removeItemAtPath:here error:NULL];
+	}
+	{
 		/* THE ATOMIC REPLACEMENT: the new item takes the original's place, and the backup is kept when asked. */
 		NSFileManager *manager = [NSFileManager defaultManager];
 		NSString *root = [scratchDirectory() stringByAppendingPathComponent:@"replace"];
